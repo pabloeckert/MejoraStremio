@@ -1,85 +1,40 @@
 <script setup>
-import { useI18n } from 'vue-i18n';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import Header from './components/Header.vue';
 import DarkModeToggle from './components/DarkModeToggle.vue';
-import LanguageSelector from './components/LanguageSelector.vue';
-import Summary from './components/Summary.vue';
-import Configuration from './components/Configuration.vue';
-import FAQ from './components/FAQ.vue';
-import ThankYou from './components/ThankYou.vue';
+import Backup from './components/Backup.vue';
 import Footer from './components/Footer.vue';
 import Authentication from './components/Authentication.vue';
-import Backup from './components/Backup.vue';
 import Notifications from './components/Notifications.vue';
+import PabloFreeWizard from './components/PabloFreeWizard.vue';
 
-const { t } = useI18n();
-
-const selectedPlatform = ref('stremio');
-const authKeysByPlatform = ref({
-  stremio: '',
-  nuvio: ''
-});
-
-const authSourceByPlatform = ref({
-  stremio: '',
-  nuvio: ''
-});
-
-const activeAuthKey = computed(
-  () => authKeysByPlatform.value[selectedPlatform.value] || ''
-);
-
-const activeAuthSource = computed(
-  () => authSourceByPlatform.value[selectedPlatform.value] || ''
-);
-
-function setPlatform(platform) {
-  selectedPlatform.value = platform;
-}
+const authKey = ref('');
 
 function setAuthKey(payload) {
-  if (!payload || !payload.platform) {
-    return;
-  }
-
-  authKeysByPlatform.value[payload.platform] = payload.key || '';
-  authSourceByPlatform.value[payload.platform] = payload.source || '';
+  if (!payload || !payload.platform) return;
+  authKey.value = payload.key || '';
 }
 </script>
 
 <template>
   <header>
-    <div class="flex justify-between items-center mt-4 px-4">
-      <LanguageSelector />
+    <div class="flex justify-end items-center mt-4 px-4">
       <DarkModeToggle />
     </div>
     <Header
-      addonName="Stremio Account Bootstrapper"
-      :addonSummary="
-        t('addon_summary', {
-          platform: selectedPlatform === 'nuvio' ? 'Nuvio' : 'Stremio'
-        })
-      "
+      addonName="Mi Setup — Stremio"
+      addonSummary="Setup 100% gratuito para Stremio con metadata profunda, catálogos latinos y subtítulos en español."
       addonLogo="logo.png"
     />
   </header>
   <main class="max-w-4xl mx-auto">
     <Notifications />
-    <Summary :platform="selectedPlatform" />
     <Authentication
-      :platform="selectedPlatform"
-      @platform-change="setPlatform"
+      platform="stremio"
       @auth-key="setAuthKey"
     />
-    <Backup :platform="selectedPlatform" :authKey="activeAuthKey" />
-    <Configuration
-      :platform="selectedPlatform"
-      :authKey="activeAuthKey"
-      :authSource="activeAuthSource"
-    />
-    <FAQ :platform="selectedPlatform" />
-    <ThankYou />
+    <Backup platform="stremio" :authKey="authKey" />
+    <PabloFreeWizard platform="stremio" :authKey="authKey" />
   </main>
   <footer>
     <Footer />

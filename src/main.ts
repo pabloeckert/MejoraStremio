@@ -10,18 +10,9 @@ inject();
 
 const supported = ['en', 'es', 'fr', 'it', 'de', 'pt', 'nl'] as const;
 type SupportedLang = (typeof supported)[number];
-let savedLang = (localStorage.getItem('language') as SupportedLang) || '';
-if (!savedLang) {
-  const nav =
-    (navigator.languages && navigator.languages[0]) ||
-    navigator.language ||
-    'en';
-  const primary = String(nav).split('-')[0];
-  savedLang = supported.includes(primary as SupportedLang)
-    ? (primary as SupportedLang)
-    : 'en';
-  localStorage.setItem('language', savedLang);
-}
+// Forzar español como idioma de la interfaz
+let savedLang: SupportedLang = 'es';
+localStorage.setItem('language', savedLang);
 
 const i18n = createI18n({
   legacy: false,

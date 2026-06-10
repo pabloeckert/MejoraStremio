@@ -29,9 +29,6 @@
     "vue-i18n": "^11.1.11",
     "vuedraggable": "^4.1.0"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
-  },
   "devDependencies": {
     "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.2",
@@ -45,6 +42,7 @@
     "eslint": "^9.36.0",
     "eslint-plugin-vue": "^10.5.0",
     "husky": "^9.1.7",
+    "playwright": "^1.60.0",
     "prettier": "3.3.3",
     "standard-version": "^9.5.0",
     "typescript": "~5.8.3",

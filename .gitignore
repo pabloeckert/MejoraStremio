@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Capturas del smoke test
+.screenshots

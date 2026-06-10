@@ -99,7 +99,12 @@ export async function buildPresetService(params: BuildPresetServiceParams) {
     'pt-BR': ['brazucatorrents']
   };
 
-  if (preset !== 'allinone' && preset !== 'factory' && preset !== 'http_only') {
+  if (
+    preset !== 'allinone' &&
+    preset !== 'factory' &&
+    preset !== 'http_only' &&
+    preset !== 'pablo-free'
+  ) {
     const addons = languageAddons[language];
     if (addons) {
       presetKeys = [...presetKeys, ...addons];
@@ -190,7 +195,8 @@ export async function buildPresetService(params: BuildPresetServiceParams) {
     debridEntries: validatedDebridEntries,
     debridServiceName,
     preset,
-    password
+    password,
+    advanced
   };
 
   // Helper function to replace an addon key with cloned entries while maintaining order

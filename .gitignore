@@ -27,3 +27,6 @@ dist-ssr
 
 # Capturas del smoke test
 .screenshots
+
+# Backups de colecciones de addons (datos de cuenta)
+.backups

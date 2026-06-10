@@ -1,5 +1,8 @@
 import { chromium } from 'playwright';
 
+// URL objetivo como primer argumento; por defecto el dev server local
+const targetUrl = process.argv[2] || 'http://localhost:5173/';
+
 const errors = [];
 const pageErrors = [];
 const failedRequests = [];
@@ -15,7 +18,24 @@ page.on('requestfailed', (req) =>
   failedRequests.push(`${req.url()} :: ${req.failure()?.errorText}`)
 );
 
-await page.goto('http://localhost:5173/', { waitUntil: 'networkidle' });
+await page.goto(targetUrl, { waitUntil: 'networkidle' });
+
+// preset.json debe resolver bajo el base path, igual que lo pide la app
+const presetCheck = await page.evaluate(async () => {
+  const url = new URL('preset.json', location.href).href;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return { url, ok: false, status: res.status };
+    const data = await res.json();
+    return {
+      url,
+      ok: true,
+      hasPabloFree: 'pablo-free' in (data.presets || {})
+    };
+  } catch (e) {
+    return { url, ok: false, error: String(e) };
+  }
+});
 
 const title = await page.title();
 const wizardVisible = await page.locator('#configure').isVisible();
@@ -50,7 +70,9 @@ await browser.close();
 console.log(
   JSON.stringify(
     {
+      targetUrl,
       title,
+      presetCheck,
       wizardVisible,
       heading: heading?.trim(),
       stepCount,

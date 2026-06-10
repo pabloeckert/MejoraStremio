@@ -75,7 +75,7 @@ export async function buildPresetService(params: BuildPresetServiceParams) {
 
   const errors: string[] = [];
 
-  const data: any = await getRequest('/preset.json');
+  const data: any = await getRequest(`${import.meta.env.BASE_URL}preset.json`);
   if (!data) throw new Error('Failed to fetch presets');
 
   const mediaFusionConfig = data.mediafusionConfig;

@@ -1,12 +1,9 @@
 import './style.css';
 import { createApp } from 'vue';
 import { createI18n } from 'vue-i18n';
-import { inject } from '@vercel/analytics';
 import App from './App.vue';
 import Notifications from './components/Notifications.vue';
 import { LOCALE_MESSAGES } from './locales';
-
-inject();
 
 const supported = ['en', 'es', 'fr', 'it', 'de', 'pt', 'nl'] as const;
 type SupportedLang = (typeof supported)[number];

@@ -18,7 +18,6 @@
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
     "@tailwindcss/vite": "^4.1.13",
-    "@vercel/analytics": "^1.1.2",
     "buffer": "^6.0.3",
     "daisyui": "^5.1.13",
     "date-fns": "^4.1.0",

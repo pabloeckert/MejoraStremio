@@ -76,6 +76,18 @@ async function install() {
       addNotification(errors.join('\n'), 'warning');
     }
 
+    // Los dos addons principales (AIOMetadata + AIOStreams) se configuran contra
+    // servicios externos. Si ambos fallan, selectedAddons solo tendría los custom
+    // addons y sobrescribiría la cuenta con 1-2 entradas o incluso 0.
+    // Requerimos al menos 3 para garantizar que la configuración es válida.
+    if (selectedAddons.length < 3) {
+      throw new Error(
+        'La configuración resultó en muy pocos addons (' +
+          selectedAddons.length +
+          '). Revisá los errores anteriores y reintentá.'
+      );
+    }
+
     await loadPresetService({
       addons: selectedAddons,
       key: props.authKey,

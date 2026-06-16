@@ -74,7 +74,9 @@ async function restoreConfigFile(event) {
     const parsed = JSON.parse(text);
 
     const addonsPayload =
-      parsed?.result?.addons ?? (Array.isArray(parsed) ? parsed : null);
+      parsed?.result?.addons ??
+      parsed?.addons ??
+      (Array.isArray(parsed) ? parsed : null);
 
     if (!addonsPayload) {
       addNotification(t('invalid_backup_file'), 'error');

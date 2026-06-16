@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # MejoraStremio
 
 Fork personalizado de [DryKillLogic/stremio-account-bootstrapper](https://github.com/DryKillLogic/stremio-account-bootstrapper).
@@ -12,29 +16,75 @@ en cada push a `main` vía `.github/workflows/deploy.yml`).
 
 - `pnpm install` — requiere pnpm 11+ (la config `allowBuilds` vive en `pnpm-workspace.yaml`;
   pnpm 11 ya no lee el campo `pnpm` de package.json). No usar npm (no mezclar package-lock.json).
-- `pnpm run build` — `vue-tsc -b && vite build`.
 - `pnpm run dev` — dev server en localhost:5173.
+- `pnpm run build` — `vue-tsc -b && vite build` (type-check + bundle).
+- `pnpm run preview` — sirve el build de `dist/` en localhost:4173 para probar el build localmente.
+- `vue-tsc -b --noEmit` — solo type-check sin compilar (más rápido para verificar tipos).
 - `node scripts/smoke-test.mjs [url]` — smoke test de Playwright del wizard (default: dev server
   local; acepta la URL de GitHub Pages). Capturas en `.screenshots/` (gitignorado).
 - `node scripts/e2e-install.mjs` — instalación REAL en una cuenta de Stremio. Credenciales por
   env vars: `ST_EMAIL`, `ST_PASS`, `TMDB_KEY`, `SUBSENSE_URL`. Hace backup previo de los addons
   en `.backups/` (gitignorado). ⚠️ Sobreescribe la colección de addons de la cuenta.
 
-## Arquitectura del preset pablo-free
+## Arquitectura
+
+### Flujo de datos principal
+
+`App.vue` monta tres componentes en secuencia:
+1. `Authentication` — login/registro con email+password; emite `auth-key` (string JWT de Stremio).
+2. `Backup` — descarga/restaura la colección de addons antes de instalar.
+3. `PabloFreeWizard` — wizard de 3 pasos que recibe `authKey` por prop.
+
+Al completar el wizard, `PabloFreeWizard` llama:
+1. `buildPresetService(params)` → resuelve `preset.json`, aplica todos los `configure*` de addons,
+   y devuelve `{ selectedAddons, collections, errors }`.
+2. `loadPresetService({ addons, key, platform })` → llama `platformApi.setAddonCollection` →
+   `stremioApi.setAddonCollection` → sincroniza con los servidores de Stremio.
+
+### Preset pablo-free
 
 - `public/preset.json` — define `"pablo-free": ["aiometadata", "aiostreams"]` + 4 catálogos
   TMDB Discover custom (ids `*.pablo001`–`pablo004`: Cine/Series Argentina y Latinoamérica,
   con `showInHome: false` → solo visibles en Discover, no en el board).
 - `src/components/PabloFreeWizard.vue` — wizard de 3 pasos (TMDB key → URL SubSense → instalar).
   Texto en español hardcodeado, sin claves i18n. Streaming Catalogs y SubSense se instalan como
-  customAddons.
-- `src/services/presetService.ts` — orquesta la instalación. Particularidades de este fork:
+  `customAddons` (URLs de manifest externas).
+- `src/services/presetService.ts` — `buildPresetService` carga `preset.json` via
+  `import.meta.env.BASE_URL` (ruta absoluta daba 404 bajo el base path `/MejoraStremio/` de
+  GitHub Pages), construye `presetConfig` mergeando las secciones del JSON, y aplica cada
+  `configure*`. Particularidades del fork:
   - `pablo-free` está excluido de la inyección de addons regionales (como `allinone`), para que
     instale exactamente 4 addons.
   - `advanced` se pasa en el `context` para que la TMDB key llegue a AIOStreams.
-  - `preset.json` se carga con `import.meta.env.BASE_URL` (ruta absoluta `/preset.json` daba 404
-    bajo el base path `/MejoraStremio/` de GitHub Pages).
-- `vite.config.ts` — `base` se calcula desde `GITHUB_REPOSITORY` solo en CI; localmente es `/`.
+
+### Patrón de addons (`src/services/addons/`)
+
+Cada archivo exporta una función `configure<Name>(presetConfig, context, ...)`:
+- Recibe `presetConfig` (objeto mutable con claves = nombre del addon) y `AddonConfigContext`
+  (language, debridEntries, preset, advanced, etc.).
+- Puede devolver `{ shouldReplace: true, rebuilt: Record<string, any> }` para reemplazar la clave
+  del addon manteniendo el orden del objeto (hay addons que generan múltiples instancias, como
+  torrentio con un debrid por instancia).
+- O mutarse directamente sobre `presetConfig` si no necesita reordenar.
+- Las `configure*` que requieren red son `async` (aiometadata, mediafusion, aiostreams,
+  stremthrustore); las demás son síncronas.
+
+### Capa de plataforma (`src/api/platformApi.ts`)
+
+Abstrae Stremio vs Nuvio. Todas las llamadas pasan por `getApi(platform)` que selecciona entre
+`stremioApi` y `nuvioApi`. Las respuestas se normalizan a `{ result: { authKey | addons | success } }`
+vía `normalizePlatformResponse`. Este fork solo usa `platform: 'stremio'`.
+
+### `src/worker.ts` (Cloudflare Workers, no usado en GitHub Pages)
+
+Entry point para el deploy alternativo a Cloudflare Workers (`pnpm run deploy`). Actúa como proxy
+para la API de Nuvio (inyecta `NUVIO_API_KEY` desde env) y sirve la SPA con fallback a `index.html`.
+No afecta el deploy a GitHub Pages.
+
+### Build base path
+
+`vite.config.ts` — `base` se calcula desde `GITHUB_REPOSITORY` solo en CI (`GITHUB_ACTIONS=true`);
+localmente es `/`. Esto explica por qué los assets funcionan tanto en dev como en Pages.
 
 ## Reglas del repo
 
@@ -43,28 +93,3 @@ en cada push a `main` vía `.github/workflows/deploy.yml`).
 - No eliminar el preset `pablo-free`: es el corazón del proyecto.
 - Sin Vercel Analytics (se quitó: generaba 404 en GitHub Pages).
 - Ante dudas sobre cómo debería ser el código, comparar con el upstream original.
-
-## Estado (2026-06-09)
-
-Todo funcionando de punta a punta y verificado:
-- install/build/dev limpios (Node 24, pnpm 11.5.2).
-- Deploy a GitHub Pages OK con actions en Node 24 (checkout@v6, setup-node@v6,
-  pnpm/action-setup@v6, upload-pages-artifact@v5, deploy-pages@v5).
-- Instalación real ejecutada en la cuenta del usuario desde el sitio publicado: los 4 addons
-  (AIOMetadata, AIOStreams, Streaming Catalogs, SubSense) quedaron en la cuenta.
-- Verificado en Stremio desktop 5.0.21: catálogos en el board y en Discover (Cine Argentina:
-  794 títulos; Latinoamérica Series: 714), SubSense devolviendo subtítulos en español.
-- Backup de la colección anterior (18 addons) en `.backups/addons-backup-1781057201346.json`.
-
-## Next Steps (priorizados)
-
-1. **Cambiar la contraseña de Stremio** — se compartió en texto plano durante la sesión del
-   2026-06-09 (higiene de seguridad; nada quedó guardado en el repo).
-2. **Verificación visual del player** — reproducir un stream y confirmar que el menú de
-   subtítulos muestra las entradas de SubSense (único tramo no verificado visualmente).
-3. **Smoke test en CI** — agregar un job post-deploy en `deploy.yml` que corra
-   `node scripts/smoke-test.mjs <url de Pages>` para detectar regresiones en producción.
-4. **Paso opcional de AIOLists en el wizard** — hoy es instrucción manual; evaluar pedir la URL
-   configurada de aiolists.elfhosted.com como paso 3 opcional e instalarla como customAddon.
-5. **Sync periódico con upstream** — traer mejoras de DryKillLogic/stremio-account-bootstrapper
-   (los archivos de servicios/addons casi no divergen; el merge debería ser simple).

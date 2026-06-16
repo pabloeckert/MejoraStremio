@@ -25,6 +25,8 @@ en cada push a `main` vía `.github/workflows/deploy.yml`).
 - `node scripts/e2e-install.mjs` — instalación REAL en una cuenta de Stremio. Credenciales por
   env vars: `ST_EMAIL`, `ST_PASS`, `TMDB_KEY`, `SUBSENSE_URL`. Hace backup previo de los addons
   en `.backups/` (gitignorado). ⚠️ Sobreescribe la colección de addons de la cuenta.
+- `node scripts/health-check.mjs` — verifica manifests de addons clave, subtítulos en español
+  (SubSense) y streams P2P. Credenciales opcionales: `ST_EMAIL`, `ST_PASS`.
 
 ## Arquitectura
 
@@ -85,6 +87,70 @@ No afecta el deploy a GitHub Pages.
 
 `vite.config.ts` — `base` se calcula desde `GITHUB_REPOSITORY` solo en CI (`GITHUB_ACTIONS=true`);
 localmente es `/`. Esto explica por qué los assets funcionan tanto en dev como en Pages.
+
+## Mantenimiento
+
+### Script de health-check
+
+```
+node scripts/health-check.mjs
+ST_EMAIL=stremioeg@gmail.com ST_PASS=... node scripts/health-check.mjs
+```
+
+Verifica 4 cosas en paralelo: (1) cuenta con ≥10 addons, (2) manifests de 9 addons clave,
+(3) SubSense devuelve subs en español, (4) Torrentio tiene streams para Matrix y Breaking Bad.
+Exit code 0 = todo OK. Con `--fix` emite advertencias adicionales si SubSense falla.
+
+### SubSense — reglas críticas
+
+El token de SubSense tiene formato `{userId}-{configString}`:
+- `userId` debe ser **exactamente 8 caracteres** (el JS del sitio genera 8 chars con
+  `generateUserId()`). Con más caracteres el servidor devuelve solo inglés.
+- `configString` = `encodeURIComponent(JSON.stringify({languages:["es"],maxSubtitles:20}))`
+- Código de idioma: usar `"es"` (NO `"spa"`, `"es-AR"`, `"es-419"` — esos devuelven inglés)
+- Para regenerar: ir a `https://subsense.nepiraw.com`, elegir Spanish, copiar la URL del manifest.
+
+### Backup y restauración de addons
+
+Los backups de `.backups/` no están en el repo (`.gitignore`). Para restaurar una cuenta:
+
+```powershell
+# Leer backup y parsear addons (acepta los 3 formatos posibles)
+$raw = Get-Content .backups\backup-NAME.json -Raw | ConvertFrom-Json
+$addons = if ($raw.result.addons) { $raw.result.addons }
+          elseif ($raw.addons) { $raw.addons }
+          else { $raw }
+
+# Hacer backup previo
+$authKey = "..."   # obtener via login
+Invoke-RestMethod -Uri "https://api.strem.io/api/addonCollectionGet" -Method POST `
+  -ContentType "application/json" `
+  -Body (@{type="AddonCollectionGet";authKey=$authKey;update=$true} | ConvertTo-Json) `
+  | ConvertTo-Json -Depth 20 | Out-File ".backups\backup-pre-restore.json"
+
+# Restaurar
+Invoke-RestMethod -Uri "https://api.strem.io/api/addonCollectionSet" -Method POST `
+  -ContentType "application/json" `
+  -Body (@{type="AddonCollectionSet";authKey=$authKey;addons=$addons} | ConvertTo-Json -Depth 20)
+```
+
+### Addons que pueden caerse
+
+| Addon                    | Tipo     | Alternativa si cae           |
+|--------------------------|----------|------------------------------|
+| OpenSubtitlesPRO         | subs     | Removido; usar OpenSubs v3   |
+| Community Subtitles      | subs     | Removido; usar SubSense      |
+| Streaming Catalogs Plus  | catalogs | URL `7a82163c306e-*.baby-beamup.club`|
+| Subsense con userId >8ch | subs     | Regenerar con userId de 8ch  |
+
+### Problemas conocidos: Wild Cards (Vanessa Morgan, CBC)
+
+Episodios S01E07 en adelante tienen pocas seeds P2P (2–8 seeds en Torrentio) por ser
+una producción canadiense (CBC) con baja distribución internacional. No es un problema
+de configuración. Alternativas:
+- Probar **Comet** (tiene ~24–25 resultados por episodio, calidad/seeds variables)
+- Probar el pack **KONTRAST** (season pack, 8 seeds) que aparece en E07+
+- Debrid service (Real-Debrid, AllDebrid) resuelve definitivamente la disponibilidad
 
 ## Reglas del repo
 

@@ -1,32 +1,10 @@
 # Logs
-logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Sistema / editor
+.DS_Store
+.idea
 *.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-.vercel
-
-# Capturas del smoke test
-.screenshots
-
-# Backups de colecciones de addons (datos de cuenta)
+# Backups de colecciones de addons (datos de cuenta, no versionar)
 .backups

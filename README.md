@@ -1,47 +1,41 @@
-![logo](public/logo.png)
-
 # MejoraStremio
 
-Fork personalizado de [DryKillLogic/stremio-account-bootstrapper](https://github.com/DryKillLogic/stremio-account-bootstrapper).
-SPA en Vue 3 + TypeScript + Vite + Tailwind/daisyUI que configura una cuenta de Stremio con
-un único preset (`pablo-free`) mediante un wizard de 3 pasos, 100% en español.
+Caja de herramientas personal para mantener una cuenta de [Stremio](https://www.stremio.com/)
+con un setup gratuito (metadata profunda, catálogos latinos y de plataformas, streams P2P y
+subtítulos en español). **No es una app web** — se opera por terminal, hablando con las APIs de
+Stremio y de los addons directamente.
 
-Sitio publicado: https://pabloeckert.github.io/MejoraStremio/ (deploy automático a GitHub
-Pages en cada push a `main`).
+> Empezó como un fork de la SPA
+> [DryKillLogic/stremio-account-bootstrapper](https://github.com/DryKillLogic/stremio-account-bootstrapper)
+> (un wizard web que instalaba un preset). Ese wizard se eliminó: el setup se gestiona ahora con
+> los scripts de este repo. El historial de git conserva la versión SPA si hiciera falta.
 
-**⚠️ El wizard sobreescribe la colección de addons de la cuenta. Hacé un backup desde la
-sección "Copia de seguridad" antes de instalar.**
+## Contenido
 
-## Qué instala
-
-- **AIOMetadata** — metadata profunda (TMDB/TVDB/Fanart) + catálogos de Cine/Series
-  Argentina y Latinoamérica.
-- **AIOStreams** — streams P2P gratuitos (Comet, StremThru Torz, MediaFusion, Torrentio).
-- **Streaming Catalogs** — catálogos de Netflix, HBO Max, Disney+, Prime Video, etc.
-- **SubSense** — subtítulos en español, configurado con la URL que pega el usuario.
-
-Ver [CLAUDE.md](./CLAUDE.md) para el detalle de arquitectura, comandos de desarrollo y
-procedimientos de mantenimiento.
-
-## Desarrollo
-
-```sh
-pnpm install        # requiere pnpm 11+
-pnpm run dev         # localhost:5173
-pnpm run build       # type-check + bundle
-pnpm run preview     # sirve dist/ en localhost:4173
-pnpm run format      # formatea con Prettier
+```
+data/preset.json          Definición de los catálogos de AIOMetadata (fuente de datos /
+                          referencia para reconstruir la config si hace falta).
+scripts/health-check.mjs  Auditoría del estado de la cuenta y los addons.
+scripts/fix-subtitles.*   Regenera la config de SubSense (subtítulos en español) en la cuenta.
+CLAUDE.md                 Guía de mantenimiento: reglas de SubSense, catálogos de AIOMetadata,
+                          backup/restore, problemas conocidos.
 ```
 
-Scripts de verificación en `scripts/`: `health-check.mjs` (chequeo rápido de manifests/subs/
-streams), `smoke-test.mjs` (Playwright contra el wizard) y `e2e-install.mjs` (instalación real
-contra una cuenta de Stremio).
+Los scripts corren con Node ≥ 20 (usan `fetch`/`https` nativos, sin dependencias). No hay
+`package.json` ni build: es un toolkit, no un paquete.
 
-## Changelog
+## Uso
 
-Ver [CHANGELOG.md](./CHANGELOG.md).
+```sh
+# Auditoría completa (login + addons + catálogos + búsqueda + streams + subtítulos)
+ST_EMAIL=tu@email ST_PASS=tu_pass node scripts/health-check.mjs
 
-## Créditos
+# Sin credenciales: solo verifica manifests públicos
+node scripts/health-check.mjs
 
-Basado en el trabajo original de pancake3000 y el fork de redd-ravenn, con la colaboración de
-Sleeyax y &#60;Code/&#62;.
+# Regenerar SubSense en una cuenta
+node scripts/fix-subtitles.mjs <email> <password> <subsense-manifest-url>
+```
+
+Los backups de colecciones de addons van a `.backups/` (gitignorado). Ver **CLAUDE.md** para el
+procedimiento de backup/restauración y las reglas críticas del setup.

@@ -29,12 +29,15 @@ build: es un toolkit, no un paquete. No usar `npm install`.
 
 ## Estado actual de la cuenta (stremioeg, 2026-06-19)
 
-13 addons. AIOMetadata consolidado en **una sola instancia** (UUID `2e265900-0f7c-483c-848b-c24acd554d32`),
-con 110 catálogos: globales (Trending, Latest, Top Rated, géneros, plataformas + Top 10 FlixPatrol,
-décadas), 12 países (Argentina, Latam, España, Francia, Alemania, Italia, Reino Unido, Portugal,
-México, Colombia, Chile, Brasil, Perú), "Próximos Estrenos", "En Cartelera", y búsqueda por título
-y por actor. Trakt y Simkl conectados. Streams: Torrentio, Comet, Meteor, NoTorrent, WebStreamr.
-Subtítulos: SubSense (español), GTSubs, OpenSubtitles v3.
+14 addons. AIOMetadata consolidado en **una sola instancia** (UUID
+`fb53caf3-41b1-4d9c-8fdf-cae02ff1e17f`, regenerada el 2026-06-19 con los catálogos **reordenados**:
+En Cartelera → Próximos Estrenos → Tendencias → Géneros → Países → Plataformas/Top 10 al fondo —
+ver "Reorden del inicio" abajo). 110 catálogos: globales (Trending, Latest, Top Rated, géneros,
+plataformas + Top 10 FlixPatrol, décadas), 12 países (Argentina, Latam, España, Francia, Alemania,
+Italia, Reino Unido, Portugal, México, Colombia, Chile, Brasil, Perú), "Próximos Estrenos", "En
+Cartelera", y búsqueda por título y por actor. Trakt y Simkl conectados. Streams: Torrentio, Comet,
+Meteor, NoTorrent, WebStreamr. Subtítulos: SubSense (español), GTSubs, OpenSubtitles v3. Catálogos
+de Mubi via "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte).
 
 ## Mantenimiento
 
@@ -90,6 +93,34 @@ el Catalog Builder web). Los `pablo0NN` son catálogos custom (países, Próximo
   2026-06-19 (añadir "En Cartelera") se hizo así y la instancia nueva mostró los tokens. **Confirmar
   igual en la app** (que el watch-tracking siga andando) tras cualquier regeneración; si falla,
   restaurar la colección (los UUID viejos persisten en el server → reversible).
+- **El save exige `password` no vacío** (`"Password is required"`). Es el password del config de
+  AIOMetadata, **distinto del de la cuenta Stremio**. El de la cuenta sirve para el login de la API
+  (`/api/login`); el del config para `/api/config/save`. No confundirlos.
+- **El GET `/api/config?id=<uuid>` NO devuelve los catálogos** (solo config reducida + tokens). No
+  hay endpoint público para leer la lista de catálogos de una instancia → la fuente para
+  reconstruir es **`data/preset.json`**, y por eso hay que mantenerlo sincronizado (ver drift abajo).
+
+### Reorden del inicio + drift de preset.json (2026-06-19)
+
+Pablo quería que la pantalla de inicio abriera con **En Cartelera → Próximos Estrenos → Tendencias →
+Géneros → Países → Plataformas/Top 10 al fondo** (antes En Cartelera/Estrenos quedaban ÚLTIMOS, bajo
+18 catálogos de plataformas). El orden del board lo determina el orden de los catálogos en el
+manifest de AIOMetadata = el orden del array `catalogs.standard`. Se reordenó el array y se regeneró.
+
+- **Auditar el orden**: `node scripts/audit-catalog-order.mjs` (`--json` para salida de máquina).
+  Lee `preset.json`, muestra el orden actual de los catálogos visibles (`showInHome && enabled`),
+  marca desvíos y propone el orden a gusto. Solo reporta, no escribe.
+- **DRIFT detectado**: `preset.json` se había desincronizado de la instancia en vivo — le faltaban
+  **11 países (×2 = 22 catálogos)**: España, Francia, Alemania, Italia, Reino Unido, Portugal,
+  México, Colombia, Chile, Brasil, Perú (ids `tmdb.discover.{movie,tv}.<cc>.pabloNN`, con
+  `with_origin_country=<CC>`). Regenerar desde el preset viejo los habría borrado. Se reconstruyeron
+  clonando el template de Argentina (`pablo001/002`). **Lección: antes de cualquier swap, diffear el
+  manifest NUEVO contra el de la instancia EN VIVO y confirmar CERO catálogos perdidos.**
+- preset.json ahora tiene **131 catálogos** en `standard` (103 enabled; el manifest expone 110 =
+  103 + ~7 catálogos de búsqueda que AIOMetadata inyecta).
+- "New on MUBI" / plataformas vienen de los addons **"Mubi Catalog"** y **"Streaming Catalogs"**, no
+  de AIOMetadata. Su prioridad en el board depende del **orden de la colección de addons**, no del
+  preset. Mubi está en posición baja (índice 8 de 14); el reorden de AIOMetadata ya lo despriorizó.
 
 ### SubSense — reglas críticas
 

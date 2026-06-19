@@ -25,6 +25,8 @@ scripts/validate-config.mjs         Valida el schema de preset.json (sin red ni 
 scripts/audit-catalog-order.mjs     Audita el orden de los catálogos del inicio (solo reporta).
 scripts/regenerate-aiometadata.mjs  Regenera la instancia de AIOMetadata desde el preset; reporta
                                     por defecto, swap en la cuenta con --apply (guard anti-pérdida).
+scripts/refresh-dates.mjs           Recalcula las fechas de En Cartelera/Próximos Estrenos a hoy
+                                    (--check para auditar sin escribir).
 scripts/fix-subtitles.*             Regenera la config de SubSense (.mjs Node, .ps1 PowerShell).
 ```
 
@@ -98,7 +100,10 @@ el Catalog Builder web). Los `pablo0NN` son catálogos custom (países, Próximo
   catálogos como Trending mezclan algún título aún no disponible.
 - **Caveat de fechas**: "Próximos Estrenos"/"En Cartelera" usan fechas absolutas
   (`primary_release_date.gte/lte`) fijadas al generar el JSON. TMDB Discover no soporta fechas
-  relativas → se degradan con los meses. Refrescar = regenerar con la fecha actual.
+  relativas → se degradan con los meses. **Refrescar**: `node scripts/refresh-dates.mjs` (recalcula
+  la ventana deslizante a hoy en el preset) y después `node scripts/regenerate-aiometadata.mjs
+  --apply`. El refresh preserva el ancho de ventana existente (75 días para En Cartelera) y es
+  idempotente (si ya está al día, no hace nada). Pensado para automatizar (cron/Task Scheduler).
 - **Trakt/Simkl**: los tokens OAuth viven server-side y NO aparecen en `config.apiKeys`. Hallazgo
   2026-06-19: parecen compartidos a nivel cuenta de ElfHosted (leer `/api/config?id=<cualquier-uuid>`
   devuelve los tokens reales). Al regenerar la instancia conviene **pasar `trakt`/`simkl` en el

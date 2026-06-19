@@ -121,6 +121,12 @@ manifest de AIOMetadata = el orden del array `catalogs.standard`. Se reordenó e
 - "New on MUBI" / plataformas vienen de los addons **"Mubi Catalog"** y **"Streaming Catalogs"**, no
   de AIOMetadata. Su prioridad en el board depende del **orden de la colección de addons**, no del
   preset. Mubi está en posición baja (índice 8 de 14); el reorden de AIOMetadata ya lo despriorizó.
+- **Orden de la colección (2026-06-19)**: AIOMetadata se movió al **índice 0** (arriba de Cinemeta)
+  para que En Cartelera sea la primera fila del board. Efecto buscado y aceptado: AIOMetadata pasa a
+  ser el **proveedor de metadata principal** (fichas de detalle más ricas). Reversible vía
+  `addonCollectionSet` con el backup (`.backups/backup-stremioeg-premove-*.json`). Cinemeta sigue en
+  la colección (#1) y aún expone filas Popular/New/Featured que se pisan con Tendencias/Latest/Top
+  Rated de AIOMetadata — se pueden ocultar desde la app (Board → configurar catálogos).
 
 ### SubSense — reglas críticas
 

@@ -18,10 +18,14 @@ SPA si alguna vez hiciera falta.
 ## Estructura
 
 ```
-data/preset.json          Fuente de verdad de los catálogos de AIOMetadata (config completa +
-                          definición de catálogos). Se usa para reconstruir la config si hace falta.
-scripts/health-check.mjs  Auditoría de la cuenta y los addons (ver abajo).
-scripts/fix-subtitles.*   Regenera la config de SubSense en una cuenta (.mjs Node, .ps1 PowerShell).
+data/preset.json                    Fuente de verdad de los catálogos de AIOMetadata (config
+                                    completa + definición de catálogos). Reconstruye la config.
+scripts/health-check.mjs            Auditoría de la cuenta y los addons (ver abajo).
+scripts/validate-config.mjs         Valida el schema de preset.json (sin red ni credenciales).
+scripts/audit-catalog-order.mjs     Audita el orden de los catálogos del inicio (solo reporta).
+scripts/regenerate-aiometadata.mjs  Regenera la instancia de AIOMetadata desde el preset; reporta
+                                    por defecto, swap en la cuenta con --apply (guard anti-pérdida).
+scripts/fix-subtitles.*             Regenera la config de SubSense (.mjs Node, .ps1 PowerShell).
 ```
 
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni

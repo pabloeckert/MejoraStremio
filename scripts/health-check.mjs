@@ -1,86 +1,102 @@
 /**
- * health-check.mjs — Verifica el estado de los 13 addons de stremioeg@gmail.com
+ * health-check.mjs — Auditoría real del setup de Stremio de stremioeg@gmail.com
+ *
+ * Con credenciales (ST_EMAIL/ST_PASS) hace una auditoría DINÁMICA de la cuenta:
+ * lee la colección real instalada y prueba los addons que efectivamente están ahí,
+ * no una lista hardcodeada. Sin credenciales, verifica manifests públicos conocidos.
  *
  * Uso:
  *   node scripts/health-check.mjs
- *   node scripts/health-check.mjs --fix    # regenera SubSense si falla
+ *   ST_EMAIL=stremioeg@gmail.com ST_PASS=... node scripts/health-check.mjs
  *
- * Exit codes: 0 = todo OK, 1 = hay addons caídos o cuenta sin addons
+ * Verifica:
+ *   1. Cuenta: login, nº de addons, y NINGÚN manifest.id duplicado
+ *      (la colisión de id es lo que rompía la búsqueda; ver CLAUDE.md).
+ *   2. Manifests: cada addon instalado responde su manifest.
+ *   3. Catálogos + búsqueda de AIOMetadata: muestrea catálogos y prueba
+ *      búsqueda por título y por actor.
+ *   4. Streams: prueba TODOS los addons de streams del setup (no solo Torrentio).
+ *   5. Subtítulos: prueba todos los addons de subtítulos para español.
+ *
+ * Exit codes: 0 = todo OK, 1 = algo caído.
  */
 
-import { writeFileSync, mkdirSync } from 'node:fs';
-
 const API = 'https://api.strem.io/api';
-const FIX_MODE = process.argv.includes('--fix');
 
-// ── Configuración esperada ──────────────────────────────────────────────────
-// SubSense: userId DEBE ser 8 chars. Código de idioma: "es" (no "spa", "es-AR", "es-419")
-const SUBSENSE_LANG_CONFIG = { languages: ['es'], maxSubtitles: 20 };
-const SUBSENSE_USER_ID     = 'pablo001';
-const SUBSENSE_CONFIG_STR  = encodeURIComponent(JSON.stringify(SUBSENSE_LANG_CONFIG));
-const SUBSENSE_ES_URL      = `https://subsense.nepiraw.com/${SUBSENSE_USER_ID}-${SUBSENSE_CONFIG_STR}/manifest.json`;
+// Títulos de prueba: una peli popular, una serie popular, y contenido de nicho
+// (Will Trent / Wild Cards históricamente con pocas seeds) para no dar falsos OK.
+const TEST_MOVIE  = { label: 'Matrix',            type: 'movie',  id: 'tt0133093' };
+const TEST_SERIES = { label: 'Breaking Bad S01E01', type: 'series', id: 'tt0903747:1:1' };
+const TEST_NICHE  = { label: 'Will Trent S01E01',  type: 'series', id: 'tt14681924:1:1' };
 
-const EXPECTED_ADDONS = [
-  { name: 'Cinemeta',              url: 'https://v3-cinemeta.strem.io/manifest.json' },
-  { name: 'AIOMetadata',          url: 'https://aiometadata.elfhosted.com/stremio/8b248161-d9b0-4398-a054-14f0693c83f1/manifest.json' },
-  { name: 'Torrentio',            url: 'https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickass,horriblesubs,nyaa,tokyotosho,anidex,rutor,rutracker,comando,baibako,toloka,hdrezka,filmclub/manifest.json' },
-  { name: 'Comet',                url: null },  // URL dinámica con config base64
-  { name: 'MediaFusion',          url: 'https://mediafusion.elfhosted.com/manifest.json' },
-  { name: 'NoTorrent',            url: 'https://addon-osvh.onrender.com/manifest.json' },
-  { name: 'Meteor',               url: null },  // URL dinámica con config base64
-  { name: 'WebStreamrMBG',        url: null },  // URL dinámica con config JSON
-  { name: 'Streailer',            url: null },  // URL dinámica
-  { name: 'Mubi Catalog',         url: 'https://mubi2stremio.adiba.ro/manifest.json' },
-  { name: 'SubSense',             url: SUBSENSE_ES_URL },
-  { name: 'OpenSubtitles v3',     url: 'https://opensubtitles-v3.strem.io/manifest.json' },
-  { name: 'Streaming Catalogs',   url: 'https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/manifest.json' },
-];
-
-// Títulos de prueba para verificar streams y subtítulos
-const TEST_TITLES = [
-  { label: 'Matrix',        type: 'movie',  imdb: 'tt0133093' },
-  { label: 'Breaking Bad',  type: 'series', imdb: 'tt0903747:1:1' },
-];
-
-const TORRENTIO_BASE = 'https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickass,horriblesubs,nyaa,tokyotosho,anidex,rutor,rutracker,comando,baibako,toloka,hdrezka,filmclub';
-
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 const apiPost = (path, body) =>
   fetch(`${API}/${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(15000),
-  }).then(r => r.json());
+  }).then((r) => r.json());
 
-const getManifest = (url) =>
-  fetch(url, { signal: AbortSignal.timeout(10000) })
-    .then(r => r.ok ? r.json() : null)
+const getJson = (url, timeout = 12000) =>
+  fetch(url, { signal: AbortSignal.timeout(timeout) })
+    .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
 
-const ok  = (msg) => console.log(`  ✓ ${msg}`);
+const ok = (msg) => console.log(`  ✓ ${msg}`);
 const warn = (msg) => console.log(`  ⚠ ${msg}`);
 const fail = (msg) => console.log(`  ✗ ${msg}`);
 
-// ── Main ───────────────────────────────────────────────────────────────────
+const baseOf = (transportUrl) => transportUrl.replace(/manifest\.json$/, '');
+
+// El transportUrl a veces es la raíz (.../) sin manifest.json; normalizamos.
+const manifestUrlOf = (transportUrl) =>
+  /manifest\.json$/.test(transportUrl)
+    ? transportUrl
+    : transportUrl.replace(/\/?$/, '/') + 'manifest.json';
+
+const hasResource = (manifest, res) =>
+  (manifest?.resources || []).some(
+    (r) => r === res || r?.name === res
+  );
+
+const isSpanish = (lang) => {
+  const l = String(lang || '').toLowerCase();
+  return l === 'spa' || l.startsWith('es') || l.includes('spa');
+};
+
+// Algunos catálogos requieren un género; resolvemos el primero disponible.
+const catalogUrl = (base, cat) => {
+  const genreExtra = (cat.extra || []).find(
+    (e) => e.name === 'genre' && e.isRequired
+  );
+  if (genreExtra?.options?.length) {
+    return `${base}catalog/${cat.type}/${cat.id}/genre=${encodeURIComponent(
+      genreExtra.options[0]
+    )}.json`;
+  }
+  return `${base}catalog/${cat.type}/${cat.id}.json`;
+};
+
+// ── Main ─────────────────────────────────────────────────────────────────────
 let exitCode = 0;
 
-console.log('═══════════════════════════════════════════');
+console.log('═'.repeat(43));
 console.log(' MejoraStremio — Health Check');
 console.log(' ' + new Date().toISOString());
-console.log('═══════════════════════════════════════════\n');
+console.log('═'.repeat(43) + '\n');
 
-// 1. Verificar cuenta Stremio
-console.log('[ 1/4 ] Cuenta Stremio');
 const email = process.env.ST_EMAIL || 'stremioeg@gmail.com';
-const pass  = process.env.ST_PASS  || '';
+const pass = process.env.ST_PASS || '';
 
 let authKey = null;
-let installedAddons = [];
+let addons = [];
 
+// ── 1. Cuenta + detección de manifest.id duplicado ───────────────────────────
+console.log('[ 1/5 ] Cuenta Stremio');
 if (!pass) {
-  warn('ST_PASS no definido — omitiendo verificación de cuenta');
-  warn('  Usar: ST_EMAIL=x ST_PASS=y node scripts/health-check.mjs');
+  warn('ST_PASS no definido — auditoría de cuenta omitida');
+  warn('  Usar: ST_EMAIL=stremioeg@gmail.com ST_PASS=... node scripts/health-check.mjs');
 } else {
   const login = await apiPost('login', { authKey: null, email, password: pass });
   authKey = login?.result?.authKey;
@@ -89,90 +105,176 @@ if (!pass) {
     exitCode = 1;
   } else {
     ok('Login OK');
-    const col = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
-    installedAddons = col?.result?.addons || [];
-    const count = installedAddons.length;
-    if (count < 10) {
-      fail(`Solo ${count} addons instalados (esperado ≥10)`);
+    const col = await apiPost('addonCollectionGet', {
+      type: 'AddonCollectionGet',
+      authKey,
+      update: true,
+    });
+    addons = col?.result?.addons || [];
+    if (addons.length < 10) {
+      fail(`Solo ${addons.length} addons instalados (esperado ≥10)`);
       exitCode = 1;
     } else {
-      ok(`${count} addons instalados en el servidor`);
+      ok(`${addons.length} addons instalados`);
+    }
+
+    // Guard de regresión: dos addons con el mismo manifest.id rompen la búsqueda
+    // y el guardado de la colección (dedup por id). Ver CLAUDE.md.
+    const idCounts = {};
+    for (const a of addons) {
+      const id = a.manifest?.id;
+      if (id) idCounts[id] = (idCounts[id] || 0) + 1;
+    }
+    const dups = Object.entries(idCounts).filter(([, n]) => n > 1);
+    if (dups.length) {
+      dups.forEach(([id, n]) =>
+        fail(`manifest.id duplicado: "${id}" ×${n} — rompe la búsqueda`)
+      );
+      exitCode = 1;
+    } else {
+      ok('Sin manifest.id duplicados');
     }
   }
 }
 
-// 2. Verificar manifests de addons clave
-console.log('\n[ 2/4 ] Manifests de addons');
-const manifestChecks = [
-  { name: 'Cinemeta',             url: 'https://v3-cinemeta.strem.io/manifest.json' },
-  { name: 'AIOMetadata',         url: 'https://aiometadata.elfhosted.com/stremio/8b248161-d9b0-4398-a054-14f0693c83f1/manifest.json' },
-  { name: 'Torrentio',           url: 'https://torrentio.strem.fun/manifest.json' },
-  { name: 'Comet',               url: 'https://comet.feels.legal/manifest.json' },
-  { name: 'MediaFusion',         url: 'https://mediafusion.elfhosted.com/manifest.json' },
-  { name: 'SubSense (español)',   url: SUBSENSE_ES_URL },
-  { name: 'OpenSubtitles v3',    url: 'https://opensubtitles-v3.strem.io/manifest.json' },
-  { name: 'Streaming Catalogs',  url: 'https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/manifest.json' },
-  { name: 'Mubi',                url: 'https://mubi2stremio.adiba.ro/manifest.json' },
-];
-const results = await Promise.all(manifestChecks.map(c => getManifest(c.url)));
-let addonsFailed = 0;
-manifestChecks.forEach((c, i) => {
-  const m = results[i];
+// ── 2. Manifests de los addons instalados ────────────────────────────────────
+console.log('\n[ 2/5 ] Manifests de addons');
+// Con cuenta: probamos los addons REALES instalados. Sin cuenta: lista pública.
+const manifestTargets = authKey
+  ? addons.map((a) => ({ name: a.manifest?.name || '(sin nombre)', url: manifestUrlOf(a.transportUrl) }))
+  : [
+      { name: 'Cinemeta', url: 'https://v3-cinemeta.strem.io/manifest.json' },
+      { name: 'OpenSubtitles v3', url: 'https://opensubtitles-v3.strem.io/manifest.json' },
+      { name: 'Mubi', url: 'https://mubi2stremio.adiba.ro/manifest.json' },
+    ];
+const manifests = await Promise.all(manifestTargets.map((t) => getJson(t.url, 10000)));
+manifestTargets.forEach((t, i) => {
+  const m = manifests[i];
   if (m?.name) {
-    ok(`${c.name}: v${m.version}`);
+    ok(`${t.name}: v${m.version || '?'}`);
   } else {
-    fail(`${c.name}: NO RESPONDE`);
-    addonsFailed++;
+    fail(`${t.name}: NO RESPONDE`);
     exitCode = 1;
   }
 });
 
-// 3. Verificar SubSense en español (prueba real de subtítulos)
-console.log('\n[ 3/4 ] Subtítulos en español (SubSense)');
-const SUBSENSE_BASE = `https://subsense.nepiraw.com/${SUBSENSE_USER_ID}-${SUBSENSE_CONFIG_STR}`;
-const subTests = await Promise.all(TEST_TITLES.map(t =>
-  fetch(`${SUBSENSE_BASE}/subtitles/${t.type}/${t.imdb}.json`, { signal: AbortSignal.timeout(12000) })
-    .then(r => r.json()).catch(() => ({ subtitles: [] }))
-));
-subTests.forEach((r, i) => {
-  const subs = (r?.subtitles || []).filter(s => s.lang === 'spa');
-  if (subs.length === 0) {
-    fail(`${TEST_TITLES[i].label}: 0 subtítulos en español — SubSense puede estar mal configurado`);
-    if (FIX_MODE) {
-      warn('  --fix: regenerando URL de SubSense con config correcta...');
-      // La URL ya está correcta. El issue sería del servidor SubSense.
+// ── 3. Catálogos + búsqueda de AIOMetadata ───────────────────────────────────
+console.log('\n[ 3/5 ] Catálogos y búsqueda (AIOMetadata)');
+const aio = addons.find((a) => a.manifest?.id === 'aio-metadata');
+if (!authKey) {
+  warn('omitido (requiere cuenta)');
+} else if (!aio) {
+  fail('AIOMetadata no encontrado en la colección');
+  exitCode = 1;
+} else {
+  const base = baseOf(aio.transportUrl);
+  const mf = manifests[addons.indexOf(aio)] || (await getJson(aio.transportUrl));
+  const browsable = (mf?.catalogs || []).filter(
+    (c) => !(c.extra || []).some((e) => e.name === 'search' && e.isRequired)
+  );
+  // Muestrear hasta 10 catálogos navegables
+  const sample = browsable.slice(0, 10);
+  const counts = await Promise.all(
+    sample.map((c) => getJson(catalogUrl(base, c)).then((d) => d?.metas?.length ?? -1))
+  );
+  const empty = sample.filter((_, i) => counts[i] === 0);
+  const errored = sample.filter((_, i) => counts[i] < 0);
+  if (errored.length) {
+    fail(`${errored.length}/${sample.length} catálogos con error: ${errored.map((c) => c.id).join(', ')}`);
+    exitCode = 1;
+  } else if (empty.length > 1) {
+    // 1 vacío es tolerable (ej. calendario de watchlist sin items)
+    warn(`${empty.length}/${sample.length} catálogos vacíos: ${empty.map((c) => c.name).join(', ')}`);
+  } else {
+    ok(`${sample.length} catálogos muestreados con contenido`);
+  }
+
+  // Búsqueda por título
+  const byTitle = await getJson(`${base}catalog/movie/search.movie/search=matrix.json`);
+  if ((byTitle?.metas?.length ?? 0) > 0) {
+    ok(`Búsqueda por título: "matrix" → ${byTitle.metas.length} resultados`);
+  } else {
+    fail('Búsqueda por título no devuelve resultados');
+    exitCode = 1;
+  }
+
+  // Búsqueda por actor (catálogo dedicado people_search)
+  const byActor = await getJson(
+    `${base}catalog/movie/people_search.people_search_movie/search=${encodeURIComponent('Tom Cruise')}.json`
+  );
+  if ((byActor?.metas?.length ?? 0) > 0) {
+    ok(`Búsqueda por actor: "Tom Cruise" → ${byActor.metas.length} películas`);
+  } else {
+    warn('Búsqueda por actor no devuelve resultados (people_search desactivado?)');
+  }
+}
+
+// ── 4. Streams (todos los addons de streams del setup) ───────────────────────
+console.log('\n[ 4/5 ] Streams');
+const streamAddons = (authKey ? addons : []).filter(
+  (a) => hasResource(a.manifest, 'stream') && a.manifest?.name !== 'Streailer' // Streailer = trailers
+);
+if (!authKey) {
+  warn('omitido (requiere cuenta)');
+} else if (!streamAddons.length) {
+  fail('Ningún addon de streams en la colección');
+  exitCode = 1;
+} else {
+  for (const t of [TEST_MOVIE, TEST_SERIES, TEST_NICHE]) {
+    const cells = await Promise.all(
+      streamAddons.map(async (a) => {
+        const d = await getJson(`${baseOf(a.transportUrl)}stream/${t.type}/${t.id}.json`, 20000);
+        return { name: a.manifest.name, n: d?.streams?.length ?? 0 };
+      })
+    );
+    const total = cells.reduce((s, c) => s + c.n, 0);
+    const detail = cells.map((c) => `${c.name}=${c.n}`).join(' ');
+    if (total === 0) {
+      fail(`${t.label}: 0 streams en TODOS los addons — ${detail}`);
+      exitCode = 1;
+    } else {
+      ok(`${t.label}: ${total} streams (${detail})`);
     }
-    exitCode = 1;
-  } else {
-    ok(`${TEST_TITLES[i].label}: ${subs.length} subs en español`);
   }
-});
+}
 
-// 4. Verificar streams P2P disponibles
-console.log('\n[ 4/4 ] Streams P2P');
-const streamTests = await Promise.all(TEST_TITLES.map(t =>
-  fetch(`${TORRENTIO_BASE}/stream/${t.type}/${t.imdb}.json`, { signal: AbortSignal.timeout(15000) })
-    .then(r => r.json()).catch(() => ({ streams: [] }))
-));
-streamTests.forEach((r, i) => {
-  const count = (r?.streams || []).length;
-  if (count === 0) {
-    fail(`${TEST_TITLES[i].label}: 0 streams — Torrentio puede estar caído`);
-    exitCode = 1;
-  } else {
-    ok(`${TEST_TITLES[i].label}: ${count} streams disponibles`);
+// ── 5. Subtítulos en español ─────────────────────────────────────────────────
+console.log('\n[ 5/5 ] Subtítulos en español');
+const subAddons = (authKey ? addons : []).filter((a) => hasResource(a.manifest, 'subtitles'));
+if (!authKey) {
+  warn('omitido (requiere cuenta)');
+} else if (!subAddons.length) {
+  fail('Ningún addon de subtítulos en la colección');
+  exitCode = 1;
+} else {
+  for (const t of [TEST_MOVIE, TEST_SERIES]) {
+    const cells = await Promise.all(
+      subAddons.map(async (a) => {
+        const d = await getJson(`${baseOf(a.transportUrl)}subtitles/${t.type}/${t.id}.json`, 18000);
+        const es = (d?.subtitles || []).filter((s) => isSpanish(s.lang)).length;
+        return { name: a.manifest.name, es };
+      })
+    );
+    const totalEs = cells.reduce((s, c) => s + c.es, 0);
+    const detail = cells.filter((c) => c.es > 0).map((c) => `${c.name}=${c.es}`).join(' ');
+    if (totalEs === 0) {
+      fail(`${t.label}: 0 subtítulos en español en todos los addons`);
+      exitCode = 1;
+    } else {
+      ok(`${t.label}: ${totalEs} subs en español (${detail})`);
+    }
   }
-});
+}
 
-// Resumen
-console.log('\n═══════════════════════════════════════════');
+// ── Resumen ──────────────────────────────────────────────────────────────────
+console.log('\n' + '═'.repeat(43));
 if (exitCode === 0) {
   console.log('✅ Todo OK — setup funcionando correctamente');
 } else {
-  console.log(`❌ ${addonsFailed > 0 ? addonsFailed + ' addon(s) caídos' : ''} — revisar salida arriba`);
-  console.log('\nSi SubSense falla, regenerar URL en https://subsense.nepiraw.com');
-  console.log('  → Idioma: "Spanish" (código "es"), maxSubtitles: 20, userId: 8 chars');
+  console.log('❌ Hay problemas — revisar la salida de arriba');
+  console.log('\nSi SubSense falla: regenerar en https://subsense.nepiraw.com');
+  console.log('  → idioma "Spanish" (código "es"), maxSubtitles 20, userId de 8 chars');
 }
-console.log('═══════════════════════════════════════════');
+console.log('═'.repeat(43));
 
 process.exit(exitCode);

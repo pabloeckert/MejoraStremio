@@ -97,9 +97,26 @@ node scripts/health-check.mjs
 ST_EMAIL=stremioeg@gmail.com ST_PASS=... node scripts/health-check.mjs
 ```
 
-Verifica 4 cosas en paralelo: (1) cuenta con ≥10 addons, (2) manifests de 9 addons clave,
-(3) SubSense devuelve subs en español, (4) Torrentio tiene streams para Matrix y Breaking Bad.
-Exit code 0 = todo OK. Con `--fix` emite advertencias adicionales si SubSense falla.
+Con credenciales hace una auditoría **dinámica**: lee la colección real de la cuenta y prueba
+los addons efectivamente instalados (no una lista hardcodeada). Verifica 5 cosas:
+1. Cuenta: login, ≥10 addons, y **ningún `manifest.id` duplicado** (guard de regresión: la
+   colisión de id es lo que rompía la búsqueda — ver abajo).
+2. Manifests: cada addon instalado responde su manifest.
+3. Catálogos + búsqueda de AIOMetadata: muestrea catálogos y prueba búsqueda por título y por
+   actor (`people_search`).
+4. Streams: prueba TODOS los addons de streams (Torrentio, Comet, Meteor, NoTorrent,
+   WebStreamr), incluyendo un título de nicho (Will Trent) para no dar falsos OK.
+5. Subtítulos: prueba SubSense + GTSubs + OpenSubtitles v3 para español.
+
+Sin credenciales degrada a verificar manifests públicos. Exit code 0 = todo OK.
+
+### Búsqueda rota por `manifest.id` duplicado (resuelto 2026-06-19)
+
+Stremio identifica addons por `manifest.id`, **no** por `transportUrl`. Dos instancias del
+mismo addon con el mismo id (típico: dos AIOMetadata, cuyo id `aio-metadata` es fijo) rompen
+la búsqueda global aunque cada backend responda bien por separado. La cuenta `stremioeg` tenía
+dos AIOMetadata; se consolidaron en **una sola instancia** con todos los catálogos. El
+health-check ahora falla si detecta ids duplicados.
 
 ### SubSense — reglas críticas
 
@@ -143,14 +160,35 @@ Invoke-RestMethod -Uri "https://api.strem.io/api/addonCollectionSet" -Method POS
 | Streaming Catalogs Plus  | catalogs | URL `7a82163c306e-*.baby-beamup.club`|
 | Subsense con userId >8ch | subs     | Regenerar con userId de 8ch  |
 
-### Problemas conocidos: Wild Cards (Vanessa Morgan, CBC)
+### Problemas conocidos: Wild Cards (Vanessa Morgan, CBC) — mitigado
 
-Episodios S01E07 en adelante tienen pocas seeds P2P (2–8 seeds en Torrentio) por ser
-una producción canadiense (CBC) con baja distribución internacional. No es un problema
-de configuración. Alternativas:
-- Probar **Comet** (tiene ~24–25 resultados por episodio, calidad/seeds variables)
-- Probar el pack **KONTRAST** (season pack, 8 seeds) que aparece en E07+
-- Debrid service (Real-Debrid, AllDebrid) resuelve definitivamente la disponibilidad
+Episodios S01E07+ tienen pocas seeds en Torrentio (2–8) por ser producción canadiense (CBC)
+con baja distribución. **Comet lo resuelve**: el audit del 2026-06-19 midió 20–26 streams por
+episodio vía Comet (vs 5–11 de Torrentio). No es problema de configuración; con Comet en el
+setup el contenido de nicho queda cubierto.
+
+### Catálogos de Discover (AIOMetadata)
+
+Cada catálogo vive en `aioMetadataConfig.catalogs.standard` de `public/preset.json` con
+`metadata.discover.params` (lo que se manda a TMDB Discover) y `metadata.discover.formState`
+(espejo para el Catalog Builder de la web). Los `pablo00N` son catálogos custom del fork
+(Argentina, Latam, Próximos Estrenos, En Cartelera). Para validar un cambio sin esperar al
+deploy: POST el `config` (con `catalogs` inyectado) a
+`https://aiometadata.elfhosted.com/api/config/save`, te devuelve `installUrl`; GET ese
+`manifest.json` y luego `catalog/<type>/<id>.json` para ver resultados reales.
+
+- **Búsqueda por actor**: usar el catálogo dedicado `people_search.people_search_movie/series`
+  (no el agregador `search.movie`, que devuelve documentales sobre el actor en vez de su
+  filmografía). Requiere `search.engineEnabled.people_search_movie/series = true`.
+- **`hideUnreleasedDigital` debe ser `false`** para que "Próximos Estrenos"/"En Cartelera"
+  devuelvan resultados (con `true` AIOMetadata oculta todo lo no estrenado, sin override por
+  catálogo). Costo: catálogos como Trending mezclan algún título aún no disponible.
+- **Caveat de fechas**: "Próximos Estrenos" y "En Cartelera" usan fechas absolutas
+  (`primary_release_date.gte/lte`) hardcodeadas a la fecha de generación del JSON. TMDB Discover
+  no soporta fechas relativas, así que se degradan con el tiempo (envejecen ~meses). Para
+  refrescar: regenerar el `preset.json` con la fecha actual. **No** regenerar la instancia viva
+  de `stremioeg` sin el usuario presente: crea un UUID nuevo y **pierde la conexión OAuth de
+  Trakt/Simkl** (los tokens viven server-side ligados al UUID, no en el `config` que se guarda).
 
 ## Reglas del repo
 

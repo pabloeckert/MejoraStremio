@@ -62,7 +62,6 @@ async function install() {
     const { selectedAddons, collections, errors } = await buildPresetService({
       preset: 'pablo-free',
       language: 'es-MX',
-      extras: [],
       customAddons: [STREAMING_CATALOGS_URL, subsenseUrl.value.trim()],
       options: [],
       maxSize: '',

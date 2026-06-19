@@ -1,60 +1,47 @@
-![logo](https://github.com/DryKillLogic/stremio-account-bootstrapper/blob/main/public/logo.png?raw=true)
+![logo](public/logo.png)
 
-# Stremio Account Bootstrapper
+# MejoraStremio
 
-Stremio Account Bootstrapper lets you set up your Stremio/Nuvio account with just a few clicks by bootstrapping a preset into your account. It's handy for newcomers, those who want a solid foundation to build their setup on, or to speed up the process of setting up new accounts for family members or friends.
+Fork personalizado de [DryKillLogic/stremio-account-bootstrapper](https://github.com/DryKillLogic/stremio-account-bootstrapper).
+SPA en Vue 3 + TypeScript + Vite + Tailwind/daisyUI que configura una cuenta de Stremio con
+un único preset (`pablo-free`) mediante un wizard de 3 pasos, 100% en español.
 
-**WARNING: You will wipe the existing setup. Recommended to backup your current configuration before proceeding. Use it at your own risk. No support is provided.**
+Sitio publicado: https://pabloeckert.github.io/MejoraStremio/ (deploy automático a GitHub
+Pages en cada push a `main`).
 
-## Features
+**⚠️ El wizard sobreescribe la colección de addons de la cuenta. Hacé un backup desde la
+sección "Copia de seguridad" antes de instalar.**
 
-- Automated process of setting up an account in a couple of minutes.
-- Option to select different presets: minimal, standard, full, all-in-one, http-only, no streams, and factory.
-- Option to set the preset to different languages: English (US), Spanish (MX), Spanish (ES), Portuguese (BR), Portuguese (PT), French (FR), Italian (IT), German (DE), and Dutch (NL) are currently supported.
-- Option to create a kid-friendly setup.
-- Backup your current configuration or restore it.
-- Better multilanguage support in Stremio/Nuvio.
-- TMDB is the default metadata resolver. Cinemeta catalogs were removed without breaking any core functionality.
-- RealDebrid, AllDebrid, Premiumize, Debrid-Link, and TorBox support.
-- Multi-debrid services support.
-- Multi-platform support. It currently supports Stremio and Nuvio.
-- RPDB support.
-- Ability to reset the account to a default state (factory preset).
-- Optimized addons configuration.
-- Sort addons and rename/delete catalogs (inherited from Addon Manager).
+## Qué instala
+
+- **AIOMetadata** — metadata profunda (TMDB/TVDB/Fanart) + catálogos de Cine/Series
+  Argentina y Latinoamérica.
+- **AIOStreams** — streams P2P gratuitos (Comet, StremThru Torz, MediaFusion, Torrentio).
+- **Streaming Catalogs** — catálogos de Netflix, HBO Max, Disney+, Prime Video, etc.
+- **SubSense** — subtítulos en español, configurado con la URL que pega el usuario.
+
+Ver [CLAUDE.md](./CLAUDE.md) para el detalle de arquitectura, comandos de desarrollo y
+procedimientos de mantenimiento.
+
+## Desarrollo
+
+```sh
+pnpm install        # requiere pnpm 11+
+pnpm run dev         # localhost:5173
+pnpm run build       # type-check + bundle
+pnpm run preview     # sirve dist/ en localhost:4173
+pnpm run format      # formatea con Prettier
+```
+
+Scripts de verificación en `scripts/`: `health-check.mjs` (chequeo rápido de manifests/subs/
+streams), `smoke-test.mjs` (Playwright contra el wizard) y `e2e-install.mjs` (instalación real
+contra una cuenta de Stremio).
 
 ## Changelog
 
-View the [CHANGELOG.md](./CHANGELOG.md) to see what's new in each release.
+Ver [CHANGELOG.md](./CHANGELOG.md).
 
-## Recommended IDE Setup
+## Créditos
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur)
-
-## Project Setup
-
-```sh
-pnpm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-pnpm run dev
-```
-
-### Compile and Minify for Production
-
-```sh
-pnpm run build
-```
-
-### Format code with Prettier
-
-```sh
-pnpm run format
-```
-
-## Credits
-
-This tool is based on the original pancake3000 work and redd-ravenn fork, with the collaboration of Sleeyax and &#60;Code/&#62;. This idea couldn't have come to fruition without their contribution to the Stremio community 🙏.
+Basado en el trabajo original de pancake3000 y el fork de redd-ravenn, con la colaboración de
+Sleeyax y &#60;Code/&#62;.

@@ -4,7 +4,6 @@ import { getAddonCollection, setAddonCollection } from '../api/platformApi';
 import { format } from 'date-fns';
 import { useI18n } from 'vue-i18n';
 import { addNotification } from '../composables/useNotifications';
-import { useAnalytics } from '../composables/useAnalytics';
 
 const { authKey, platform } = defineProps({
   authKey: { type: String },
@@ -19,7 +18,6 @@ const loadingBackup = ref(false);
 const loadingRestore = ref(false);
 const error = ref(null);
 const fileInputRef = ref(null);
-const { track } = useAnalytics();
 
 function backupConfig() {
   loadingBackup.value = true;
@@ -40,9 +38,6 @@ function backupConfig() {
       URL.revokeObjectURL(url);
 
       addNotification(t('backup_saved'), 'success');
-      track('backup_config_click', {
-        title: `Backup config (${platform})`
-      });
     })
     .catch((e) => {
       error.value = e?.message || String(e);
@@ -85,9 +80,6 @@ async function restoreConfigFile(event) {
 
     await setAddonCollection(platform, addonsPayload, authKey);
     addNotification(t('restore_successful'), 'success');
-    track('restore_config_click', {
-      title: `Restore config (${platform})`
-    });
   } catch (e) {
     error.value = e?.message || String(e);
     addNotification(error.value || t('restore_failed'), 'error');

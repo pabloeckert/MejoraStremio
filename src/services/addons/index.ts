@@ -1,14 +1,3 @@
 export * from './types';
 export { configureAioMetadata } from './aiometadata';
-export { configureTorrentio } from './torrentio';
-export { configurePeerflix } from './peerflix';
-export { configureMediaFusion } from './mediafusion';
-export { configureJackettio } from './jackettio';
-export { configureComet } from './comet';
-export { configureMeteor } from './meteor';
-export { configureTorrentsDB } from './torrentsdb';
-export { configureStremThruTorz } from './stremthrutorz';
-export { configureStremThruStore } from './stremthrustore';
-export { configureSootio } from './sootio';
 export { configureAioStreams } from './aiostreams';
-export { configureHdHub } from './hdhub';

@@ -5,15 +5,12 @@ import App from './App.vue';
 import Notifications from './components/Notifications.vue';
 import { LOCALE_MESSAGES } from './locales';
 
-const supported = ['en', 'es', 'fr', 'it', 'de', 'pt', 'nl'] as const;
-type SupportedLang = (typeof supported)[number];
 // Forzar español como idioma de la interfaz
-let savedLang: SupportedLang = 'es';
-localStorage.setItem('language', savedLang);
+localStorage.setItem('language', 'es');
 
 const i18n = createI18n({
   legacy: false,
-  locale: savedLang,
+  locale: 'es',
   messages: LOCALE_MESSAGES
 } as any);
 

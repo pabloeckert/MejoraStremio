@@ -16,12 +16,8 @@ function generateCatalogI18nKey(catalog: any): string {
 }
 
 function translateCatalogName(catalogs: any[], language: string): any[] {
-  const lang = (language ? String(language) : 'en').split('-')[0] as string;
-  const messages = LOCALE_MESSAGES[lang] || LOCALE_MESSAGES.en;
-
-  if (lang === 'en') {
-    return catalogs;
-  }
+  const lang = (language ? String(language) : 'es').split('-')[0] as string;
+  const messages = LOCALE_MESSAGES[lang] || LOCALE_MESSAGES.es;
 
   catalogs.forEach((catalog) => {
     const i18nKey = generateCatalogI18nKey(catalog);

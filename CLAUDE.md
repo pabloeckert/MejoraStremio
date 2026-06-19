@@ -33,15 +33,24 @@ build: es un toolkit, no un paquete. No usar `npm install`.
 
 ## Estado actual de la cuenta (stremioeg, 2026-06-19)
 
-14 addons. AIOMetadata consolidado en **una sola instancia** (UUID
-`fb53caf3-41b1-4d9c-8fdf-cae02ff1e17f`, regenerada el 2026-06-19 con los catálogos **reordenados**:
-En Cartelera → Próximos Estrenos → Tendencias → Géneros → Países → Plataformas/Top 10 al fondo —
-ver "Reorden del inicio" abajo). 110 catálogos: globales (Trending, Latest, Top Rated, géneros,
-plataformas + Top 10 FlixPatrol, décadas), 12 países (Argentina, Latam, España, Francia, Alemania,
-Italia, Reino Unido, Portugal, México, Colombia, Chile, Brasil, Perú), "Próximos Estrenos", "En
-Cartelera", y búsqueda por título y por actor. Trakt y Simkl conectados. Streams: Torrentio, Comet,
-Meteor, NoTorrent, WebStreamr. Subtítulos: SubSense (español), GTSubs, OpenSubtitles v3. Catálogos
-de Mubi via "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte).
+15 addons. AIOMetadata (UUID **`df1bf925-8d10-4c2d-b8fc-b64a76363d5e`**) en el **índice 0** y
+**AIOLists** en el **índice 1**. 110 catálogos en AIOMetadata: globales (Trending, Latest, Top
+Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 12 países (Argentina, Latam, España,
+Francia, Alemania, Italia, Reino Unido, Portugal, México, Colombia, Chile, Brasil, Perú), "Próximos
+Estrenos", "En Cartelera", y búsqueda por título y por actor. **Inicio curado (opción A, 2026-06-19)**:
+solo En Cartelera + Próximos Estrenos + Tendencias (Trending/Latest/Top Rated/Best 2020s) tienen
+`showInHome=true`; géneros, países, décadas y plataformas quedan en `enabled=true` pero fuera del
+inicio (navegables en Descubrir). Trakt y Simkl conectados. Streams: Torrentio, Comet, Meteor,
+NoTorrent, WebStreamr. Subtítulos: SubSense (español), GTSubs, OpenSubtitles v3. Catálogos de Mubi
+via "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte).
+
+**AIOLists** (`org.stremio.aiolists`, hosteado en ElfHosted) da las recomendaciones por gustos:
+"Recommended Movies/Shows" (Trakt según historial), listas couchmoney.tv, Trending y Popular.
+Conectado a Trakt (`jarvis-15483776`) y TMDB (`pabloeckert`), con **Upstash Redis** para que el
+token de Trakt no se venza (sin Upstash, AIOLists es stateless y Trakt cae cada ~3 meses). La URL
+del manifest **contiene las API keys encodeadas → es privada, no compartir**. Al cambiar listas o
+settings hay que **recopiar la URL** (es una foto del estado) y reinstalar. La instancia pública
+tiene rate limits; existe opción privada de pago si hiciera falta.
 
 ## Mantenimiento
 

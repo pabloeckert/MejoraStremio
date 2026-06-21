@@ -39,7 +39,7 @@ build: es un toolkit, no un paquete. No usar `npm install`.
 
 ## Estado actual de la cuenta (stremioeg, 2026-06-19)
 
-15 addons. AIOMetadata (UUID **`df1bf925-8d10-4c2d-b8fc-b64a76363d5e`**) en el **índice 0** y
+14 addons (GTSubs removido 2026-06-21). AIOMetadata (UUID **`df1bf925-8d10-4c2d-b8fc-b64a76363d5e`**) en el **índice 0** y
 **AIOLists** en el **índice 1**. 110 catálogos en AIOMetadata: globales (Trending, Latest, Top
 Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 12 países (Argentina, Latam, España,
 Francia, Alemania, Italia, Reino Unido, Portugal, México, Colombia, Chile, Brasil, Perú), "Próximos
@@ -47,7 +47,7 @@ Estrenos", "En Cartelera", y búsqueda por título y por actor. **Inicio curado 
 solo En Cartelera + Próximos Estrenos + Tendencias (Trending/Latest/Top Rated/Best 2020s) tienen
 `showInHome=true`; géneros, países, décadas y plataformas quedan en `enabled=true` pero fuera del
 inicio (navegables en Descubrir). Trakt y Simkl conectados. Streams: Torrentio, Comet, Meteor,
-NoTorrent, WebStreamr. Subtítulos: SubSense (español), GTSubs, OpenSubtitles v3. Catálogos de Mubi
+NoTorrent, WebStreamr. Subtítulos: SubSense (español), OpenSubtitles v3. Catálogos de Mubi
 via "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte).
 
 **AIOLists** (`org.stremio.aiolists`, hosteado en ElfHosted) da las recomendaciones por gustos:
@@ -76,7 +76,7 @@ addons efectivamente instalados (no una lista hardcodeada). Verifica 5 cosas:
    actor (`people_search`).
 4. Streams: prueba TODOS los addons de streams (Torrentio, Comet, Meteor, NoTorrent, WebStreamr),
    incluyendo un título de nicho (Will Trent) para no dar falsos OK.
-5. Subtítulos: prueba SubSense + GTSubs + OpenSubtitles v3 para español.
+5. Subtítulos: prueba SubSense + OpenSubtitles v3 para español.
 
 Sin credenciales degrada a verificar manifests públicos. Exit code 0 = todo OK.
 
@@ -179,7 +179,8 @@ Invoke-RestMethod -Uri "https://api.strem.io/api/addonCollectionSet" -Method POS
 | Addon                    | Tipo     | Alternativa si cae                    |
 |--------------------------|----------|---------------------------------------|
 | OpenSubtitlesPRO         | subs     | Removido; usar OpenSubtitles v3       |
-| Community Subtitles      | subs     | Removido; usar SubSense / GTSubs      |
+| Community Subtitles      | subs     | Removido; usar SubSense / OpenSubtitles v3 |
+| GTSubs                   | subs     | Removido 2026-06-21; usar SubSense / OpenSubtitles v3 |
 | Subsense con userId >8ch | subs     | Regenerar con userId de 8 chars       |
 | WebStreamr (0–3 streams) | streams  | Normal: es HTTP, aporta poco; no está roto |
 

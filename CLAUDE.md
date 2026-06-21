@@ -20,7 +20,11 @@ SPA si alguna vez hiciera falta.
 ```
 data/preset.json                    Fuente de verdad de los catálogos de AIOMetadata (config
                                     completa + definición de catálogos). Reconstruye la config.
+data/test-content.json              Lista curada de contenido de nicho (series/pelis europeas
+                                    2020-hoy) con IMDb ids; insumo de test-content.mjs.
 scripts/health-check.mjs            Auditoría de la cuenta y los addons (ver abajo).
+scripts/test-content.mjs            Prueba streams + subs ES de data/test-content.json contra los
+                                    addons reales instalados (ST_PASS). Reporta, no escribe.
 scripts/validate-config.mjs         Valida el schema de preset.json (sin red ni credenciales).
 scripts/audit-catalog-order.mjs     Audita el orden de los catálogos del inicio (solo reporta).
 scripts/regenerate-aiometadata.mjs  Regenera la instancia de AIOMetadata desde el preset; reporta

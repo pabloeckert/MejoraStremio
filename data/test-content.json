@@ -1,0 +1,19 @@
+{
+  "description": "Lista de testeo de contenido de nicho (series/pelis europeas, 2020-hoy) para verificar que el setup de stremioeg entrega streams + subtítulos en español. Curada por Pablo (2026-06-21). Para correrla: node scripts/test-content.mjs (necesita ST_PASS). Las de origen español llevan audio en español → 0 subs ES no es problema.",
+  "titles": [
+    { "name": "Criminal: Germany", "altName": "Criminal: Deutschland", "id": "tt10986056", "type": "series", "country": "DE", "year": "2019" },
+    { "name": "Die Toten von Marnow", "altName": "The Marnow Murders", "id": "tt10598848", "type": "series", "country": "DE", "year": "2021" },
+    { "name": "Höllental", "altName": "The Black Forest Murders", "id": "tt13498564", "type": "series", "country": "DE", "year": "2021", "note": "Distribución muy baja: 0 streams medido 2026-06-21 (ni Comet). No es config." },
+    { "name": "Crooks", "altName": "", "id": "tt27054614", "type": "series", "country": "DE", "year": "2024" },
+    { "name": "Dear Child", "altName": "Liebes Kind", "id": "tt20863760", "type": "series", "country": "DE", "year": "2023" },
+    { "name": "Babylon Berlin", "altName": "", "id": "tt4378376", "type": "series", "country": "DE", "year": "2017" },
+    { "name": "Barbarians", "altName": "Barbaren", "id": "tt9184986", "type": "series", "country": "DE", "year": "2020" },
+    { "name": "Der Pass", "altName": "Pagan Peak", "id": "tt6905756", "type": "series", "country": "DE", "year": "2018", "note": "Referencia de gusto de Pablo." },
+    { "name": "Tatort", "altName": "Escena del crimen", "id": "tt0806910", "type": "series", "country": "DE", "year": "1970", "note": "Antología larguísima; S01E01 es de los 70 → 0 subs ES esperable." },
+    { "name": "Los hombres de Paco", "altName": "Paco's Men", "id": "tt0475464", "type": "series", "country": "ES", "year": "2005", "note": "Audio en español." },
+    { "name": "Machos Alfa", "altName": "Alpha Males", "id": "tt18482892", "type": "series", "country": "ES", "year": "2022", "note": "Audio en español." },
+    { "name": "Reina Roja", "altName": "Red Queen", "id": "tt20883126", "type": "series", "country": "ES", "year": "2024", "note": "Audio en español." },
+    { "name": "Sky Rojo", "altName": "", "id": "tt8690776", "type": "series", "country": "ES", "year": "2021", "note": "Audio en español." },
+    { "name": "Políticamente incorrectos", "altName": "", "id": "tt28272350", "type": "movie", "country": "ES", "year": "2024", "note": "Película. Audio en español." }
+  ]
+}

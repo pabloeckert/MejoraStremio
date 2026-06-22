@@ -41,7 +41,7 @@ build: es un toolkit, no un paquete. No usar `npm install`.
 
 ## Estado actual de la cuenta (stremioeg, 2026-06-19)
 
-14 addons (GTSubs removido 2026-06-21). AIOMetadata (UUID **`df1bf925-8d10-4c2d-b8fc-b64a76363d5e`**) en el **índice 0** y
+14 addons (GTSubs removido 2026-06-21). AIOMetadata (UUID **`7a507465-a8fb-4a4a-a981-0b64dd5e3df3`**) en el **índice 0** y
 **AIOLists** en el **índice 1**. 110 catálogos en AIOMetadata: globales (Trending, Latest, Top
 Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 12 países (Argentina, Latam, España,
 Francia, Alemania, Italia, Reino Unido, Portugal, México, Colombia, Chile, Brasil, Perú), "Próximos

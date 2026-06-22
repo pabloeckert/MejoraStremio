@@ -25,6 +25,8 @@ data/test-content.json              Lista curada de contenido de nicho (series/p
 scripts/health-check.mjs            Auditoría de la cuenta y los addons (ver abajo).
 scripts/test-content.mjs            Prueba streams + subs ES de data/test-content.json contra los
                                     addons reales instalados (ST_PASS). Reporta, no escribe.
+scripts/test-subdl.mjs              Mide subs ES sin SDH (hi=false) en SubDL para data/test-content.json
+                                    (SUBDL_KEY). Reporta, no escribe.
 scripts/validate-config.mjs         Valida el schema de preset.json (sin red ni credenciales).
 scripts/audit-catalog-order.mjs     Audita el orden de los catálogos del inicio (solo reporta).
 scripts/regenerate-aiometadata.mjs  Regenera la instancia de AIOMetadata desde el preset; reporta

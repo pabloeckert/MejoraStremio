@@ -370,7 +370,8 @@
                 "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "vote_average.gte": 5,
-                "vote_count.gte": 100
+                "vote_count.gte": 100,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Latest Movies",
@@ -382,7 +383,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -436,7 +437,8 @@
                 "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "vote_average.gte": 5,
-                "vote_count.gte": 100
+                "vote_count.gte": 100,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Latest Shows",
@@ -461,7 +463,7 @@
                 ],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -517,7 +519,8 @@
                 "without_genres": "99|16",
                 "watch_region": "US",
                 "vote_average.gte": 7,
-                "vote_count.gte": 3000
+                "vote_count.gte": 3000,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Top Rated",
@@ -538,7 +541,7 @@
                 ],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -597,7 +600,8 @@
                 "without_genres": "99|10767|10764|16|10763",
                 "watch_region": "US",
                 "vote_average.gte": 7,
-                "vote_count.gte": 3000
+                "vote_count.gte": 3000,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Top Rated",
@@ -630,7 +634,7 @@
                 ],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -685,7 +689,8 @@
                 "vote_count.gte": 1000,
                 "without_genres": "99",
                 "vote_average.gte": 7,
-                "primary_release_date.gte": "2020-01-01"
+                "primary_release_date.gte": "2020-01-01",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "source": "tmdb",
               "version": 2,
@@ -715,7 +720,7 @@
                 ],
                 "genreJoinMode": "or",
                 "includeGenres": [],
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "releaseRegion": "",
                 "withCompanies": [],
                 "discoverSource": "tmdb",
@@ -762,7 +767,8 @@
                 "vote_count.gte": 1000,
                 "without_genres": "10763|99|10767|10764",
                 "vote_average.gte": 7,
-                "first_air_date.gte": "2020-01-01"
+                "first_air_date.gte": "2020-01-01",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "source": "tmdb",
               "version": 2,
@@ -804,7 +810,7 @@
                 ],
                 "genreJoinMode": "or",
                 "includeGenres": [],
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "releaseRegion": "",
                 "withCompanies": [],
                 "discoverSource": "tmdb",
@@ -857,7 +863,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Action Movies",
@@ -874,7 +881,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -932,7 +939,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Adventure Movies",
@@ -949,7 +957,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1007,7 +1015,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Animation Movies",
@@ -1024,7 +1033,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1082,7 +1091,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Comedy Movies",
@@ -1099,7 +1109,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1157,7 +1167,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Crime Movies",
@@ -1174,7 +1185,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1232,7 +1243,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Documentary Movies",
@@ -1249,7 +1261,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1307,7 +1319,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Drama Movies",
@@ -1324,7 +1337,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1382,7 +1395,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Family Movies",
@@ -1399,7 +1413,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1457,7 +1471,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Fantasy Movies",
@@ -1474,7 +1489,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1532,7 +1547,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "History Movies",
@@ -1549,7 +1565,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1607,7 +1623,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Horror Movies",
@@ -1624,7 +1641,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1682,7 +1699,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Music Movies",
@@ -1699,7 +1717,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1757,7 +1775,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Mystery Movies",
@@ -1774,7 +1793,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1832,7 +1851,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Romance Movies",
@@ -1849,7 +1869,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1907,7 +1927,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Science Fiction Movies",
@@ -1924,7 +1945,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -1982,7 +2003,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Thriller Movies",
@@ -1999,7 +2021,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2057,7 +2079,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "War Movies",
@@ -2074,7 +2097,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2132,7 +2155,8 @@
                 "with_release_type": "4|5|6",
                 "vote_average.gte": 5,
                 "vote_count.gte": 100,
-                "with_runtime.gte": 60
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Western Movies",
@@ -2149,7 +2173,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2206,7 +2230,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Action & Adventure Shows",
@@ -2223,7 +2248,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2280,7 +2305,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Animated Shows",
@@ -2297,7 +2323,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2354,7 +2380,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Comedy Shows",
@@ -2371,7 +2398,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2428,7 +2455,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Crime Shows",
@@ -2445,7 +2473,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2502,7 +2530,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Documentary Shows",
@@ -2519,7 +2548,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2576,7 +2605,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Drama Shows",
@@ -2593,7 +2623,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2650,7 +2680,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Family Shows",
@@ -2667,7 +2698,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2724,7 +2755,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Mystery Shows",
@@ -2741,7 +2773,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2798,7 +2830,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Sci-Fi & Fantasy Shows",
@@ -2815,7 +2848,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2872,7 +2905,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Soap Shows",
@@ -2889,7 +2923,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -2946,7 +2980,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "War & Politics Shows",
@@ -2963,7 +2998,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -3020,7 +3055,8 @@
                 "watch_region": "US",
                 "vote_average.gte": 5,
                 "vote_count.gte": 50,
-                "with_type": "2"
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
               },
               "formState": {
                 "catalogName": "Western Shows",
@@ -3037,7 +3073,7 @@
                 "excludeGenres": [],
                 "genreJoinMode": "or",
                 "originalLanguage": "",
-                "originCountry": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,
@@ -3088,7 +3124,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "AR",
                 "vote_count.gte": 10
@@ -3096,7 +3132,7 @@
               "formState": {
                 "catalogName": "Cine Argentina",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -3154,7 +3190,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "AR",
                 "vote_count.gte": 5
@@ -3162,7 +3198,7 @@
               "formState": {
                 "catalogName": "Series Argentina",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -3220,7 +3256,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_original_language": "es",
                 "vote_count.gte": 20
@@ -3228,7 +3264,7 @@
               "formState": {
                 "catalogName": "Latinoamérica (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -3286,7 +3322,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_original_language": "es",
                 "vote_count.gte": 10
@@ -3294,7 +3330,7 @@
               "formState": {
                 "catalogName": "Latinoamérica (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -3352,7 +3388,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "ES",
                 "vote_count.gte": 10
@@ -3360,7 +3396,7 @@
               "formState": {
                 "catalogName": "Cine España",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -3418,7 +3454,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "ES",
                 "vote_count.gte": 5
@@ -3426,7 +3462,7 @@
               "formState": {
                 "catalogName": "Series España",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -3484,7 +3520,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "FR",
                 "vote_count.gte": 10
@@ -3492,7 +3528,7 @@
               "formState": {
                 "catalogName": "Cine Francia",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -3550,7 +3586,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "FR",
                 "vote_count.gte": 5
@@ -3558,7 +3594,7 @@
               "formState": {
                 "catalogName": "Series Francia",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -3616,7 +3652,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "DE",
                 "vote_count.gte": 10
@@ -3624,7 +3660,7 @@
               "formState": {
                 "catalogName": "Cine Alemania",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -3682,7 +3718,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "DE",
                 "vote_count.gte": 5
@@ -3690,7 +3726,7 @@
               "formState": {
                 "catalogName": "Series Alemania",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -3748,7 +3784,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "IT",
                 "vote_count.gte": 10
@@ -3756,7 +3792,7 @@
               "formState": {
                 "catalogName": "Cine Italia",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -3814,7 +3850,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "IT",
                 "vote_count.gte": 5
@@ -3822,7 +3858,7 @@
               "formState": {
                 "catalogName": "Series Italia",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -3880,7 +3916,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "GB",
                 "vote_count.gte": 10
@@ -3888,7 +3924,7 @@
               "formState": {
                 "catalogName": "Cine Reino Unido",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -3946,7 +3982,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "GB",
                 "vote_count.gte": 5
@@ -3954,7 +3990,7 @@
               "formState": {
                 "catalogName": "Series Reino Unido",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -4012,7 +4048,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "PT",
                 "vote_count.gte": 10
@@ -4020,7 +4056,7 @@
               "formState": {
                 "catalogName": "Cine Portugal",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -4078,7 +4114,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "PT",
                 "vote_count.gte": 5
@@ -4086,7 +4122,7 @@
               "formState": {
                 "catalogName": "Series Portugal",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -4144,7 +4180,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "MX",
                 "vote_count.gte": 10
@@ -4152,7 +4188,7 @@
               "formState": {
                 "catalogName": "Cine México",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -4210,7 +4246,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "MX",
                 "vote_count.gte": 5
@@ -4218,7 +4254,7 @@
               "formState": {
                 "catalogName": "Series México",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -4276,7 +4312,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "CO",
                 "vote_count.gte": 10
@@ -4284,7 +4320,7 @@
               "formState": {
                 "catalogName": "Cine Colombia",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -4342,7 +4378,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "CO",
                 "vote_count.gte": 5
@@ -4350,7 +4386,7 @@
               "formState": {
                 "catalogName": "Series Colombia",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -4408,7 +4444,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "CL",
                 "vote_count.gte": 10
@@ -4416,7 +4452,7 @@
               "formState": {
                 "catalogName": "Cine Chile",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -4474,7 +4510,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "CL",
                 "vote_count.gte": 5
@@ -4482,7 +4518,7 @@
               "formState": {
                 "catalogName": "Series Chile",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -4540,7 +4576,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "BR",
                 "vote_count.gte": 10
@@ -4548,7 +4584,7 @@
               "formState": {
                 "catalogName": "Cine Brasil",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -4606,7 +4642,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "BR",
                 "vote_count.gte": 5
@@ -4614,7 +4650,7 @@
               "formState": {
                 "catalogName": "Series Brasil",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -4672,7 +4708,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "PE",
                 "vote_count.gte": 10
@@ -4680,7 +4716,7 @@
               "formState": {
                 "catalogName": "Cine Perú",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -4738,7 +4774,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "PE",
                 "vote_count.gte": 5
@@ -4746,7 +4782,7 @@
               "formState": {
                 "catalogName": "Series Perú",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],

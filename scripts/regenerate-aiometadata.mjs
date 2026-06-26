@@ -145,4 +145,12 @@ const aioAfter = (after?.result?.addons || []).find((a) => a.manifest?.id === "a
 const okSwap = (aioAfter?.transportUrl || "").includes(newUuid);
 console.log(`\n${okSwap ? "✅" : "✗"} Swap ${okSwap ? "OK" : "NO confirmado"} — AIOMetadata → ${newUuid}`);
 console.log(`   Backup: .backups/backup-stremioeg-preregen-${stamp}.json`);
+
+if (okSwap) {
+  const presetRaw = JSON.parse(readFileSync(PRESET_PATH, "utf8"));
+  presetRaw.aioMetadataConfig.instanceId = newUuid;
+  writeFileSync(PRESET_PATH, JSON.stringify(presetRaw, null, 2) + "\n");
+  console.log(`✓ preset.json actualizado con instanceId=${newUuid}`);
+}
+
 process.exit(okSwap ? 0 : 1);

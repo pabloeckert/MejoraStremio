@@ -4826,6 +4826,534 @@
           }
         },
         {
+          "id": "tmdb.discover.movie.us.pablo029",
+          "type": "movie",
+          "name": "Cine EE.UU.",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "include_adult": false,
+                "with_origin_country": "US",
+                "vote_count.gte": 50
+              },
+              "formState": {
+                "catalogName": "Cine EE.UU.",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "US",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 50,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.us.pablo030",
+          "type": "series",
+          "name": "Series EE.UU.",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_origin_country": "US",
+                "vote_count.gte": 20
+              },
+              "formState": {
+                "catalogName": "Series EE.UU.",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "US",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 20,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.ca.pablo031",
+          "type": "movie",
+          "name": "Cine Canadá",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "include_adult": false,
+                "with_origin_country": "CA",
+                "vote_count.gte": 10
+              },
+              "formState": {
+                "catalogName": "Cine Canadá",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "CA",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 10,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.ca.pablo032",
+          "type": "series",
+          "name": "Series Canadá",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_origin_country": "CA",
+                "vote_count.gte": 5
+              },
+              "formState": {
+                "catalogName": "Series Canadá",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "CA",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 5,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.au.pablo033",
+          "type": "movie",
+          "name": "Cine Australia",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "include_adult": false,
+                "with_origin_country": "AU",
+                "vote_count.gte": 10
+              },
+              "formState": {
+                "catalogName": "Cine Australia",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "AU",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 10,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.au.pablo034",
+          "type": "series",
+          "name": "Series Australia",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_origin_country": "AU",
+                "vote_count.gte": 5
+              },
+              "formState": {
+                "catalogName": "Series Australia",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "AU",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 5,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.nz.pablo035",
+          "type": "movie",
+          "name": "Cine Nueva Zelanda",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "include_adult": false,
+                "with_origin_country": "NZ",
+                "vote_count.gte": 10
+              },
+              "formState": {
+                "catalogName": "Cine Nueva Zelanda",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "NZ",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 10,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.nz.pablo036",
+          "type": "series",
+          "name": "Series Nueva Zelanda",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_origin_country": "NZ",
+                "vote_count.gte": 5
+              },
+              "formState": {
+                "catalogName": "Series Nueva Zelanda",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "NZ",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 5,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
           "id": "tmdb.discover.movie.best_movies_of_80s.mlyccp2c",
           "name": "Best Movies of the 80s",
           "type": "movie",
@@ -7342,7 +7870,7 @@
         }
       ]
     },
-    "instanceId": "7a507465-a8fb-4a4a-a981-0b64dd5e3df3"
+    "instanceId": "c5a0aa71-209a-43a2-ab20-14f146c8f280"
   },
   "nuvioCollectionsConfig": [
     {

@@ -39,26 +39,31 @@ scripts/fix-subtitles.*             Regenera la config de SubSense (.mjs Node, .
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni
 build: es un toolkit, no un paquete. No usar `npm install`.
 
-## Estado actual de la cuenta (stremioeg, 2026-06-19)
+## Estado actual de la cuenta (stremioeg, 2026-06-30)
 
-14 addons (GTSubs removido 2026-06-21). AIOMetadata (UUID **`7a507465-a8fb-4a4a-a981-0b64dd5e3df3`**) en el **índice 0** y
-**AIOLists** en el **índice 1**. 110 catálogos en AIOMetadata: globales (Trending, Latest, Top
-Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 12 países (Argentina, Latam, España,
-Francia, Alemania, Italia, Reino Unido, Portugal, México, Colombia, Chile, Brasil, Perú), "Próximos
-Estrenos", "En Cartelera", y búsqueda por título y por actor. **Inicio curado (opción A, 2026-06-19)**:
-solo En Cartelera + Próximos Estrenos + Tendencias (Trending/Latest/Top Rated/Best 2020s) tienen
-`showInHome=true`; géneros, países, décadas y plataformas quedan en `enabled=true` pero fuera del
-inicio (navegables en Descubrir). Trakt y Simkl conectados. Streams: Torrentio, Comet, Meteor,
-NoTorrent, WebStreamr. Subtítulos: SubSense (español), OpenSubtitles v3. Catálogos de Mubi
-via "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte).
+16 addons. **Cinemeta en índice 0**, AIOMetadata (UUID **`c5a0aa71-209a-43a2-ab20-14f146c8f280`**) en
+**índice 1**, **AIOLists** en **índice 2**. 139 catálogos en `preset.json` (111 enabled); el manifest
+expone ~118 (111 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Catálogos: globales (Trending,
+Latest, Top Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 15 países (Argentina, Latam,
+España, Francia, Alemania, Italia, Reino Unido, Portugal, México, Colombia, Chile, Brasil, Perú,
+EE.UU., Canadá + Oceanía agregados 2026-06-27), "Próximos Estrenos", "En Cartelera", y búsqueda por
+título y por actor. **Inicio curado (opción A)**: solo En Cartelera + Próximos Estrenos + Tendencias
+(Trending/Latest/Top Rated/Best 2020s) tienen `showInHome=true`; géneros, países, décadas y
+plataformas quedan en `enabled=true` pero fuera del inicio (navegables en Descubrir). Trakt y Simkl
+conectados. Streams: Torrentio, Comet, Meteor, NoTorrent, WebStreamrMBG. Subtítulos (orden):
+SubSense (idx 10) → SubMaker ElfHosted (idx 11) → SubDL Deno (idx 12,
+`mejorastremio.pabloeckert.deno.net`) → OpenSubtitles v3 (idx 13). Catálogos de Mubi via "Mubi
+Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 14 y 15).
 
 **AIOLists** (`org.stremio.aiolists`, hosteado en ElfHosted) da las recomendaciones por gustos:
 "Recommended Movies/Shows" (Trakt según historial), listas couchmoney.tv, Trending y Popular.
-Conectado a Trakt (`jarvis-15483776`) y TMDB (`pabloeckert`), con **Upstash Redis** para que el
-token de Trakt no se venza (sin Upstash, AIOLists es stateless y Trakt cae cada ~3 meses). La URL
-del manifest **contiene las API keys encodeadas → es privada, no compartir**. Al cambiar listas o
-settings hay que **recopiar la URL** (es una foto del estado) y reinstalar. La instancia pública
-tiene rate limits; existe opción privada de pago si hiciera falta.
+**Trakt OAuth reconectado 2026-06-30** — 13 catálogos activos incluyendo 8 `trakt_*` (películas y
+series recomendadas, trending, populares, watchlist). Conectado a Trakt (`jarvis-15483776`) y TMDB
+(`pabloeckert`), con **Upstash Redis** para que el token de Trakt no se venza (sin Upstash, AIOLists
+es stateless y Trakt cae cada ~3 meses). La URL del manifest **contiene las API keys encodeadas →
+es privada, no compartir**. Al cambiar listas o settings hay que **recopiar la URL** (es una foto del
+estado) y reinstalar. La instancia pública tiene rate limits; existe opción privada de pago si
+hiciera falta.
 
 ## Mantenimiento
 
@@ -140,17 +145,20 @@ manifest de AIOMetadata = el orden del array `catalogs.standard`. Se reordenó e
   `with_origin_country=<CC>`). Regenerar desde el preset viejo los habría borrado. Se reconstruyeron
   clonando el template de Argentina (`pablo001/002`). **Lección: antes de cualquier swap, diffear el
   manifest NUEVO contra el de la instancia EN VIVO y confirmar CERO catálogos perdidos.**
-- preset.json ahora tiene **131 catálogos** en `standard` (103 enabled; el manifest expone 110 =
-  103 + ~7 catálogos de búsqueda que AIOMetadata inyecta).
+- preset.json ahora tiene **139 catálogos** en `standard` (111 enabled; el manifest expone ~118 =
+  111 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Última adición: Oceanía, EE.UU. y
+  Canadá (2026-06-27).
 - "New on MUBI" / plataformas vienen de los addons **"Mubi Catalog"** y **"Streaming Catalogs"**, no
   de AIOMetadata. Su prioridad en el board depende del **orden de la colección de addons**, no del
   preset. Mubi está en posición baja (índice 8 de 14); el reorden de AIOMetadata ya lo despriorizó.
-- **Orden de la colección (2026-06-19)**: AIOMetadata se movió al **índice 0** (arriba de Cinemeta)
-  para que En Cartelera sea la primera fila del board. Efecto buscado y aceptado: AIOMetadata pasa a
-  ser el **proveedor de metadata principal** (fichas de detalle más ricas). Reversible vía
-  `addonCollectionSet` con el backup (`.backups/backup-stremioeg-premove-*.json`). Cinemeta sigue en
-  la colección (#1) y aún expone filas Popular/New/Featured que se pisan con Tendencias/Latest/Top
-  Rated de AIOMetadata — se pueden ocultar desde la app (Board → configurar catálogos).
+- **Orden de la colección (2026-06-30)**: Cinemeta en **índice 0**, AIOMetadata en **índice 1**,
+  AIOLists en **índice 2**. Cambio respecto a 2026-06-19 (cuando AIOMetadata estaba en #0): Cinemeta
+  volvió al #0 para resolver cortes de pantalla — el cold start de AIOMetadata en ElfHosted colgaba
+  la carga inicial de la app hasta que el keep-warm de GitHub Actions lo calentaba. Con Cinemeta en
+  #0 la app siempre arranca. AIOMetadata sigue siendo el proveedor de metadata principal cuando está
+  caliente (fichas ricas). Cinemeta expone Popular/New/Featured que se pisan con Tendencias/Latest de
+  AIOMetadata — ocultar desde la app (Board → configurar catálogos). Reversible vía
+  `addonCollectionSet` con el backup en `.backups/`.
 
 ### SubSense — reglas críticas
 
@@ -184,7 +192,7 @@ Invoke-RestMethod -Uri "https://api.strem.io/api/addonCollectionSet" -Method POS
 | Community Subtitles      | subs     | Removido; usar SubSense / OpenSubtitles v3 |
 | GTSubs                   | subs     | Removido 2026-06-21; usar SubSense / OpenSubtitles v3 |
 | Subsense con userId >8ch | subs     | Regenerar con userId de 8 chars       |
-| WebStreamr (0–3 streams) | streams  | Normal: es HTTP, aporta poco; no está roto |
+| WebStreamrMBG (manifest caído 2026-06-30) | streams  | Streams siguen funcionando; si no vuelve en 48h evaluar remover |
 
 ### Wild Cards (Vanessa Morgan, CBC) — mitigado
 
@@ -200,7 +208,7 @@ depende de que Windows esté prendido.
 | Servicio | Qué hace | Dónde corre |
 |---|---|---|
 | keep-warm (AIOMetadata) | Pingea el manifest cada 20 min para evitar cold start | GitHub Actions (`.github/workflows/keep-warm.yml`) |
-| SubDL addon (subs ES sin SDH) | Proxy SubDL filtrando hi=true | Deno Deploy (`scripts/deno-subdl-addon.ts`) |
+| SubDL addon (subs ES sin SDH) | Proxy SubDL filtrando hi=true | Deno Deploy (`scripts/deno-subdl-addon.ts`) — `mejorastremio.pabloeckert.deno.net` |
 | AIOMetadata catálogos | 118 catálogos TMDB Discover | ElfHosted (UUID en `preset.json → instanceId`) |
 | AIOLists recomendaciones | Trakt/TMDB/couchmoney por gustos | ElfHosted (URL en manifest privado) |
 | SubMaker subs ES | Subs SubDL sin SDH, en la nube | ElfHosted (`submaker.elfhosted.com`) |
@@ -238,11 +246,9 @@ entrante, así que funciona sin configuración extra tanto en local (`deno run`)
 - `scripts/subdl-addon.mjs` — reemplazado por `deno-subdl-addon.ts` en Deno Deploy
 - `scripts/setup-subdl-addon.ps1` — reemplazado por Deno Deploy
 - `scripts/_subdl-addon-runner.ps1` — gitignoreado, puede borrarse del disco local
-- Tarea Windows `StremioSubdlAddon` — desregistrar cuando Deno Deploy esté confirmado
+- Tarea Windows `StremioSubdlAddon` — nunca existió; Deno Deploy en producción desde 2026-06-30
 
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.
 - `data/preset.json` es la fuente de verdad de los catálogos: no perderlo.
-- Pendiente (requiere a Pablo presente): recomendaciones por gustos vía **AIOLists** (login manual
-  a Trakt/MDBList).

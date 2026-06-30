@@ -1,0 +1,32 @@
+name: keep-warm-aiometadata
+
+on:
+  schedule:
+    # Cada 20 minutos. GitHub Actions garantiza ejecución pero con margen de ~1-2 min.
+    - cron: '*/20 * * * *'
+  workflow_dispatch: # permite lanzar manualmente desde el tab Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ping AIOMetadata manifest
+        run: |
+          INSTANCE_ID=$(node -e "
+            const p = JSON.parse(require('fs').readFileSync('data/preset.json', 'utf8'));
+            console.log(p.aioMetadataConfig.instanceId);
+          ")
+          URL="https://aiometadata.elfhosted.com/stremio/${INSTANCE_ID}/manifest.json"
+          echo "Pinging: $URL"
+          START_MS=$(date +%s%3N)
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "$URL")
+          END_MS=$(date +%s%3N)
+          ELAPSED=$((END_MS - START_MS))
+          echo "HTTP ${HTTP_STATUS} en ${ELAPSED}ms"
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "ERROR: AIOMetadata respondió HTTP $HTTP_STATUS — instancia caída o UUID cambiado"
+            exit 1
+          fi
+          echo "OK — instancia caliente"

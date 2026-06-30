@@ -192,6 +192,54 @@ Episodios S01E07+ tienen pocas seeds en Torrentio (2–8) por ser producción ca
 distribución. **Comet lo resuelve** (20–26 streams/episodio medidos el 2026-06-19). No es problema
 de configuración.
 
+## Infraestructura cloud-only (2026-06-30)
+
+**Principio**: el sistema de Stremio de Pablo debe funcionar con la PC apagada. Nada crítico
+depende de que Windows esté prendido.
+
+| Servicio | Qué hace | Dónde corre |
+|---|---|---|
+| keep-warm (AIOMetadata) | Pingea el manifest cada 20 min para evitar cold start | GitHub Actions (`.github/workflows/keep-warm.yml`) |
+| SubDL addon (subs ES sin SDH) | Proxy SubDL filtrando hi=true | Deno Deploy (`scripts/deno-subdl-addon.ts`) |
+| AIOMetadata catálogos | 118 catálogos TMDB Discover | ElfHosted (UUID en `preset.json → instanceId`) |
+| AIOLists recomendaciones | Trakt/TMDB/couchmoney por gustos | ElfHosted (URL en manifest privado) |
+| SubMaker subs ES | Subs SubDL sin SDH, en la nube | ElfHosted (`submaker.elfhosted.com`) |
+
+### keep-warm — GitHub Actions (reemplazó Task Scheduler 2026-06-30)
+
+`.github/workflows/keep-warm.yml` corre cada 20 min vía cron de GitHub Actions. Lee el UUID de
+AIOMetadata de `data/preset.json → aioMetadataConfig.instanceId` y hace un curl al manifest.
+No requiere ningún secret (el manifest es público). Si el UUID cambia al regenerar AIOMetadata,
+`regenerate-aiometadata.mjs` actualiza `instanceId` en `preset.json` → el workflow lo toma
+automáticamente en el próximo push.
+
+**Scripts legacy (mantener, no borrar):**
+- `scripts/keep-warm.mjs` — reemplazado por el workflow de GitHub Actions
+- `scripts/setup-keep-warm.ps1` — reemplazado por el workflow de GitHub Actions
+- Tarea Windows `StremioKeepWarm` — desregistrada: `Unregister-ScheduledTask -TaskName "StremioKeepWarm" -Confirm:$false`
+
+### subdl-addon — Deno Deploy (reemplazó Task Scheduler local 2026-06-30)
+
+`scripts/deno-subdl-addon.ts` es el port Deno de `scripts/subdl-addon.mjs`. Usa Deno.serve() y
+la Web Streams API (DecompressionStream) en vez de Node.js. El baseUrl se deriva del request
+entrante, así que funciona sin configuración extra tanto en local (`deno run`) como en Deno Deploy.
+
+**Deploy en Deno Deploy:**
+1. Ir a [deno.com/deploy](https://deno.com/deploy) → Sign in with GitHub
+2. New Project → "Deploy from GitHub repo" → seleccionar `pabloeckert/MejoraStremio`
+3. Entry point: `scripts/deno-subdl-addon.ts`
+4. En "Environment Variables": agregar `SUBDL_KEY` = tu API key de SubDL
+5. Deploy → copiar la URL pública (ej. `https://[proyecto].deno.dev`)
+6. Instalar en Stremio: `https://[proyecto].deno.dev/manifest.json`
+
+**Orden de subtítulos (después del deploy):** SubSense → SubMaker (ElfHosted) → SubDL (Deno) → OpenSubtitles v3
+
+**Scripts legacy (mantener, no borrar):**
+- `scripts/subdl-addon.mjs` — reemplazado por `deno-subdl-addon.ts` en Deno Deploy
+- `scripts/setup-subdl-addon.ps1` — reemplazado por Deno Deploy
+- `scripts/_subdl-addon-runner.ps1` — gitignoreado, puede borrarse del disco local
+- Tarea Windows `StremioSubdlAddon` — desregistrar cuando Deno Deploy esté confirmado
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

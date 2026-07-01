@@ -1,0 +1,66 @@
+name: health-monitor
+
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 09:00 Argentina (UTC-3) — alerta solo si falla
+    - cron: '0 0 * * *'    # 21:00 Argentina (UTC-3) — resumen diario siempre
+  workflow_dispatch:         # disparo manual desde la pestaña Actions
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Health check
+        id: check
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/health-check.mjs 2>&1 | tee /tmp/health-output.txt
+
+      - name: Decidir si enviar email
+        id: meta
+        if: always()
+        run: |
+          HOUR=$(date -u +%H)
+          OUTCOME="${{ steps.check.outcome }}"
+          EVENT="${{ github.event_name }}"
+
+          if [ "$OUTCOME" != "success" ]; then
+            EMOJI="FALLA"; RESULT="FALLA"; SEND="true"
+          else
+            EMOJI="OK"; RESULT="OK"
+            # Resumen diario solo en el run de las 00h UTC o si es manual
+            if [ "$HOUR" = "00" ] || [ "$EVENT" = "workflow_dispatch" ]; then
+              SEND="true"
+            else
+              SEND="false"
+            fi
+          fi
+
+          echo "emoji=$EMOJI"     >> "$GITHUB_OUTPUT"
+          echo "result=$RESULT"   >> "$GITHUB_OUTPUT"
+          echo "send_email=$SEND" >> "$GITHUB_OUTPUT"
+
+      - name: Enviar email
+        if: always() && steps.meta.outputs.send_email == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: pabloeckert@gmail.com
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "[${{ steps.meta.outputs.emoji }}] MejoraStremio Health — ${{ steps.meta.outputs.result }}"
+          to: pabloeckert@gmail.com
+          from: "MejoraStremio <pabloeckert@gmail.com>"
+          body_path: /tmp/health-output.txt
+          content_type: text/plain
+
+      - name: Fallar job si health check falló
+        if: always() && steps.check.outcome == 'failure'
+        run: |
+          echo "Health check falló — ver output arriba"
+          exit 1

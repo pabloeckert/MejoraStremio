@@ -41,13 +41,15 @@ build: es un toolkit, no un paquete. No usar `npm install`.
 
 ## Estado actual de la cuenta (stremioeg, 2026-06-30)
 
-16 addons. **Cinemeta en índice 0**, AIOMetadata (UUID **`c5a0aa71-209a-43a2-ab20-14f146c8f280`**) en
-**índice 1**, **AIOLists** en **índice 2**. 139 catálogos en `preset.json` (111 enabled); el manifest
-expone ~118 (111 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Catálogos: globales (Trending,
-Latest, Top Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 15 países (Argentina, Latam,
-España, Francia, Alemania, Italia, Reino Unido, Portugal, México, Colombia, Chile, Brasil, Perú,
-EE.UU., Canadá + Oceanía agregados 2026-06-27), "Próximos Estrenos", "En Cartelera", y búsqueda por
-título y por actor. **Inicio curado (opción A)**: solo En Cartelera + Próximos Estrenos + Tendencias
+16 addons. **Cinemeta en índice 0**, AIOMetadata (UUID **`6c91e26e-7e53-43a8-8883-aa10fbf4b521`**) en
+**índice 1**, **AIOLists** en **índice 2**. 153 catálogos en `preset.json` (125 enabled); el manifest
+expone ~132 (125 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Catálogos: globales (Trending,
+Latest, Top Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 15 países occidentales
+(Argentina, Latam, España, Francia, Alemania, Italia, Reino Unido, Portugal, México, Colombia, Chile,
+Brasil, Perú, EE.UU., Canadá + Oceanía), **7 países de Asia** con filtro de calidad (Japón, Corea,
+China, Taiwán, Tailandia, Hong Kong, India — `vote_count.gte` alto + `vote_average.gte=7`),
+"Próximos Estrenos", "En Cartelera", y búsqueda por título y por actor. **Idioma TMDB: `es`** (sinopsis
+y títulos en español). **Inicio curado (opción A)**: solo En Cartelera + Próximos Estrenos + Tendencias
 (Trending/Latest/Top Rated/Best 2020s) tienen `showInHome=true`; géneros, países, décadas y
 plataformas quedan en `enabled=true` pero fuera del inicio (navegables en Descubrir). Trakt y Simkl
 conectados. Streams: Torrentio, Comet, Meteor, NoTorrent, WebStreamrMBG. Subtítulos (orden):
@@ -145,9 +147,9 @@ manifest de AIOMetadata = el orden del array `catalogs.standard`. Se reordenó e
   `with_origin_country=<CC>`). Regenerar desde el preset viejo los habría borrado. Se reconstruyeron
   clonando el template de Argentina (`pablo001/002`). **Lección: antes de cualquier swap, diffear el
   manifest NUEVO contra el de la instancia EN VIVO y confirmar CERO catálogos perdidos.**
-- preset.json ahora tiene **139 catálogos** en `standard` (111 enabled; el manifest expone ~118 =
-  111 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Última adición: Oceanía, EE.UU. y
-  Canadá (2026-06-27).
+- preset.json ahora tiene **153 catálogos** en `standard` (125 enabled; el manifest expone ~132 =
+  125 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Última adición: 7 países de Asia
+  con filtro de calidad (2026-07-01).
 - "New on MUBI" / plataformas vienen de los addons **"Mubi Catalog"** y **"Streaming Catalogs"**, no
   de AIOMetadata. Su prioridad en el board depende del **orden de la colección de addons**, no del
   preset. Mubi está en posición baja (índice 8 de 14); el reorden de AIOMetadata ya lo despriorizó.
@@ -208,10 +210,25 @@ depende de que Windows esté prendido.
 | Servicio | Qué hace | Dónde corre |
 |---|---|---|
 | keep-warm (AIOMetadata) | Pingea el manifest cada 20 min para evitar cold start | GitHub Actions (`.github/workflows/keep-warm.yml`) |
+| health-monitor | Health-check 2×/día; email diario + alerta inmediata si falla | GitHub Actions (`.github/workflows/health-monitor.yml`) |
 | SubDL addon (subs ES sin SDH) | Proxy SubDL filtrando hi=true | Deno Deploy (`scripts/deno-subdl-addon.ts`) — `mejorastremio.pabloeckert.deno.net` |
-| AIOMetadata catálogos | 118 catálogos TMDB Discover | ElfHosted (UUID en `preset.json → instanceId`) |
+| AIOMetadata catálogos | ~132 catálogos TMDB Discover (idioma `es`) | ElfHosted (UUID en `preset.json → instanceId`) |
 | AIOLists recomendaciones | Trakt/TMDB/couchmoney por gustos | ElfHosted (URL en manifest privado) |
 | SubMaker subs ES | Subs SubDL sin SDH, en la nube | ElfHosted (`submaker.elfhosted.com`) |
+
+### health-monitor — GitHub Actions (2026-07-01)
+
+`.github/workflows/health-monitor.yml` corre 2 veces por día:
+- **09:00 Argentina** (12:00 UTC): health-check completo. Email solo si hay falla.
+- **21:00 Argentina** (00:00 UTC): health-check completo. **Siempre envía resumen** a `pabloeckert@gmail.com`.
+
+Para que el email funcione, el repo necesita estos **GitHub Secrets** (Settings → Secrets → Actions):
+- `STREMIO_EMAIL` = `stremioeg@gmail.com`
+- `STREMIO_PASS` = contraseña de la cuenta Stremio
+- `GMAIL_APP_PASSWORD` = App Password de Google (myaccount.google.com/apppasswords → Mail → crear)
+
+Sin los secrets, el job falla con 401/403 y el email no se envía.
+El job aparece rojo en GitHub si hay algún problema, así que las fallas también son visibles ahí.
 
 ### keep-warm — GitHub Actions (reemplazó Task Scheduler 2026-06-30)
 

@@ -63,10 +63,13 @@ nunca arrancan"). Subtítulos (orden): SubSense (idx 11) → SubMaker ElfHosted 
 (idx 13, `mejorastremio.pabloeckert.deno.net`) → OpenSubtitles v3 (idx 14). Catálogos de Mubi via
 "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 10 y 15).
 
-**AIOLists** (`org.stremio.aiolists`, hosteado en ElfHosted) da las recomendaciones por gustos:
+**AIOLists** (`org.stremio.aiolists`, hosteado en ElfHosted) daba las recomendaciones por gustos:
 "Recommended Movies/Shows" (Trakt según historial), listas couchmoney.tv, Trending y Popular.
-**Trakt OAuth reconectado 2026-06-30** — 13 catálogos activos incluyendo 8 `trakt_*` (películas y
-series recomendadas, trending, populares, watchlist). Conectado a Trakt (`jarvis-15483776`) y TMDB
+**⚠️ DEPRECADO por ElfHosted el 2026-07-01** — ver "AIOLists deprecado por ElfHosted" más abajo:
+ya perdió sus 8 catálogos `trakt_*`, pendiente migrar a MyTrakt Sync. Lo que sigue en este párrafo
+describe el estado ANTERIOR a la baja (Trakt OAuth reconectado 2026-06-30 — 13 catálogos activos
+incluyendo 8 `trakt_*`: películas y series recomendadas, trending, populares, watchlist). Conectado
+a Trakt (`jarvis-15483776`) y TMDB
 (`pabloeckert`), con **Upstash Redis** para que el token de Trakt no se venza (sin Upstash, AIOLists
 es stateless y Trakt cae cada ~3 meses). La URL del manifest **contiene las API keys encodeadas →
 es privada, no compartir**. Al cambiar listas o settings hay que **recopiar la URL** (es una foto del
@@ -240,6 +243,46 @@ la cuenta real (`tt27763549` "Los Mufas: Suerte para la desgracia", Netflix AR 2
 
 Backup pre-cambio: `.backups/backup-stremioeg-pre-streaming-fix-2026-07-01T16-13-47.json`.
 Health-check post-cambio: verde (17 addons, sin ids duplicados, streams y subs OK).
+
+### AIOLists deprecado por ElfHosted (2026-07-01) — pendiente migrar a MyTrakt Sync
+
+ElfHosted anunció (post oficial de `funkypenguin`, confirmado en
+https://stremio-addons-guide.elfhosted.com/) que da de baja **AIOLists, Archivio y YourIPTV desde
+el 1 de julio de 2026**. Verificado contra la instancia real de Pablo: **ya perdió los 13 catálogos
+que tenía el 2026-06-30** (los 8 `trakt_*` de recomendaciones/trending/watchlist) — el manifest en
+vivo ahora solo expone 5 catálogos genéricos sin nada de Trakt. Esto invalida lo documentado sobre
+"Trakt OAuth reconectado 2026-06-30 — 13 catálogos activos" más arriba en este archivo.
+
+**Reemplazo identificado**: `MyTrakt Sync` (`mytrakt.elfhosted.com`, ~29.5k usuarios, activamente
+mantenido) cubre todo lo que hacía AIOLists (watchlist/watched/recomendaciones vía Trakt, MDBList,
+posters con rating) y más: continue watching/up-next, mark-as-watched, y **control por catálogo de
+Home vs. Discover** (calza con el esquema de "inicio curado" ya armado). Setup vía OAuth con Trakt,
+~2 min — lo tiene que hacer Pablo (no es automatizable headless, igual que la reconexión de Trakt
+anterior). **Pendiente**: Pablo decide si migra; una vez que tenga el addon instalado, actualizar la
+colección (sacar AIOLists, meter MyTrakt Sync) y el health-check.
+
+### Vigilancia de r/Stremio y r/StremioAddons (2026-07-01)
+
+Pablo pidió un workflow permanente para vigilar ambos subreddits y anticipar roturas/deprecaciones
+(así se encontró lo de AIOLists arriba). Intenté automatizarlo con un cron en GitHub Actions
+pegándole a la API pública de Reddit — **Reddit bloquea duro el acceso no-browser**: el endpoint
+JSON (`/r/<sub>/new.json`) devuelve 403 incluso con User-Agent de navegador real, y el RSS
+(`/r/<sub>/new/.rss`) devuelve 429 (rate limit agotado) con una sola request. No hay forma limpia de
+sortear esto sin un browser headless tipo Playwright (que Reddit suele detectar igual, y agrega una
+dependencia pesada que este proyecto evita) — no se automatizó por ese motivo, no por falta de
+intento.
+
+**Lo que sí protege en piloto automático (ya en producción, cloud, sin depender de la PC)**:
+`scripts/health-check.mjs` 2x/día vía `health-monitor.yml` — pega directo a los manifests/streams/
+catálogos reales que usa la cuenta. Es la señal más rápida y confiable de "algo se rompió" (mucho
+antes que enterarse por un post de Reddit).
+
+**Lo que se complementa a mano**: al arrancar una sesión con Pablo (o si pide un "chequeo"), repasar
+r/StremioAddons y r/Stremio con el browser real (`claude-in-chrome`) — ahí sí funciona, porque es
+una sesión de navegador auténtica, no un script. Buscar: deprecaciones de ElfHosted, addons caídos
+que Pablo usa, problemas masivos de TorBox/Real-Debrid si en algún momento se suma un debrid. No es
+automatizable sin la PC/Chrome prendidos, así que queda como hábito de sesión, no como cron — no
+rompe el principio de "todo cloud" porque no es una dependencia crítica, es vigilancia extra.
 
 ## Infraestructura cloud-only (2026-06-30)
 

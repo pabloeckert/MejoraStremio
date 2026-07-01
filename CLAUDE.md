@@ -41,7 +41,7 @@ build: es un toolkit, no un paquete. No usar `npm install`.
 
 ## Estado actual de la cuenta (stremioeg, 2026-07-01)
 
-16 addons. **Cinemeta en índice 0**, AIOMetadata (UUID **`6c91e26e-7e53-43a8-8883-aa10fbf4b521`**) en
+17 addons. **Cinemeta en índice 0**, AIOMetadata (UUID **`6c91e26e-7e53-43a8-8883-aa10fbf4b521`**) en
 **índice 1**, **AIOLists** en **índice 2**. 153 catálogos en `preset.json` (125 enabled); el manifest
 expone ~132 (125 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Catálogos: globales (Trending,
 Latest, Top Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 15 países occidentales
@@ -52,10 +52,16 @@ China, Taiwán, Tailandia, Hong Kong, India — `vote_count.gte` alto + `vote_av
 y títulos en español). **Inicio curado (opción A)**: solo En Cartelera + Próximos Estrenos + Tendencias
 (Trending/Latest/Top Rated/Best 2020s) tienen `showInHome=true`; géneros, países, décadas y
 plataformas quedan en `enabled=true` pero fuera del inicio (navegables en Descubrir). Trakt y Simkl
-conectados. Streams: Torrentio, Comet, Meteor, NoTorrent, WebStreamrMBG. Subtítulos (orden):
-SubSense (idx 10) → SubMaker ElfHosted (idx 11) → SubDL Deno (idx 12,
-`mejorastremio.pabloeckert.deno.net`) → OpenSubtitles v3 (idx 13). Catálogos de Mubi via "Mubi
-Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 14 y 15).
+conectados. **Streams** (idx 3-8, orden pensado para priorizar fuentes que no dependen de seeds):
+Torrentio (idx 3, **24 proveedores habilitados** — se agregaron Wolfmax4k/BestTorrents/Rutracker/
+Torrent9/Comando/BluDV/MicoLeaoDublado/ilCorSaRoNeRo/nekoBT/Rutor para mejorar cobertura de contenido
+en español/portugués) → Comet (idx 4) → NoTorrent (idx 5, scraper HTTP) → WebStreamrMBG (idx 6,
+scraper HTTP, a veces tarda >15s en responder — timeout flaky conocido) → **Nuvio Streams** (idx 7,
+nuevo 2026-07-01, ElfHosted, respaldado por Cuevana/Xprime — scraper HTTP con foco en streaming
+services) → Meteor (idx 8, P2P, va último porque a veces sólo tiene torrents sin seeds que "cargan y
+nunca arrancan"). Subtítulos (orden): SubSense (idx 11) → SubMaker ElfHosted (idx 12) → SubDL Deno
+(idx 13, `mejorastremio.pabloeckert.deno.net`) → OpenSubtitles v3 (idx 14). Catálogos de Mubi via
+"Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 10 y 15).
 
 **AIOLists** (`org.stremio.aiolists`, hosteado en ElfHosted) da las recomendaciones por gustos:
 "Recommended Movies/Shows" (Trakt según historial), listas couchmoney.tv, Trending y Popular.
@@ -194,13 +200,46 @@ Invoke-RestMethod -Uri "https://api.strem.io/api/addonCollectionSet" -Method POS
 | Community Subtitles      | subs     | Removido; usar SubSense / OpenSubtitles v3 |
 | GTSubs                   | subs     | Removido 2026-06-21; usar SubSense / OpenSubtitles v3 |
 | Subsense con userId >8ch | subs     | Regenerar con userId de 8 chars       |
-| WebStreamrMBG (manifest caído 2026-06-30) | streams  | Streams siguen funcionando; si no vuelve en 48h evaluar remover |
+| WebStreamrMBG (manifest volvió 2026-07-01) | streams  | Responde pero a veces tarda >15s (timeout del health-check) — flaky, no ideal remover |
 
 ### Wild Cards (Vanessa Morgan, CBC) — mitigado
 
 Episodios S01E07+ tienen pocas seeds en Torrentio (2–8) por ser producción canadiense con baja
 distribución. **Comet lo resuelve** (20–26 streams/episodio medidos el 2026-06-19). No es problema
 de configuración.
+
+### Contenido exclusivo Netflix/Disney+ que "no anda" — mitigado parcialmente (2026-07-01)
+
+Pablo reportó: ve un título en el catálogo (addon "Streaming Catalogs", Netflix/Disney+) que le
+gusta, entra y no arranca (streams que cargan sin fin, o directamente ninguno). Diagnóstico contra
+la cuenta real (`tt27763549` "Los Mufas: Suerte para la desgracia", Netflix AR 2025; también
+`tt5834132` "El Marginal", Netflix AR 2016-2020, éxito local):
+
+- El catálogo de "Streaming Catalogs" da IDs de IMDb correctos — **no es un problema de matching**.
+- Torrentio/Comet/WebStreamrMBG/Nuvio: **0 streams** para ambos títulos, incluso con Torrentio
+  ampliado a sus 24 proveedores. Meteor sí encontraba resultados pero con ~0 seeds (de ahí el "carga
+  y nunca arranca"). NoTorrent (scraper) resolvía "Los Mufas" a un HLS real y válido, pero quedaba
+  perdido entre los resultados P2P muertos de Meteor.
+- **Comparación con contenido masivo** (Loki, Wednesday): ahí Torrentio solo ya trae 40-50 streams.
+  El patrón confirma que **el hueco es estructural**: contenido exclusivo en español/portugués
+  (incluso éxitos locales) casi no circula en los trackers/scrapers públicos que indexan estos
+  addons, optimizados para contenido masivo en inglés. No es algo que se arregle con más addons o
+  reordenando catálogos — **sin un servicio de pago (fuera de alcance del proyecto, ver
+  [[feedback_stay_free]]) puede no haber solución para ciertos títulos**.
+
+**Se aplicó igual, gratis, para sumar cobertura real:**
+1. **Torrentio ampliado** de 14 a **24 proveedores** (se sumaron Wolfmax4k, BestTorrents, Rutracker,
+   Torrent9, Comando, BluDV, MicoLeaoDublado, ilCorSaRoNeRo, nekoBT, Rutor) — no resolvió los dos
+   títulos de prueba, pero subió Matrix de 88 a 141 streams en el health-check, así que ayuda en
+   general.
+2. **Addon nuevo: Nuvio Streams** (`org.nuvio.streams`, ElfHosted, respaldado por Cuevana/Xprime —
+   scraper HTTP, no P2P) instalado en idx 7.
+3. **Reorden de addons de streams**: las fuentes HTTP (NoTorrent, WebStreamrMBG, Nuvio) quedan antes
+   que Meteor (P2P), para que en el selector de Stremio las opciones que no dependen de seeds
+   aparezcan primero y sea menos probable elegir un torrent muerto por error.
+
+Backup pre-cambio: `.backups/backup-stremioeg-pre-streaming-fix-2026-07-01T16-13-47.json`.
+Health-check post-cambio: verde (17 addons, sin ids duplicados, streams y subs OK).
 
 ## Infraestructura cloud-only (2026-06-30)
 

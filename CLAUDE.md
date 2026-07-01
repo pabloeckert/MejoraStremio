@@ -39,7 +39,7 @@ scripts/fix-subtitles.*             Regenera la config de SubSense (.mjs Node, .
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni
 build: es un toolkit, no un paquete. No usar `npm install`.
 
-## Estado actual de la cuenta (stremioeg, 2026-06-30)
+## Estado actual de la cuenta (stremioeg, 2026-07-01)
 
 16 addons. **Cinemeta en índice 0**, AIOMetadata (UUID **`6c91e26e-7e53-43a8-8883-aa10fbf4b521`**) en
 **índice 1**, **AIOLists** en **índice 2**. 153 catálogos en `preset.json` (125 enabled); el manifest

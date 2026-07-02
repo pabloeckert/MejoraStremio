@@ -41,8 +41,9 @@ const getJson = (url, t = 15000) =>
     .then(r => r.ok ? r.json() : null)
     .catch(() => null);
 
-// Servicios a conservar: disponibles en Argentina + España
-const KEEP = ['nfx', 'dnp', 'amp', 'atp', 'hbm', 'pmp', 'sst', 'cpd', 'mp9'];
+// Servicios a conservar: disponibles en Argentina + España, más Hulu (Pablo sigue
+// contenido de Hulu de cerca aunque el servicio no esté disponible en la región).
+const KEEP = ['nfx', 'dnp', 'amp', 'atp', 'hbm', 'pmp', 'sst', 'cpd', 'mp9', 'hlu'];
 
 const LABELS = {
   nfx: 'Netflix', dnp: 'Disney+', amp: 'Prime Video', atp: 'Apple TV+',

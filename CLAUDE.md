@@ -34,15 +34,19 @@ scripts/regenerate-aiometadata.mjs  Regenera la instancia de AIOMetadata desde e
 scripts/refresh-dates.mjs           Recalcula las fechas de En Cartelera/Próximos Estrenos a hoy
                                     (--check para auditar sin escribir).
 scripts/fix-subtitles.*             Regenera la config de SubSense (.mjs Node, .ps1 PowerShell).
+scripts/swap-aiolists-mytrakt.mjs   Script de un solo uso: reemplazó AIOLists por MyTrakt Sync en
+                                    la colección (ver "MyTrakt Sync" abajo). Mantener como referencia
+                                    del patrón, no se espera reusarlo salvo otro swap de addon único.
 ```
 
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni
 build: es un toolkit, no un paquete. No usar `npm install`.
 
-## Estado actual de la cuenta (stremioeg, 2026-07-01)
+## Estado actual de la cuenta (stremioeg, 2026-07-02)
 
 17 addons. **Cinemeta en índice 0**, AIOMetadata (UUID **`6c91e26e-7e53-43a8-8883-aa10fbf4b521`**) en
-**índice 1**, **AIOLists** en **índice 2**. 153 catálogos en `preset.json` (125 enabled); el manifest
+**índice 1**, **MyTrakt Sync** (UUID **`13e948e9-04c8-4917-a0d5-96af15b63d2f`**) en **índice 2**
+(reemplazó a AIOLists deprecado — ver "MyTrakt Sync" abajo). 153 catálogos en `preset.json` (125 enabled); el manifest
 expone ~132 (125 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Catálogos: globales (Trending,
 Latest, Top Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 15 países occidentales
 (Argentina, Latam, España, Francia, Alemania, Italia, Reino Unido, Portugal, México, Colombia, Chile,
@@ -63,18 +67,15 @@ nunca arrancan"). Subtítulos (orden): SubSense (idx 11) → SubMaker ElfHosted 
 (idx 13, `mejorastremio.pabloeckert.deno.net`) → OpenSubtitles v3 (idx 14). Catálogos de Mubi via
 "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 10 y 15).
 
-**AIOLists** (`org.stremio.aiolists`, hosteado en ElfHosted) daba las recomendaciones por gustos:
-"Recommended Movies/Shows" (Trakt según historial), listas couchmoney.tv, Trending y Popular.
-**⚠️ DEPRECADO por ElfHosted el 2026-07-01** — ver "AIOLists deprecado por ElfHosted" más abajo:
-ya perdió sus 8 catálogos `trakt_*`, pendiente migrar a MyTrakt Sync. Lo que sigue en este párrafo
-describe el estado ANTERIOR a la baja (Trakt OAuth reconectado 2026-06-30 — 13 catálogos activos
-incluyendo 8 `trakt_*`: películas y series recomendadas, trending, populares, watchlist). Conectado
-a Trakt (`jarvis-15483776`) y TMDB
-(`pabloeckert`), con **Upstash Redis** para que el token de Trakt no se venza (sin Upstash, AIOLists
-es stateless y Trakt cae cada ~3 meses). La URL del manifest **contiene las API keys encodeadas →
-es privada, no compartir**. Al cambiar listas o settings hay que **recopiar la URL** (es una foto del
-estado) y reinstalar. La instancia pública tiene rate limits; existe opción privada de pago si
-hiciera falta.
+**MyTrakt Sync** (`trakt.addon.v3.13e948e9-04c8-4917-a0d5-96af15b63d2f`, hosteado en ElfHosted)
+reemplazó a AIOLists (deprecado por ElfHosted el 2026-07-01) y da las recomendaciones por gustos:
+10 catálogos — Continue Watching (Movies/TV), Watchlist (Movie/TV), Recommended (Movies/TV),
+Trending (Movies/TV) y Popular (Movies/TV). Conectado a Trakt (`jarvis-15483776`). URL del manifest:
+`https://mytrakt.elfhosted.com/addon/13e948e9-04c8-4917-a0d5-96af15b63d2f/manifest.json` — es la
+instancia que controla Pablo (passkey guardado en memoria). Swap hecho con
+`scripts/swap-aiolists-mytrakt.mjs --apply` (backup previo en `.backups/`); health-check post-swap
+verde. Detalle completo del conflicto de dos cuentas MyTrakt que bloqueó esto varios días, resuelto
+por soporte el 2026-07-02, en "MyTrakt Sync — migración desde AIOLists" más abajo.
 
 ## Mantenimiento
 
@@ -244,32 +245,29 @@ la cuenta real (`tt27763549` "Los Mufas: Suerte para la desgracia", Netflix AR 2
 Backup pre-cambio: `.backups/backup-stremioeg-pre-streaming-fix-2026-07-01T16-13-47.json`.
 Health-check post-cambio: verde (17 addons, sin ids duplicados, streams y subs OK).
 
-### AIOLists deprecado por ElfHosted (2026-07-01) — pendiente migrar a MyTrakt Sync
+### MyTrakt Sync — migración desde AIOLists (resuelto 2026-07-02)
 
 ElfHosted anunció (post oficial de `funkypenguin`, confirmado en
-https://stremio-addons-guide.elfhosted.com/) que da de baja **AIOLists, Archivio y YourIPTV desde
-el 1 de julio de 2026**. Verificado contra la instancia real de Pablo: **ya perdió los 13 catálogos
-que tenía el 2026-06-30** (los 8 `trakt_*` de recomendaciones/trending/watchlist) — el manifest en
-vivo ahora solo expone 5 catálogos genéricos sin nada de Trakt. Esto invalida lo documentado sobre
-"Trakt OAuth reconectado 2026-06-30 — 13 catálogos activos" más arriba en este archivo.
+https://stremio-addons-guide.elfhosted.com/) que dio de baja **AIOLists, Archivio y YourIPTV el
+1 de julio de 2026**. AIOLists perdió sus 8 catálogos `trakt_*` (recomendaciones/trending/watchlist)
+y quedó con 5 catálogos genéricos sin Trakt — de ahí la necesidad de reemplazarlo.
 
-**Reemplazo identificado**: `MyTrakt Sync` (`mytrakt.elfhosted.com`, ~29.5k usuarios, activamente
-mantenido) cubre todo lo que hacía AIOLists (watchlist/watched/recomendaciones vía Trakt, MDBList,
-posters con rating) y más: continue watching/up-next, mark-as-watched, y **control por catálogo de
-Home vs. Discover** (calza con el esquema de "inicio curado" ya armado).
+**Reemplazo**: `MyTrakt Sync` (`mytrakt.elfhosted.com`, ~29.5k usuarios, activamente mantenido).
+Cubre todo lo que hacía AIOLists y más: continue watching/up-next, mark-as-watched.
 
-**⛔ BLOQUEADO por conflicto de dos cuentas MyTrakt (2026-07-02)** — ver detalle y datos en la
-memoria `reference_mytrakt_account`. Resumen: el Trakt `jarvis-15483776` quedó vinculado a la cuenta
-`61b5d704-...` (passkey/email desconocidos), no a la documentada `13e948e9-...`. Al intentar vincular
-Trakt a `13e948e9` el OAuth devuelve `username_conflict` ("already linked to 61b5d704... use that
-account instead, or contact support"). Ambas instancias exponen **0 catálogos** (hay que habilitarlos
-dentro de la config web, detrás de passkey). Por eso **MyTrakt NO se instaló** en la colección —
-instalar un addon vacío no aporta y ensucia el board. **AIOLists deprecado sigue instalado pero es
-inofensivo** (no rompe nada). **Para desbloquear, Pablo debe**: (a) dar el passkey/email de
-`61b5d704`, o (b) contactar soporte de MyTrakt para liberar el vínculo de Trakt y reconectarlo a
-`13e948e9` (passkey ya reseteado por Claude a un valor guardado en la memoria). Una vez desbloqueada
-UNA cuenta con Trakt + catálogos habilitados, actualizar la colección (sacar AIOLists, meter la
-Addon URL de MyTrakt en idx 2) y el health-check.
+**Bloqueo temporal (2026-07-02, resuelto el mismo día)**: el Trakt `jarvis-15483776` había quedado
+vinculado a una cuenta MyTrakt (`61b5d704-...`) cuyo passkey/email Pablo no controlaba, en vez de a
+la documentada `13e948e9-...`. Intentar vincular Trakt a `13e948e9` daba `username_conflict`.
+Soporte de MyTrakt (`mytrakt.sync@gmail.com`) borró la cuenta vieja y confirmó que el Trakt podía
+conectarse directo a `13e948e9`. Pablo hizo el OAuth manual y curó los catálogos visibles en la
+config web (ocultó Anticipated, AniList, Favorites, Watched, Collected, Most Played/Watched/
+Collected, Box Office, y el catálogo Reddit `r/movieleaks`).
+
+**Resultado**: `scripts/swap-aiolists-mytrakt.mjs --apply` reemplazó AIOLists por MyTrakt Sync en
+el índice 2 de la colección (17 addons, sin duplicados). 10 catálogos activos: Continue Watching
+(Movies/TV), Watchlist (Movie/TV), Recommended (Movies/TV), Trending (Movies/TV), Popular
+(Movies/TV). Health-check post-swap verde. Detalle completo del conflicto de las dos cuentas en la
+memoria `reference_mytrakt_account`.
 
 ### Vigilancia de r/Stremio y r/StremioAddons (2026-07-01)
 
@@ -305,7 +303,7 @@ depende de que Windows esté prendido.
 | health-monitor | Health-check 2×/día; email diario + alerta inmediata si falla | GitHub Actions (`.github/workflows/health-monitor.yml`) |
 | SubDL addon (subs ES sin SDH) | Proxy SubDL filtrando hi=true | Deno Deploy (`scripts/deno-subdl-addon.ts`) — `mejorastremio.pabloeckert.deno.net` |
 | AIOMetadata catálogos | ~132 catálogos TMDB Discover (idioma `es`) | ElfHosted (UUID en `preset.json → instanceId`) |
-| AIOLists recomendaciones | Trakt/TMDB/couchmoney por gustos | ElfHosted (URL en manifest privado) |
+| MyTrakt Sync recomendaciones | Watchlist/Recommended/Trending/Popular vía Trakt | ElfHosted (UUID `13e948e9-...` en manifest) |
 | SubMaker subs ES | Subs SubDL sin SDH, en la nube | ElfHosted (`submaker.elfhosted.com`) |
 
 ### health-monitor — GitHub Actions (2026-07-01)

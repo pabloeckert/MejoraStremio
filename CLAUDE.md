@@ -256,10 +256,20 @@ vivo ahora solo expone 5 catálogos genéricos sin nada de Trakt. Esto invalida 
 **Reemplazo identificado**: `MyTrakt Sync` (`mytrakt.elfhosted.com`, ~29.5k usuarios, activamente
 mantenido) cubre todo lo que hacía AIOLists (watchlist/watched/recomendaciones vía Trakt, MDBList,
 posters con rating) y más: continue watching/up-next, mark-as-watched, y **control por catálogo de
-Home vs. Discover** (calza con el esquema de "inicio curado" ya armado). Setup vía OAuth con Trakt,
-~2 min — lo tiene que hacer Pablo (no es automatizable headless, igual que la reconexión de Trakt
-anterior). **Pendiente**: Pablo decide si migra; una vez que tenga el addon instalado, actualizar la
-colección (sacar AIOLists, meter MyTrakt Sync) y el health-check.
+Home vs. Discover** (calza con el esquema de "inicio curado" ya armado).
+
+**⛔ BLOQUEADO por conflicto de dos cuentas MyTrakt (2026-07-02)** — ver detalle y datos en la
+memoria `reference_mytrakt_account`. Resumen: el Trakt `jarvis-15483776` quedó vinculado a la cuenta
+`61b5d704-...` (passkey/email desconocidos), no a la documentada `13e948e9-...`. Al intentar vincular
+Trakt a `13e948e9` el OAuth devuelve `username_conflict` ("already linked to 61b5d704... use that
+account instead, or contact support"). Ambas instancias exponen **0 catálogos** (hay que habilitarlos
+dentro de la config web, detrás de passkey). Por eso **MyTrakt NO se instaló** en la colección —
+instalar un addon vacío no aporta y ensucia el board. **AIOLists deprecado sigue instalado pero es
+inofensivo** (no rompe nada). **Para desbloquear, Pablo debe**: (a) dar el passkey/email de
+`61b5d704`, o (b) contactar soporte de MyTrakt para liberar el vínculo de Trakt y reconectarlo a
+`13e948e9` (passkey ya reseteado por Claude a un valor guardado en la memoria). Una vez desbloqueada
+UNA cuenta con Trakt + catálogos habilitados, actualizar la colección (sacar AIOLists, meter la
+Addon URL de MyTrakt en idx 2) y el health-check.
 
 ### Vigilancia de r/Stremio y r/StremioAddons (2026-07-01)
 
@@ -305,11 +315,15 @@ depende de que Windows esté prendido.
 - **21:00 Argentina** (00:00 UTC): health-check completo. **Siempre envía resumen** a `pabloeckert@gmail.com`.
 
 Para que el email funcione, el repo necesita estos **GitHub Secrets** (Settings → Secrets → Actions):
-- `STREMIO_EMAIL` = `stremioeg@gmail.com`
-- `STREMIO_PASS` = contraseña de la cuenta Stremio
-- `GMAIL_APP_PASSWORD` = App Password de Google (myaccount.google.com/apppasswords → Mail → crear)
+- `STREMIO_EMAIL` = `stremioeg@gmail.com` — ✅ **cargado 2026-07-02** (`gh secret set`).
+- `STREMIO_PASS` = contraseña de la cuenta Stremio — ✅ **cargado 2026-07-02** (`gh secret set`).
+- `GMAIL_APP_PASSWORD` = App Password de Google (myaccount.google.com/apppasswords → Mail → crear) —
+  ⛔ **FALTA**. Lo tiene que crear Pablo en su cuenta Google (Claude no puede autenticarse en Google
+  ni generar App Passwords) y cargarlo con `gh secret set GMAIL_APP_PASSWORD` o desde Settings.
 
-Sin los secrets, el job falla con 401/403 y el email no se envía.
+Con los dos primeros ya cargados, el **health-check en Actions corre autenticado y da verde** (run
+manual verificado 2026-07-02). Pero el paso "Enviar email" falla con `530 5.7.0 Authentication
+Required` hasta que exista `GMAIL_APP_PASSWORD` → el resumen diario 21:00 no llega todavía.
 El job aparece rojo en GitHub si hay algún problema, así que las fallas también son visibles ahí.
 
 ### keep-warm — GitHub Actions (reemplazó Task Scheduler 2026-06-30)

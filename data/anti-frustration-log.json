@@ -1,0 +1,241 @@
+[
+  {
+    "id": "tt9293466",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "Balthazar",
+    "genres": [
+      "Crime",
+      "Thriller"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 5,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 8,
+        "real": 8,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 12,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 9,
+    "status": "resuelto",
+    "latino": null,
+    "label": "Balthazar S01E01",
+    "addedAt": "2026-07-02T21:45:07.179Z",
+    "lastCheckedAt": "2026-07-02T21:50:41.329Z"
+  },
+  {
+    "id": "tt27763549",
+    "type": "movie",
+    "name": "Los Mufas",
+    "genres": [],
+    "isFamily": false,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 0,
+    "status": "pendiente",
+    "latino": null,
+    "label": "Los Mufas: Suerte para la desgracia",
+    "addedAt": "2026-07-02T21:47:44.909Z",
+    "lastCheckedAt": "2026-07-02T21:51:39.054Z"
+  },
+  {
+    "id": "tt5834132",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "tt5834132",
+    "genres": [],
+    "isFamily": false,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 0,
+    "status": "pendiente",
+    "latino": null,
+    "label": "El Marginal S01E01",
+    "addedAt": "2026-07-02T21:48:52.556Z",
+    "lastCheckedAt": "2026-07-02T21:53:18.089Z"
+  },
+  {
+    "id": "tt2380307",
+    "type": "movie",
+    "name": "Coco",
+    "genres": [
+      "Animation",
+      "Adventure",
+      "Drama"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 49,
+        "real": 49,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 32,
+        "real": 32,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 11,
+        "real": 11,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 35,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 93,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": true,
+      "samples": [
+        "Coco.2017.1080p.Eng-Spa(Latino)_MediaClubMX",
+        "coco 2017 latino 1080p theloko1984",
+        "🇲🇽 1080p - MPV Player (Audio Latino) [PREMIUM]"
+      ]
+    },
+    "label": "Coco",
+    "addedAt": "2026-07-02T21:49:33.635Z",
+    "lastCheckedAt": "2026-07-02T21:54:05.189Z"
+  }
+]

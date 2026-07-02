@@ -22,7 +22,11 @@ data/preset.json                    Fuente de verdad de los catálogos de AIOMet
                                     completa + definición de catálogos). Reconstruye la config.
 data/test-content.json              Lista curada de contenido de nicho (series/pelis europeas
                                     2020-hoy) con IMDb ids; insumo de test-content.mjs.
+data/anti-frustration-log.json      Registro de títulos que "no abren" (streams sin cobertura real)
+                                    y su estado; ver scripts/anti-frustration.mjs abajo.
 scripts/health-check.mjs            Auditoría de la cuenta y los addons (ver abajo).
+scripts/anti-frustration.mjs        Registra/revisa títulos sin streams reales (add/review/list) y
+                                    detecta audio latino en contenido familiar/infantil. Ver abajo.
 scripts/test-content.mjs            Prueba streams + subs ES de data/test-content.json contra los
                                     addons reales instalados (ST_PASS). Reporta, no escribe.
 scripts/test-subdl.mjs              Mide subs ES sin SDH (hi=false) en SubDL para data/test-content.json
@@ -98,6 +102,40 @@ addons efectivamente instalados (no una lista hardcodeada). Verifica 5 cosas:
 5. Subtítulos: prueba SubSense + OpenSubtitles v3 para español.
 
 Sin credenciales degrada a verificar manifests públicos. Exit code 0 = todo OK.
+
+### Registro "antifrustración" (2026-07-02)
+
+Pablo pidió un mecanismo persistente para cuando un título "se ve en el catálogo pero no abre"
+(streams que cargan sin fin o no aparecen) — que quede registrado y se pueda revisar cada tanto,
+en vez de re-diagnosticar todo a mano cada vez (como se hizo con Los Mufas/El Marginal el
+2026-07-01 y Balthazar el 2026-07-02).
+
+`scripts/anti-frustration.mjs` (Node, sin deps, mismo estilo que el resto del repo):
+
+```
+node scripts/anti-frustration.mjs add <imdbId> [movie|series] [season] [episode] ["título"]
+node scripts/anti-frustration.mjs review   # re-chequea todo lo "pendiente"
+node scripts/anti-frustration.mjs list     # resumen del log
+```
+
+- Prueba streams contra TODOS los addons de streams instalados y cuenta como "real" un stream sin
+  contador de seeds (addons HTTP: NoTorrent/WebStreamrMBG/Nuvio/Streailer) o con seeds > 0
+  (Torrentio, que sí expone `👤 N`). **Meteor se excluye del conteo** — no expone contador de seeds
+  y tiene fama documentada de dar torrents sin seeds que "cargan y nunca arrancan"; sin forma de
+  verificarlo, no cuenta como señal de que algo abre.
+- **Filtra los "streams" de MyTrakt Sync** (`[MyTrakt] Mark Watched / Add to Watchlist / Remove
+  from Watchlist` — un mp4 de 27KB para scrobbling, detectable por `behaviorHints.bingeGroup`
+  empezando con `mytrakt-`): no son contenido, y si no se descartan inflan el conteo con un +3 fijo
+  en CUALQUIER título (bug real encontrado al testear: Los Mufas y El Marginal mostraban "3 streams
+  reales" antes del fix, cuando en realidad tienen 0).
+- Resuelto si el total de streams reales ≥ 3 (`RESOLVED_THRESHOLD`); si no, queda "pendiente".
+- Para títulos de género `Animation`/`Family` (via Cinemeta `meta.genre`), además busca audio latino
+  en los títulos de los streams (`🇲🇽`/`🇦🇷`/`🇨🇴` o la palabra "latino") — pedido de Pablo: para
+  contenido familiar/adolescente/infantil, registrar si hay alternativa de audio latino.
+- Log persistido en `data/anti-frustration-log.json` (versionado en git, no gitignoreado).
+- **Revisión automática semanal**: `.github/workflows/anti-frustration-review.yml` (domingos, cloud,
+  igual que health-monitor) corre `review`, commitea el log actualizado y manda un resumen a
+  `pabloeckert@gmail.com` de qué se resolvió y qué sigue pendiente.
 
 ### Búsqueda rota por `manifest.id` duplicado (resuelto 2026-06-19)
 

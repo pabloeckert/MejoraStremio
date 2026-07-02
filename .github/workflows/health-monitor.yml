@@ -56,8 +56,7 @@ jobs:
           subject: "[${{ steps.meta.outputs.emoji }}] MejoraStremio Health — ${{ steps.meta.outputs.result }}"
           to: pabloeckert@gmail.com
           from: "MejoraStremio <pabloeckert@gmail.com>"
-          body_path: /tmp/health-output.txt
-          content_type: text/plain
+          body: file:///tmp/health-output.txt
 
       - name: Fallar job si health check falló
         if: always() && steps.check.outcome == 'failure'

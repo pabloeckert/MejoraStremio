@@ -210,6 +210,20 @@ manifest de AIOMetadata = el orden del array `catalogs.standard`. Se reordenó e
   AIOMetadata — ocultar desde la app (Board → configurar catálogos). Reversible vía
   `addonCollectionSet` con el backup en `.backups/`.
 
+### Streaming Catalogs — regla de cobertura regional (2026-07-02)
+
+Pablo fijó el criterio para qué servicios mantener en el addon "Streaming Catalogs"
+(`pw.ers.netflix-catalog`, idx 15): **Europa occidental + todo el continente americano ("de
+Ushuaia a Alaska") + Oceanía van TODOS**, sin filtrar por si el servicio llega a Argentina/España o
+no (a Pablo le sirve el catálogo igual, ver `project_content_taste` en memoria). **Asia, Medio
+Oriente y África solo si están comprobados y valorados** — ninguno lo está todavía, quedan afuera.
+
+`scripts/curate-streaming-catalogs.mjs` (mismo script, KEEP list actualizada) pasó de 19 a **30
+servicios** (sumó Netflix Kids, Curiosity Stream, MagellanTV, NLZIET, Hayu, Videoland, Mubi, Acorn
+TV, BritBox, Criterion Channel, Shudder — 56 catálogos en el manifest). Excluidos por ahora:
+Crunchyroll, JioHotstar, Zee5, Rakuten Viki, Sony Liv, iQIYI, Shahid VIP (todos Asia/Medio Oriente).
+Aplicado con `--apply`, backup en `.backups/`, health-check verde post-cambio.
+
 ### SubSense — reglas críticas
 
 Token con formato `{userId}-{configString}`:

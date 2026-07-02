@@ -41,9 +41,18 @@ const getJson = (url, t = 15000) =>
     .then(r => r.ok ? r.json() : null)
     .catch(() => null);
 
-// Servicios a conservar: disponibles en Argentina + España, más Hulu (Pablo sigue
-// contenido de Hulu de cerca aunque el servicio no esté disponible en la región).
-const KEEP = ['nfx', 'dnp', 'amp', 'atp', 'hbm', 'pmp', 'sst', 'cpd', 'mp9', 'hlu'];
+// Regla de Pablo (2026-07-02): Europa occidental + todo el continente americano
+// ("de Ushuaia a Alaska") + Oceanía van TODOS, sin curar por disponibilidad
+// regional. Asia, Medio Oriente y África solo si están comprobados y valorados
+// (ninguno lo está todavía) — quedan afuera hasta que haya una señal concreta.
+const KEEP = [
+  'nfx', 'dnp', 'amp', 'atp', 'hbm', 'pmp', 'sst', 'cpd', 'mp9', 'hlu', // 9 originales + Hulu
+  'pcp', 'nfk', 'cts', 'mgl', 'gop', 'clv', 'nlz', 'hay', 'vil', 'mbi',
+  'dpe', 'stz', 'sgo', 'itv', 'act', 'bbo', 'bbc', 'al4', 'crc', 'shd',
+];
+// Excluidos por ahora (Asia/Medio Oriente, sin comprobar): cru (Crunchyroll),
+// jhs (JioHotstar), zee (Zee5), vik (Rakuten Viki), sonyliv (Sony Liv),
+// iqi (iQIYI), sha (Shahid VIP).
 
 const LABELS = {
   nfx: 'Netflix', dnp: 'Disney+', amp: 'Prime Video', atp: 'Apple TV+',

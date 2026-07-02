@@ -237,5 +237,457 @@
     "label": "Coco",
     "addedAt": "2026-07-02T21:49:33.635Z",
     "lastCheckedAt": "2026-07-02T21:54:05.189Z"
+  },
+  {
+    "id": "tt33612209",
+    "type": "movie",
+    "name": "The Devil Wears Prada 2",
+    "genres": [
+      "Comedy",
+      "Drama"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 56,
+        "real": 56,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 11,
+        "real": 11,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 10,
+        "real": 10,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 9,
+        "real": 9,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 30,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 87,
+    "status": "resuelto",
+    "latino": null,
+    "label": "The Devil Wears Prada 2",
+    "addedAt": "2026-07-02T22:32:24.047Z",
+    "lastCheckedAt": "2026-07-02T22:32:24.047Z"
+  },
+  {
+    "id": "tt2293640",
+    "type": "movie",
+    "name": "Minions",
+    "genres": [
+      "Animation",
+      "Adventure",
+      "Comedy"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 32,
+        "real": 32,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 26,
+        "real": 26,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 10,
+        "real": 10,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 40,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 69,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": true,
+      "samples": [
+        "🇲🇽 1080p - MPV Player (Audio Latino) [PREMIUM]",
+        "🇲🇽 720p - MPV Player (Audio Latino) [FREE]",
+        "📄 Minions.2015.BDRip.LATiNO.ENG (720p+1080p) + REMUX"
+      ]
+    },
+    "label": "Minions",
+    "addedAt": "2026-07-02T22:33:05.576Z",
+    "lastCheckedAt": "2026-07-02T22:33:05.576Z"
+  },
+  {
+    "id": "tt0837562",
+    "type": "movie",
+    "name": "Hotel Transylvania",
+    "genres": [
+      "Animation",
+      "Comedy",
+      "Family"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 30,
+        "real": 30,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 31,
+        "real": 31,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 7,
+        "real": 7,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 7,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 69,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": true,
+      "samples": [
+        "Hotel.Transylvania.2012.1080p.WEB-DL.ENG.LATINO.DDP.5.1.H264-BEN.THE.MEN",
+        "🇲🇽 1080p - MPV Player (Audio Latino) [PREMIUM]",
+        "🇲🇽 720p - MPV Player (Audio Latino) [FREE]"
+      ]
+    },
+    "label": "Hotel Transylvania",
+    "addedAt": "2026-07-02T22:34:06.738Z",
+    "lastCheckedAt": "2026-07-02T22:34:06.738Z"
+  },
+  {
+    "id": "tt1490017",
+    "type": "movie",
+    "name": "The Lego Movie",
+    "genres": [
+      "Animation",
+      "Action",
+      "Adventure"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 16,
+        "real": 16,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 31,
+        "real": 31,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 7,
+        "real": 7,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 38,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 55,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": true,
+      "samples": [
+        "🇲🇽 1080p - MPV Player (Audio Latino) [PREMIUM]",
+        "🇲🇽 720p - MPV Player (Audio Latino) [FREE]"
+      ]
+    },
+    "label": "The Lego Movie",
+    "addedAt": "2026-07-02T22:34:45.918Z",
+    "lastCheckedAt": "2026-07-02T22:34:45.918Z"
+  },
+  {
+    "id": "tt1634003",
+    "type": "movie",
+    "name": "Underdogs",
+    "genres": [
+      "Animation",
+      "Adventure",
+      "Comedy"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 5,
+        "real": 2,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 5,
+        "real": 5,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 6,
+        "real": 6,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 25,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 14,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": true,
+      "samples": [
+        "Metegol.2013.1080P-Dual-Lat",
+        "Metegol‬ - Trailer Español Latino [FULL HD]"
+      ]
+    },
+    "label": "Metegol",
+    "addedAt": "2026-07-02T22:35:25.245Z",
+    "lastCheckedAt": "2026-07-02T22:35:25.245Z"
+  },
+  {
+    "id": "tt8637498",
+    "type": "movie",
+    "name": "The Monkey King",
+    "genres": [
+      "Animation",
+      "Action",
+      "Adventure"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 10,
+        "real": 10,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 14,
+        "real": 14,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 6,
+        "real": 6,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 31,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 31,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": false,
+      "samples": []
+    },
+    "label": "El Rey Mono (The Monkey King)",
+    "addedAt": "2026-07-02T22:36:09.739Z",
+    "lastCheckedAt": "2026-07-02T22:36:09.739Z"
+  },
+  {
+    "id": "tt27610198",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "The Amazing Digital Circus",
+    "genres": [
+      "Animation",
+      "Adventure",
+      "Comedy"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Torrentio": {
+        "total": 14,
+        "real": 14,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 13,
+        "real": 13,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 4,
+        "real": 4,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 11,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 32,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": false,
+      "samples": []
+    },
+    "label": "The Amazing Digital Circus S01E01",
+    "addedAt": "2026-07-02T22:36:52.042Z",
+    "lastCheckedAt": "2026-07-02T22:36:52.042Z"
   }
 ]

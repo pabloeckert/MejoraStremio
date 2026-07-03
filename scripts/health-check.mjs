@@ -182,7 +182,7 @@ if (!authKey) {
   exitCode = 1;
 } else {
   const base = baseOf(aio.transportUrl);
-  const mf = manifests[addons.indexOf(aio)] || (await getJson(aio.transportUrl));
+  const mf = manifestResults[addons.indexOf(aio)]?.data || (await getJson(aio.transportUrl));
   const browsable = (mf?.catalogs || []).filter(
     (c) => !(c.extra || []).some((e) => e.name === 'search' && e.isRequired)
   );

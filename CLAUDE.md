@@ -462,6 +462,36 @@ entrante, así que funciona sin configuración extra tanto en local (`deno run`)
 - `scripts/_subdl-addon-runner.ps1` — gitignoreado, puede borrarse del disco local
 - Tarea Windows `StremioSubdlAddon` — nunca existió; Deno Deploy en producción desde 2026-06-30
 
+## Plan debrid — proyección agosto 2026 (analizado 2026-07-03)
+
+Pablo pidió analizar el mejor servicio de debrid de pago ("mejor calidad, mejor precio"), con
+proyección de sumarlo posiblemente en **agosto 2026**. Esto matiza la premisa histórica de
+proyecto 100% gratis: Pablo mismo lo pidió tras chocar reiteradamente con el techo real de lo
+gratis (Los Mufas, El Marginal — 0 streams reales; Nuvio Streams deprecado sin reemplazo gratis).
+No es una decisión tomada todavía, es un plan a revisar.
+
+**Recomendación: TorBox** (plan Essential, ~US$3/mes, cache ilimitado):
+
+| Servicio | Precio | A favor | En contra |
+|---|---|---|---|
+| **TorBox** | ~$3/mes | Sin purgas de caché por reclamos de copyright (a diferencia de Real-Debrid); multi-IP; no-logs; soportado nativamente por Torrentio y Comet (ya instalados); PayPal/cripto/tarjeta | Cache algo más débil en contenido viejo/no-inglés muy nicho |
+| Real-Debrid | ~$3-4/mes | Barato, cache profundo de contenido viejo | Borra activamente archivos cacheados por reclamos de copyright → streams rotos, el mismo síntoma que ya venimos peleando gratis |
+| AllDebrid | ~€3/mes | UI/extensión pulida | Sin ventaja real sobre TorBox acá |
+| Premiumize | Más caro | Bundle cloud/Usenet/VPN, cripto | Funciones extra que no hacen falta |
+
+**Integración cuando Pablo decida avanzar** (no requiere addons nuevos): Torrentio y Comet ya
+soportan TorBox nativamente como proveedor de debrid.
+1. Pablo crea la cuenta TorBox y consigue su API key.
+2. Reconfigurar Torrentio (config vía URL — agregar parámetro de debrid con la key) y Comet (su
+   config UI tiene selector de proveedor de debrid).
+3. Recopiar/reinstalar esas dos URLs en la colección (mismo patrón de siempre, backup antes).
+4. Correr `health-check.mjs` + `scripts/anti-frustration.mjs review` para confirmar mejora real en
+   los títulos "pendiente" (Los Mufas, El Marginal).
+
+**Para la rutina semanal automática (ver sección de arriba)**: si en algún chequeo dominical hay
+novedades relevantes de precios/políticas de TorBox/Real-Debrid/AllDebrid, o se acerca agosto sin
+que Pablo haya decidido, mencionarlo brevemente en el resumen — sin presionar, es su decisión.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

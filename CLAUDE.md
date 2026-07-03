@@ -51,7 +51,8 @@ build: es un toolkit, no un paquete. No usar `npm install`.
 
 ## Estado actual de la cuenta (stremioeg, 2026-07-02)
 
-17 addons. **Cinemeta en índice 0**, AIOMetadata (UUID **`6c91e26e-7e53-43a8-8883-aa10fbf4b521`**) en
+18 addons (idx 17 = "Audio Latino (verificado)", catálogo propio en Deno Deploy, ver más abajo).
+**Cinemeta en índice 0**, AIOMetadata (UUID **`6c91e26e-7e53-43a8-8883-aa10fbf4b521`**) en
 **índice 1**, **MyTrakt Sync** (UUID **`13e948e9-04c8-4917-a0d5-96af15b63d2f`**) en **índice 2**
 (reemplazó a AIOLists deprecado — ver "MyTrakt Sync" abajo). 153 catálogos en `preset.json` (125 enabled); el manifest
 expone ~132 (125 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Catálogos: globales (Trending,
@@ -140,14 +141,14 @@ node scripts/anti-frustration.mjs list     # resumen del log
   igual que health-monitor) corre `review`, commitea el log actualizado y manda un resumen a
   `pabloeckert@gmail.com` de qué se resolvió y qué sigue pendiente.
 
-**Catálogo de audio latino (opcional, código listo, sin deployar)**: `scripts/deno-latino-catalog-addon.ts`
+**Catálogo de audio latino — deployado e instalado (2026-07-02)**: `scripts/deno-latino-catalog-addon.ts`
 expone un catálogo Stremio (`Audio Latino (verificado)`, movie+series) con los títulos del log que
 son `isFamily && latino.found`. Lee el log en vivo desde GitHub raw (cache 10 min) — no hace falta
-redeployar cuando se agregan títulos nuevos al log. Mismo patrón que
-`scripts/deno-subdl-addon.ts` (Deno Deploy, gratis, sin api key). **Pendiente que Pablo cree el
-proyecto en Deno Deploy** (deno.com/deploy → conectar repo → entry point
-`scripts/deno-latino-catalog-addon.ts`) para instalarlo; no se probó localmente (no hay Deno CLI en
-esta máquina) — el primer deploy real es también la primera prueba.
+redeployar cuando se agregan títulos nuevos al log. Mismo patrón que `scripts/deno-subdl-addon.ts`
+(Deno Deploy, gratis, sin api key). **Deployado en Deno Deploy** (proyecto `mejorastremio-latino`
+en la org `pabloeckert`) → `https://mejorastremio-latino.pabloeckert.deno.net/manifest.json` →
+instalado en la colección de Stremio en **índice 17** (18 addons totales). Health-check verde
+post-instalación.
 
 ### Búsqueda rota por `manifest.id` duplicado (resuelto 2026-06-19)
 
@@ -391,6 +392,8 @@ depende de que Windows esté prendido.
 | AIOMetadata catálogos | ~132 catálogos TMDB Discover (idioma `es`) | ElfHosted (UUID en `preset.json → instanceId`) |
 | MyTrakt Sync recomendaciones | Watchlist/Recommended/Trending/Popular vía Trakt | ElfHosted (UUID `13e948e9-...` en manifest) |
 | SubMaker subs ES | Subs SubDL sin SDH, en la nube | ElfHosted (`submaker.elfhosted.com`) |
+| Audio Latino (verificado) | Catálogo de familiar/infantil con audio latino confirmado | Deno Deploy (`mejorastremio-latino.pabloeckert.deno.net`) |
+| Antifrustración | Revisión semanal de títulos sin streams reales | GitHub Actions (`.github/workflows/anti-frustration-review.yml`) |
 
 ### health-monitor — GitHub Actions (2026-07-01)
 

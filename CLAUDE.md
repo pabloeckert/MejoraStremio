@@ -27,6 +27,9 @@ data/anti-frustration-log.json      Registro de títulos que "no abren" (streams
 scripts/health-check.mjs            Auditoría de la cuenta y los addons (ver abajo).
 scripts/anti-frustration.mjs        Registra/revisa títulos sin streams reales (add/review/list) y
                                     detecta audio latino en contenido familiar/infantil. Ver abajo.
+scripts/deno-latino-catalog-addon.ts Addon Stremio (Deno Deploy) que expone un catálogo con el
+                                    contenido familiar/infantil con audio latino confirmado en
+                                    data/anti-frustration-log.json. No deployado todavía.
 scripts/test-content.mjs            Prueba streams + subs ES de data/test-content.json contra los
                                     addons reales instalados (ST_PASS). Reporta, no escribe.
 scripts/test-subdl.mjs              Mide subs ES sin SDH (hi=false) en SubDL para data/test-content.json
@@ -137,6 +140,15 @@ node scripts/anti-frustration.mjs list     # resumen del log
   igual que health-monitor) corre `review`, commitea el log actualizado y manda un resumen a
   `pabloeckert@gmail.com` de qué se resolvió y qué sigue pendiente.
 
+**Catálogo de audio latino (opcional, código listo, sin deployar)**: `scripts/deno-latino-catalog-addon.ts`
+expone un catálogo Stremio (`Audio Latino (verificado)`, movie+series) con los títulos del log que
+son `isFamily && latino.found`. Lee el log en vivo desde GitHub raw (cache 10 min) — no hace falta
+redeployar cuando se agregan títulos nuevos al log. Mismo patrón que
+`scripts/deno-subdl-addon.ts` (Deno Deploy, gratis, sin api key). **Pendiente que Pablo cree el
+proyecto en Deno Deploy** (deno.com/deploy → conectar repo → entry point
+`scripts/deno-latino-catalog-addon.ts`) para instalarlo; no se probó localmente (no hay Deno CLI en
+esta máquina) — el primer deploy real es también la primera prueba.
+
 ### Búsqueda rota por `manifest.id` duplicado (resuelto 2026-06-19)
 
 Stremio identifica addons por `manifest.id`, **no** por `transportUrl`. Dos instancias del mismo
@@ -209,6 +221,28 @@ manifest de AIOMetadata = el orden del array `catalogs.standard`. Se reordenó e
   caliente (fichas ricas). Cinemeta expone Popular/New/Featured que se pisan con Tendencias/Latest de
   AIOMetadata — ocultar desde la app (Board → configurar catálogos). Reversible vía
   `addonCollectionSet` con el backup en `.backups/`.
+
+### Metadata en español — títulos sí, sinopsis no (verificado 2026-07-02)
+
+Con `config.language: "es"` (cambiado 2026-07-01), verificado contra la instancia en vivo
+(`6c91e26e-...`): **el título/nombre SÍ viene en español** ("Super Mario Bros: La película", "El
+día de la revelación"), pero **la sinopsis/descripción sigue en inglés** en meta y en catálogo, en
+varios títulos populares (Matrix, Coco, Oppenheimer, Super Mario). No hay un campo de config
+separado para el idioma de la descripción (`data/preset.json` solo tiene `language`). Parece una
+limitación del addon (probablemente trae el "overview" de una fuente/llamada que no respeta el
+locale) — no hay nada más para ajustar desde nuestro lado sin tocar el código de AIOMetadata en sí.
+
+**Búsqueda por palabra clave**: confirmada funcionando (`search=zombie` → 16 resultados). **Búsqueda/
+filtro por año**: el catálogo de Trending solo expone extras `genre` (Day/Week) y `skip`, sin
+extra de año — no se encontró un catálogo con filtro de año nativo; si hace falta, se puede armar
+un catálogo custom en el Catalog Builder con rango de fecha (como ya se hizo para Estrenos).
+
+**Subtítulos, variante latino vs. España**: los 4 addons de subtítulos (SubSense, SubMaker, SubDL,
+OpenSubtitles v3) devuelven el idioma como `lang: "spa"` genérico, sin distinguir la variante
+regional en el metadata — **no hay forma de forzar "latino primero, España después" a nivel
+addon**, solo se puede filtrar por idioma general y por SDH (ya configurado a `false`/oculto donde
+el addon lo permite). Elegir la variante correcta queda a criterio del usuario al ver el nombre del
+release en el selector de Stremio.
 
 ### Streaming Catalogs — regla de cobertura regional (2026-07-02)
 

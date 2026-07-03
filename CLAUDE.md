@@ -332,6 +332,20 @@ la cuenta real (`tt27763549` "Los Mufas: Suerte para la desgracia", Netflix AR 2
 Backup pre-cambio: `.backups/backup-stremioeg-pre-streaming-fix-2026-07-01T16-13-47.json`.
 Health-check post-cambio: verde (17 addons, sin ids duplicados, streams y subs OK).
 
+### ⚠️ Nuvio Streams deprecado (detectado 2026-07-03)
+
+El addon agregado dos días antes (arriba) **ya fue deprecado por su propio desarrollador**;
+ElfHosted retiró la instancia pública donada (`nuviostreams-is-deprecated.elfhosted.com`).
+Verificado contra la cuenta real: **NO está muerto del todo** — sigue dando streams para
+contenido masivo (Matrix=3, Breaking Bad=3, Wednesday=2), pero dio **0 en las 9 pruebas de
+contenido de nicho/familiar** del log antifrustración (Balthazar, Coco, Minions, etc. — ver
+`data/anti-frustration-log.json`). Va a seguir degradando con el tiempo (scrapers Cuevana/Xprime
+sin mantenimiento). **Alternativas que sugiere ElfHosted (AIOStreams, MediaFusion) requieren
+debrid de pago** para torrents — no sirven para este proyecto (ver [[feedback_stay_free]];
+MediaFusion ya se había descartado el 2026-06-17 por el mismo motivo). **No se removió** —
+sigue dando algo de valor en contenido masivo y no rompe nada, pero dejar de esperar que tape el
+hueco de nicho para el que se instaló. Sin mejor alternativa gratuita conocida por ahora.
+
 ### MyTrakt Sync — migración desde AIOLists (resuelto 2026-07-02)
 
 ElfHosted anunció (post oficial de `funkypenguin`, confirmado en

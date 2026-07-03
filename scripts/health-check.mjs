@@ -43,6 +43,18 @@ const getJson = (url, timeout = 12000) =>
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Un blip transitorio de red no debería marcar un addon sano como caído: un solo
+// reintento tras una pausa corta distingue "hiccup puntual" de "realmente no responde".
+const getJsonWithRetry = async (url, timeout = 12000) => {
+  const first = await getJson(url, timeout);
+  if (first) return { data: first, retried: false };
+  await sleep(3000);
+  const second = await getJson(url, timeout);
+  return { data: second, retried: true };
+};
+
 const ok = (msg) => console.log(`  ✓ ${msg}`);
 const warn = (msg) => console.log(`  ⚠ ${msg}`);
 const fail = (msg) => console.log(`  ✗ ${msg}`);
@@ -147,13 +159,15 @@ const manifestTargets = authKey
       { name: 'OpenSubtitles v3', url: 'https://opensubtitles-v3.strem.io/manifest.json' },
       { name: 'Mubi', url: 'https://mubi2stremio.adiba.ro/manifest.json' },
     ];
-const manifests = await Promise.all(manifestTargets.map((t) => getJson(t.url, 10000)));
-manifestTargets.forEach((t, i) => {
-  const m = manifests[i];
-  if (m?.name) {
+const manifestResults = await Promise.all(manifestTargets.map((t) => getJsonWithRetry(t.url, 10000)));
+manifestResults.forEach(({ data: m, retried }, i) => {
+  const t = manifestTargets[i];
+  if (m?.name && !retried) {
     ok(`${t.name}: v${m.version || '?'}`);
+  } else if (m?.name && retried) {
+    warn(`${t.name}: v${m.version || '?'} (OK recién al reintento — blip transitorio)`);
   } else {
-    fail(`${t.name}: NO RESPONDE`);
+    fail(`${t.name}: NO RESPONDE (2 intentos)`);
     exitCode = 1;
   }
 });

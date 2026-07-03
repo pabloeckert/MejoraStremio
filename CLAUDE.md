@@ -419,13 +419,20 @@ Para que el email funcione, el repo necesita estos **GitHub Secrets** (Settings 
 - `STREMIO_EMAIL` = `stremioeg@gmail.com` — ✅ **cargado 2026-07-02** (`gh secret set`).
 - `STREMIO_PASS` = contraseña de la cuenta Stremio — ✅ **cargado 2026-07-02** (`gh secret set`).
 - `GMAIL_APP_PASSWORD` = App Password de Google (myaccount.google.com/apppasswords → Mail → crear) —
-  ⛔ **FALTA**. Lo tiene que crear Pablo en su cuenta Google (Claude no puede autenticarse en Google
-  ni generar App Passwords) y cargarlo con `gh secret set GMAIL_APP_PASSWORD` o desde Settings.
+  ✅ **cargado 2026-07-02T11:44** (`gh secret set`, confirmado con `gh secret list`).
 
-Con los dos primeros ya cargados, el **health-check en Actions corre autenticado y da verde** (run
-manual verificado 2026-07-02). Pero el paso "Enviar email" falla con `530 5.7.0 Authentication
-Required` hasta que exista `GMAIL_APP_PASSWORD` → el resumen diario 21:00 no llega todavía.
-El job aparece rojo en GitHub si hay algún problema, así que las fallas también son visibles ahí.
+Con los tres secrets cargados, el **health-check en Actions corre autenticado, da verde, y el
+email llega** (confirmado con la alerta de falla real de SubMaker del 2026-07-02 23:23 — ver
+"Reintento en el chequeo de manifests" abajo). El job aparece rojo en GitHub si hay algún
+problema, así que las fallas también son visibles ahí.
+
+**Reintento en el chequeo de manifests (2026-07-03)**: paso `[2/5]` de `health-check.mjs` reintenta
+una vez (tras 3s) el manifest de un addon que no respondió al primer intento, antes de marcarlo
+`NO RESPONDE`. Motivo: la alerta de SubMaker del 2026-07-02 23:23 resultó ser un blip transitorio
+de un segundo (el manifest respondía `200 OK` al reprobarlo a mano minutos después) — sin
+reintento, cualquier hiccup puntual de cualquiera de los 18 addons dispara un email de FALLA
+innecesario. Si el reintento salva el chequeo, queda como `⚠` (no accionable, no marca `exitCode
+= 1`); si falla también el segundo intento, sigue siendo una falla real.
 
 ### keep-warm — GitHub Actions (reemplazó Task Scheduler 2026-06-30)
 

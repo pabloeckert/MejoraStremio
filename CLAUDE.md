@@ -49,10 +49,11 @@ scripts/swap-aiolists-mytrakt.mjs   Script de un solo uso: reemplazó AIOLists p
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni
 build: es un toolkit, no un paquete. No usar `npm install`.
 
-## Estado actual de la cuenta (stremioeg, 2026-07-02)
+## Estado actual de la cuenta (stremioeg, 2026-07-03)
 
 18 addons (idx 17 = "Audio Latino (verificado)", catálogo propio en Deno Deploy, ver más abajo).
-**Cinemeta en índice 0**, AIOMetadata (UUID **`6c91e26e-7e53-43a8-8883-aa10fbf4b521`**) en
+**Cinemeta en índice 0**, AIOMetadata (UUID **`e6392c80-5382-4229-8ca0-446fb57c3bb9`**, regenerado
+2026-07-03 al refrescar fechas — reemplaza a `6c91e26e-...`) en
 **índice 1**, **MyTrakt Sync** (UUID **`13e948e9-04c8-4917-a0d5-96af15b63d2f`**) en **índice 2**
 (reemplazó a AIOLists deprecado — ver "MyTrakt Sync" abajo). 153 catálogos en `preset.json` (125 enabled); el manifest
 expone ~132 (125 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Catálogos: globales (Trending,

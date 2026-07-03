@@ -153,8 +153,8 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-04-17",
-                "primary_release_date.lte": "2026-07-01"
+                "primary_release_date.gte": "2026-04-19",
+                "primary_release_date.lte": "2026-07-03"
               },
               "formState": {
                 "catalogName": "En Cartelera",
@@ -191,8 +191,8 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-04-17",
-                "primaryReleaseTo": "2026-07-01",
+                "primaryReleaseFrom": "2026-04-19",
+                "primaryReleaseTo": "2026-07-03",
                 "firstAirFrom": "",
                 "firstAirTo": "",
                 "airDateFrom": "",
@@ -219,7 +219,7 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-07-01"
+                "primary_release_date.gte": "2026-07-03"
               },
               "formState": {
                 "catalogName": "Próximos Estrenos",
@@ -256,7 +256,7 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-07-01",
+                "primaryReleaseFrom": "2026-07-03",
                 "primaryReleaseTo": "",
                 "firstAirFrom": "",
                 "firstAirTo": "",
@@ -284,7 +284,7 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "first_air_date.gte": "2026-07-01"
+                "first_air_date.gte": "2026-07-03"
               },
               "formState": {
                 "catalogName": "Próximos Estrenos (Series)",
@@ -323,7 +323,7 @@
                 ],
                 "primaryReleaseFrom": "",
                 "primaryReleaseTo": "",
-                "firstAirFrom": "2026-07-01",
+                "firstAirFrom": "2026-07-03",
                 "firstAirTo": "",
                 "airDateFrom": "",
                 "airDateTo": "",
@@ -8808,7 +8808,7 @@
         }
       ]
     },
-    "instanceId": "6c91e26e-7e53-43a8-8883-aa10fbf4b521"
+    "instanceId": "e6392c80-5382-4229-8ca0-446fb57c3bb9"
   },
   "nuvioCollectionsConfig": [
     {

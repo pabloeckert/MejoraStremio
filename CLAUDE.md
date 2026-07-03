@@ -417,24 +417,15 @@ depende de que Windows esté prendido.
 - **09:00 Argentina** (12:00 UTC): health-check completo. Email solo si hay falla.
 - **21:00 Argentina** (00:00 UTC): health-check completo. **Siempre envía resumen** a `pabloeckert@gmail.com`.
 
-Para que el email funcione, el repo necesita estos **GitHub Secrets** (Settings → Secrets → Actions):
-- `STREMIO_EMAIL` = `stremioeg@gmail.com` — ✅ **cargado 2026-07-02** (`gh secret set`).
-- `STREMIO_PASS` = contraseña de la cuenta Stremio — ✅ **cargado 2026-07-02** (`gh secret set`).
-- `GMAIL_APP_PASSWORD` = App Password de Google (myaccount.google.com/apppasswords → Mail → crear) —
-  ✅ **cargado 2026-07-02T11:44** (`gh secret set`, confirmado con `gh secret list`).
+Los 3 **GitHub Secrets** que necesita (`STREMIO_EMAIL`, `STREMIO_PASS`, `GMAIL_APP_PASSWORD`) están
+✅ cargados (confirmado con `gh secret list`) — el health-check corre autenticado, da verde, y el
+email llega. El job aparece rojo en GitHub si hay algún problema, así que las fallas también son
+visibles ahí.
 
-Con los tres secrets cargados, el **health-check en Actions corre autenticado, da verde, y el
-email llega** (confirmado con la alerta de falla real de SubMaker del 2026-07-02 23:23 — ver
-"Reintento en el chequeo de manifests" abajo). El job aparece rojo en GitHub si hay algún
-problema, así que las fallas también son visibles ahí.
-
-**Reintento en el chequeo de manifests (2026-07-03)**: paso `[2/5]` de `health-check.mjs` reintenta
-una vez (tras 3s) el manifest de un addon que no respondió al primer intento, antes de marcarlo
-`NO RESPONDE`. Motivo: la alerta de SubMaker del 2026-07-02 23:23 resultó ser un blip transitorio
-de un segundo (el manifest respondía `200 OK` al reprobarlo a mano minutos después) — sin
-reintento, cualquier hiccup puntual de cualquiera de los 18 addons dispara un email de FALLA
-innecesario. Si el reintento salva el chequeo, queda como `⚠` (no accionable, no marca `exitCode
-= 1`); si falla también el segundo intento, sigue siendo una falla real.
+**Reintento en manifests (2026-07-03)**: paso `[2/5]` de `health-check.mjs` reintenta una vez
+(tras 3s) antes de marcar `NO RESPONDE`, para no disparar FALLA por blips transitorios de un
+addon sano (motivo: la alerta de SubMaker del 2026-07-02 respondía 200 OK al reprobarla a mano
+minutos después). Si el reintento salva el chequeo queda como `⚠` (no marca `exitCode=1`).
 
 ### keep-warm — GitHub Actions (reemplazó Task Scheduler 2026-06-30)
 

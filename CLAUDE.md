@@ -292,6 +292,7 @@ Invoke-RestMethod -Uri "https://api.strem.io/api/addonCollectionSet" -Method POS
 | GTSubs                   | subs     | Removido 2026-06-21; usar SubSense / OpenSubtitles v3 |
 | Subsense con userId >8ch | subs     | Regenerar con userId de 8 chars       |
 | WebStreamrMBG (manifest volvió 2026-07-01) | streams  | Responde pero a veces tarda >15s (timeout del health-check) — flaky, no ideal remover |
+| Mubi Catalog (`mubi2stremio.adiba.ro`)      | catálogo | Falla el chequeo de manifest en varias corridas de GitHub Actions (2026-07-02/03), incluso con reintento, pero responde `200 OK` normal desde otras redes — server chico y flaky específicamente para el runner de Actions, no una caída real. Addon de bajo riesgo (solo catálogo), no ideal remover |
 
 ### Wild Cards (Vanessa Morgan, CBC) — mitigado
 

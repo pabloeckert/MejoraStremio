@@ -492,6 +492,48 @@ soportan TorBox nativamente como proveedor de debrid.
 novedades relevantes de precios/políticas de TorBox/Real-Debrid/AllDebrid, o se acerca agosto sin
 que Pablo haya decidido, mencionarlo brevemente en el resumen — sin presionar, es su decisión.
 
+### Chequeo semanal automático (2026-07-05)
+
+**Bug real encontrado y corregido**: `.github/workflows/anti-frustration-review.yml` corría bien
+(`review` completado en 1m34s) y "commiteaba" el log actualizado en el runner, pero **nunca lo
+pusheaba** — el paso final repetía `git diff --cached --quiet || git push`, y como el `git commit`
+anterior ya había vaciado el staging area, ese diff daba "sin cambios" y el `push` no se ejecutaba
+nunca (bug de lógica shell, no de la review en sí). Resultado: cada corrida dominical desde que se
+armó el sistema (2026-07-02) revisaba los pendientes de verdad pero el resultado se perdía al
+terminar el job — `data/anti-frustration-log.json` en el repo quedó congelado con `lastCheckedAt`
+del 2026-07-02 pese a que el workflow reportaba `success` cada domingo. Corregido a
+`if ! git diff --cached --quiet; then git commit ...; git push; fi` (un solo chequeo, commit y
+push en el mismo bloque). Disparé manualmente el workflow ya corregido para recuperar la revisión
+de esta semana.
+
+**Estado del log antifrustración** (previo al fix, datos del 2026-07-02, 11 títulos): 9 resueltos,
+2 pendientes (Los Mufas, El Marginal — el hueco estructural de contenido exclusivo Netflix AR ya
+documentado arriba). Sin el fix no había forma de saber si mejoraron desde entonces; con el fix
+las próximas corridas dominicales sí van a reflejarse acá.
+
+**Workflows**: `health-monitor.yml` corriendo sano varias veces por día (no commitea nada, no tiene
+este bug). `anti-frustration-review.yml` corrió el domingo 2026-07-05 (`success`, sin el fix
+todavía) — de ahí se detectó el problema de arriba.
+
+**Novedades de ElfHosted/addons**: nada nuevo que afecte a los addons instalados (AIOMetadata,
+MyTrakt Sync, SubMaker, Comet, NoTorrent) más allá de lo ya documentado (baja de AIOLists/Archivio/
+YourIPTV y deprecación de Nuvio Streams, ambas de principios de julio). Dato nuevo menor: ElfHosted
+también dio de baja **Stremio-Jackett** (`stremio-jackett-is-deprecated.elfhosted.com`) — no lo
+usamos, no requiere acción. Alternativas de addons de streams que aparecen recomendadas en guías
+2026 (AIOStreams, MediaFusion) siguen requiriendo debrid de pago, mismo motivo por el que ya se
+habían descartado — no accionable mientras el proyecto sea gratis. Para el catálogo de audio
+latino: aparecieron un par de addons privados de terceros enfocados en audio latino ("Primer
+Latino", "Addon Latam") — no investigados en profundidad (uno requiere Real-Debrid/TorBox), quedan
+como posible lectura futura, no como recomendación todavía.
+
+**Plan de debrid (agosto 2026)**: sin cambios en la recomendación de TorBox (~US$3/mes, sigue
+estable, sin señales de suba). Sí apareció una confirmación nueva a favor de esa recomendación:
+desde mayo 2026 Real-Debrid suma, a la purga de caché por copyright ya conocida, un **filtro por
+palabras clave en el nombre de archivo** (bloquea tags como WEB-DL/WEBRip/AMZN/NF/YTS/RARBG) que
+está generando más streams rotos ("removido por infracción de copyright") — refuerza por qué TorBox
+es la opción más segura cuando Pablo decida avanzar. Agosto todavía no llegó y la decisión sigue
+sin tomarse; se sigue sin presionar.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

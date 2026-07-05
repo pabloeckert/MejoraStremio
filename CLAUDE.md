@@ -503,13 +503,16 @@ armó el sistema (2026-07-02) revisaba los pendientes de verdad pero el resultad
 terminar el job — `data/anti-frustration-log.json` en el repo quedó congelado con `lastCheckedAt`
 del 2026-07-02 pese a que el workflow reportaba `success` cada domingo. Corregido a
 `if ! git diff --cached --quiet; then git commit ...; git push; fi` (un solo chequeo, commit y
-push en el mismo bloque). Disparé manualmente el workflow ya corregido para recuperar la revisión
-de esta semana.
+push en el mismo bloque). **Verificado**: disparé manualmente el workflow ya corregido
+(`workflow_dispatch`) y esta vez sí commiteó y pusheó (`chore(anti-frustration): actualizar log
+semanal`, `lastCheckedAt` refrescado a 2026-07-05) — el fix funciona, las próximas corridas
+dominicales van a persistir de verdad.
 
-**Estado del log antifrustración** (previo al fix, datos del 2026-07-02, 11 títulos): 9 resueltos,
-2 pendientes (Los Mufas, El Marginal — el hueco estructural de contenido exclusivo Netflix AR ya
-documentado arriba). Sin el fix no había forma de saber si mejoraron desde entonces; con el fix
-las próximas corridas dominicales sí van a reflejarse acá.
+**Estado del log antifrustración** (re-chequeado hoy 2026-07-05 con el fix aplicado, 11 títulos):
+9 resueltos, 2 siguen pendientes — **Los Mufas y El Marginal siguen en 0 streams reales**, sin
+cambios respecto al 2026-07-02. Consistente con el hueco estructural ya documentado (contenido
+exclusivo Netflix Argentina, sin cobertura en los trackers/scrapers gratuitos); no es una
+regresión nueva, es la misma limitación de siempre.
 
 **Workflows**: `health-monitor.yml` corriendo sano varias veces por día (no commitea nada, no tiene
 este bug). `anti-frustration-review.yml` corrió el domingo 2026-07-05 (`success`, sin el fix

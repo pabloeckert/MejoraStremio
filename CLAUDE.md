@@ -521,6 +521,49 @@ al CGNAT — se mantiene su fix `minSeeders:1` del perfil temporal, ver abajo).
 **Verificado con `health-check.mjs`** post-cambio: 18 addons, sin ids duplicados, streams y subs
 OK (Matrix 208 streams combinados, Breaking Bad S01E01 198, Will Trent S01E01 77).
 
+### Sort "friction-zero" (2026-07-11)
+
+Pablo no quiere evaluar streams a mano — entrar al título, tocar play, que ande, sin elegir entre
+20 opciones. Dos ajustes sobre Torrentio y Comet, investigados contra sus configuradores públicos
+antes de tocar la cuenta (`scripts/apply-friction-zero-sort.mjs`, dry-run por defecto, `--apply`
+para escribir):
+
+- **Cacheado en TorBox siempre primero:**
+  - **Comet** tiene el campo exacto para esto: `sortCachedUncachedTogether` (tooltip real del
+    configurador: "Disable the default behavior of sorting cached results first, and instead mixes
+    cached and uncached results together"). El default del addon ya es `false` (cacheados primero),
+    pero la cuenta no lo tenía seteado explícito — se fijó `false` de forma explícita para no
+    depender de un default implícito que podría cambiar. Confirmado con streams reales: top-3 de
+    Comet en Matrix/Breaking Bad/Enola Holmes 3/Las Ovejas Detectives — **12/12 cacheados `[TB⚡]`**.
+  - **Torrentio no tiene ningún sort por estado de cacheado** (su dropdown "Sorting" solo ofrece
+    quality/qualitysize/seeders/size, con o sin debrid configurado — verificado en el configurador
+    con TorBox seleccionado). No se inventó un ajuste que no existe. Mitigación real: con debrid
+    configurado, TODOS los resultados de Torrentio ya se resuelven vía TorBox (tageados `[TB+]` o
+    `[TB download]` según si está cacheado o lo tiene que buscar) — ninguno depende del swarm P2P
+    del usuario, así que el objetivo de fondo ("que ande sin depender de mi conexión") ya está
+    cubierto aunque no haya un sort explícito por cache.
+- **Audio latino prioritario:**
+  - **Torrentio** tiene `language=latino` (🇲🇽) en su selector "Priority foreign language" —
+    agregado al `transportUrl` (pipe-delimited, junto a `torbox=`). Efecto medido: **fuerte y
+    dominante** — para The Matrix, el resultado #1 pasó a ser un DVDRip con audio latino, por
+    encima de releases 1080p sin latino (la prioridad de idioma le gana a calidad/seeders). Mismo
+    patrón confirmado en Breaking Bad, Enola Holmes 3 y Las Ovejas Detectives (releases
+    `-Dual-Lat` en el top).
+  - **Comet** ya tenía `languages.preferred: ["la","en"]` de una sesión anterior (no se tocó, ya
+    estaba bien puesto). Efecto medido: **más débil que en Torrentio** — en el spot-check de Enola
+    Holmes 3, el resultado #2 de Comet no tenía ningún audio en español/latino (era
+    Tamil/Telugu/Hindi/Inglés) pese a la preferencia configurada. `preferred` en Comet actúa como
+    señal blanda mezclada con otros criterios de ranking, no como prioridad dura tipo la de
+    Torrentio. No se buscó una alternativa más agresiva (`languages.required`) porque excluiría
+    resultados no-latino por completo, perdiendo el fallback — mismo criterio que "no sacrificar
+    cobertura por preferencia" ya aplicado en el resto del proyecto.
+  - No se aplicó ningún criterio condicional por tipo de contenido (familiar vs. general) porque
+    ni Torrentio ni Comet exponen un sort que dependa del género/tipo del título — se aplicó de
+    forma general a todo el catálogo, tal como preveía el pedido si el condicional no era posible.
+- Backup pre-cambio: `.backups/backup-stremioeg-pre-frictionzero-2026-07-11T19-55-03.json`.
+  `health-check.mjs` post-cambio: verde, mismos conteos de streams que antes (el sort no cambia
+  cuántos streams hay, solo el orden).
+
 ## Perfil CGNAT temporal (sin debrid) — CERRADA/SUPERADA por TorBox (2026-07-11)
 
 **Esta sección queda como referencia histórica, no se aplica más tal cual.** Con TorBox activo en

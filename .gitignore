@@ -6,5 +6,8 @@
 .idea
 *.local
 
+# Secretos locales (API keys) — *.local no matchea *.local.md, entrada explícita
+SECRETS.local.md
+
 # Backups de colecciones de addons (datos de cuenta, no versionar)
 .backups

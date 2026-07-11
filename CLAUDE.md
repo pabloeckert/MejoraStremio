@@ -65,14 +65,30 @@ China, Taiwán, Tailandia, Hong Kong, India — `vote_count.gte` alto + `vote_av
 y títulos en español). **Inicio curado (opción A)**: solo En Cartelera + Próximos Estrenos + Tendencias
 (Trending/Latest/Top Rated/Best 2020s) tienen `showInHome=true`; géneros, países, décadas y
 plataformas quedan en `enabled=true` pero fuera del inicio (navegables en Descubrir). Trakt y Simkl
-conectados. **Streams** (idx 3-8, orden pensado para priorizar fuentes que no dependen de seeds):
-Torrentio (idx 3, **24 proveedores habilitados** — se agregaron Wolfmax4k/BestTorrents/Rutracker/
-Torrent9/Comando/BluDV/MicoLeaoDublado/ilCorSaRoNeRo/nekoBT/Rutor para mejorar cobertura de contenido
-en español/portugués) → Comet (idx 4) → NoTorrent (idx 5, scraper HTTP) → WebStreamrMBG (idx 6,
-scraper HTTP, a veces tarda >15s en responder — timeout flaky conocido) → **Nuvio Streams** (idx 7,
-nuevo 2026-07-01, ElfHosted, respaldado por Cuevana/Xprime — scraper HTTP con foco en streaming
-services) → Meteor (idx 8, P2P, va último porque a veces sólo tiene torrents sin seeds que "cargan y
-nunca arrancan"). Subtítulos (orden): SubSense (idx 11) → SubMaker ElfHosted (idx 12) → SubDL Deno
+conectados. **Streams** (idx 3-8, **reordenados 2026-07-11** al integrar TorBox — ver
+`## TorBox (debrid activo)` más abajo, que supera al perfil temporal CGNAT de 2026-07-09):
+Torrentio (idx 3, **TorBox** como debrid — 24 proveedores habilitados, se agregaron
+Wolfmax4k/BestTorrents/Rutracker/Torrent9/Comando/BluDV/MicoLeaoDublado/ilCorSaRoNeRo/nekoBT/Rutor
+para mejorar cobertura de contenido en español/portugués) → Comet (idx 4, **TorBox** como debrid,
+`enableTorrent:false`) → NoTorrent (idx 5, scraper HTTP) → WebStreamrMBG (idx 6, scraper HTTP, a
+veces tarda >15s en responder o da 504 en el endpoint de streams — timeout/gateway flaky conocido)
+→ **Nuvio Streams** (idx 7, ElfHosted, respaldado por Cuevana/Xprime — scraper HTTP con foco en
+streaming services) → Meteor (idx 8, P2P puro sin debrid, va último porque a veces sólo tiene
+torrents sin seeds que "cargan y nunca arrancan" — mitigado desde 2026-07-09 con un filtro
+`minSeeders:1`, que se mantiene porque Meteor no tiene debrid y el CGNAT lo sigue afectando igual,
+ver perfil CGNAT). Tabla de clasificación (relevante para el perfil CGNAT, ahora superado para
+Torrentio/Comet):
+
+| Addon | Tipo | Depende de conexión P2P entrante |
+|---|---|---|
+| Torrentio | TorBox (debrid) | No — TorBox descarga en sus propios servidores |
+| Comet | TorBox (debrid) | No — TorBox descarga en sus propios servidores |
+| NoTorrent | HTTP scraper | No |
+| WebStreamrMBG | HTTP scraper | No |
+| Nuvio Streams | HTTP scraper | No |
+| Meteor | P2P puro, sin debrid | Sí |
+
+Subtítulos (orden): SubSense (idx 11) → SubMaker ElfHosted (idx 12) → SubDL Deno
 (idx 13, `mejorastremio.pabloeckert.deno.net`) → OpenSubtitles v3 (idx 14). Catálogos de Mubi via
 "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 10 y 15).
 
@@ -462,13 +478,126 @@ entrante, así que funciona sin configuración extra tanto en local (`deno run`)
 - `scripts/_subdl-addon-runner.ps1` — gitignoreado, puede borrarse del disco local
 - Tarea Windows `StremioSubdlAddon` — nunca existió; Deno Deploy en producción desde 2026-06-30
 
+## TorBox (debrid activo)
+
+**Aplicado 2026-07-11.** Pablo contrató y pagó TorBox Essential (~USD 3/mes) — ver "Plan debrid"
+más abajo para el análisis que llevó a esta elección. Con debrid activo, la explicación técnica del
+CGNAT (sección siguiente) deja de aplicar a los addons que lo soportan: TorBox descarga los
+torrents en sus propios servidores (no en la conexión de Pablo) y los sirve por HTTP directo, así
+que el swarm P2P inestable ya no es parte del camino crítico para esos dos addons.
+
+**Addons conectados**: Torrentio y Comet (los dos únicos ya instalados que soportan TorBox
+nativamente; no se agregó MediaFusion ni ningún addon nuevo — decisión explícita de Pablo, scope
+limitado a lo ya instalado).
+- **Torrentio**: `torbox=<TORBOX_API_KEY>` agregado como segmento pipe-delimited en su
+  `transportUrl` (sintaxis confirmada contra `torrentio.strem.fun/configure` antes de tocar la
+  cuenta real), preservando los 24 proveedores/`sort=seeders`/`qualityfilter` existentes. Todos los
+  streams devueltos quedan tageados `[TB+] Torrentio` en el campo `name` y su `url` resuelve vía
+  `torrentio.strem.fun/resolve/torbox/<key>/...` (confirmado con un dump crudo de streams de The
+  Matrix: 120/120 con el tag).
+- **Comet**: `debridServices: [{service:"torbox", apiKey:<TORBOX_API_KEY>}]` agregado a su config
+  JSON (base64 en el path), y **`enableTorrent: false`** — TorBox puede descargar torrents no
+  cacheados en sus propios servidores, así que mantener el fallback a P2P crudo solo reintroducía
+  el problema de CGNAT para esa porción de resultados sin sumar cobertura real (verificado: para
+  "Die Toten von Marnow" S01E01, que dio 0 streams, se probó también con `enableTorrent:true` sin
+  login contra la cuenta y dio 0 igual — confirma que es un título con cero cobertura en Comet, no
+  una regresión del cambio). Marcadores vistos en streams reales: `[TB⚡]` (cacheado/instantáneo) y
+  `[TB⬇️]` (TorBox todavía lo está descargando en su servidor).
+- Sintaxis de ambos addons descubierta usando sus configuradores públicos con una clave de prueba
+  (nunca la real) antes de escribir nada contra la cuenta — la clave real sólo se usó
+  programáticamente vía la API de Stremio, nunca pegada en un formulario web.
+
+**Script**: `scripts/apply-torbox-profile.mjs` (dry-run por defecto, `--apply` para escribir; mismo
+patrón que `apply-cgnat-profile.mjs`/`swap-aiolists-mytrakt.mjs`). Requiere `ST_EMAIL`, `ST_PASS`,
+`TORBOX_API_KEY` (esta última en `SECRETS.local.md`, gitignoreado). Backup pre-cambio en
+`.backups/backup-stremioeg-pre-torbox-2026-07-11T16-01-20.json`.
+
+**Criterio de orden nuevo** (ver tabla de clasificación en "Estado actual de la cuenta"):
+Torrentio → Comet (TorBox-backed, inmunes al CGNAT) → NoTorrent → WebStreamrMBG → Nuvio Streams
+(HTTP, tampoco dependen de P2P entrante) → Meteor (P2P puro, sin debrid, único que sigue expuesto
+al CGNAT — se mantiene su fix `minSeeders:1` del perfil temporal, ver abajo).
+
+**Verificado con `health-check.mjs`** post-cambio: 18 addons, sin ids duplicados, streams y subs
+OK (Matrix 208 streams combinados, Breaking Bad S01E01 198, Will Trent S01E01 77).
+
+## Perfil CGNAT temporal (sin debrid) — CERRADA/SUPERADA por TorBox (2026-07-11)
+
+**Esta sección queda como referencia histórica, no se aplica más tal cual.** Con TorBox activo en
+Torrentio/Comet (sección de arriba), el criterio de "priorizar seeders sobre calidad" que este
+perfil aplicaba pierde sentido para esos dos addons — el debrid sirve el archivo ya
+descargado/cacheado, no negocia con el swarm. **Excepción: Meteor mantiene `minSeeders:1`** tal
+cual quedó acá — no fue un olvido. Meteor no soporta ningún proveedor de debrid, sigue siendo P2P
+puro, y el CGNAT le pega exactamente igual que antes de TorBox.
+
+**Aplicado 2026-07-09.** Se confirmó CGNAT en la conexión de Claro Argentina de Pablo: la IP
+pública vista por servicios externos no coincide con la IP WAN del router, y no hay acceso al
+router (usuario/contraseña desconocidos, no recuperables) para abrir puertos o pedir IP fija.
+Efecto directo: los swarms P2P de torrents conectan de forma inconsistente (los peers no pueden
+alcanzar al usuario por conexión entrante) → streams que conectan, cargan hasta ~1MB, caen a 0 y
+repiten el ciclo. Es la explicación técnica del síntoma que Pablo venía reportando.
+
+La solución real es un debrid de pago (**TorBox**, ver "Plan debrid" más abajo), proyectado para
+~agosto 2026. Mientras tanto, este es un perfil **temporal** sobre el setup 100% gratis para
+mitigar el impacto, aplicado con `scripts/apply-cgnat-profile.mjs` (dry-run por defecto, `--apply`
+para escribir; mismo patrón que `scripts/swap-aiolists-mytrakt.mjs`):
+
+- **Reorden de los addons de streams**: los HTTP (NoTorrent, WebStreamrMBG, Nuvio Streams — no
+  dependen de conexión P2P entrante, ver tabla de clasificación en "Estado actual de la cuenta"
+  más arriba) pasaron a estar antes que los P2P (Torrentio, Comet, Meteor) en la colección.
+- **Torrentio: sin cambios.** Ya usaba `sort=seeders` y un `qualityfilter` que excluye BR-REMUX/
+  HDR/3D/cam/scr/unknown pero **no** excluye 4K liso — ya cumplía el objetivo de "priorizar por
+  seeders sin descartar 4K, sólo dejarlo rankear más abajo si tiene pocos seeds". Verificado, no
+  salteado en silencio.
+- **Comet: sin cambios**, por decisión de criterio. Su config (JSON en base64 en la URL) no tiene
+  ningún campo de "sort" — el ranking interno sólo es ajustable vía exclusión binaria de
+  resoluciones (ya excluye 2160p/240p/360p/unknown) y un umbral `remove_ranks_under` hoy
+  desactivado. No hay forma de "despriorizar sin excluir" en su esquema, así que se deja como está
+  (ya es conservador en ancho de banda, lo cual ayuda igual bajo esta conexión).
+- **Meteor: `minSeeders` 0 → 1** (filtra torrents con 0 seeds confirmados — exactamente el patrón
+  "carga y nunca arranca" ya documentado) y `sortOrder` reordenado para que `seeders` pese más que
+  resolución/calidad: `["pack","cached","seeders","seadex","resolution","size","quality","language"]`.
+  Efecto medido (spot-check directo al addon, sin login): Matrix 157→47 streams, Will Trent S01E01
+  39→21 — más de la mitad de lo que mostraba antes eran torrents muertos de 0 seeds. Höllental
+  S01E01 se mantuvo en 0 (no hay seeds de ningún tipo disponibles para ese título, no es un efecto
+  del cambio).
+- Validado con `health-check.mjs` y `test-content.mjs` antes/después: ambos verdes, sin
+  regresiones — ningún título curado quedó en 0 streams que antes tuviera alguno.
+
+**Checklist de reversión/ajuste cuando llegue TorBox** (ver "Plan debrid" para los pasos generales
+de esa integración — no se repiten acá):
+1. Con la API key de TorBox, agregarla a Torrentio (parámetro debrid en la URL) y a Comet (selector
+   de proveedor en su config).
+2. Con debrid activo, Torrentio/Comet dejan de depender de conexión P2P directa → el criterio de
+   "sort por seeders" de este perfil pierde relevancia (el debrid sirve el archivo cacheado, no
+   negocia con el swarm).
+3. La restricción `minSeeders:1` de Meteor probablemente se puede relajar, o directamente sacar
+   Meteor de la colección — sin debrid propio, queda redundante frente a Torrentio/Comet ya
+   cacheados.
+4. Volver a correr `health-check.mjs` + `test-content.mjs` para confirmar la mejora real (mismo
+   paso que ya pide "Plan debrid").
+5. El reorden HTTP-antes-que-P2P probablemente sigue teniendo sentido igual (no hace daño), pero
+   deja de ser crítico una vez que el debrid resuelve el problema de raíz.
+
+**Chequeo manual en el set-top-box (ZTE B866v2, Android TV) — no automatizable.** En la app de
+Stremio del dispositivo: ir a Configuración/Settings → buscar una sección de
+Reproducción/Streaming/Playback. Buscar una opción tipo "perfil de torrent"/"BT profile" o
+"conexiones simultáneas"/"max connections", y si existe, ponerla en el valor más permisivo (más
+intentos de conexión en paralelo a peers ayuda a compensar la tasa baja de éxito por conexión que
+causa el CGNAT). **Aviso**: las etiquetas exactas del menú varían según versión/build de la app —
+esto hay que verificarlo mirando el dispositivo en vivo, no asumir que el menú va a tener
+exactamente estos nombres. Si no existe tal opción en la build instalada, no hay nada que ajustar
+de este lado y no bloquea el resto del perfil.
+
 ## Plan debrid — proyección agosto 2026 (analizado 2026-07-03)
+
+**Ejecutado 2026-07-11, antes de lo proyectado — ver "TorBox (debrid activo)" más arriba.** Esta
+sección queda como el análisis histórico que llevó a la elección de TorBox; los pasos de
+integración de abajo ya se hicieron.
 
 Pablo pidió analizar el mejor servicio de debrid de pago ("mejor calidad, mejor precio"), con
 proyección de sumarlo posiblemente en **agosto 2026**. Esto matiza la premisa histórica de
 proyecto 100% gratis: Pablo mismo lo pidió tras chocar reiteradamente con el techo real de lo
 gratis (Los Mufas, El Marginal — 0 streams reales; Nuvio Streams deprecado sin reemplazo gratis).
-No es una decisión tomada todavía, es un plan a revisar.
 
 **Recomendación: TorBox** (plan Essential, ~US$3/mes, cache ilimitado):
 
@@ -496,3 +625,6 @@ que Pablo haya decidido, mencionarlo brevemente en el resumen — sin presionar,
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.
 - `data/preset.json` es la fuente de verdad de los catálogos: no perderlo.
+- Secretos (API keys) van en `SECRETS.local.md` en la raíz (gitignoreado con una entrada explícita
+  en `.gitignore` — el patrón `*.local` no matchea `*.local.md`), formato simple `CLAVE=valor`.
+  Nunca commitear claves en ningún otro archivo del repo.

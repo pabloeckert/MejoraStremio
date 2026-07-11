@@ -153,8 +153,8 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-04-19",
-                "primary_release_date.lte": "2026-07-03"
+                "primary_release_date.gte": "2026-04-27",
+                "primary_release_date.lte": "2026-07-11"
               },
               "formState": {
                 "catalogName": "En Cartelera",
@@ -191,8 +191,8 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-04-19",
-                "primaryReleaseTo": "2026-07-03",
+                "primaryReleaseFrom": "2026-04-27",
+                "primaryReleaseTo": "2026-07-11",
                 "firstAirFrom": "",
                 "firstAirTo": "",
                 "airDateFrom": "",
@@ -219,7 +219,7 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-07-03"
+                "primary_release_date.gte": "2026-07-11"
               },
               "formState": {
                 "catalogName": "Próximos Estrenos",
@@ -256,7 +256,7 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-07-03",
+                "primaryReleaseFrom": "2026-07-11",
                 "primaryReleaseTo": "",
                 "firstAirFrom": "",
                 "firstAirTo": "",
@@ -284,7 +284,7 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "first_air_date.gte": "2026-07-03"
+                "first_air_date.gte": "2026-07-11"
               },
               "formState": {
                 "catalogName": "Próximos Estrenos (Series)",
@@ -323,7 +323,7 @@
                 ],
                 "primaryReleaseFrom": "",
                 "primaryReleaseTo": "",
-                "firstAirFrom": "2026-07-03",
+                "firstAirFrom": "2026-07-11",
                 "firstAirTo": "",
                 "airDateFrom": "",
                 "airDateTo": "",

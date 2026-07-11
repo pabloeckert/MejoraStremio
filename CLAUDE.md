@@ -49,11 +49,12 @@ scripts/swap-aiolists-mytrakt.mjs   Script de un solo uso: reemplazó AIOLists p
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni
 build: es un toolkit, no un paquete. No usar `npm install`.
 
-## Estado actual de la cuenta (stremioeg, 2026-07-03)
+## Estado actual de la cuenta (stremioeg, 2026-07-11)
 
 18 addons (idx 17 = "Audio Latino (verificado)", catálogo propio en Deno Deploy, ver más abajo).
-**Cinemeta en índice 0**, AIOMetadata (UUID **`e6392c80-5382-4229-8ca0-446fb57c3bb9`**, regenerado
-2026-07-03 al refrescar fechas — reemplaza a `6c91e26e-...`) en
+**Cinemeta en índice 0**, AIOMetadata (UUID **`861ff75d-e4a8-4943-bd75-b36a0401f368`**, regenerado
+2026-07-11 al refrescar fechas + reordenar catálogos de crimen/país en Descubrir — ver "Sesión
+'siesta'" más abajo — reemplaza a `e6392c80-...`) en
 **índice 1**, **MyTrakt Sync** (UUID **`13e948e9-04c8-4917-a0d5-96af15b63d2f`**) en **índice 2**
 (reemplazó a AIOLists deprecado — ver "MyTrakt Sync" abajo). 153 catálogos en `preset.json` (125 enabled); el manifest
 expone ~132 (125 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Catálogos: globales (Trending,
@@ -652,28 +653,38 @@ Hallazgos que quedan permanentes acá:
   Ovejas Detectives y Enola Holmes 3 tienen releases Cinecalidad Dual Audio 🇲🇽 vía Torrentio+TorBox
   más streams dedicados `[latino]` en WebStreamrMBG. Minions y Monstruos (estreno más reciente)
   todavía solo aparece en WebStreamrMBG — vale la pena re-testear en 1-2 semanas.
-- **`preset.json` refrescado localmente** (`refresh-dates.mjs`, En Cartelera/Próximos Estrenos a
-  hoy 2026-07-11) — **falta `regenerate-aiometadata.mjs --apply`** contra la instancia en vivo,
-  bloqueado por no tener la password de config de AIOMetadata (distinta de la de Stremio, nunca
-  pasada en esta sesión).
+- **`preset.json` refrescado y aplicado**: `refresh-dates.mjs` (En Cartelera/Próximos Estrenos a
+  hoy 2026-07-11) + `regenerate-aiometadata.mjs --apply` contra la cuenta real, con
+  `AIO_PASSWORD` confirmado por Pablo en el chat (guardado en `SECRETS.local.md` junto al resto).
+  Instancia nueva `861ff75d-...` (ver "Estado actual de la cuenta"), 132 catálogos, 0 perdidos/0
+  ganados, tokens Trakt/Simkl conservados.
 - **MyTrakt Sync ya da recomendaciones reales** (Recommended/Trending/Popular vía Trakt) — el
   estado "quedó con MDBList en vez de Recommended" que a veces se menciona es de la época vieja de
   AIOLists (pre-2026-07-02), ya superado, no hace falta re-resolverlo.
-- Catálogos de crimen (`Crime Movies`/`Crime Shows`) y por país (`Series Alemania`/`Series Reino
-  Unido`) existen en `preset.json` pero están `showInHome:false` — **intencional** (parte de la
-  decisión "Inicio curado opción A" del 2026-06-19, no un descuido). Se propuso en el reporte
-  reordenar su posición dentro de Descubrir (sin tocar `showInHome`) — no aplicado, pendiente de
-  confirmación + password de AIOMetadata.
+- **Catálogos de crimen (`Crime Movies`/`Crime Shows`) y por país (`Series Alemania`/`Series Reino
+  Unido`) reordenados** dentro de Descubrir (antes en posiciones 15/32/50/54 del array, ahora
+  11-14, justo después del bloque que se ve en el inicio) — `showInHome` **no se tocó**, sigue
+  siendo la decisión "Inicio curado opción A" del 2026-06-19. Verificado con
+  `audit-catalog-order.mjs`: 0 de los 11 catálogos del inicio cambiaron de lugar.
+- **`health-check.mjs` — bug real encontrado y corregido**: el reintento genérico (2026-07-03) solo
+  salva blips cortos; en esta sesión WebStreamrMBG tuvo una caída completa (NO RESPONDE ni al
+  reintento) y seguía rompiendo el exit code. Se agregó una lista `KNOWN_FLAKY` (WebStreamrMBG +
+  Mubi Catalog, mismo criterio que la tabla "Addons que pueden caerse" más abajo) que ahora degrada
+  a warning incluso en una caída total. Confirmado con una corrida real que reprodujo el bug y otra
+  después del fix que ya no lo rompió.
 - `health-check.mjs` y `test-content.mjs` corridos frescos post-sesión: verdes, sin regresiones.
   Dato nuevo: **Höllental** (el caso documentado abajo como "0 streams, ni Comet, no es efecto del
   perfil CGNAT") ahora da **3 streams** — primera mejora real medida ahí, atribuible a TorBox.
+- Única escritura a la cuenta real en toda la sesión: el swap de AIOMetadata, con backup en
+  `.backups/backup-stremioeg-preregen-2026-07-11T19-34-26-181Z.json`.
 
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.
 - `data/preset.json` es la fuente de verdad de los catálogos: no perderlo.
-- Secretos (API keys **y** credenciales de cuenta como ST_EMAIL/ST_PASS, a pedido explícito de
-  Pablo el 2026-07-11 para no tener que repetirlas cada sesión) van en `SECRETS.local.md` en la
+- Secretos (API keys, credenciales de cuenta como ST_EMAIL/ST_PASS, y passwords de config como
+  `AIO_PASSWORD` — a pedido explícito de Pablo el 2026-07-11 para no tener que repetirlas cada
+  sesión) van en `SECRETS.local.md` en la
   raíz (gitignoreado con una entrada explícita en `.gitignore` — el patrón `*.local` no matchea
   `*.local.md`), formato simple `CLAVE=valor`. Nunca commitear claves en ningún otro archivo del
   repo.

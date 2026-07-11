@@ -842,6 +842,289 @@
           "showInHome": true
         },
         {
+          "id": "tmdb.discover.movie.crime_movies.80",
+          "type": "movie",
+          "name": "Crime Movies",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "include_adult": false,
+                "with_genres": "80",
+                "watch_region": "US",
+                "with_release_type": "4|5|6",
+                "vote_average.gte": 5,
+                "vote_count.gte": 100,
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
+              },
+              "formState": {
+                "catalogName": "Crime Movies",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [
+                  {
+                    "id": 80,
+                    "label": "Crime"
+                  }
+                ],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": true,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "US",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5,
+                  10
+                ],
+                "voteCountMin": 100,
+                "runtimeRange": [
+                  60,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.crime_shows.80",
+          "type": "series",
+          "name": "Crime Shows",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_genres": "80",
+                "watch_region": "US",
+                "vote_average.gte": 5,
+                "vote_count.gte": 50,
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
+              },
+              "formState": {
+                "catalogName": "Crime Shows",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [
+                  {
+                    "id": 80,
+                    "label": "Crime"
+                  }
+                ],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": true,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "US",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5,
+                  10
+                ],
+                "voteCountMin": 50,
+                "runtimeRange": [
+                  0,
+                  180
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.de.pablo012",
+          "type": "series",
+          "name": "Series Alemania",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_origin_country": "DE",
+                "vote_count.gte": 5
+              },
+              "formState": {
+                "catalogName": "Series Alemania",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "DE",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 5,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.gb.pablo016",
+          "type": "series",
+          "name": "Series Reino Unido",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_origin_country": "GB",
+                "vote_count.gte": 5
+              },
+              "formState": {
+                "catalogName": "Series Reino Unido",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "GB",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 5,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
           "id": "tmdb.discover.movie.action_movies.28",
           "type": "movie",
           "name": "Action Movies",
@@ -1104,82 +1387,6 @@
                   {
                     "id": 35,
                     "label": "Comedy"
-                  }
-                ],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": true,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "US",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  5,
-                  10
-                ],
-                "voteCountMin": 100,
-                "runtimeRange": [
-                  60,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.crime_movies.80",
-          "type": "movie",
-          "name": "Crime Movies",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "include_adult": false,
-                "with_genres": "80",
-                "watch_region": "US",
-                "with_release_type": "4|5|6",
-                "vote_average.gte": 5,
-                "vote_count.gte": 100,
-                "with_runtime.gte": 60,
-                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
-              },
-              "formState": {
-                "catalogName": "Crime Movies",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [
-                  {
-                    "id": 80,
-                    "label": "Crime"
                   }
                 ],
                 "excludeGenres": [],
@@ -2435,81 +2642,6 @@
           }
         },
         {
-          "id": "tmdb.discover.tv.crime_shows.80",
-          "type": "series",
-          "name": "Crime Shows",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "with_genres": "80",
-                "watch_region": "US",
-                "vote_average.gte": 5,
-                "vote_count.gte": 50,
-                "with_type": "2",
-                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR"
-              },
-              "formState": {
-                "catalogName": "Crime Shows",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [
-                  {
-                    "id": 80,
-                    "label": "Crime"
-                  }
-                ],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": true,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "US",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  5,
-                  10
-                ],
-                "voteCountMin": 50,
-                "runtimeRange": [
-                  0,
-                  180
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
           "id": "tmdb.discover.tv.documentary_shows.99",
           "type": "series",
           "name": "Documentary Shows",
@@ -3704,72 +3836,6 @@
           }
         },
         {
-          "id": "tmdb.discover.tv.de.pablo012",
-          "type": "series",
-          "name": "Series Alemania",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "with_origin_country": "DE",
-                "vote_count.gte": 5
-              },
-              "formState": {
-                "catalogName": "Series Alemania",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "DE",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 5,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
           "id": "tmdb.discover.movie.it.pablo013",
           "type": "movie",
           "name": "Cine Italia",
@@ -3952,72 +4018,6 @@
                   10
                 ],
                 "voteCountMin": 10,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.gb.pablo016",
-          "type": "series",
-          "name": "Series Reino Unido",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "with_origin_country": "GB",
-                "vote_count.gte": 5
-              },
-              "formState": {
-                "catalogName": "Series Reino Unido",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "GB",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 5,
                 "runtimeRange": [
                   0,
                   400
@@ -8808,7 +8808,7 @@
         }
       ]
     },
-    "instanceId": "e6392c80-5382-4229-8ca0-446fb57c3bb9"
+    "instanceId": "861ff75d-e4a8-4943-bd75-b36a0401f368"
   },
   "nuvioCollectionsConfig": [
     {

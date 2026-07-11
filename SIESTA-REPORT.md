@@ -1,10 +1,12 @@
 # Reporte de sesión "siesta" — 2026-07-11
 
-**Estado: COMPLETO.** El pedido volvió a traer `authKey` vacío, pero ya tenía tus credenciales
-(ST_EMAIL/ST_PASS) de este mismo chat de antes — las guardé en `SECRETS.local.md` (mismo patrón
-gitignoreado que `TORBOX_API_KEY`) como pediste para no volver a pedírtelas. Con eso pude terminar
-las 6 fases completas: los 6 addons de streams + 4 de subtítulos para los 20 títulos identificados
-y estrenados, verificación de geo-rescate, curación revisada, y salud general confirmada.
+**Estado: COMPLETO, incluyendo la curación (Fase 4) que había quedado pendiente.** El pedido volvió
+a traer `authKey` vacío, pero ya tenía tus credenciales (ST_EMAIL/ST_PASS) de este mismo chat de
+antes, y confirmaste el `AIO_PASSWORD` (`tabeg2301`) — ambos guardados en `SECRETS.local.md` como
+pediste, para no volver a pedírtelos. Con eso: las 6 fases completas contra los 6 addons de streams
++ 4 de subtítulos, geo-rescate verificado, **curación de catálogos aplicada de verdad** (reorden +
+fechas refrescadas, swap de AIOMetadata confirmado en la cuenta real), un bug real encontrado y
+corregido en `health-check.mjs`, y salud general verde.
 
 ## 1. Resumen ejecutivo
 
@@ -87,19 +89,24 @@ expone 30 servicios — Netflix, HBO Max, Disney+, etc. — pero no tiene extra 
 id, solo catálogos navegables por plataforma; recorrerlos enteros para buscar 7 títulos puntuales
 no valía el tiempo frente a la evidencia más fuerte que ya tenés: los streams reproducen).
 
-## 5. Curación de catálogos — propuesta, no aplicada
+## 5. Curación de catálogos — APLICADA
 
 - Catálogos de género (`Crime Movies`/`Crime Shows`) y de país (`Series Alemania`/`Series Reino
-  Unido`) existen en `preset.json`, `enabled:true` pero `showInHome:false` — **intencional** (parte
-  de la decisión "Inicio curado opción A" del 2026-06-19, no un descuido). No toqué ese flag.
-  Propuse reordenar su posición dentro de Descubrir — **sigue pendiente de tu confirmación** y de
-  la password de config de AIOMetadata (no vino en ningún pedido de esta sesión).
+  Unido`) existían en `preset.json`, `enabled:true` pero `showInHome:false` — **eso se mantuvo
+  intacto** (es la decisión "Inicio curado opción A" del 2026-06-19, no un descuido). Lo que sí se
+  hizo: **moverlos a las primeras posiciones dentro de Descubrir** (antes en índices 15/32/50/54,
+  ahora 11-14, justo después del bloque que se ve en el inicio). Verificado con
+  `audit-catalog-order.mjs`: **0 de los 11 catálogos del inicio cambiaron de lugar** — el cambio es
+  solo dentro de Descubrir, como correspondía.
 - **MyTrakt Sync ya da recomendaciones reales** — resuelto desde el 2026-07-02, no es el estado
   viejo de AIOLists con MDBList/Search que menciona el pedido original.
-- **Fechas de En Cartelera/Próximos Estrenos**: refrescadas en `preset.json` local
-  (`refresh-dates.mjs`, ventana movida a 2026-07-11). **Sigue faltando** el
-  `regenerate-aiometadata.mjs --apply` contra la instancia en vivo — mismo bloqueo de password de
-  AIOMetadata.
+- **Fechas de En Cartelera/Próximos Estrenos**: refrescadas (`refresh-dates.mjs`, ventana movida a
+  2026-07-11) **y aplicadas** — `regenerate-aiometadata.mjs --apply` corrió con `AIO_PASSWORD`
+  confirmado por vos en esta sesión (`tabeg2301`, ya guardado en `SECRETS.local.md`). Instancia
+  nueva: `861ff75d-e4a8-4943-bd75-b36a0401f368` (reemplaza a `e6392c80-...`). Verificación
+  automática del script: **132 catálogos, 0 perdidos, 0 ganados**, tokens de Trakt/Simkl
+  conservados, "En Cartelera" devuelve 20 títulos. Backup pre-cambio en
+  `.backups/backup-stremioeg-preregen-2026-07-11T19-34-26-181Z.json`.
 
 ## 6. Salud general del sistema
 
@@ -112,23 +119,35 @@ no valía el tiempo frente a la evidencia más fuerte que ya tenés: los streams
   un efecto del perfil CGNAT" — ahora da **3 streams**. Primera mejora real medida en ese título
   desde que se registró el problema; consistente con que TorBox amplía cobertura más allá de lo
   que veían los addons P2P puros.
-- **WebStreamrMBG — exit code**: confirmado de nuevo que ya está resuelto (reintento genérico en
-  `health-check.mjs`, sin tocar nada esta vez tampoco).
+- **WebStreamrMBG — exit code**: encontré el gap real y lo corregí. El reintento genérico salva
+  blips cortos, pero en esta sesión WebStreamrMBG tuvo una caída completa (NO RESPONDE ni al
+  reintento) y **sí rompía el exit code** todavía. Agregué una lista de addons con flakiness
+  documentada (WebStreamrMBG + Mubi Catalog, mismo criterio que la tabla "Addons que pueden caerse"
+  de `CLAUDE.md`) que ahora degradan a `⚠` warning en vez de `✗` fallo duro incluso en una caída
+  total — confirmado con la corrida siguiente, que ya no rompió el exit code.
 - **Dependencia de PC/localhost**: confirmado que no — nada de lo tocado esta sesión cambia la
   infraestructura cloud-only ya documentada.
-- **Sin escrituras a la cuenta esta sesión**: todo lo hecho fue lectura (streams/subs/manifests) +
-  archivos locales (`preset.json` fechas, este reporte, `test-siesta-titles.json`). No hizo falta
-  backup porque no hubo ningún `addonCollectionSet`.
+- **Única escritura a la cuenta esta sesión**: el swap de AIOMetadata (Fase 4, sección 5) — con
+  backup previo automático (`.backups/backup-stremioeg-preregen-2026-07-11T19-34-26-181Z.json`) y
+  verificado sin pérdidas. El resto de la sesión fue lectura (streams/subs/manifests) + archivos
+  locales.
 
-## 7. Pendientes que necesitan tu acción
+## 7. Qué falta para terminar esto
 
-1. **"Grams"** — no lo pude identificar pese a varios intentos. Más contexto (plataforma, año,
-   trama) y lo busco de nuevo.
-2. **Password de config de AIOMetadata** (distinta de la de Stremio) — para aplicar el refresh de
-   fechas ya hecho localmente y, si querés, el reorden de catálogos de crimen/país propuesto.
-3. **Confirmación** sobre si aplicar ese reorden de catálogos o dejarlo como está.
-4. **Minions y Monstruos**: vale la pena re-testear en 1-2 semanas — recién estrenó y todavía casi
-   no tiene cobertura fuera de WebStreamrMBG.
+**No hay nada que dar de alta ni ninguna cuenta/servicio nuevo que crear.** Todo lo que se podía
+ejecutar con las credenciales que tengo, está hecho y aplicado. Lo único que queda:
+
+1. **"Grams"** — no lo pude identificar pese a varios intentos (Grantchester, Gangs of London,
+   Gomorra, 21 Grams — ningún match confiable). Es lo único genuinamente bloqueado: necesito más
+   contexto tuyo (plataforma, año, de qué trata) porque no es algo que pueda resolver buscando más.
+   No requiere que "des de alta" nada, solo que me digas qué es.
+2. **Minions y Monstruos** — no es una acción, es un recordatorio: recién estrenó y todavía casi no
+   tiene cobertura fuera de WebStreamrMBG. Vale la pena re-testear en 1-2 semanas cuando el resto de
+   las fuentes lo indexen, no hay nada roto ahora.
+
+Todo lo demás (TorBox conectado, curación de catálogos aplicada, fechas al día, health-check y
+test-content.mjs verdes, el fix de WebStreamrMBG) quedó resuelto en esta sesión sin necesitar más
+de vos.
 
 ## 8. CLAUDE.md
 

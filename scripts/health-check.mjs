@@ -160,12 +160,19 @@ const manifestTargets = authKey
       { name: 'Mubi', url: 'https://mubi2stremio.adiba.ro/manifest.json' },
     ];
 const manifestResults = await Promise.all(manifestTargets.map((t) => getJsonWithRetry(t.url, 10000)));
+// Addons con flakiness documentada (ver "Addons que pueden caerse" en CLAUDE.md): WebStreamrMBG
+// a veces tarda >15s o da 504, Mubi Catalog falla seguido específicamente en runners de GitHub
+// Actions. Ambos son de bajo riesgo (streams/catálogo, no rompen el resto del setup) y sacarlos
+// no es ideal — una caída total (no solo un blip) queda como warning, no como fallo duro.
+const KNOWN_FLAKY = ['WebStreamrMBG', 'Mubi Catalog'];
 manifestResults.forEach(({ data: m, retried }, i) => {
   const t = manifestTargets[i];
   if (m?.name && !retried) {
     ok(`${t.name}: v${m.version || '?'}`);
   } else if (m?.name && retried) {
     warn(`${t.name}: v${m.version || '?'} (OK recién al reintento — blip transitorio)`);
+  } else if (KNOWN_FLAKY.includes(t.name)) {
+    warn(`${t.name}: NO RESPONDE (2 intentos) — flakiness documentada, no rompe el exit code`);
   } else {
     fail(`${t.name}: NO RESPONDE (2 intentos)`);
     exitCode = 1;

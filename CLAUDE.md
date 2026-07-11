@@ -621,34 +621,41 @@ soportan TorBox nativamente como proveedor de debrid.
 novedades relevantes de precios/políticas de TorBox/Real-Debrid/AllDebrid, o se acerca agosto sin
 que Pablo haya decidido, mencionarlo brevemente en el resumen — sin presionar, es su decisión.
 
-## Sesión "siesta" 2026-07-11 — identificación + test parcial de 22 títulos
+## Sesión "siesta" 2026-07-11 — identificación + test completo de 22 títulos
 
 Pablo pidió (modo autónomo, sin interrumpir) identificar 22 títulos con nombres a veces mal
 transcriptos, testearlos end-to-end, buscar contenido geo-rescatado y curar catálogos según el
 gusto que esa lista revela (fuerte inclinación a crimen/misterio alemán y británico). El pedido
-volvió a traer `authKey` vacío — sin ST_EMAIL/ST_PASS no hay login, así que la sesión quedó
-**parcial**: se hizo todo lo que no requiere cuenta (identificación web de los 22 títulos, un test
-real parcial contra Torrentio reusando la TorBox key ya conocida, refresh local de fechas,
-revisión de `preset.json`) y se dejó documentado en detalle qué falta. Detalle completo, tabla de
-los 22 títulos y diagnóstico de cada 0-stream en **`SIESTA-REPORT.md`** (raíz del repo) y en
-**`data/test-siesta-titles.json`** (mismo formato que `test-content.json`, reusable).
+volvió a traer `authKey` vacío, pero ST_EMAIL/ST_PASS ya se habían pasado antes en el mismo chat
+(sesión de TorBox) — Pablo pidió explícitamente guardarlos para no repetirlos, así que quedaron en
+`SECRETS.local.md` junto a `TORBOX_API_KEY` (mismo patrón gitignoreado, ver "Reglas del repo").
+Con eso se completaron las 6 fases contra los 6 addons de streams + 4 de subtítulos reales.
+Detalle completo, tabla de los 22 títulos y diagnóstico de cada 0-stream en **`SIESTA-REPORT.md`**
+(raíz del repo) y en **`data/test-siesta-titles.json`** (mismo formato que `test-content.json`,
+reusable).
 
-Hallazgos que sí quedan permanentes acá:
-- **21/22 títulos identificados**; "Grams" no se pudo (ver reporte, se probaron varias hipótesis
-  de error de transcripción sin éxito). "Los hombres de Harrelson" no es un título aparte — es el
-  nombre en español de **S.W.A.T.** (2017-2025, tt6111130). "How to Get to Heaven from Belfast" es
-  de **Netflix, no BBC** (se movió de Channel 4 en desarrollo). "Minions y Monstruos" es un título
-  real (no un error), estrenó en cines fines de junio 2026.
+Hallazgos que quedan permanentes acá:
+- **21/22 títulos identificados**; "Grams" no se pudo (se probaron varias hipótesis de error de
+  transcripción sin éxito — Grantchester, Gangs of London, Gomorra, 21 Grams). "Los hombres de
+  Harrelson" no es un título aparte — es el nombre en español de **S.W.A.T.** (2017-2025,
+  tt6111130). "How to Get to Heaven from Belfast" es de **Netflix, no BBC** (se movió de Channel 4
+  en desarrollo). "Minions y Monstruos" es un título real (no un error), estrenó en cines fines de
+  junio 2026.
 - **Spider-Man: Brand New Day** (tt22084616) todavía no estrenó (31/07/2026) — no se testeó a
   propósito.
-- Test parcial contra Torrentio (sin login) confirmó TorBox tageando `[TB+]` en contenido nuevo/
-  nicho también, no solo masivo (16/20 títulos con streams reales). Los dos títulos alemanes de
-  canal chico (`Veteranos contra el crimen`, `Das Quartett`) dieron 0 — mismo patrón ya conocido de
-  nicho alemán con poca circulación en trackers públicos (ver Höllental/Los Mufas más arriba), no
-  un problema de config.
+- **18/20 títulos testeados tienen streams reales** contra los 6 addons (no solo Torrentio), con
+  TorBox cacheando también contenido de estreno muy reciente (Enola Holmes 3, Las Ovejas
+  Detectives). Los dos 0 (`Veteranos contra el crimen`, `Das Quartett`) están confirmados en los 6
+  addons, mismo patrón ya conocido de nicho alemán de canal chico (ver Höllental/Los Mufas más
+  arriba) — no es config rota.
+- **Audio latino confirmado con evidencia real** para los 3 títulos familiares/infantiles: Las
+  Ovejas Detectives y Enola Holmes 3 tienen releases Cinecalidad Dual Audio 🇲🇽 vía Torrentio+TorBox
+  más streams dedicados `[latino]` en WebStreamrMBG. Minions y Monstruos (estreno más reciente)
+  todavía solo aparece en WebStreamrMBG — vale la pena re-testear en 1-2 semanas.
 - **`preset.json` refrescado localmente** (`refresh-dates.mjs`, En Cartelera/Próximos Estrenos a
   hoy 2026-07-11) — **falta `regenerate-aiometadata.mjs --apply`** contra la instancia en vivo,
-  bloqueado por no tener la password de config de AIOMetadata en esa sesión.
+  bloqueado por no tener la password de config de AIOMetadata (distinta de la de Stremio, nunca
+  pasada en esta sesión).
 - **MyTrakt Sync ya da recomendaciones reales** (Recommended/Trending/Popular vía Trakt) — el
   estado "quedó con MDBList en vez de Recommended" que a veces se menciona es de la época vieja de
   AIOLists (pre-2026-07-02), ya superado, no hace falta re-resolverlo.
@@ -657,11 +664,16 @@ Hallazgos que sí quedan permanentes acá:
   decisión "Inicio curado opción A" del 2026-06-19, no un descuido). Se propuso en el reporte
   reordenar su posición dentro de Descubrir (sin tocar `showInHome`) — no aplicado, pendiente de
   confirmación + password de AIOMetadata.
+- `health-check.mjs` y `test-content.mjs` corridos frescos post-sesión: verdes, sin regresiones.
+  Dato nuevo: **Höllental** (el caso documentado abajo como "0 streams, ni Comet, no es efecto del
+  perfil CGNAT") ahora da **3 streams** — primera mejora real medida ahí, atribuible a TorBox.
 
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.
 - `data/preset.json` es la fuente de verdad de los catálogos: no perderlo.
-- Secretos (API keys) van en `SECRETS.local.md` en la raíz (gitignoreado con una entrada explícita
-  en `.gitignore` — el patrón `*.local` no matchea `*.local.md`), formato simple `CLAVE=valor`.
-  Nunca commitear claves en ningún otro archivo del repo.
+- Secretos (API keys **y** credenciales de cuenta como ST_EMAIL/ST_PASS, a pedido explícito de
+  Pablo el 2026-07-11 para no tener que repetirlas cada sesión) van en `SECRETS.local.md` en la
+  raíz (gitignoreado con una entrada explícita en `.gitignore` — el patrón `*.local` no matchea
+  `*.local.md`), formato simple `CLAVE=valor`. Nunca commitear claves en ningún otro archivo del
+  repo.

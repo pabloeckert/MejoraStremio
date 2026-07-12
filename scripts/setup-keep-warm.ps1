@@ -3,7 +3,7 @@
 # que congela Stremio al abrir.
 #
 # Corre cada 20 minutos, todos los días, indefinidamente.
-# Los logs van a: C:\Github\MejoraStremio\logs\keep-warm.log
+# Los logs van a: C:\Github\Herramientas\MejoraStremio\logs\keep-warm.log
 #
 # Uso (una sola vez, como Administrador):
 #   pwsh scripts/setup-keep-warm.ps1
@@ -12,7 +12,7 @@
 #   Unregister-ScheduledTask -TaskName "StremioKeepWarm" -Confirm:$false
 
 $TaskName   = "StremioKeepWarm"
-$ProjectDir = "C:\Github\MejoraStremio"
+$ProjectDir = "C:\Github\Herramientas\MejoraStremio"
 $LogDir     = Join-Path $ProjectDir "logs"
 $LogFile    = Join-Path $LogDir "keep-warm.log"
 $NodeExe    = "C:\Program Files\nodejs\node.exe"

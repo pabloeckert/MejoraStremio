@@ -4,6 +4,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -247,6 +248,9 @@ async function main() {
 
     // ===== PASO 6: ESCRIBIR COLECCION =====
     console.log('\nPASO 6: ESCRIBIR COLECCION');
+    if (!(await assertNoFrozenEmptyCatalogs(NEW, []))) {
+        process.exit(1);
+    }
     const payload = {
         type: 'AddonCollectionSet',
         authKey,

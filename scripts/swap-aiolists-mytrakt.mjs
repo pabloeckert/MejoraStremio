@@ -18,6 +18,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { assertNoFrozenEmptyCatalogs } from "./lib/collection-guard.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -77,6 +78,10 @@ if (!APPLY) {
   console.log(`\nℹ Modo reporte (sin --apply): NO se tocó la cuenta.`);
   console.log(`  Para instalar: volvé a correr con --apply`);
   process.exit(0);
+}
+
+if (!(await assertNoFrozenEmptyCatalogs(nextAddons, [mytraktManifest.id]))) {
+  process.exit(1);
 }
 
 // ── 4. Backup + swap real ────────────────────────────────────────────────────

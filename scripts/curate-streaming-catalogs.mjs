@@ -17,6 +17,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -137,6 +138,10 @@ writeFileSync(
 console.log(`\n✓ Backup: .backups/backup-streaming-catalogs-pre-curate-${stamp}.json`);
 
 addons[idx] = { ...addons[idx], transportUrl: newUrl, manifest: newManifest };
+
+if (!(await assertNoFrozenEmptyCatalogs(addons, [SC_ID]))) {
+  process.exit(1);
+}
 
 const result = await apiPost('addonCollectionSet', {
   type: 'AddonCollectionSet',

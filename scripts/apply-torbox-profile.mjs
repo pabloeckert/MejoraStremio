@@ -34,6 +34,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -171,19 +172,26 @@ if (!APPLY) {
   process.exitCode = 0;
 } else {
 
-// ── 6. Backup + aplicar ──────────────────────────────────────────────────────
+// ── 6. Guard anti-manifest-congelado ─────────────────────────────────────────
+// No vaciamos manifest.catalogs de addons que no tocamos: regenerate-aiometadata.mjs ya prueba
+// que addonCollectionSet acepta el payload completo (con los ~132 catálogos de AIOMetadata
+// embebidos) sin problema — ver CLAUDE.md → "Bug real: catalogs:[] indiscriminado".
+if (!(await assertNoFrozenEmptyCatalogs(reordered, ['com.stremio.torrentio.addon', 'stremio.comet.fast']))) {
+  process.exit(1);
+}
+
+// ── 7. Backup + aplicar ──────────────────────────────────────────────────────
 mkdirSync(BACKUPS, { recursive: true });
 const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const backupPath = join(BACKUPS, `backup-stremioeg-pre-torbox-${ts}.json`);
 writeFileSync(backupPath, JSON.stringify({ result: { addons } }, null, 2));
 console.log(`\n✓ Backup guardado: ${backupPath}`);
 
-const slim = reordered.map((a) => ({ ...a, manifest: { ...a.manifest, catalogs: [] } }));
-const res = await apiPost('addonCollectionSet', { type: 'AddonCollectionSet', authKey, addons: slim });
+const res = await apiPost('addonCollectionSet', { type: 'AddonCollectionSet', authKey, addons: reordered });
 if (!(res?.result?.success || res?.result)) die('addonCollectionSet falló: ' + JSON.stringify(res));
 console.log('✓ Colección actualizada correctamente.');
 
-// ── 7. Verificación post-cambio ────────────────────────────────────────────
+// ── 8. Verificación post-cambio ────────────────────────────────────────────
 const after = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
 const afterAddons = after?.result?.addons || [];
 console.log(`\nVerificando... (${afterAddons.length} addons, antes ${addons.length})`);

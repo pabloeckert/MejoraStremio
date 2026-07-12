@@ -44,6 +44,13 @@ scripts/fix-subtitles.*             Regenera la config de SubSense (.mjs Node, .
 scripts/swap-aiolists-mytrakt.mjs   Script de un solo uso: reemplazó AIOLists por MyTrakt Sync en
                                     la colección (ver "MyTrakt Sync" abajo). Mantener como referencia
                                     del patrón, no se espera reusarlo salvo otro swap de addon único.
+scripts/lib/collection-guard.mjs    Guard compartido: antes de cualquier addonCollectionSet, aborta
+                                    si un addon no modificado en la corrida quedaría con catalogs=[]
+                                    pese a tener catálogos reales en su manifest en vivo. Ver "Bug
+                                    real: catalogs:[] indiscriminado" más abajo.
+scripts/repair-frozen-catalogs.mjs  Detecta y restaura addons con manifest.catalogs congelado en 0
+                                    en el storage de Stremio (sin tocar transportUrl/orden/config).
+                                    Reporta por defecto, escribe con --apply.
 ```
 
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni
@@ -256,12 +263,32 @@ filtro por año**: el catálogo de Trending solo expone extras `genre` (Day/Week
 extra de año — no se encontró un catálogo con filtro de año nativo; si hace falta, se puede armar
 un catálogo custom en el Catalog Builder con rango de fecha (como ya se hizo para Estrenos).
 
-**Subtítulos, variante latino vs. España**: los 4 addons de subtítulos (SubSense, SubMaker, SubDL,
-OpenSubtitles v3) devuelven el idioma como `lang: "spa"` genérico, sin distinguir la variante
-regional en el metadata — **no hay forma de forzar "latino primero, España después" a nivel
-addon**, solo se puede filtrar por idioma general y por SDH (ya configurado a `false`/oculto donde
-el addon lo permite). Elegir la variante correcta queda a criterio del usuario al ver el nombre del
-release en el selector de Stremio.
+**Subtítulos, variante latino vs. España — limitación CONFIRMADA, investigada a fondo (2026-07-12)**:
+los 4 addons de subtítulos (SubSense, SubMaker, SubDL, OpenSubtitles v3) devuelven el idioma como
+`lang: "spa"` genérico, sin distinguir la variante regional de forma filtrable. Investigado a pedido
+de Pablo tras un caso real (El Diablo Viste a la Moda 2 reprodujo con subtítulo de España en vez de
+latino):
+- **Causa de fondo, no un descuido nuestro**: el protocolo de subtítulos de Stremio y las fuentes
+  que usan estos addons (OpenSubtitles, SubDL) taxonomizan el español con un solo código ISO-639
+  (`spa`/`ES`) — **confirmado contra la documentación oficial de SubDL**
+  (`subdl.com/api-files/language_list.json`): un único `"ES": "Spanish"`, sin variante LatAm/México/
+  Argentina. No es que nuestros addons no configuren bien un parámetro que existe — el parámetro no
+  existe en ningún lado de la cadena.
+- **Probado empíricamente contra SubSense** (que sí acepta un array `languages` en su config):
+  `es-419`, `es-MX`, `es-AR`, `spa-419` y `lat` NO filtran nada — cualquier código que no sea
+  exactamente `"es"` hace que SubSense ignore el filtro y devuelva resultados sin filtrar (mayoría
+  en inglés). Solo `"es"` funciona, y no distingue variante.
+- **SubSense es el único de los 4 que expone un hint de región**, pero solo en campos descriptivos
+  no filtrables (`fileName`/`releaseName`/`label`/`releases`) cuando el uploader original tageó el
+  release — ej. para El Diablo Viste a la Moda 2 apareció `es-419` en el filename y hasta el texto
+  "en Español (Latinoamericano)" en `releases`. Esto es inconsistente (probado con Matrix/Breaking
+  Bad vía SubDL: sus nombres de archivo no traen ningún hint de región) y no se puede usar como
+  parámetro de filtro/orden — solo ayuda si Stremio muestra ese texto en el selector y el usuario lo
+  lee a mano (mismo mecanismo ya documentado, sin cambios).
+- **Conclusión**: no hay nada más para configurar de nuestro lado. Es una limitación real de la
+  taxonomía de idiomas que usan estos addons, no del proyecto — no reinvestigar esto en el futuro
+  salvo que alguno de los 4 addons cambie de proveedor de subtítulos. Elegir la variante correcta
+  sigue quedando a criterio del usuario al ver el nombre del release en el selector de Stremio.
 
 ### Streaming Catalogs — regla de cobertura regional (2026-07-02)
 
@@ -720,6 +747,58 @@ Hallazgos que quedan permanentes acá:
   perfil CGNAT") ahora da **3 streams** — primera mejora real medida ahí, atribuible a TorBox.
 - Única escritura a la cuenta real en toda la sesión: el swap de AIOMetadata, con backup en
   `.backups/backup-stremioeg-preregen-2026-07-11T19-34-26-181Z.json`.
+
+## Bug real: catalogs:[] indiscriminado — causa raíz de catálogos/búsqueda perdidos (resuelto 2026-07-12)
+
+Pablo reportó, al arrancar la sesión siguiente a la de "siesta": búsqueda rota, listas perdidas,
+sugerencias de Home perdidas, catálogos perdidos, y un subtítulo de España en vez de latino en El
+Diablo Viste a la Moda 2. El diagnóstico de esa sesión (guardado en el historial de chat, no en este
+archivo) había atribuido el problema a un cold-start transitorio de ElfHosted. **Esa hipótesis era
+incorrecta.** Investigando el pedido de un guard defensivo, apareció la causa real:
+
+- **El bug**: `apply-torbox-profile.mjs`, `apply-cgnat-profile.mjs`, `reorder-addons.mjs` y
+  `apply-friction-zero-sort.mjs` hacían `addons.map(a => ({...a, manifest: {...a.manifest,
+  catalogs: []}}))` antes de todo `addonCollectionSet` — vaciando `catalogs` de **todos** los
+  addons del payload, no solo el que cada script modificaba. La justificación original ("evitar
+  exceder el tamaño máximo del descriptor de la API") era una premisa falsa:
+  `regenerate-aiometadata.mjs` (que nunca vació nada) probó corrida tras corrida, durante meses,
+  que el payload completo —con los ~132 catálogos de AIOMetadata embebidos— se acepta sin problema.
+- **Por qué no lo detectaba nada**: `health-check.mjs` verifica catálogos con un fetch EN VIVO al
+  `transportUrl` de cada addon (`manifestResults`), nunca lee el campo `manifest.catalogs` que
+  Stremio guarda en el storage tras un `addonCollectionSet`. Por eso el health-check daba siempre
+  verde mientras el storage tenía los catálogos congelados en 0 — son dos fuentes de datos
+  distintas, y solo la del storage es la que (probablemente) usa el cliente de Stremio para poblar
+  Discover/Board.
+- **Alcance real, verificado en la cuenta el 2026-07-12**: no eran solo AIOMetadata/MyTrakt Sync —
+  **8 addons** tenían `catalogs=[]` congelado en el storage pese a que su manifest en vivo tenía
+  catálogos reales: Cinemeta (8), AIOMetadata (132), MyTrakt Sync (10), NoTorrent (7), Mubi Catalog
+  (2), Streaming Catalogs (56), Trakt Integration (8), Audio Latino verificado (2). Cualquier
+  addon con `resources` incluyendo `"catalog"` quedaba afectado apenas corría cualquiera de los 4
+  scripts. Esto lleva potencialmente corriendo desde antes del perfil CGNAT (2026-07-09, primer
+  script con este patrón) — no fue algo puntual del 2026-07-11.
+- **Fix aplicado**:
+  1. Los 4 scripts (+`curate-streaming-catalogs.mjs`, `swap-aiolists-mytrakt.mjs`,
+     `fix-subtitles.mjs`, que no tenían el bug pero sí `addonCollectionSet`) ya NO vacían
+     `catalogs` de addons que no modifican — mandan el manifest tal cual lo leyeron.
+  2. Guard compartido nuevo: `scripts/lib/collection-guard.mjs` →
+     `assertNoFrozenEmptyCatalogs(addons, modifiedIds)`. Antes de cualquier `addonCollectionSet`,
+     para cada addon NO modificado en esa corrida que declare `resources` con `"catalog"` y tenga
+     `catalogs.length === 0`, hace un fetch EN VIVO de su manifest — si el vivo tiene catálogos
+     reales, aborta con un error claro (evita persistir un manifest roto). Importante: comparar
+     contra el manifest en vivo (no contra un umbral fijo) es necesario porque algunos addons sanos
+     tienen legítimamente `catalogs:[]` en ciertos momentos; comparar contra su propio vivo es lo
+     que evita falsos positivos. Integrado en los 7 scripts que hacen `addonCollectionSet`.
+  3. **Reparación de la cuenta real**: `scripts/repair-frozen-catalogs.mjs` (dry-run por defecto,
+     `--apply` para escribir) detecta y restaura el manifest de cualquier addon con catálogos
+     congelados, sin tocar transportUrl/orden/config — solo refresca el campo `manifest` con un
+     fetch fresco del mismo `transportUrl`. Corrido con `--apply` el 2026-07-12: los 8 addons
+     restaurados y verificados (backup en
+     `.backups/backup-stremioeg-pre-repair-frozen-catalogs-2026-07-12T02-29-54.json`).
+     `health-check.mjs` post-reparación: verde, sin regresiones.
+- **Lección para scripts futuros**: nunca vaciar/mutar el `manifest` de un addon que un script no
+  está modificando intencionalmente al armar el payload de un `addonCollectionSet`. Si hace falta
+  reducir tamaño de payload en algún caso puntual futuro, achicar solo el manifest del addon que
+  ese script YA está reescribiendo (con datos frescos), nunca el de terceros no relacionados.
 
 ## Reglas del repo
 

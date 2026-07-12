@@ -70,6 +70,15 @@ if (!apply) {
   process.exit(0);
 }
 
+// Guard anti-manifest-congelado: un simple reorden no modifica el manifest de ningún addon, así
+// que ninguno debería perder catalogs — ver scripts/lib/collection-guard.mjs y CLAUDE.md → "Bug
+// real: catalogs:[] indiscriminado". regenerate-aiometadata.mjs ya prueba que addonCollectionSet
+// acepta el payload completo (con catálogos embebidos) sin problema; no hace falta vaciarlo.
+import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
+if (!(await assertNoFrozenEmptyCatalogs(reordered, []))) {
+  process.exit(1);
+}
+
 // Backup
 import { writeFileSync } from 'fs';
 const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -78,16 +87,10 @@ writeFileSync(backupPath, JSON.stringify({ result: { addons } }, null, 2));
 console.log(`\n✓ Backup guardado: ${backupPath}`);
 
 // Aplicar
-// Nota: addonCollectionSet requiere manifest.catalogs = [] para no exceder max descriptor size
-const slim = reordered.map((a) => ({
-  ...a,
-  manifest: { ...a.manifest, catalogs: [] },
-}));
-
 const res = await apiPost('addonCollectionSet', {
   type: 'AddonCollectionSet',
   authKey,
-  addons: slim,
+  addons: reordered,
 });
 
 if (res?.result?.success) {

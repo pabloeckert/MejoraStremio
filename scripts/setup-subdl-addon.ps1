@@ -22,7 +22,7 @@ if (-not $SubdlKey) {
 }
 
 $TaskName   = "StremioSubDLAddon"
-$ProjectDir = "C:\Github\MejoraStremio"
+$ProjectDir = "C:\Github\Herramientas\MejoraStremio"
 $LogDir     = Join-Path $ProjectDir "logs"
 $LogFile    = Join-Path $LogDir "subdl-addon.log"
 $NodeExe    = "C:\Program Files\nodejs\node.exe"

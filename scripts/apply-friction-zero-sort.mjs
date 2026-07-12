@@ -32,6 +32,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -119,20 +120,29 @@ if (!APPLY) {
   process.exitCode = 0;
 } else {
 
-// ── 4. Backup + aplicar ──────────────────────────────────────────────────────
+const updated = addons.map((a, i) => {
+  if (i === torrentioIdx) return { ...a, transportUrl: newTorrentioUrl };
+  if (i === cometIdx) return { ...a, transportUrl: newCometUrl };
+  return a;
+});
+
+// ── 4. Guard anti-manifest-congelado ──────────────────────────────────────────
+// No vaciamos manifest.catalogs de addons que no tocamos: regenerate-aiometadata.mjs ya prueba
+// que addonCollectionSet acepta el payload completo (con los ~132 catálogos de AIOMetadata
+// embebidos) sin problema — ver CLAUDE.md → "Bug real: catalogs:[] indiscriminado". Este era
+// justo el script que dejó AIOMetadata/MyTrakt con catalogs=0 el 2026-07-11.
+if (!(await assertNoFrozenEmptyCatalogs(updated, ['com.stremio.torrentio.addon', 'stremio.comet.fast']))) {
+  process.exit(1);
+}
+
+// ── 5. Backup + aplicar ──────────────────────────────────────────────────────
 mkdirSync(BACKUPS, { recursive: true });
 const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const backupPath = join(BACKUPS, `backup-stremioeg-pre-frictionzero-${ts}.json`);
 writeFileSync(backupPath, JSON.stringify({ result: { addons } }, null, 2));
 console.log(`\n✓ Backup guardado: ${backupPath}`);
 
-const updated = addons.map((a, i) => {
-  if (i === torrentioIdx) return { ...a, transportUrl: newTorrentioUrl };
-  if (i === cometIdx) return { ...a, transportUrl: newCometUrl };
-  return a;
-});
-const slim = updated.map((a) => ({ ...a, manifest: { ...a.manifest, catalogs: [] } }));
-const res = await apiPost('addonCollectionSet', { type: 'AddonCollectionSet', authKey, addons: slim });
+const res = await apiPost('addonCollectionSet', { type: 'AddonCollectionSet', authKey, addons: updated });
 if (!(res?.result?.success || res?.result)) die('addonCollectionSet falló: ' + JSON.stringify(res));
 console.log('✓ Colección actualizada correctamente.');
 

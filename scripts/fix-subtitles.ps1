@@ -36,7 +36,7 @@ if (-not $r2.result -or -not $r2.result.addons) {
     Write-Host "FALLO: no se pudo obtener coleccion" -ForegroundColor Red; exit 1
 }
 $CURR = $r2.result.addons
-$bd = "C:\Github\MejoraStremio\.backups"
+$bd = "C:\Github\Herramientas\MejoraStremio\.backups"
 if (-not (Test-Path $bd)) { New-Item -ItemType Directory -Force $bd | Out-Null }
 $bf = "$bd\backup-stremio-$(Get-Date -f 'yyyy-MM-dd-HHmmss')-pre-subs.json"
 $r2.result | ConvertTo-Json -Depth 20 | Out-File $bf -Encoding utf8

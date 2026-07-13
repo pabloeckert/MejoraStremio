@@ -930,6 +930,100 @@ Backups: `.backups/backup-stremioeg-pre-reorder-2026-07-13T01-06-12.json` (reord
 `.backups/backup-stremioeg-preregen-2026-07-13T01-07-15-865Z.json` y
 `...-2026-07-13T01-09-26-502Z.json` (las dos regeneraciones de AIOMetadata).
 
+### Chequeo semanal automático (2026-07-05)
+
+**Bug real encontrado y corregido**: `.github/workflows/anti-frustration-review.yml` corría bien
+(`review` completado en 1m34s) y "commiteaba" el log actualizado en el runner, pero **nunca lo
+pusheaba** — el paso final repetía `git diff --cached --quiet || git push`, y como el `git commit`
+anterior ya había vaciado el staging area, ese diff daba "sin cambios" y el `push` no se ejecutaba
+nunca (bug de lógica shell, no de la review en sí). Resultado: cada corrida dominical desde que se
+armó el sistema (2026-07-02) revisaba los pendientes de verdad pero el resultado se perdía al
+terminar el job — `data/anti-frustration-log.json` en el repo quedó congelado con `lastCheckedAt`
+del 2026-07-02 pese a que el workflow reportaba `success` cada domingo. Corregido a
+`if ! git diff --cached --quiet; then git commit ...; git push; fi` (un solo chequeo, commit y
+push en el mismo bloque). **Verificado**: disparé manualmente el workflow ya corregido
+(`workflow_dispatch`) y esta vez sí commiteó y pusheó (`chore(anti-frustration): actualizar log
+semanal`, `lastCheckedAt` refrescado a 2026-07-05) — el fix funciona, las próximas corridas
+dominicales van a persistir de verdad.
+
+**Estado del log antifrustración** (re-chequeado hoy 2026-07-05 con el fix aplicado, 11 títulos):
+9 resueltos, 2 siguen pendientes — **Los Mufas y El Marginal siguen en 0 streams reales**, sin
+cambios respecto al 2026-07-02. Consistente con el hueco estructural ya documentado (contenido
+exclusivo Netflix Argentina, sin cobertura en los trackers/scrapers gratuitos); no es una
+regresión nueva, es la misma limitación de siempre.
+
+**Workflows**: `health-monitor.yml` corriendo sano varias veces por día (no commitea nada, no tiene
+este bug). `anti-frustration-review.yml` corrió el domingo 2026-07-05 (`success`, sin el fix
+todavía) — de ahí se detectó el problema de arriba.
+
+**Novedades de ElfHosted/addons**: nada nuevo que afecte a los addons instalados (AIOMetadata,
+MyTrakt Sync, SubMaker, Comet, NoTorrent) más allá de lo ya documentado (baja de AIOLists/Archivio/
+YourIPTV y deprecación de Nuvio Streams, ambas de principios de julio). Dato nuevo menor: ElfHosted
+también dio de baja **Stremio-Jackett** (`stremio-jackett-is-deprecated.elfhosted.com`) — no lo
+usamos, no requiere acción. Alternativas de addons de streams que aparecen recomendadas en guías
+2026 (AIOStreams, MediaFusion) siguen requiriendo debrid de pago, mismo motivo por el que ya se
+habían descartado — no accionable mientras el proyecto sea gratis. Para el catálogo de audio
+latino: aparecieron un par de addons privados de terceros enfocados en audio latino ("Primer
+Latino", "Addon Latam") — no investigados en profundidad (uno requiere Real-Debrid/TorBox), quedan
+como posible lectura futura, no como recomendación todavía.
+
+**Plan de debrid (agosto 2026)**: sin cambios en la recomendación de TorBox (~US$3/mes, sigue
+estable, sin señales de suba). Sí apareció una confirmación nueva a favor de esa recomendación:
+desde mayo 2026 Real-Debrid suma, a la purga de caché por copyright ya conocida, un **filtro por
+palabras clave en el nombre de archivo** (bloquea tags como WEB-DL/WEBRip/AMZN/NF/YTS/RARBG) que
+está generando más streams rotos ("removido por infracción de copyright") — refuerza por qué TorBox
+es la opción más segura cuando Pablo decida avanzar. Agosto todavía no llegó y la decisión sigue
+sin tomarse; se sigue sin presionar.
+
+### Chequeo semanal automático (2026-07-12)
+
+**Workflows del domingo**: `anti-frustration-review.yml` corrió a las 15:45 UTC, `success`, y esta
+vez sí commiteó y pusheó (`651ef4c`, confirma que el fix del 2026-07-05 sigue funcionando).
+`health-monitor.yml` corrió sano hoy (dos corridas, 02:06 y 13:44 UTC, ambas `success`).
+
+**Hallazgo de la semana — ruido de falsos positivos en health-monitor**: revisando las últimas ~28
+corridas (desde el 2026-07-02), **9 terminaron en `failure`** (~1 de cada 3). Ninguna es una rotura
+real: en cada caso el motivo es que uno de los addons ya documentados como flaky (`WebStreamrMBG`
+×2, `Mubi Catalog` ×3, `SubSense` ×1) no respondió ni al reintento (`NO RESPONDE (2 intentos)`), y
+eso alcanza para marcar el job entero como falla y disparar el email `[FALLA]`. El reintento
+agregado el 2026-07-03 ayuda cuando el segundo intento sí responde (queda como `⚠`, no falla), pero
+no cuando el addon está caído en ambos intentos — que es justamente el patrón de Mubi Catalog en el
+runner de GitHub Actions (ya documentado como specific a ese runner) y de WebStreamrMBG (timeout
+lento conocido). **Sugerencia concreta**: si a Pablo le sirve, se podría bajar la severidad de esos
+dos addons puntuales (Mubi Catalog y WebStreamrMBG — ambos ya catalogados como "bajo riesgo, no
+ideal remover") a `⚠` en vez de `✗` cuando fallan ambos intentos, para que el health-check solo
+mande `[FALLA]` cuando algo nuevo o de mayor riesgo se cae (streams principales, subs, catálogos,
+cuenta). Así como está hoy, cerca de un tercio de los emails de falla son ruido conocido — el riesgo
+es que Pablo empiece a ignorarlos y se pierda una falla real entre medio. No lo apliqué porque es un
+cambio de comportamiento del script, no un chequeo — a definir si Pablo lo quiere.
+
+**Log antifrustración**: 9 resueltos, 2 pendientes — **Los Mufas y El Marginal siguen en 0 streams
+reales**, sin cambios respecto al 2026-07-05. Mismo hueco estructural de siempre (contenido
+exclusivo Netflix Argentina sin cobertura en trackers/scrapers gratuitos).
+
+**Novedades de ElfHosted/addons**: nada nuevo más allá de lo ya documentado (baja de AIOLists/
+Archivio/YourIPTV/Stremio-Jackett, deprecación de Nuvio Streams). Aclaración útil encontrada esta
+semana: el **WebStreamr oficial** (`webstreamr-is-deprecated.elfhosted.com`) fue deprecado por su
+autor en abril 2026 — pero **WebStreamrMBG, el que tenemos instalado, es un fork independiente y
+activamente mantenido** de otro autor (`newman2x/WebStreamrMBG` en GitHub), no la misma instancia.
+No hay señal de que le vaya a pasar lo mismo, solo vale la aclaración porque el nombre se presta a
+confusión. Sin alternativas gratuitas nuevas a los addons de streams ya instalados.
+
+**Audio latino — sin novedad accionable**: de los dos addons mencionados la semana pasada
+("Primer Latino", "Addon Latam"), se los miró un poco más de cerca: **Primer Latino** es un
+servicio pago (~US$2.45/mes) que trae su propio debrid incluido — no es gratis y no encaja con el
+proyecto. **Addon Latam** sí tiene un camino gratis (con anuncio semanal, tras 7 días de prueba)
+pero es un deploy chico y sin marca en Railway.app, sin ninguna reseña o mención en Reddit — no hay
+forma de verificar que sea confiable o que se mantenga. Ninguno de los dos amerita instalarse
+todavía; quedan como lectura futura.
+
+**Plan de debrid (agosto 2026)**: sin cambios de precio en TorBox/Real-Debrid/AllDebrid esta
+semana. Sí salió **TorBox v9** (1 de julio) con funciones nuevas (soporte Usenet/NNTP,
+almacenamiento permanente "AirLock", integración S3) sin tocar el precio — refuerza que sigue
+siendo el proyecto más activo de los tres, pero no cambia la cuenta de agosto. Real-Debrid sigue con
+el mismo filtro de copyright de mayo, sin escalar esta semana. Agosto se acerca y la decisión sigue
+sin tomarse; se sigue sin presionar.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

@@ -54,20 +54,64 @@ scripts/repair-frozen-catalogs.mjs  Detecta y restaura addons con manifest.catal
 scripts/reorder-addons.mjs          Mueve un addon al índice 0, o justo después de otro addon con
                                     --after <manifest.id> (usado para MyTrakt Sync/Streailer, ver
                                     abajo). Guard anti-congelado + backup antes de aplicar.
+scripts/update-addon-url.mjs        Cambia el transportUrl de un addon ya instalado (mismo
+                                    manifest.id, sin duplicar la entrada) y refresca su manifest.
+                                    Útil cuando un addon migra de infraestructura del lado del
+                                    proveedor (usado para NoTorrent, ver abajo). Guard + backup.
 ```
 
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni
-build: es un toolkit, no un paquete. No usar `npm install`.
+build: es un toolkit, no un paquete. No usar `npm install`. Credenciales (`ST_EMAIL`, `ST_PASS`,
+`TORBOX_API_KEY`, `AIO_PASSWORD`, `SUBDL_KEY`) van en `SECRETS.local.md` (gitignorado, formato
+`CLAVE=valor`) — cargarlas como variables de entorno antes de correr cualquier script que las pida.
 
-## Estado actual de la cuenta (stremioeg, 2026-07-12)
+## Comandos
+
+**Diagnóstico (solo leen, no requieren credenciales para lo básico):**
+```
+node scripts/validate-config.mjs                 # valida el schema de preset.json (sin red)
+node scripts/audit-catalog-order.mjs              # audita orden de catálogos del inicio
+node scripts/health-check.mjs                     # chequeo público (manifests); con ST_EMAIL/ST_PASS es dinámico y prueba streams/subs/búsqueda reales
+ST_EMAIL=... ST_PASS=... node scripts/test-content.mjs   # prueba streams+subs de data/test-content.json
+node scripts/refresh-dates.mjs --check            # audita si las fechas de En Cartelera/Estrenos están vencidas
+SUBDL_KEY=... node scripts/test-subdl.mjs         # mide cobertura de subs SubDL sin SDH
+ST_EMAIL=... ST_PASS=... node scripts/anti-frustration.mjs list    # resumen del log antifrustración
+ST_EMAIL=... ST_PASS=... node scripts/anti-frustration.mjs review  # re-chequea títulos "pendiente"
+```
+
+**Escritura contra la cuenta real** (todos son dry-run por defecto; agregar `--apply` para escribir.
+Todos hacen backup en `.backups/` antes de aplicar y corren `assertNoFrozenEmptyCatalogs` —
+`scripts/lib/collection-guard.mjs` — cuando tocan `addonCollectionSet`):
+```
+node scripts/refresh-dates.mjs                                        # recalcula ventana de fechas en preset.json (sin red)
+AIO_PASSWORD=... ST_EMAIL=... ST_PASS=... node scripts/regenerate-aiometadata.mjs [--apply] [--force]
+ST_EMAIL=... ST_PASS=... node scripts/reorder-addons.mjs <manifest.id> [--after <otro.manifest.id>] [--apply]
+ST_EMAIL=... ST_PASS=... node scripts/repair-frozen-catalogs.mjs [--apply]   # restaura catalogs=[] congelados
+ST_EMAIL=... ST_PASS=... node scripts/update-addon-url.mjs <manifest.id> <nuevaTransportUrl> [--apply]
+ST_EMAIL=... ST_PASS=... TORBOX_API_KEY=... node scripts/apply-torbox-profile.mjs [--apply]
+ST_EMAIL=... ST_PASS=... node scripts/apply-friction-zero-sort.mjs [--apply]
+ST_EMAIL=... ST_PASS=... node scripts/curate-streaming-catalogs.mjs [--apply]
+ST_EMAIL=... ST_PASS=... node scripts/anti-frustration.mjs add <imdbId> [movie|series] [season] [episode] ["título"]
+```
+`scripts/apply-cgnat-profile.mjs` y `scripts/swap-aiolists-mytrakt.mjs` son de un solo uso
+histórico (ver "Perfil CGNAT temporal" y "MyTrakt Sync" abajo) — mantener como referencia del
+patrón, no correr de nuevo salvo un caso equivalente.
+
+Después de cualquier `--apply` real: correr `health-check.mjs` y `test-content.mjs` antes/después
+para confirmar que no hay regresiones, y verificar con `addonCollectionGet` (o el propio guard) que
+ningún addon quedó con catálogos congelados.
+
+## Estado actual de la cuenta (stremioeg, 2026-07-13)
 
 18 addons (idx 17 = "Audio Latino (verificado)", catálogo propio en Deno Deploy, ver más abajo).
-**Cinemeta en índice 0**, AIOMetadata (UUID **`82055fec-d0e2-4109-bdd0-2da9975ffa1e`**, regenerado
-2026-07-12 al aplicar sort por fecha desc/asc + piso de calidad en En Cartelera/Próximos Estrenos —
-ver "Sesión 2026-07-12 — orden por fecha" más abajo — reemplaza a `861ff75d-...`) en
-**índice 1**. **MyTrakt Sync** (UUID **`13e948e9-04c8-4917-a0d5-96af15b63d2f`**) se movió de
-índice 2 a **índice 9, justo después de Streailer** (pedido explícito de Pablo el 2026-07-12, ver
-misma sección) — reemplazó a AIOLists deprecado, ver "MyTrakt Sync" abajo. 153 catálogos en `preset.json` (125 enabled); el manifest
+**AIOMetadata en índice 0** (UUID **`82055fec-d0e2-4109-bdd0-2da9975ffa1e`**, regenerado 2026-07-12
+al aplicar sort por fecha desc/asc + piso de calidad en En Cartelera/Próximos Estrenos — ver
+"Sesión 2026-07-12 — orden por fecha" más abajo — reemplaza a `861ff75d-...`), **Cinemeta en
+índice 1** (invertidos el 2026-07-13 para arreglar la metadata en inglés — ver "Sesión 2026-07-13"
+más abajo; Cinemeta se mantiene instalado como red de resiliencia, ya no compite por ganar la
+metadata). **MyTrakt Sync** (UUID **`13e948e9-04c8-4917-a0d5-96af15b63d2f`**) sigue en **índice 9,
+justo después de Streailer** (pedido explícito de Pablo el 2026-07-12) — reemplazó a AIOLists
+deprecado, ver "MyTrakt Sync" abajo. 153 catálogos en `preset.json` (125 enabled); el manifest
 expone ~132 (125 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Catálogos: globales (Trending,
 Latest, Top Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 15 países occidentales
 (Argentina, Latam, España, Francia, Alemania, Italia, Reino Unido, Portugal, México, Colombia, Chile,
@@ -83,7 +127,9 @@ conectados. **Streams** (idx 2-7 desde el reorden de MyTrakt del 2026-07-12 — 
 Torrentio (idx 2, **TorBox** como debrid — 24 proveedores habilitados, se agregaron
 Wolfmax4k/BestTorrents/Rutracker/Torrent9/Comando/BluDV/MicoLeaoDublado/ilCorSaRoNeRo/nekoBT/Rutor
 para mejorar cobertura de contenido en español/portugués) → Comet (idx 3, **TorBox** como debrid,
-`enableTorrent:false`) → NoTorrent (idx 4, scraper HTTP) → WebStreamrMBG (idx 5, scraper HTTP, a
+`enableTorrent:false`) → NoTorrent (idx 4, scraper HTTP, `transportUrl` migrado el 2026-07-13 de
+`addon-osvh.onrender.com` a `addon.notorrent2.workers.dev` — ver "Sesión 2026-07-13" más abajo)
+→ WebStreamrMBG (idx 5, scraper HTTP, a
 veces tarda >15s en responder o da 504 en el endpoint de streams — timeout/gateway flaky conocido)
 → **Nuvio Streams** (idx 6, ElfHosted, respaldado por Cuevana/Xprime — scraper HTTP con foco en
 streaming services) → Meteor (idx 7, P2P puro sin debrid, va último porque a veces sólo tiene
@@ -245,13 +291,16 @@ manifest de AIOMetadata = el orden del array `catalogs.standard`. Se reordenó e
 - "New on MUBI" / plataformas vienen de los addons **"Mubi Catalog"** y **"Streaming Catalogs"**, no
   de AIOMetadata. Su prioridad en el board depende del **orden de la colección de addons**, no del
   preset. Mubi está en posición baja (índice 8 de 14); el reorden de AIOMetadata ya lo despriorizó.
-- **Orden de la colección (2026-06-30)**: Cinemeta en **índice 0**, AIOMetadata en **índice 1**,
-  AIOLists en **índice 2**. Cambio respecto a 2026-06-19 (cuando AIOMetadata estaba en #0): Cinemeta
-  volvió al #0 para resolver cortes de pantalla — el cold start de AIOMetadata en ElfHosted colgaba
-  la carga inicial de la app hasta que el keep-warm de GitHub Actions lo calentaba. Con Cinemeta en
-  #0 la app siempre arranca. AIOMetadata sigue siendo el proveedor de metadata principal cuando está
-  caliente (fichas ricas). Cinemeta expone Popular/New/Featured que se pisan con Tendencias/Latest de
-  AIOMetadata — ocultar desde la app (Board → configurar catálogos). Reversible vía
+- **Orden de la colección (2026-06-30, revertido 2026-07-13)**: Cinemeta en **índice 0**, AIOMetadata
+  en **índice 1**, AIOLists en **índice 2**. Cambio respecto a 2026-06-19 (cuando AIOMetadata estaba
+  en #0): Cinemeta volvió al #0 para resolver cortes de pantalla — el cold start de AIOMetadata en
+  ElfHosted colgaba la carga inicial de la app hasta que el keep-warm de GitHub Actions lo calentaba.
+  Con Cinemeta en #0 la app siempre arranca. Cinemeta expone Popular/New/Featured que se pisan con
+  Tendencias/Latest de AIOMetadata — ocultado desde la app (Board → configurar catálogos).
+  **Este orden se revirtió el 2026-07-13** (AIOMetadata volvió a #0, Cinemeta a #1) al confirmarse
+  que tenía un efecto secundario serio no previsto: rompía el idioma de la metadata en toda la app —
+  ver "Sesión 2026-07-13 — metadata en inglés y migración de NoTorrent" más abajo para el diagnóstico
+  completo y la razón de por qué revertirlo ya no era tan riesgoso como en 2026-06-30. Reversible vía
   `addonCollectionSet` con el backup en `.backups/`.
 
 ### Metadata en español — títulos sí, sinopsis no (verificado 2026-07-02)
@@ -1023,6 +1072,97 @@ almacenamiento permanente "AirLock", integración S3) sin tocar el precio — re
 siendo el proyecto más activo de los tres, pero no cambia la cuenta de agosto. Real-Debrid sigue con
 el mismo filtro de copyright de mayo, sin escalar esta semana. Agosto se acerca y la decisión sigue
 sin tomarse; se sigue sin presionar.
+
+## Sesión 2026-07-13 — metadata en inglés y migración de NoTorrent
+
+Pablo reportó dos problemas nuevos, con regla de oro de **modo diagnóstico primero** (no escribir
+sin confirmación explícita) y de no tocar streams/TorBox/friction-zero. Sesión dividida en dos
+partes: diagnóstico (sin escritura) y, en un pedido posterior ya confirmado, la ejecución.
+
+### Problema 1 — Metadata en inglés (título/sinopsis/género/actores, en toda la app)
+
+**Diagnóstico**: se descartó que fuera el bug ya cerrado de "sinopsis corta en inglés" (eso es sobre
+la sinopsis únicamente; acá el reporte era sistémico — título, sinopsis, género y actores, en
+Descubrir/Buscar/Home/Biblioteca y al abrir un título puntual). Se confirmó con evidencia real:
+- Consulta directa a Cinemeta vs. AIOMetadata para 3 títulos (Babylon Berlin, Barbarians, Criminal:
+  Germany): **AIOMetadata devolvía todo en español perfectamente** ("Bárbaros", "Criminal: Alemania",
+  sinopsis y géneros en español) — el problema no era AIOMetadata.
+- **Causa raíz encontrada en el código fuente oficial de Stremio** (`Stremio/stremio-core`, el
+  engine real de la app, no una suposición): en `stremio-core-web/.../serialize_meta_details.rs`,
+  el comentario del propio código dice *"For MetaDetails: 1. If at least 1 item is ready we show
+  the first ready item's data"* — Stremio consulta a TODOS los addons que proveen `meta` para un id,
+  **en el orden de la colección**, y usa la respuesta del **primero que esté listo** (`Ready`), no
+  la más rápida ni la mejor. Con Cinemeta en índice 0 y AIOMetadata en índice 1, Cinemeta (liviano,
+  casi siempre responde bien) ganaba siempre — la respuesta en español de AIOMetadata se descartaba
+  aunque llegara perfecta. Confirmado también que no hay ningún campo de "prioridad por tipo de
+  recurso" en el protocolo de Stremio: el orden de colección es global (aplica a `meta`, `catalog` y
+  `stream` por igual), no hay forma de decirle a Stremio "para meta preferí a X, para catálogo a Y".
+- `config.language` de AIOMetadata seguía en `"es"` intacto tanto en `preset.json` como en la
+  instancia en vivo — no se había perdido nada en ninguna escritura reciente.
+
+**Opciones presentadas** (A: no tocar nada: 0 riesgo, 0 arreglo; B: invertir el orden
+AIOMetadata↔Cinemeta, manteniendo Cinemeta instalado como red de resiliencia en índice 1; C: sacar
+Cinemeta de la colección directamente). **Pablo eligió B.**
+
+**Ejecutado**: `node scripts/reorder-addons.mjs "aio-metadata" --apply` — AIOMetadata pasó de
+índice 1 a **índice 0**, Cinemeta de índice 0 a **índice 1**. Ningún otro addon cambió de posición
+(verificado: streams siguen en idx 2-7, MyTrakt Sync en idx 9, etc. — mismo orden relativo de
+siempre). Backup pre-cambio: `.backups/backup-stremioeg-pre-reorder-2026-07-13T20-06-55.json`.
+
+**Por qué revertir ahora era menos riesgoso que en 2026-06-30**: el motivo original del orden
+Cinemeta-primero fue el cold-start de AIOMetadata colgando el arranque de la app. El workflow
+`keep-warm.yml` (ping cada 20 min) corre ininterrumpidamente desde el mismo 2026-06-30 — **dos
+semanas sostenidas sin que se reportara el freeze** — lo que da bastante confianza en que hoy el
+escenario que justificó el orden original ya no ocurre. No es garantía absoluta (un corte simultáneo
+de ElfHosted y GitHub Actions todavía podría colgar el arranque en el peor momento), por eso Cinemeta
+se mantiene instalado en índice 1 como red de resiliencia, no se removió.
+
+**Verificación real, no solo contra AIOMetadata directo**: se simuló el algoritmo exacto de
+`stremio-core` (consultar a todos los addons que proveen `meta` — `aio-metadata`, `com.linvo.cinemeta`
+y, sorpresa, también `trakt.addon...` (MyTrakt Sync) — en orden de colección, y quedarse con el
+primero `Ready`) para los mismos 3 títulos del diagnóstico. **Resultado: `aio-metadata` gana ahora
+en los 3 casos** ("Babylon Berlin", "**Bárbaros**", "**Criminal: Alemania**", sinopsis y géneros en
+español) — antes de este cambio hubiera ganado Cinemeta en inglés en los 3.
+
+**Camino de vuelta si el arranque se cuelga** (probarlo en el set-top-box unos días primero): restaurar
+el backup de arriba, o correr `node scripts/reorder-addons.mjs "com.linvo.cinemeta" --apply` para
+devolver a Cinemeta al índice 0. Ninguna de las dos opciones tiene efectos secundarios sobre
+streams/TorBox/friction-zero — es exclusivamente un reorden de colección.
+
+### Problema 2 — Cartel "⚠️ REINSTALL NOTORRENT"
+
+**Diagnóstico**: comparación del manifest guardado (`addonCollectionGet`) vs. el manifest EN VIVO de
+NoTorrent (`https://addon-osvh.onrender.com/manifest.json`, mismo patrón usado para el bug de
+catálogos congelados) mostró que el proveedor había sobreescrito `name`, `description` y los 7
+nombres de catálogo a **"⚠️ REINSTALL NOTORRENT"** (incluso el logo cambió a un ícono de error),
+mientras `manifest.version` seguía en `2.0.0` sin cambios — no era una corrupción nuestra ni un
+problema de versión, era el proveedor señalizando a propósito que esa URL quedó obsoleta.
+Encontrada la URL nueva en el directorio comunitario (`stremio-addons.net/addons/notorrent`):
+`https://addon.notorrent2.workers.dev/manifest.json` — **mismo `manifest.id`** (`com.notorrent.addon`),
+versión más nueva (**2.4.0**), nombre/catálogos limpios, 871 títulos reales en su catálogo de
+Netflix, streams reales confirmados (7 para Matrix). El addon migró de Render.com a Cloudflare
+Workers del lado del desarrollador — no es una rotura de nuestro lado.
+
+**Ejecutado**: nuevo script genérico `scripts/update-addon-url.mjs <manifest.id> <nuevaTransportUrl>
+[--apply]` (aborta si el `manifest.id` de la URL nueva no coincide con el addon que se está
+reemplazando, para no instalar otra cosa por error) — `node scripts/update-addon-url.mjs
+"com.notorrent.addon" "https://addon.notorrent2.workers.dev/manifest.json" --apply`. Mismo
+`manifest.id`, no se duplicó la entrada. Backup pre-cambio:
+`.backups/backup-stremioeg-pre-update-url-2026-07-13T20-08-08.json`.
+
+**Verificación**: `addonCollectionGet` confirma `com.notorrent.addon` con `transportUrl` nuevo,
+`name: "NoTorrent"` (limpio, sin el aviso) y `version: 2.4.0`. Stream real de Matrix contra la URL
+nueva: 7 streams reales devueltos.
+
+### Verificación final de la sesión
+
+Backup adicional tomado justo antes de aplicar ambos cambios (por pedido explícito, además del que
+ya existía del diagnóstico): `.backups/backup-stremioeg-pre-apply-metadata-notorrent-2026-07-13T20-06-12.json`.
+`health-check.mjs` y `test-content.mjs` corridos antes y después de ambos cambios: verdes, sin
+regresiones (Matrix 225 streams, Breaking Bad S01E01 193, Will Trent S01E01 80; 14/14 títulos de
+`test-content.json` con streams reales). `addonCollectionGet` confirmó 0 addons con catálogos
+congelados tras ambas escrituras. TorBox/Torrentio/Comet/sort friction-zero: sin cambios, como pedía
+la regla de oro de esta sesión.
 
 ## Reglas del repo
 

@@ -1,9 +1,11 @@
 /**
- * reorder-addons.mjs — Mueve un addon al índice 0 de la colección.
+ * reorder-addons.mjs — Mueve un addon al índice 0 de la colección, o justo
+ * después de otro addon con --after.
  *
  * Uso:
  *   ST_PASS=... node scripts/reorder-addons.mjs <manifest.id>
  *   ST_PASS=... node scripts/reorder-addons.mjs com.linvo.cinemeta
+ *   ST_PASS=... node scripts/reorder-addons.mjs <manifest.id> --after <otro.manifest.id>
  *
  * Guarda backup antes de aplicar. Imprime la nueva lista y confirma.
  * Sin --apply solo reporta (dry-run).
@@ -15,9 +17,15 @@ const PASS  = process.env.ST_PASS  || '';
 
 const targetId = process.argv[2];
 const apply    = process.argv.includes('--apply');
+const afterFlagIdx = process.argv.indexOf('--after');
+const afterId = afterFlagIdx >= 0 ? process.argv[afterFlagIdx + 1] : null;
 
 if (!targetId) {
-  console.error('Uso: ST_PASS=... node scripts/reorder-addons.mjs <manifest.id> [--apply]');
+  console.error('Uso: ST_PASS=... node scripts/reorder-addons.mjs <manifest.id> [--after <otro.manifest.id>] [--apply]');
+  process.exit(1);
+}
+if (afterFlagIdx >= 0 && !afterId) {
+  console.error('--after requiere un manifest.id');
   process.exit(1);
 }
 if (!PASS) {
@@ -51,18 +59,37 @@ if (idx === -1) {
   console.log('IDs disponibles:', addons.map((a) => a.manifest?.id).join(', '));
   process.exit(1);
 }
-if (idx === 0) {
-  console.log(`✓ "${targetId}" ya está en índice 0 — nada que hacer.`);
-  process.exit(0);
-}
-
 console.log(`\nOrden ACTUAL:`);
 addons.forEach((a, i) => console.log(`  ${i} ${a.manifest?.id} | ${a.manifest?.name}`));
 
-// Nuevo orden: el objetivo al frente, resto igual
-const reordered = [addons[idx], ...addons.filter((_, i) => i !== idx)];
-
-console.log(`\nOrden NUEVO (${targetId} → índice 0):`);
+let reordered;
+if (afterId) {
+  const afterIdx = addons.findIndex((a) => a.manifest?.id === afterId);
+  if (afterIdx === -1) {
+    console.error(`✗ No se encontró addon con manifest.id="${afterId}" (--after)`);
+    process.exit(1);
+  }
+  if (afterIdx === idx - 1) {
+    console.log(`✓ "${targetId}" ya está justo después de "${afterId}" — nada que hacer.`);
+    process.exit(0);
+  }
+  const withoutTarget = addons.filter((_, i) => i !== idx);
+  const newAfterIdx = withoutTarget.findIndex((a) => a.manifest?.id === afterId);
+  reordered = [
+    ...withoutTarget.slice(0, newAfterIdx + 1),
+    addons[idx],
+    ...withoutTarget.slice(newAfterIdx + 1),
+  ];
+  console.log(`\nOrden NUEVO (${targetId} → justo después de ${afterId}):`);
+} else {
+  if (idx === 0) {
+    console.log(`✓ "${targetId}" ya está en índice 0 — nada que hacer.`);
+    process.exit(0);
+  }
+  // Nuevo orden: el objetivo al frente, resto igual
+  reordered = [addons[idx], ...addons.filter((_, i) => i !== idx)];
+  console.log(`\nOrden NUEVO (${targetId} → índice 0):`);
+}
 reordered.forEach((a, i) => console.log(`  ${i} ${a.manifest?.id} | ${a.manifest?.name}`));
 
 if (!apply) {

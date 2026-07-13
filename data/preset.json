@@ -151,15 +151,17 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "primary_release_date.gte": "2026-04-27",
-                "primary_release_date.lte": "2026-07-11"
+                "primary_release_date.lte": "2026-07-11",
+                "vote_count.gte": 5,
+                "with_runtime.gte": 45
               },
               "formState": {
                 "catalogName": "En Cartelera",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -217,14 +219,16 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.asc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-07-11"
+                "primary_release_date.gte": "2026-07-11",
+                "vote_count.gte": 5,
+                "with_runtime.gte": 45
               },
               "formState": {
                 "catalogName": "Próximos Estrenos",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.asc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -282,14 +286,16 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.asc",
                 "include_adult": false,
-                "first_air_date.gte": "2026-07-11"
+                "first_air_date.gte": "2026-07-11",
+                "vote_count.gte": 5,
+                "with_runtime.gte": 15
               },
               "formState": {
                 "catalogName": "Próximos Estrenos (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.asc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -8808,7 +8814,7 @@
         }
       ]
     },
-    "instanceId": "861ff75d-e4a8-4943-bd75-b36a0401f368"
+    "instanceId": "82055fec-d0e2-4109-bdd0-2da9975ffa1e"
   },
   "nuvioCollectionsConfig": [
     {

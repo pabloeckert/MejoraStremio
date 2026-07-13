@@ -51,19 +51,23 @@ scripts/lib/collection-guard.mjs    Guard compartido: antes de cualquier addonCo
 scripts/repair-frozen-catalogs.mjs  Detecta y restaura addons con manifest.catalogs congelado en 0
                                     en el storage de Stremio (sin tocar transportUrl/orden/config).
                                     Reporta por defecto, escribe con --apply.
+scripts/reorder-addons.mjs          Mueve un addon al índice 0, o justo después de otro addon con
+                                    --after <manifest.id> (usado para MyTrakt Sync/Streailer, ver
+                                    abajo). Guard anti-congelado + backup antes de aplicar.
 ```
 
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni
 build: es un toolkit, no un paquete. No usar `npm install`.
 
-## Estado actual de la cuenta (stremioeg, 2026-07-11)
+## Estado actual de la cuenta (stremioeg, 2026-07-12)
 
 18 addons (idx 17 = "Audio Latino (verificado)", catálogo propio en Deno Deploy, ver más abajo).
-**Cinemeta en índice 0**, AIOMetadata (UUID **`861ff75d-e4a8-4943-bd75-b36a0401f368`**, regenerado
-2026-07-11 al refrescar fechas + reordenar catálogos de crimen/país en Descubrir — ver "Sesión
-'siesta'" más abajo — reemplaza a `e6392c80-...`) en
-**índice 1**, **MyTrakt Sync** (UUID **`13e948e9-04c8-4917-a0d5-96af15b63d2f`**) en **índice 2**
-(reemplazó a AIOLists deprecado — ver "MyTrakt Sync" abajo). 153 catálogos en `preset.json` (125 enabled); el manifest
+**Cinemeta en índice 0**, AIOMetadata (UUID **`82055fec-d0e2-4109-bdd0-2da9975ffa1e`**, regenerado
+2026-07-12 al aplicar sort por fecha desc/asc + piso de calidad en En Cartelera/Próximos Estrenos —
+ver "Sesión 2026-07-12 — orden por fecha" más abajo — reemplaza a `861ff75d-...`) en
+**índice 1**. **MyTrakt Sync** (UUID **`13e948e9-04c8-4917-a0d5-96af15b63d2f`**) se movió de
+índice 2 a **índice 9, justo después de Streailer** (pedido explícito de Pablo el 2026-07-12, ver
+misma sección) — reemplazó a AIOLists deprecado, ver "MyTrakt Sync" abajo. 153 catálogos en `preset.json` (125 enabled); el manifest
 expone ~132 (125 + ~7 catálogos de búsqueda que AIOMetadata inyecta). Catálogos: globales (Trending,
 Latest, Top Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 15 países occidentales
 (Argentina, Latam, España, Francia, Alemania, Italia, Reino Unido, Portugal, México, Colombia, Chile,
@@ -73,15 +77,16 @@ China, Taiwán, Tailandia, Hong Kong, India — `vote_count.gte` alto + `vote_av
 y títulos en español). **Inicio curado (opción A)**: solo En Cartelera + Próximos Estrenos + Tendencias
 (Trending/Latest/Top Rated/Best 2020s) tienen `showInHome=true`; géneros, países, décadas y
 plataformas quedan en `enabled=true` pero fuera del inicio (navegables en Descubrir). Trakt y Simkl
-conectados. **Streams** (idx 3-8, **reordenados 2026-07-11** al integrar TorBox — ver
+conectados. **Streams** (idx 2-7 desde el reorden de MyTrakt del 2026-07-12 — antes idx 3-8;
+**reordenados originalmente 2026-07-11** al integrar TorBox — ver
 `## TorBox (debrid activo)` más abajo, que supera al perfil temporal CGNAT de 2026-07-09):
-Torrentio (idx 3, **TorBox** como debrid — 24 proveedores habilitados, se agregaron
+Torrentio (idx 2, **TorBox** como debrid — 24 proveedores habilitados, se agregaron
 Wolfmax4k/BestTorrents/Rutracker/Torrent9/Comando/BluDV/MicoLeaoDublado/ilCorSaRoNeRo/nekoBT/Rutor
-para mejorar cobertura de contenido en español/portugués) → Comet (idx 4, **TorBox** como debrid,
-`enableTorrent:false`) → NoTorrent (idx 5, scraper HTTP) → WebStreamrMBG (idx 6, scraper HTTP, a
+para mejorar cobertura de contenido en español/portugués) → Comet (idx 3, **TorBox** como debrid,
+`enableTorrent:false`) → NoTorrent (idx 4, scraper HTTP) → WebStreamrMBG (idx 5, scraper HTTP, a
 veces tarda >15s en responder o da 504 en el endpoint de streams — timeout/gateway flaky conocido)
-→ **Nuvio Streams** (idx 7, ElfHosted, respaldado por Cuevana/Xprime — scraper HTTP con foco en
-streaming services) → Meteor (idx 8, P2P puro sin debrid, va último porque a veces sólo tiene
+→ **Nuvio Streams** (idx 6, ElfHosted, respaldado por Cuevana/Xprime — scraper HTTP con foco en
+streaming services) → Meteor (idx 7, P2P puro sin debrid, va último porque a veces sólo tiene
 torrents sin seeds que "cargan y nunca arrancan" — mitigado desde 2026-07-09 con un filtro
 `minSeeders:1`, que se mantiene porque Meteor no tiene debrid y el CGNAT lo sigue afectando igual,
 ver perfil CGNAT). Tabla de clasificación (relevante para el perfil CGNAT, ahora superado para
@@ -100,8 +105,9 @@ Subtítulos (orden): SubSense (idx 11) → SubMaker ElfHosted (idx 12) → SubDL
 (idx 13, `mejorastremio.pabloeckert.deno.net`) → OpenSubtitles v3 (idx 14). Catálogos de Mubi via
 "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 10 y 15).
 
-**MyTrakt Sync** (`trakt.addon.v3.13e948e9-04c8-4917-a0d5-96af15b63d2f`, hosteado en ElfHosted)
-reemplazó a AIOLists (deprecado por ElfHosted el 2026-07-01) y da las recomendaciones por gustos:
+**MyTrakt Sync** (`trakt.addon.v3.13e948e9-04c8-4917-a0d5-96af15b63d2f`, hosteado en ElfHosted,
+**índice 9** desde el 2026-07-12 — ver sección de esa fecha, antes índice 2) reemplazó a AIOLists
+(deprecado por ElfHosted el 2026-07-01) y da las recomendaciones por gustos:
 10 catálogos — Continue Watching (Movies/TV), Watchlist (Movie/TV), Recommended (Movies/TV),
 Trending (Movies/TV) y Popular (Movies/TV). Conectado a Trakt (`jarvis-15483776`). URL del manifest:
 `https://mytrakt.elfhosted.com/addon/13e948e9-04c8-4917-a0d5-96af15b63d2f/manifest.json` — es la
@@ -799,6 +805,130 @@ incorrecta.** Investigando el pedido de un guard defensivo, apareció la causa r
   está modificando intencionalmente al armar el payload de un `addonCollectionSet`. Si hace falta
   reducir tamaño de payload en algún caso puntual futuro, achicar solo el manifest del addon que
   ese script YA está reescribiendo (con datos frescos), nunca el de terceros no relacionados.
+
+## Sesión 2026-07-12 — orden por fecha, tercer filtro, sinopsis, subtítulos latino, reorden MyTrakt
+
+Pablo pidió 5 cambios puntuales y acotados, con regla de oro explícita de **no tocar streams**
+(TorBox/Torrentio/Comet/friction-zero/perfil CGNAT quedaron intactos — todo lo de esta sesión es
+catálogos/orden de colección, no streams). Backup + `health-check.mjs` + `test-content.mjs` antes
+y después; `collection-guard.mjs` (ver bug de la sesión anterior) usado en el reorden de MyTrakt.
+
+**1. Catálogos ordenados por fecha desc (más nuevo primero) en Descubrir** — extendido el criterio
+ya aplicado a los 13 catálogos de país (2026-06-24) a los 3 catálogos restantes que ordenaban por
+`popularity.desc`: "En Cartelera" → `primary_release_date.desc`, "Próximos Estrenos" (movie/tv) →
+`primary_release_date.asc`/`first_air_date.asc` **(ascendente, no descendente)** — para una lista de
+estrenos futuros, "más nuevo primero" se interpretó como "el más próximo a estrenarse primero", no
+"el más lejano en el futuro primero" (que es lo que daría un `.desc` literal); decisión de criterio,
+no un desvío por error.
+- **Bug real encontrado al aplicar**: sin piso de calidad, ordenar por fecha pura saca basura al
+  tope — "En Cartelera" mostraba `My Best Friend` (rating 0.0, runtime 2min, entrada fantasma) antes
+  que estrenos reales. Los catálogos de género/país ya tenían `vote_count.gte`/`vote_average.gte`/
+  `with_runtime.gte` de la sesión de 2026-06-24 (por eso nunca mostraron este problema); "En
+  Cartelera"/"Próximos Estrenos" NO tenían ningún piso (solo la ventana de fechas). Se agregó
+  `vote_count.gte: 5` + `with_runtime.gte: 45` (movies) / `with_runtime.gte: 15` (tv) a los 3
+  catálogos — verificado post-fix: top-10 de "En Cartelera" pasó a ser contenido real y reconocible
+  (Vaiana, Posesión infernal: En llamas, etc.) con ratings normales.
+- **Excepciones documentadas, no tocadas** (con criterio explícito, no por descuido):
+  - **Top Rated Movies/Shows**: sigue en `vote_average.desc` — por definición un catálogo de "mejor
+    valorados" pierde su sentido si se ordena por fecha. Coincide textualmente con el ejemplo que dio
+    Pablo en el pedido.
+  - **Best Movies/Shows of the 2020s**: sigue en `popularity.desc` — mismo razonamiento que Top
+    Rated: un catálogo de "los mejores de la década" es una curación de calidad, no un feed
+    cronológico; convertirlo a fecha desc lo volvería redundante con "Latest Movies/Shows" (que ya
+    existe, ya ordenado por fecha) y le haría perder su propósito.
+  - **Trending Movies/Shows** (`tmdb.trending`): no tiene `metadata.discover.params` — es el
+    endpoint TMDB Trending, no TMDB Discover, y ese endpoint no soporta `sort_by` en absoluto. No es
+    algo configurable desde nuestro lado.
+  - **Catálogos de streaming/FlixPatrol** (`streaming.*`/`flixpatrol.*`, ~43 catálogos): tampoco
+    usan TMDB Discover — vienen de listas de plataforma/charts externos sin parámetro de sort
+    disponible. Los "Top 10" de FlixPatrol además pierden todo sentido si se reordenan por fecha (son
+    un ranking de popularidad por diseño).
+  - **"Latest Movies"/"Latest Shows"**: ya estaban en `primary_release_date.desc`/`first_air_date.desc`
+    desde antes — no requirieron cambio.
+  - Catálogos deshabilitados (`enabled:false`: décadas 80s-2010s, catálogos por estudio) quedaron
+    fuera del alcance por instrucción explícita ("catálogos habilitados").
+
+**2. Tercer filtro (género + idioma original + posterior a 2020) — investigado, NO viable como
+selector en vivo; documentado como limitación real del addon**. Se clonó y leyó el código fuente de
+AIOMetadata (`github.com/cedya77/aiometadata`, addon hosteado por ElfHosted, no self-hosted por
+nosotros):
+  - **Género**: YA estaba expuesto como extra filtrable (`extra: [{name:"genre", options:[...]}]`)
+    en el manifest en vivo de TODOS los catálogos TMDB Discover — confirmado con un fetch real al
+    manifest. Nada que agregar.
+  - **Idioma original y año como filtro seleccionable en la app**: **no soportado por el código del
+    addon**. La función `createTMDBDiscoverCatalog()` en `addon/lib/getManifest.ts` hardcodea
+    `extra: [{name:"genre"}, {name:"skip"}]` para todo catálogo de tipo `tmdb.discover.*`, sin
+    ninguna rama que agregue `language`/`year` como extra en runtime (ese repurposing de la dropdown
+    de "genre" para year/language solo existe para catálogos `mdblist.*`, una fuente totalmente
+    distinta que no usamos). Como es un addon hosteado por ElfHosted (no self-hosted por este
+    proyecto), no hay forma de agregar esto sin forkear y mantener nuestra propia instancia — fuera
+    de alcance (mismo criterio que rechazó MediaFusion/AIOStreams por requerir infraestructura
+    propia, ver `[[feedback_stay_free]]`).
+  - **Camino viable más cercano** (no ejecutado esta sesión, requeriría decisiones de curación de
+    Pablo): el mismo patrón ya usado para los 15 catálogos de país — catálogos NUEVOS con
+    `with_original_language` + `primary_release_date.gte=2020-01-01` fijos en la definición
+    (build-time, vía Catalog Builder/preset.json), no un selector dinámico. No se creó ninguno sin
+    que Pablo elija qué combinaciones idioma/género quiere — hacerlo a ciegas sería inventar
+    catálogos no pedidos.
+
+**3. Sinopsis más larga en español latino — investigado, confirma y profundiza la limitación ya
+documentada arriba ("Metadata en español — títulos sí, sinopsis no")**. Leído el código real de
+`addon/lib/getMeta.js` y `addon/utils/parseProps.js`:
+  - `processOverviewTranslations()` hace una búsqueda **exacta** por `config.language` (`"es"`) en
+    las traducciones de TMDB, con fallback a `en-US` si esa traducción está vacía. No compara
+    longitud entre variantes ni intenta concatenar/preferir la más completa — es un lookup de
+    idioma único, igual en TMDB, TVDB y TVmaze (mismo patrón de 3 líneas repetido en los 3
+    providers).
+  - **La opción `providers.movie/series = "imdb"` NO trae la sinopsis real de IMDb**: el código de
+    `addon/lib/imdb.ts` (`getMetaFromImdb`) resulta ser un proxy a **Cinemeta** (`v3-cinemeta.strem.io`),
+    no un scraper de imdb.com — devuelve descripciones en inglés únicamente (vía OMDb), sin
+    localización a español. Cambiar el provider sería un downgrade neto (se perdería también la
+    traducción de títulos que hoy sí funciona), no una mejora.
+  - **Conclusión**: no existe ninguna fuente/config alternativa dentro de AIOMetadata que dé
+    sinopsis más largas en español latino. Es una limitación real de cobertura de traducciones de
+    TMDB (muchos títulos simplemente no tienen `overview` cargado en español) — no hay nada más
+    para ajustar de nuestro lado sin forkear el addon. No reinvestigar salvo que AIOMetadata cambie
+    de fuente de metadata.
+
+**4. Addons de subtítulos latino/argentino — investigados 3 candidatos, NINGUNO sumado** (ninguno
+pasó la barra de "cobertura real" + "vivo/mantenido"):
+  - **Subdivx** (`stremio-subdivx.xor.ar`, `github.com/ogero/stremio-subdivx`): manifest vivo, pero
+    **exige una API key obligatoria** de un servicio de terceros no oficial ("SubX API",
+    `subx-api.duckdns.org` — hosteado en un dominio dynamic DNS personal, señal de proyecto de un
+    solo mantenedor sin garantías). Confirmado en el código (`internal/app.go`): sin `apiKey`, el
+    endpoint de subtítulos devuelve 400 siempre. Requeriría que Pablo cree una cuenta nueva en un
+    servicio hobby de terceros — no se hizo unilateralmente. Además, el propio ecosistema confirma
+    que la API SubX "vieja" es conocida por caerse (`github.com/fr0gb1t/subx-bridge`, un bridge para
+    Bazarr creado explícitamente porque "esa API ya no está funcionando de forma confiable").
+    **Bloqueado, no sumado — requiere decisión y cuenta de Pablo si se quiere reconsiderar.**
+  - **TuSubtitulo** (`github.com/IsraPerez98/stremio-tusubtitulo`): **confirmado muerto** — repo sin
+    commits desde 2023-04, el sitio fuente (`tusubtitulo.com`) devuelve 403, y una prueba real contra
+    el manifest en vivo dio **0 subtítulos** hasta para Breaking Bad S01E01 (título masivo, no de
+    nicho). Solo cubre `series` (no `movie`) igual. No sumado.
+  - **Argenteam**: el sitio cerró permanentemente el 2024-01-01 (anuncio oficial de los moderadores).
+    No existe sucesor activo en 2026. No hay addon posible.
+  - **SubSource**: ya es una de las fuentes agregadas dentro de SubSense (ya instalado) — sumarlo
+    aparte sería redundante.
+  - Los 4 addons de subtítulos existentes (SubSense, SubMaker, SubDL, OpenSubtitles v3) quedaron sin
+    tocar, sin reordenar.
+
+**5. MyTrakt Sync movida junto a Streailer** — de índice 2 a índice 9 (justo después de Streailer,
+índice 8), sin alterar la posición de ningún otro addon. `scripts/reorder-addons.mjs` se extendió
+con un flag `--after <manifest.id>` (antes solo movía al índice 0) para soportar esto de forma
+reusable a futuro. `assertNoFrozenEmptyCatalogs` corrió limpio antes de escribir (un reorden no
+toca ningún `manifest`, así que no había riesgo del bug de la sesión anterior). Verificado
+independientemente con `addonCollectionGet` post-cambio: MyTrakt Sync en índice 9 con sus 10
+catálogos intactos, Streailer en índice 8 sin moverse, resto de la colección idéntico.
+
+**Verificación final**: `health-check.mjs` verde antes y después (mismos 18 addons, streams
+idénticos: Matrix 206, Breaking Bad S01E01 190, Will Trent S01E01 84). `test-content.mjs` verde
+antes y después (14/14 títulos con streams, sin regresiones). `addonCollectionGet` confirmó 0
+addons con catálogos congelados. Instancia AIOMetadata regenerada dos veces esta sesión (una vez
+para el sort, otra para el piso de calidad tras detectar el bug de basura) — UUID final
+`82055fec-d0e2-4109-bdd0-2da9975ffa1e`, 0 catálogos perdidos/ganados en ambas regeneraciones.
+Backups: `.backups/backup-stremioeg-pre-reorder-2026-07-13T01-06-12.json` (reorden MyTrakt),
+`.backups/backup-stremioeg-preregen-2026-07-13T01-07-15-865Z.json` y
+`...-2026-07-13T01-09-26-502Z.json` (las dos regeneraciones de AIOMetadata).
 
 ## Reglas del repo
 

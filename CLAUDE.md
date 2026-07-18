@@ -101,9 +101,11 @@ Después de cualquier `--apply` real: correr `health-check.mjs` y `test-content.
 para confirmar que no hay regresiones, y verificar con `addonCollectionGet` (o el propio guard) que
 ningún addon quedó con catálogos congelados.
 
-## Estado actual de la cuenta (stremioeg, 2026-07-13)
+## Estado actual de la cuenta (stremioeg, 2026-07-18)
 
-18 addons (idx 17 = "Audio Latino (verificado)", catálogo propio en Deno Deploy, ver más abajo).
+19 addons (idx 16 = "AI Search" (`au.itcon.aisearch`), búsqueda conversacional por IA instalada
+2026-07-18 como catálogo secundario — ver "Sesión 2026-07-18" más abajo; idx 18 = "Audio Latino
+(verificado)", catálogo propio en Deno Deploy, ver más abajo).
 **AIOMetadata en índice 0** (UUID **`82055fec-d0e2-4109-bdd0-2da9975ffa1e`**, regenerado 2026-07-12
 al aplicar sort por fecha desc/asc + piso de calidad en En Cartelera/Próximos Estrenos — ver
 "Sesión 2026-07-12 — orden por fecha" más abajo — reemplaza a `861ff75d-...`), **Cinemeta en
@@ -1163,6 +1165,98 @@ regresiones (Matrix 225 streams, Breaking Bad S01E01 193, Will Trent S01E01 80; 
 `test-content.json` con streams reales). `addonCollectionGet` confirmó 0 addons con catálogos
 congelados tras ambas escrituras. TorBox/Torrentio/Comet/sort friction-zero: sin cambios, como pedía
 la regla de oro de esta sesión.
+
+## Sesión 2026-07-18 — IA en Stremio, Fase A: instalación de stremio-ai-search
+
+Pablo pidió evaluar sumar IA a la cuenta en dos fases: Fase A (esta sección) es instalar un addon
+de búsqueda conversacional por IA; Fase B (en curso, ver más abajo) es un proxy propio de
+metadata que enriquece sinopsis. Regla de oro de la sesión: **nunca pegar API keys reales en
+formularios web de terceros** — toda la configuración de addons de terceros (stremio-ai-search acá,
+mismo criterio que TorBox/Comet en su momento) se arma llamando a sus endpoints programáticamente
+vía `fetch`, nunca a mano en el configurador.
+
+### Qué es y por qué se eligió
+
+[`itcon-pty-au/stremio-ai-search`](https://github.com/itcon-pty-au/stremio-ai-search) (MIT, activo,
+308 commits) — búsqueda en lenguaje natural sobre TMDB interpretada por un LLM (Gemini o cualquier
+proveedor OpenAI-compatible, BYOK). Instancia pública hosteada por el autor en
+`stremio.itcon.au/aisearch/`, con configurador web propio (mismo patrón que Torrentio/Comet: arma
+una URL de manifest a partir de un config). **Es complementario a AIOMetadata, no lo reemplaza**:
+AIOMetadata hace TMDB Discover estructurado (filtros exactos) + búsqueda por keyword/actor exacta;
+este addon interpreta pedidos abiertos tipo "crimen nórdico oscuro de los 2020" o "comedia romántica
+española reciente" y arma la query de TMDB por su cuenta. Expone `catalog` + `meta` + inyecta
+resultados tipo `stream` (recomendaciones "similares").
+
+### Validación previa a instalar (sin tocar la cuenta real)
+
+Antes de instalar se probó de punta a punta contra la instancia pública, con las keys reales pero
+siempre por API directa (`POST /aisearch/validate` y `/aisearch/encrypt`, nunca el formulario):
+
+- **Sin el error conocido "User location is not supported"** de la API de Gemini (reportado en
+  issues del propio proyecto) — la clave conecta limpio desde el servidor de esa instancia.
+- **Requiere TMDB API key propia** (obligatoria, gratis, `themoviedb.org`) además de la de Gemini —
+  no hay ninguna key de TMDB compartida con AIOMetadata (esa vive server-side en ElfHosted, fuera de
+  nuestro control). Guardada como `TMDB_API_KEY_AISEARCH` en `SECRETS.local.md` (sufijo distinto a
+  propósito para no confundirla con cualquier referencia a TMDB de AIOMetadata).
+- **Idioma**: por defecto responde en inglés (`TmdbLanguage` default `en-US` en el código del
+  addon) — hace falta fijar `TmdbLanguage: "es-ES"` explícito en el config. Se confirmó que es un
+  campo del config (va embebido una sola vez en la URL del manifest al generar el `encryptedConfig`),
+  **no** algo que haga falta pasar por query — probado con 4 queries distintas sobre el mismo
+  manifest, todas en español sin repetir el parámetro.
+- **Coherencia**: catálogo de `series` con "crimen nórdico oscuro 2020s" → 17 resultados reales y
+  bien encuadrados en el género (El caso Hartung, Dinero fácil, La chica de Oslo, etc.). Catálogo de
+  `movie` con "comedia romántica española reciente" → 20 resultados reales (La infiltrada, Campeonex,
+  Bajo terapia, etc.). El primer test de `movie` con una query de nordic noir dio solo 1 resultado
+  flojo — no es un bug del addon, es que el nordic noir es un género casi exclusivo de TV, hay poco
+  contenido real cruzando esa combinación específica de género+formato.
+- **Latencia**: 2.4-4.0s de punta a punta en frío (Gemini interpreta + TMDB busca) — perceptible
+  para un catálogo de Home, no instantáneo, pero dentro de rango usable.
+- **Defecto real encontrado, documentado, no bloqueante**: en la respuesta de 17 resultados de
+  series apareció **un duplicado** (mismo título e `id` de IMDb dos veces en la misma respuesta —
+  "El caso Hartung", `tt10834220`). Es un defecto de calidad de datos del propio addon (no de TMDB
+  ni de nuestra config) — vale tenerlo en cuenta si en algún momento se nota contenido repetido en
+  este catálogo específico dentro de la app.
+- **Cobertura de traducción incompleta**: de los 17 resultados de series, 2 quedaron sin traducir al
+  español ("The Investigation", "Svörtu Sandar") — mismo límite ya documentado para AIOMetadata (no
+  todos los títulos tienen metadata en español cargada en TMDB, no hay nada que ajustar de nuestro
+  lado).
+
+### Instalación
+
+`node scripts/install-addon.mjs <manifestUrl> --after pw.ers.netflix-catalog --apply` (dry-run
+primero, confirmado antes de aplicar). **Posición: índice 16, deliberadamente secundaria** — justo
+después de Streaming Catalogs (idx 15), junto al resto de catálogos de descubrimiento (Mubi
+Catalog, Streaming Catalogs, Trakt Integration, Audio Latino), lejos de los primeros índices
+(AIOMetadata/Cinemeta/streams). Motivo: la filosofía del Home curado (ver "Inicio curado opción A"
+más arriba) es "clic y anda" — catálogos de descubrimiento estructurado que cargan rápido y sin
+fricción. Una búsqueda conversacional por IA, con 2-4s de latencia y dependiente de la disponibilidad
+de un proveedor externo, es una herramienta para cuando el usuario quiere buscar algo específico en
+lenguaje natural, no algo para competir por espacio en las primeras filas del Home.
+
+**Verificado post-instalación**:
+- `addonCollectionGet` (lectura independiente, no solo el output del script): 19 addons,
+  `au.itcon.aisearch` en índice 16, ningún otro addon movido de lugar.
+- `health-check.mjs`: verde, sin ids duplicados, streams/subs idénticos a antes de instalar (Matrix
+  196 streams, Breaking Bad S01E01 185, Will Trent S01E01 71; AI Search aparece respondiendo en el
+  conteo de streams de los 3 títulos, sin errores).
+- 2 queries reales contra la URL ya instalada en la cuenta (no la de prueba): "thriller político
+  alemán" (series) → 20 resultados coherentes (Babylon Berlin, Deutschland 83, Dark, etc.) en 3.96s;
+  "animación familiar reciente" (movie) → 20 resultados coherentes (Robot salvaje, Vaiana 2, Sonic 3,
+  Kung Fu Panda 4, etc.) en 1.81s. Catálogo aparece y responde con datos reales.
+
+Backup pre-instalación: `.backups/backup-stremioeg-pre-install-au.itcon.aisearch-2026-07-18T13-46-08.json`.
+
+### A vigilar a futuro — mantenimiento del proyecto upstream
+
+`itcon-pty-au/stremio-ai-search` tenía **13 issues abiertos** al momento de instalar, varios
+recientes (errores de validación de API keys, fallos generales de búsqueda IA, rendimiento lento en
+WebOS/TV), **sin confirmación clara de que el mantenedor esté respondiendo activamente** — no se
+tomó como bloqueante (MIT, gratis, BYOK, sin dependencia de debrid pago, instancia pública
+funcionando bien en las pruebas), pero es una señal a revisar si en algún chequeo futuro (ej. la
+revisión semanal automática) se nota que dejó de responder o empeoró. Si eso pasa, la opción más
+simple es remover el addon (no rompe nada más, es un catálogo aislado sin overlap de manifest.id
+con el resto) antes que invertir en self-host (mismo criterio de "no sumar infraestructura propia"
+ya aplicado al descartar MediaFusion/AIOStreams).
 
 ## Reglas del repo
 

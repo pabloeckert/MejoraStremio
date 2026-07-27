@@ -103,9 +103,11 @@ ningún addon quedó con catálogos congelados.
 
 ## Estado actual de la cuenta (stremioeg, 2026-07-18)
 
-19 addons (idx 16 = "AI Search" (`au.itcon.aisearch`), búsqueda conversacional por IA instalada
-2026-07-18 como catálogo secundario — ver "Sesión 2026-07-18" más abajo; idx 18 = "Audio Latino
-(verificado)", catálogo propio en Deno Deploy, ver más abajo).
+20 addons (idx 15 = "Stremio Community Subtitles" (`com.community.stremio-subtitles`), 5º addon de
+subtítulos sumado el 2026-07-27, ver "Sesión 2026-07-27" más abajo; idx 17 = "AI Search"
+(`au.itcon.aisearch`), búsqueda conversacional por IA instalada 2026-07-18 como catálogo
+secundario — ver "Sesión 2026-07-18" más abajo; idx 19 = "Audio Latino (verificado)", catálogo
+propio en Deno Deploy, ver más abajo).
 **AIOMetadata en índice 0** (UUID **`82055fec-d0e2-4109-bdd0-2da9975ffa1e`**, regenerado 2026-07-12
 al aplicar sort por fecha desc/asc + piso de calidad en En Cartelera/Próximos Estrenos — ver
 "Sesión 2026-07-12 — orden por fecha" más abajo — reemplaza a `861ff75d-...`), **Cinemeta en
@@ -150,8 +152,9 @@ Torrentio/Comet):
 | Meteor | P2P puro, sin debrid | Sí |
 
 Subtítulos (orden): SubSense (idx 11) → SubMaker ElfHosted (idx 12) → SubDL Deno
-(idx 13, `mejorastremio.pabloeckert.deno.net`) → OpenSubtitles v3 (idx 14). Catálogos de Mubi via
-"Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 10 y 15).
+(idx 13, `mejorastremio.pabloeckert.deno.net`) → OpenSubtitles v3 (idx 14) → Stremio Community
+Subtitles (idx 15, sumado 2026-07-27, ver "Sesión 2026-07-27" más abajo). Catálogos de Mubi via
+"Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 10 y 16).
 
 **MyTrakt Sync** (`trakt.addon.v3.13e948e9-04c8-4917-a0d5-96af15b63d2f`, hosteado en ElfHosted,
 **índice 9** desde el 2026-07-12 — ver sección de esa fecha, antes índice 2) reemplazó a AIOLists
@@ -648,6 +651,35 @@ para escribir):
   `health-check.mjs` post-cambio: verde, mismos conteos de streams que antes (el sort no cambia
   cuántos streams hay, solo el orden).
 
+**Re-auditoría 2026-07-25 — confirmado que el orden cacheado-primero ya es absoluto, no solo
+tendencia (sin cambios aplicados).** Tras el diagnóstico del 2026-07-25 que identificó streams no
+cacheados como causa mecánica posible de "carga y reinicia", Pablo pidió endurecer el sort a una
+regla de dos niveles estricta (cacheado siempre antes que descarga, sin excepción). Antes de escribir
+nada se auditó la config viva (no solo lo documentado acá) y se midió la secuencia completa
+cacheado/descarga (no solo el top-3) en 14 títulos reales — Matrix, Breaking Bad, Will Trent y los 11
+de `data/test-content.json` (alemanes/españoles, popular y nicho) — contra Torrentio y Comet
+directo:
+
+- **Resultado: 100% de las 28 listas (14 títulos × 2 addons) tienen orden estrictamente
+  cacheado-primero, sin una sola excepción** — incluso en títulos con muy poca cobertura de caché
+  (Criminal: Germany 2/17 cacheados, Sky Rojo 3/57), los pocos cacheados siempre aparecían antes que
+  todos los de descarga. Torrentio logra esto sin ningún parámetro de config (no existe la opción,
+  ver arriba) — es comportamiento propio del addon con debrid configurado. Comet lo logra vía
+  `sortCachedUncachedTogether:false`, ya aplicado desde el 2026-07-11.
+- **Conclusión: no hay ningún cambio de config que aplicar** — la regla de dos niveles que se pidió
+  endurecer ya está exactamente así, verificado con evidencia real y no solo con la config
+  declarada. No se tocó la cuenta (no hubo ningún `addonCollectionSet`, sesión 100% de lectura).
+- **Implicancia para el síntoma de "carga y reinicia" (ver diagnóstico del 2026-07-25 más abajo)**:
+  como Torrentio es el primer addon de streams en la colección (índice 2), el stream que Stremio
+  muestra arriba de todo es el `#1` de Torrentio, que es cacheado siempre que exista al menos un
+  cacheado para ese título — confirmado en 12 de los 14 títulos probados. Los únicos 2 casos sin
+  ningún cacheado en ningún addon (`Políticamente incorrectos` — 0/13 en Torrentio, 0/12 en Comet;
+  y `Höllental`, ya documentado con distribución muy baja) no tienen ningún cambio de sort posible:
+  es cobertura real de TorBox para ese título, no un problema de orden. El mecanismo de "elegir sin
+  querer un stream de descarga" solo puede darse si (a) el título no tiene ningún cacheado en
+  absoluto, o (b) el usuario/dispositivo elige manualmente algo más abajo en la lista — ninguno de
+  los dos es arreglable desde la config de sort.
+
 ## Perfil CGNAT temporal (sin debrid) — CERRADA/SUPERADA por TorBox (2026-07-11)
 
 **Esta sección queda como referencia histórica, no se aplica más tal cual.** Con TorBox activo en
@@ -1048,6 +1080,14 @@ cuenta). Así como está hoy, cerca de un tercio de los emails de falla son ruid
 es que Pablo empiece a ignorarlos y se pierda una falla real entre medio. No lo apliqué porque es un
 cambio de comportamiento del script, no un chequeo — a definir si Pablo lo quiere.
 
+**Aplicado (fecha exacta no registrada, confirmado en el código vigente al 2026-07-26)**: la
+sugerencia de arriba ya está implementada — `scripts/health-check.mjs` tiene un array
+`KNOWN_FLAKY = ['WebStreamrMBG', 'Mubi Catalog']` (paso `[2/5]`) que degrada a `⚠` (sin tocar
+`exitCode`) cuando alguno de esos dos no responde ni al reintento, y sigue marcando `✗` +
+`exitCode=1` para cualquier otro addon. `SubSense` no está en la lista (nunca se agregó — su caída
+del 2026-07-02 se trató como blip puntual, no como flakiness recurrente). Si vuelve a fallar seguido,
+agregarlo a `KNOWN_FLAKY` es un cambio de una línea.
+
 **Log antifrustración**: 9 resueltos, 2 pendientes — **Los Mufas y El Marginal siguen en 0 streams
 reales**, sin cambios respecto al 2026-07-05. Mismo hueco estructural de siempre (contenido
 exclusivo Netflix Argentina sin cobertura en trackers/scrapers gratuitos).
@@ -1257,6 +1297,167 @@ revisión semanal automática) se nota que dejó de responder o empeoró. Si eso
 simple es remover el addon (no rompe nada más, es un catálogo aislado sin overlap de manifest.id
 con el resto) antes que invertir en self-host (mismo criterio de "no sumar infraestructura propia"
 ya aplicado al descartar MediaFusion/AIOStreams).
+
+## Sesión 2026-07-26/27 — consolidación en mejorastremio-hub (Deno Deploy)
+
+Pablo pidió terminar de una vez con `deno-synopsis-enricher.ts` (escrito hacía semanas, nunca
+deployado) y de paso dejar de tener una app de Deno Deploy por función — consolidar
+`mejorastremio` (subdl) + `mejorastremio-latino` + el enricher nuevo en **una sola app**,
+`mejorastremio-hub`, con un router por prefijo de path. Regla de la sesión: todo por API/CLI de
+Deno Deploy (`DENO_DEPLOY_TOKEN`, guardado en `SECRETS.local.md`), cero pasos por el dashboard
+salvo que algo fuera técnicamente imposible por API (y avisar explícitamente antes de pedirlo).
+
+**`scripts/deno-hub.ts` (nuevo)**: un solo `Deno.serve` con router por prefijo — `/subdl/*`,
+`/latino/*`, `/synopsis/*` (lógica de negocio idéntica a los 3 scripts originales, que se
+mantienen en el repo como referencia, no se borraron) + `/health` (estado de config de las 3
+sub-funciones) + logging centralizado por ruta. Los 3 `manifest.id` internos se mantuvieron
+idénticos a los originales (`com.mejorastremio.subdl`/`com.mejorastremio.latino-catalog`/
+`com.mejorastremio.synopsis-proxy`) para que la migración de la cuenta real sea un simple
+`update-addon-url.mjs` sin duplicar entradas.
+
+**Deploy por API — hallazgos reales, no obvios:**
+- **Deploy Classic fue discontinuado** (confirmado en la doc oficial: shutdown 2026-07-20) — la
+  plataforma vigente es la nueva "Deploy" (`console.deno.com`, modelo de "Apps", API v2). El CLI
+  moderno es el subcomando `deno deploy` (parte del propio Deno CLI ≥2.9, se instala con
+  `irm https://deno.land/install.ps1 | iex`), **no** `deployctl` (también discontinuado). Tiene un
+  modo explícito para agentes/CI: `DENO_DEPLOY_TOKEN` + `--json --non-interactive` (documentado en
+  su propio `--help`: "For non-interactive use (CI, AI agents)...").
+- **La API REST pública (`api.deno.com/v1` y `/v2`) rechaza el token personal (`ddp_...`)** con
+  `INVALID_TOKEN` en ambas versiones — el CLI se autentica igual (confirmado con
+  `deno deploy whoami`) pero contra un endpoint interno no documentado públicamente. Conclusión:
+  para este token, **el CLI `deno deploy` es el único camino soportado**, no vale intentar curl
+  directo a `api.deno.com`.
+- **Bug real encontrado en `deno deploy create`**: sin `--do-not-use-detected-build-config`, el
+  comando intenta auto-detectar la config de build y, si encuentra CUALQUIER `deno.json(c)` en el
+  `root-path` (incluso uno vacío — el propio CLI generó uno en la raíz del repo en su primer uso),
+  usa esa detección (aunque esté vacía) **en vez de** los flags explícitos (`--entrypoint`,
+  `--runtime-mode`), dejando la app sin entrypoint real (build falla con "No runtime entrypoint
+  provided"). Confirmado leyendo el código fuente real de `@deno/deploy` (paquete JSR, cacheado
+  localmente por Deno). Fix: **pasar siempre `--do-not-use-detected-build-config`** al crear apps
+  por API con flags explícitos.
+- **Bug/límite real: no existe forma de borrar o reconfigurar una app por CLI/API.** Enumerados
+  todos los métodos tRPC que usa el cliente (`apps.create`, `apps.get`, `apps.list*`, ninguno de
+  delete/update) — confirmado leyendo el código fuente completo del paquete, no asumido. Una app
+  creada con build config rota queda inutilizable para siempre salvo borrarla a mano en el
+  dashboard (`console.deno.com` → app → Settings → Delete app) — el único paso de dashboard de
+  toda la sesión, y fue explícitamente avisado y confirmado con Pablo antes de pedírselo, dos veces
+  (la primera vez por el bug de arriba; la segunda porque el primer intento de recreación con
+  `--do-not-use-detected-build-config` pegó un `GENERIC` internal error de la plataforma en medio
+  de la creación, dejando la app igual de inutilizable — confirmado aislado al comparar con una app
+  de prueba con nombre nuevo, que deployó al toque con los mismos flags).
+- **Bug real en el propio `deno-synopsis-enricher.ts` (heredado al hub), encontrado recién en
+  producción real, no en el diagnóstico previo**: el modelo default de Gemini
+  (`gemini-2.5-flash-lite`) devuelve **404 "no longer available to new users"** — deprecado.
+  Cambiado el default a `gemini-flash-lite-latest` (alias rolling, mismo criterio que
+  `OPENROUTER_MODEL=openrouter/free`: no pinnear un modelo puntual). Verificado con la key real.
+- **Segundo bug real, mismo hallazgo**: `Deno.openKv()` (usado para cachear sinopsis 90 días)
+  **fallaba en silencio** porque en la plataforma nueva las bases KV son un recurso separado que
+  hay que provisionar y asignar explícitamente a la app (`deno deploy database provision <name>
+  --kind denokv` + `deno deploy database assign <name> --app <app>`) — a diferencia de Deploy
+  Classic, donde era automático. Como el catch externo de `enrichSynopsis()` se tragaba cualquier
+  error sin loguear, esto hacía que el enriquecimiento pareciera "andar" (devolvía 200 rápido) pero
+  en realidad devolvía la sinopsis original de AIOMetadata sin tocar, siempre — detectado solo
+  porque la respuesta era sospechosamente rápida (~500ms) para una llamada real a un LLM.
+  **Fix aplicado**: (1) se provisionó y asignó una base KV real (`mejorastremio-hub-kv`) a la app;
+  (2) el código además se hizo resiliente — si `Deno.openKv()`/`kv.set()` fallan, el enriquecimiento
+  sigue funcionando igual, solo sin cachear (nunca más debe fallar en silencio el enriquecimiento
+  completo por un problema de infraestructura de cache).
+
+**Verificado end-to-end contra la app real (`https://mejorastremio-hub.pabloeckert.deno.net`)**,
+no solo con `deno check`:
+- `/health` refleja correctamente qué env vars están configuradas.
+- `/latino/manifest.json` y `/synopsis/manifest.json` devuelven manifests válidos.
+- `/subdl/manifest.json` devuelve 503 claro (`SUBDL_KEY no configurada` — pendiente, ver abajo).
+- **Sinopsis enriquecida real, en español, para los 3 títulos de referencia** (Babylon Berlin
+  `tt4378376`, Barbarians `tt9184986`, Criminal: Germany `tt10986056`) — confirmado con texto
+  completo, no solo con el flag `configured:true`. Babylon Berlin no necesitó enriquecerse (su
+  sinopsis de AIOMetadata ya es larga y en español — comportamiento correcto del proxy, que solo
+  reescribe cuando hace falta). Barbarians pasó de 166 a 778 caracteres; Criminal: Germany generó
+  599 caracteres nuevos donde antes tenía la sinopsis corta original.
+
+**Pendiente, no bloqueante para lo urgente (sinopsis)**:
+- **`SUBDL_KEY` sin migrar** — Deno Deploy no permite leer de vuelta el valor de un secret ya
+  guardado (ni por CLI ni por API), así que no se pudo copiar automáticamente desde la app vieja
+  `mejorastremio`. Falta que Pablo lo pase para setearlo en el hub con
+  `deno deploy env add SUBDL_KEY <valor> --app mejorastremio-hub --secret`.
+- **App de prueba descartable `mstremio-hub-test`** quedó viva en la cuenta (se usó para aislar el
+  bug de creación, sin secrets ni tráfico real) — mismo límite de arriba: no se puede borrar por
+  CLI/API, requiere que Pablo la borre a mano en el dashboard si quiere limpiarla (no es urgente,
+  no genera costo ni riesgo real).
+- **Migración de la cuenta real de Stremio TODAVÍA NO EJECUTADA** (regla de oro de la sesión:
+  requiere confirmación explícita antes de tocar `addonCollectionSet`) — `mejorastremio` y
+  `mejorastremio-latino` (las apps viejas) siguen siendo las que la cuenta usa hoy; `deno-hub.ts`
+  está deployado y verificado pero todavía no instalado/apuntado desde Stremio. Plan propuesto,
+  pendiente de OK: actualizar `transportUrl` de los 2 addons ya instalados a las rutas nuevas del
+  hub (`update-addon-url.mjs`, mismo `manifest.id`, sin duplicar) e instalar el synopsis-enricher
+  nuevo en índice 0 (AIOMetadata baja a índice 1, Cinemeta a índice 2) — backup obligatorio antes.
+- Una vez migrado y confirmado en producción real: borrar `mejorastremio` y `mejorastremio-latino`
+  en Deno Deploy (mismo límite: solo por dashboard, con confirmación previa).
+
+`scripts/deno-subdl-addon.ts`, `scripts/deno-latino-catalog-addon.ts` y
+`scripts/deno-synopsis-enricher.ts` **se mantienen en el repo** como referencia de la lógica de
+cada sub-función (mismo criterio que otros scripts legacy documentados en este archivo) — el hub
+las reimplementa inline, no las importa.
+
+## Sesión 2026-07-27 — quinto addon de subtítulos (hash matching) y desync en Wild Cards/ACI
+
+Pablo reportó desincronización de subtítulos en **Wild Cards** (`tt29780951`, CBC, ya documentado
+arriba por baja seed count) y en **"ACI"**, título que pidió identificar sin asumir — confirmado
+por evidencia (IMDb + FilmAffinity) como **ACI: Alta Capacidad Intelectual** (España, 2021-2025,
+`tt14060708`, remake del francés *HPI*, 4 temporadas/32 episodios). Regla de oro: modo diagnóstico
+primero, sin `--apply` hasta confirmación explícita.
+
+**Cobertura real medida (4 episodios de prueba, streams reales de los 4 addons de subs ya
+instalados)**: escasa pero presente — SubSense y OpenSubtitles v3 devuelven 1-2 subs ES por
+episodio en los 4 casos; SubMaker varía (0-2); **SubDL da 0 en los 4** (confirmado que el addon no
+está roto — Breaking Bad S01E01 sigue devolviendo resultados normales — es cobertura real
+inexistente para estos dos títulos de nicho, no un bug).
+
+**Causa técnica real de la desincronización, confirmada con evidencia, no teoría**: de los addons
+de subs instalados, **solo OpenSubtitles v3** (el oficial de Stremio) soporta matching por hash de
+video (MovieHash, calculado del lado del cliente Stremio y enviado automático — no configurable de
+nuestro lado). **SubDL, SubMaker y SubSense matchean solo por `imdb_id + season + episode`**,
+confirmado leyendo el código real de `scripts/deno-subdl-addon.ts` (nuestro propio proxy: nunca
+lee filename/hash) y la doc pública de la API de SubDL (no expone búsqueda por moviehash). Evidencia
+del mismatch real: para Wild Cards S01E01, Torrentio+TorBox devuelve **17 releases distintos**
+(`KONTRAST` WEBRip x265, `FW` MULTi WEB, `Pir8` italiano, `playWEB` AMZN WEB-DL, etc.) mientras los
+subs de SubDL/SubMaker/SubSense son genéricos por episodio, sin ligar a un release — si el stream
+elegido no coincide con el release al que el subtítulo fue sincronizado, el desfase de intro/cortes
+es el síntoma reportado.
+
+**Addon nuevo evaluado y sumado**: `stremio-community-subtitles` (skoruppa,
+`github.com/skoruppa/stremio-community-subtitles`, activo, v0.7.2) — matching por hash +
+base de datos comunitaria votada. Pablo creó su cuenta a mano en `stremio-community-subtitles.top`
+(paso no automatizable — creación de cuenta con email es una acción prohibida para el agente,
+dirigida al usuario). Instalado con `install-addon.mjs --after org.stremio.opensubtitlesv3 --apply`
+en **índice 15** (20 addons totales, nada más se movió). Backup:
+`.backups/backup-stremioeg-pre-install-com.community.stremio-subtitles-2026-07-27T17-16-42.json`.
+`health-check.mjs` post-instalación: verde, sin regresiones (Matrix 243 streams, Breaking Bad
+S01E01 283, Will Trent S01E01 84; subs ES de Matrix/Breaking Bad incluyen al addon nuevo
+respondiendo).
+
+**Resultado real, no especulativo, sobre Wild Cards/ACI con el 5º addon sumado: 0 mejora de
+cobertura en los 4 episodios de prueba** (incluso pasando `filename`/`videoSize` reales tomados de
+un stream real de Torrentio, para forzar el camino de hash matching). Es una base de datos
+**comunitaria** — necesita que alguien ya haya subido/vinculado un subtítulo a ese hash antes de
+que aparezca; para estos dos títulos de nicho esa base está vacía hoy. El sitio permite,
+opcionalmente, cargar API keys propias (OpenSubtitles/SubDL/Subsource) en la cuenta para que el
+addon busque en vivo en esas fuentes además de la base comunitaria — **decisión explícita de Pablo:
+NO cargar `SUBDL_KEY` ahí** ("el beneficio es especulativo y agrega otra copia de la key en un
+tercero sin resolver nada hoy"). El addon queda instalado igual (no genera regresión, no molesta),
+por si la base comunitaria crece a futuro — no hay ninguna acción pendiente de nuestro lado.
+
+**Conclusión y mitigación**: para Wild Cards y ACI, la desincronización es un **hueco real de
+cobertura en contenido de nicho** (mismo patrón estructural ya documentado para streams de
+contenido exclusivo/nicho en este archivo — ver "Contenido exclusivo Netflix/Disney+ que 'no anda'"
+más arriba), **no un problema de configuración** que se arregle sumando parámetros o addons. No hay
+ningún ajuste de config disponible en SubDL/SubMaker/SubSense para forzar matching por hash (no
+existe el parámetro en ninguna de esas 3 APIs). **Mitigación práctica, a criterio del usuario**:
+al elegir stream y subtítulo a mano, preferir el subtítulo cuyo nombre de archivo/release
+(visible en el selector de Stremio) coincida con el release del stream elegido — mismo criterio ya
+aplicado para elegir variante latino vs. España en subtítulos (ver "Subtítulos, variante latino vs.
+España" más arriba). No reinvestigar esto salvo que alguno de los addons cambie de fuente/algoritmo
+de matching.
 
 ## Reglas del repo
 

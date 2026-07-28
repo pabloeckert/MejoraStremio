@@ -1589,6 +1589,55 @@ querer con una pieza mucho menos probada.
   siquiera está instalado — si se decide seguir con el hub, vale revisar `deno deploy logs` para
   confirmar qué ruta generó más tráfico antes de asumir que fue solo volumen normal.
 
+### Chequeo semanal automático (2026-07-26)
+
+**Workflows del domingo**: `anti-frustration-review.yml` corrió a las 15:51 UTC, `success`, y
+commiteó/pusheó normalmente (`92b11bf`, confirma que el fix del 2026-07-05 se sigue sosteniendo
+semana a semana). `health-monitor.yml` corrió sano todas las veces de esta semana salvo dos
+excepciones (ver hallazgo abajo) — 12 corridas seguidas en verde desde el 2026-07-20 14:24 UTC.
+
+**Hallazgo real de la semana — patrón de falla nuevo, distinto del ya documentado de addons
+flaky**: de las ~14 corridas de `health-monitor.yml` entre el 2026-07-19 y hoy, 2 terminaron en
+`failure` (2026-07-19 13:40 UTC y 2026-07-20 02:25 UTC). Revisadas ambas con los logs del job: por
+primera vez **no fue WebStreamrMBG ni Mubi Catalog** (los dos respondieron OK en ambas corridas).
+La causa real fue el paso `[3/5]` (catálogos de AIOMetadata): `✗ 1/10 catálogos con error:
+tmdb.discover.tv.upcoming.pablo006` (19/07) y `tmdb.discover.movie.upcoming.pablo005` (20/07) — los
+catálogos custom de "Próximos Estrenos" (tv/movie). Streams y subtítulos dieron bien en ambos casos,
+y ninguna corrida posterior repitió el error (12 corridas verdes seguidas después) — parece un blip
+transitorio de AIOMetadata/TMDB en esos dos catálogos puntuales, no una rotura persistente ni
+relacionada con el refresh de fechas. **Sugerencia concreta**: extender el mismo criterio de
+tolerancia que ya existe para addons flaky (`KNOWN_FLAKY`, agregado el 2026-07-12) a fallas
+puntuales de catálogo — si falla 1 de ~10 catálogos pero el resto (streams, subs, búsqueda) están
+bien, degradar a `⚠` en vez de `✗` para no disparar `[FALLA]` por un blip de un solo catálogo. No se
+aplicó (cambio de comportamiento del script, no un chequeo de esta rutina) — junto con la sugerencia
+pendiente del 2026-07-12 (bajar severidad de WebStreamrMBG/Mubi Catalog), queda a definir si Pablo
+quiere afinar el health-check para reducir ruido de falsos positivos.
+
+**Log antifrustración**: sin cambios — 9 resueltos, 2 pendientes (Los Mufas y El Marginal, mismo
+hueco estructural de contenido exclusivo Netflix Argentina sin cobertura en trackers/scrapers
+gratuitos, documentado desde el 2026-07-02).
+
+**Novedades de ElfHosted/addons**: nada nuevo más allá de lo ya documentado (baja de AIOLists/
+Archivio/YourIPTV/Stremio-Jackett, deprecación de Nuvio Streams). Dato nuevo, con fecha concreta pero
+impacto probablemente bajo para nosotros: la **API pública de Jikan** (que AIOMetadata usa para
+datos de MyAnimeList) **cierra el 1 de octubre de 2026**, con "brownout" desde el 1 de septiembre
+(confirmado en la documentación del proyecto, `github.com/cedya77/aiometadata`). Nuestra instancia
+tiene `mal.search.movie/series` habilitado como motor de búsqueda de respaldo
+(`aioMetadataConfig.config.search.engineEnabled` en `preset.json`), pero **`preset.json` no define
+ningún catálogo de anime propio** (el proveedor de anime configurado es Kitsu, no MAL) — así que si
+ElfHosted no migra su instancia hosteada a un Jikan propio antes de esa fecha, en el peor caso se
+degradaría solo la búsqueda de anime como fallback, no ningún catálogo que usemos hoy. Nada para
+hacer ahora; vale la pena volver a mirarlo cerca de septiembre.
+
+**Audio latino — sin novedad**: no se encontró ningún addon nuevo esta semana; los dos ya
+investigados (Primer Latino, pago; Addon Latam, gratis pero sin garantías) siguen igual, sin
+ameritar instalarse.
+
+**Plan de debrid (agosto 2026)**: sin cambios de precio en TorBox (Essential sigue ~US$3/mes, planes
+Standard/Pro sin cambios), Real-Debrid (~€4/mes, mismo filtro de copyright/palabras clave ya
+documentado, sin escalar) ni AllDebrid (~€3/mes) esta semana. Agosto se acerca y la decisión de
+Pablo sigue sin tomarse; se sigue sin presionar.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

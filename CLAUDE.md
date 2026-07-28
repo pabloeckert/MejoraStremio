@@ -1576,7 +1576,10 @@ querer con una pieza mucho menos probada.
   siguen sin funcionar (degradado, no bloqueante — ver arriba). Una vez resuelto: redeployar
   `deno-hub.ts` (ya tiene el fix de seguridad listo) con
   `deno deploy . --org pabloeckert --app mejorastremio-hub --prod --json --non-interactive`, y
-  sacar los 3 nombres de `KNOWN_FLAKY` en `health-check.mjs`.
+  sacar los 3 nombres de `KNOWN_FLAKY` en `health-check.mjs`. **Reintentado ese mismo comando el
+  2026-07-28 más tarde, mismo día: sigue devolviendo `BILLING_SUSPENDED` sin cambios** — confirma
+  que no es una cuota que resetee sola en horas, no hace falta reintentar de nuevo hasta que Pablo
+  haga algo del lado de Deno.
 - **`/miniseries`**: `scripts/deno-hub.ts` ya tiene una 4ª ruta (catálogo TMDB de miniseries, 1
   temporada ≤10 episodios) con manifest propio, pero **no está instalada en la cuenta real** ni
   documentada en ningún session log anterior — parece trabajo a medio terminar de la sesión

@@ -689,5 +689,138 @@
     "label": "The Amazing Digital Circus S01E01",
     "addedAt": "2026-07-02T22:36:52.042Z",
     "lastCheckedAt": "2026-07-02T22:36:52.042Z"
+  },
+  {
+    "id": "tt1178636",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "Crash",
+    "genres": [
+      "Drama"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio": {
+        "total": 12,
+        "real": 2,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 3,
+        "real": 3,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 2,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 7,
+    "status": "resuelto",
+    "latino": null,
+    "label": "Crash",
+    "addedAt": "2026-07-26T00:52:59.580Z",
+    "lastCheckedAt": "2026-07-26T00:52:59.580Z"
+  },
+  {
+    "id": "tt9203042",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "Brainchild",
+    "genres": [
+      "Documentary",
+      "Family"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "Torrentio": {
+        "total": 8,
+        "real": 1,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 6,
+        "real": 6,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 9,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": false,
+      "samples": []
+    },
+    "label": "Brainchild / Obra de tu mente",
+    "addedAt": "2026-07-26T00:53:33.600Z",
+    "lastCheckedAt": "2026-07-26T00:53:33.600Z"
   }
 ]

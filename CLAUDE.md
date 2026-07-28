@@ -29,7 +29,9 @@ scripts/anti-frustration.mjs        Registra/revisa títulos sin streams reales 
                                     detecta audio latino en contenido familiar/infantil. Ver abajo.
 scripts/deno-latino-catalog-addon.ts Addon Stremio (Deno Deploy) que expone un catálogo con el
                                     contenido familiar/infantil con audio latino confirmado en
-                                    data/anti-frustration-log.json. No deployado todavía.
+                                    data/anti-frustration-log.json. Deployado (mejorastremio-latino);
+                                    reimplementado inline en scripts/deno-hub.ts (/latino/*), que lo
+                                    va a reemplazar una vez migrada la cuenta — ver arriba.
 scripts/test-content.mjs            Prueba streams + subs ES de data/test-content.json contra los
                                     addons reales instalados (ST_PASS). Reporta, no escribe.
 scripts/test-subdl.mjs              Mide subs ES sin SDH (hi=false) en SubDL para data/test-content.json
@@ -58,6 +60,19 @@ scripts/update-addon-url.mjs        Cambia el transportUrl de un addon ya instal
                                     manifest.id, sin duplicar la entrada) y refresca su manifest.
                                     Útil cuando un addon migra de infraestructura del lado del
                                     proveedor (usado para NoTorrent, ver abajo). Guard + backup.
+scripts/install-addon.mjs           Instala un addon NUEVO (manifest.id que no está en la
+                                    colección) en una posición dada (--at <índice> o --after
+                                    <otro.manifest.id>). A diferencia de reorder-addons.mjs/
+                                    update-addon-url.mjs, que solo tocan addons ya presentes.
+                                    Guard + backup antes de aplicar.
+scripts/deno-hub.ts                 App consolidada de Deno Deploy (`mejorastremio-hub`, config en
+                                    deno.jsonc): un Deno.serve con router por prefijo que
+                                    reimplementa inline deno-subdl-addon.ts (/subdl/*),
+                                    deno-latino-catalog-addon.ts (/latino/*) y
+                                    deno-synopsis-enricher.ts (/synopsis/*), + /health. Reemplaza
+                                    las 3 apps sueltas (ver "Sesión 2026-07-26/27" más abajo).
+                                    Deployado y verificado; migración de la cuenta real de Stremio
+                                    a estas URLs todavía pendiente de confirmación.
 ```
 
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni
@@ -88,6 +103,7 @@ AIO_PASSWORD=... ST_EMAIL=... ST_PASS=... node scripts/regenerate-aiometadata.mj
 ST_EMAIL=... ST_PASS=... node scripts/reorder-addons.mjs <manifest.id> [--after <otro.manifest.id>] [--apply]
 ST_EMAIL=... ST_PASS=... node scripts/repair-frozen-catalogs.mjs [--apply]   # restaura catalogs=[] congelados
 ST_EMAIL=... ST_PASS=... node scripts/update-addon-url.mjs <manifest.id> <nuevaTransportUrl> [--apply]
+ST_EMAIL=... ST_PASS=... node scripts/install-addon.mjs <manifestUrl> (--at <índice> | --after <manifest.id>) [--apply]
 ST_EMAIL=... ST_PASS=... TORBOX_API_KEY=... node scripts/apply-torbox-profile.mjs [--apply]
 ST_EMAIL=... ST_PASS=... node scripts/apply-friction-zero-sort.mjs [--apply]
 ST_EMAIL=... ST_PASS=... node scripts/curate-streaming-catalogs.mjs [--apply]
@@ -103,11 +119,15 @@ ningún addon quedó con catálogos congelados.
 
 ## Estado actual de la cuenta (stremioeg, 2026-07-18)
 
-20 addons (idx 15 = "Stremio Community Subtitles" (`com.community.stremio-subtitles`), 5º addon de
-subtítulos sumado el 2026-07-27, ver "Sesión 2026-07-27" más abajo; idx 17 = "AI Search"
+**21 addons** (idx 15 = "Stremio Community Subtitles" (`com.community.stremio-subtitles`), 5º addon
+de subtítulos sumado el 2026-07-27, ver "Sesión 2026-07-27" más abajo; idx 17 = "AI Search"
 (`au.itcon.aisearch`), búsqueda conversacional por IA instalada 2026-07-18 como catálogo
-secundario — ver "Sesión 2026-07-18" más abajo; idx 19 = "Audio Latino (verificado)", catálogo
-propio en Deno Deploy, ver más abajo).
+secundario — ver "Sesión 2026-07-18" más abajo; idx 18 = "MejoraStremio Synopsis IA"
+(`com.mejorastremio.synopsis-proxy`), proxy de metadata sumado el 2026-07-27; idx 20 = "Audio
+Latino (verificado)", catálogo propio en Deno Deploy, ver más abajo). **Los 3 addons de
+`mejorastremio-hub` (Synopsis IA idx 18, SubDL idx 13, Audio Latino idx 20) están caídos desde el
+2026-07-28 por `BILLING_SUSPENDED` en Deno Deploy — ver "Sesión 2026-07-28" al final del archivo,
+es la fuente de verdad más reciente sobre el estado real de la cuenta.**
 **AIOMetadata en índice 0** (UUID **`82055fec-d0e2-4109-bdd0-2da9975ffa1e`**, regenerado 2026-07-12
 al aplicar sort por fecha desc/asc + piso de calidad en En Cartelera/Próximos Estrenos — ver
 "Sesión 2026-07-12 — orden por fecha" más abajo — reemplaza a `861ff75d-...`), **Cinemeta en
@@ -152,7 +172,8 @@ Torrentio/Comet):
 | Meteor | P2P puro, sin debrid | Sí |
 
 Subtítulos (orden): SubSense (idx 11) → SubMaker ElfHosted (idx 12) → SubDL Deno
-(idx 13, `mejorastremio.pabloeckert.deno.net`) → OpenSubtitles v3 (idx 14) → Stremio Community
+(idx 13, `mejorastremio-hub.pabloeckert.deno.net/subdl` desde el 2026-07-27, caído por
+`BILLING_SUSPENDED` — ver "Sesión 2026-07-28") → OpenSubtitles v3 (idx 14) → Stremio Community
 Subtitles (idx 15, sumado 2026-07-27, ver "Sesión 2026-07-27" más abajo). Catálogos de Mubi via
 "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 10 y 16).
 
@@ -508,11 +529,12 @@ depende de que Windows esté prendido.
 |---|---|---|
 | keep-warm (AIOMetadata) | Pingea el manifest cada 20 min para evitar cold start | GitHub Actions (`.github/workflows/keep-warm.yml`) |
 | health-monitor | Health-check 2×/día; email diario + alerta inmediata si falla | GitHub Actions (`.github/workflows/health-monitor.yml`) |
-| SubDL addon (subs ES sin SDH) | Proxy SubDL filtrando hi=true | Deno Deploy (`scripts/deno-subdl-addon.ts`) — `mejorastremio.pabloeckert.deno.net` |
+| SubDL addon (subs ES sin SDH) | Proxy SubDL filtrando hi=true | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/subdl`) — **caído, ver "Sesión 2026-07-28"** |
 | AIOMetadata catálogos | ~132 catálogos TMDB Discover (idioma `es`) | ElfHosted (UUID en `preset.json → instanceId`) |
 | MyTrakt Sync recomendaciones | Watchlist/Recommended/Trending/Popular vía Trakt | ElfHosted (UUID `13e948e9-...` en manifest) |
 | SubMaker subs ES | Subs SubDL sin SDH, en la nube | ElfHosted (`submaker.elfhosted.com`) |
-| Audio Latino (verificado) | Catálogo de familiar/infantil con audio latino confirmado | Deno Deploy (`mejorastremio-latino.pabloeckert.deno.net`) |
+| Audio Latino (verificado) | Catálogo de familiar/infantil con audio latino confirmado | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/latino`) — **caído, ver "Sesión 2026-07-28"** |
+| MejoraStremio Synopsis IA | Enriquece sinopsis cortas/en inglés vía Gemini/OpenRouter | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/synopsis`) — **caído, ver "Sesión 2026-07-28"** |
 | Antifrustración | Revisión semanal de títulos sin streams reales | GitHub Actions (`.github/workflows/anti-frustration-review.yml`) |
 
 ### health-monitor — GitHub Actions (2026-07-01)
@@ -1458,6 +1480,114 @@ al elegir stream y subtítulo a mano, preferir el subtítulo cuyo nombre de arch
 aplicado para elegir variante latino vs. España en subtítulos (ver "Subtítulos, variante latino vs.
 España" más arriba). No reinvestigar esto salvo que alguno de los addons cambie de fuente/algoritmo
 de matching.
+
+## Sesión 2026-07-28 — outage de Deno Deploy (BILLING_SUSPENDED) y limpieza de producción
+
+Pablo pidió una auditoría completa de problemas/errores y, tras encontrarlos, actuar de forma
+autónoma para dejar la cuenta funcionando de punta a punta, con test real post-cambio. Se encontró
+un **outage activo en producción hacía más de 24hs**, sin relación con nada documentado en la
+sesión 2026-07-26/27 (que dejó `deno-hub.ts` deployado pero la migración de la cuenta "pendiente
+de confirmación" — en algún momento posterior, sin session log, esa migración SÍ se ejecutó).
+
+**Hallazgo — causa raíz confirmada, no especulada**: `curl` directo a
+`mejorastremio-hub.pabloeckert.deno.net/health` devolvía `503` con body
+`"This application is suspended due to usage limits being exceeded"`. Las 3 apps del org
+`pabloeckert` (`mejorastremio-hub`, y las 2 viejas `mejorastremio`/`mejorastremio-latino`, todavía
+vivas) daban el mismo 503 — es una suspensión a nivel **org**, no de una app puntual. Confirmado
+con el CLI (`deno deploy orgs list --json` → `"plan":"free"`) e intentando un redeploy real
+(`deno deploy . --org pabloeckert --app mejorastremio-hub --prod --json --non-interactive`), que
+devolvió el código de error real: **`BILLING_SUSPENDED`** — *"Add a payment method and redeploy to
+restore access, or contact support@deno.com for assistance"*. No es una cuota que resetee sola por
+calendario (al menos no según el mensaje de la propia plataforma) — requiere una decisión de
+Pablo (agregar método de pago o escribirle a soporte de Deno). **No accionable por el agente**,
+por diseño: implica un compromiso de dinero real, fuera del alcance de lo que se puede decidir sin
+el usuario.
+
+**Timeline reconstruido** (con `gh run list`/`gh run view` sobre `health-monitor.yml`):
+- 2026-07-27 ~17:31 (hora local, según timestamps de backup): se ejecuta la migración —
+  `com.mejorastremio.subdl`/`com.mejorastremio.latino-catalog` cambian su `transportUrl` al hub
+  nuevo (`update-addon-url.mjs`, con backup), y se instala `com.mejorastremio.synopsis-proxy`
+  como addon NUEVO **en índice 0** (`install-addon.mjs`, con backup) — 21 addons totales.
+- 2026-07-27 22:53 UTC: se crea la app `mejorastremio-hub` en Deno Deploy (vía CLI, confirmado con
+  `deno deploy apps list`).
+- 2026-07-27 14:52 UTC: última corrida `success` de `health-monitor`.
+- **2026-07-28 01:57 UTC: primer `failure`** — ~3h después de crear la app, la cuota del org ya
+  estaba agotada.
+- 2026-07-28 14:26 UTC: sigue en `failure`. Ningún cambio hasta esta sesión.
+
+**Impacto real mientras estuvo así**: `SubDL ES (sin SDH)` y `Audio Latino (verificado)` sin
+funcionar (degradan sin romper nada más — 4 addons de subs siguen andando, el resto del Descubrir
+no se ve afectado). El problema serio era **`MejoraStremio Synopsis IA` en índice 0 con
+`resources: meta`**: por el algoritmo de `stremio-core` ya documentado en "Sesión 2026-07-13"
+("primero que esté Ready gana"), este proxy experimental de un solo mantenedor había quedado
+adelante de AIOMetadata y Cinemeta para resolver la metadata de CUALQUIER título — con el addon
+caído, cada apertura de título tenía que esperar su fallo antes de caer a AIOMetadata. Exactamente
+el mismo patrón de riesgo que motivó poner AIOMetadata en índice 0 en 2026-07-13, reintroducido sin
+querer con una pieza mucho menos probada.
+
+**Acciones tomadas esta sesión (todas verificadas contra la cuenta real, no solo "aplicadas")**:
+
+1. **Reorden de la colección real**: `node scripts/reorder-addons.mjs "com.mejorastremio.synopsis-proxy"
+   --after "au.itcon.aisearch" --apply`. AIOMetadata vuelve a índice 0, Cinemeta a índice 1 (orden
+   idéntico al documentado antes de la migración del 27/07 para todo lo demás — streams siguen en
+   idx 2-7, MyTrakt Sync en idx 9, etc., ningún otro addon se movió). Synopsis IA queda en
+   **índice 18** — no bloquea nada mientras esté caído, y en cuanto Deno Deploy se reactive vuelve
+   a enriquecer sinopsis sin necesitar ninguna acción manual (queda en `meta` como opción de
+   respaldo, no de primera línea). Verificado de forma independiente con un `addonCollectionGet`
+   fresco (no solo el output del script): índice 0 = `aio-metadata`, índice 18 = `synopsis-proxy`.
+   Backup: `.backups/backup-stremioeg-pre-reorder-2026-07-28T22-43-53.json`.
+2. **Fix de un bug de seguridad real, no relacionado con el outage pero encontrado al auditar**:
+   `handleSubdl`/`/srt/<path>` en `scripts/deno-hub.ts` (y su gemelo standalone
+   `scripts/deno-subdl-addon.ts`, ya en producción desde antes) hacía `fetch()` a cualquier URL que
+   empezara con `http` en el path — un **proxy HTTP abierto sin autenticación**, explotable por
+   cualquiera (`GET /subdl/srt/http://cualquier-host`). Se agregó una validación de host
+   (`new URL(dlUrl).hostname !== "dl.subdl.com"` → `400`) en ambos archivos. Verificado con
+   `deno check scripts/deno-hub.ts` (compila limpio). **No se pudo deployar el fix todavía** —
+   mismo bloqueo `BILLING_SUSPENDED` de arriba, el deploy en sí está bloqueado, no solo el tráfico
+   en runtime. Queda listo en el código para el próximo deploy posible.
+3. **`scripts/health-check.mjs`**: se sumaron los 3 addons del hub a `KNOWN_FLAKY` (mismo mecanismo
+   ya usado para WebStreamrMBG/Mubi Catalog) con un comentario explícito de por qué (causa =
+   `BILLING_SUSPENDED`, no un bug) y la condición para sacarlos de la lista (cuando Deno Deploy
+   vuelva a responder). Sin esto, el health-check diario seguía marcando `FALLA` real todos los
+   días indefinidamente por algo que no tiene fix de código posible — con el cambio, quedan como
+   `⚠` informativo sin disparar el email de `[FALLA]`, evitando fatiga de alertas sobre un problema
+   ya conocido y trackeado acá.
+4. **Housekeeping de git** (nada de esto tocaba la cuenta, solo el repo): se commitearon
+   `scripts/deno-hub.ts` y `deno.jsonc` (estaban sin trackear — el código que corre en producción
+   no estaba en el repo) y el drift preexistente de `data/preset.json`/`data/anti-frustration-log.json`
+   (cambios sin commitear de una sesión anterior sin log — el nuevo catálogo "Crimen y Misterio
+   Europeo" y los 4 catálogos de Asia deshabilitados **ya estaban aplicados en la instancia EN VIVO
+   de AIOMetadata**, confirmado comparando `preset.json` contra un fetch real al manifest — no era
+   un cambio a medio hacer, sólo faltaba comitear el archivo).
+
+**Verificación final, contra la cuenta real, no solo local**:
+- `health-check.mjs`: **exit code 0**, 21 addons, sin ids duplicados, streams (Matrix 183, Breaking
+  Bad S01E01 185, Will Trent S01E01 63) y subs (Matrix 36, Breaking Bad 47) normales. Los 3 addons
+  del hub aparecen como `⚠` (esperado, no bloquean el exit code).
+- `test-content.mjs`: **14/14 títulos con streams**, incluyendo los de nicho alemán/español de
+  siempre (Höllental, Tatort, etc. con sus 0 subs ya documentados como límite estructural, sin
+  cambios). Sin regresiones.
+- `addonCollectionGet` fresco confirma índice 0 = AIOMetadata.
+
+**Pendiente — requiere decisión de Pablo, no accionable por el agente**:
+- **Deno Deploy con `BILLING_SUSPENDED`**: agregar un método de pago en el dashboard de Deno Deploy
+  (`console.deno.com` → org `pabloeckert` → Billing) o escribir a `support@deno.com`. Hasta que
+  eso se resuelva, `SubDL ES (sin SDH)`, `Audio Latino (verificado)` y `MejoraStremio Synopsis IA`
+  siguen sin funcionar (degradado, no bloqueante — ver arriba). Una vez resuelto: redeployar
+  `deno-hub.ts` (ya tiene el fix de seguridad listo) con
+  `deno deploy . --org pabloeckert --app mejorastremio-hub --prod --json --non-interactive`, y
+  sacar los 3 nombres de `KNOWN_FLAKY` en `health-check.mjs`.
+- **`/miniseries`**: `scripts/deno-hub.ts` ya tiene una 4ª ruta (catálogo TMDB de miniseries, 1
+  temporada ≤10 episodios) con manifest propio, pero **no está instalada en la cuenta real** ni
+  documentada en ningún session log anterior — parece trabajo a medio terminar de la sesión
+  2026-07-26/27 que nunca se instaló. No se tocó (no hay pedido explícito de Pablo para
+  instalarla) — queda como decisión pendiente, mencionarlo si se retoma el tema del hub.
+- Causa de fondo del `USAGE_EXCEEDED` sin confirmar (no crítico para desbloquear, pero útil si
+  Pablo quiere evitar que se repita tras pagar): consolidar 3-4 funciones en una sola app aumentó
+  el tráfico combinado contra un único proyecto gratuito; el catálogo `/miniseries` en particular
+  hace hasta ~40 llamadas a TMDB por refresh de caché (documentado en el propio código) y ni
+  siquiera está instalado — si se decide seguir con el hub, vale revisar `deno deploy logs` para
+  confirmar qué ruta generó más tráfico antes de asumir que fue solo volumen normal.
 
 ## Reglas del repo
 

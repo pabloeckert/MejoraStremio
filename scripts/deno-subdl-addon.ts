@@ -172,6 +172,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ? subdlPath
       : `${SUBDL_DL}${subdlPath}`;
 
+    // Guard anti-SSRF: sin este chequeo, cualquiera puede pedir /srt/http://cualquier-host y
+    // este endpoint actúa de proxy HTTP abierto no autenticado. Los subtítulos reales siempre
+    // vienen de dl.subdl.com — cualquier otro host se rechaza.
+    let dlHost: string;
+    try {
+      dlHost = new URL(dlUrl).hostname;
+    } catch {
+      return new Response("URL inválida", { status: 400, headers: cors });
+    }
+    if (dlHost !== "dl.subdl.com") {
+      return new Response("Host no permitido", { status: 400, headers: cors });
+    }
+
     try {
       const r = await fetch(dlUrl, { signal: AbortSignal.timeout(20000) });
       if (!r.ok) {

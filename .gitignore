@@ -11,3 +11,7 @@ SECRETS.local.md
 
 # Backups de colecciones de addons (datos de cuenta, no versionar)
 .backups
+
+# Copia de staging para deployar deno-hub.ts aislado del resto del repo
+# (evita subir SECRETS.local.md/.backups al acotar el root-path del deploy)
+.deploy-hub

@@ -164,17 +164,10 @@ const manifestResults = await Promise.all(manifestTargets.map((t) => getJsonWith
 // a veces tarda >15s o da 504, Mubi Catalog falla seguido específicamente en runners de GitHub
 // Actions. Ambos son de bajo riesgo (streams/catálogo, no rompen el resto del setup) y sacarlos
 // no es ideal — una caída total (no solo un blip) queda como warning, no como fallo duro.
-// Los 3 de mejorastremio-hub (Deno Deploy) se agregaron el 2026-07-28: el org gratuito de Deno
-// Deploy quedó suspendido por USAGE_EXCEEDED (confirmado con curl + `deno deploy` CLI — no es un
-// bug de código, es cuota agotada del plan free) y no hay forma de forzar el reset desde acá. Se
-// autorrecuperan solos apenas la cuota resetee — sacar de esta lista en ese momento, no antes.
-const KNOWN_FLAKY = [
-  'WebStreamrMBG',
-  'Mubi Catalog',
-  'MejoraStremio Synopsis IA',
-  'SubDL ES (sin SDH)',
-  'Audio Latino (verificado)',
-];
+// Los 3 de mejorastremio-hub estuvieron acá 2026-07-28/30 por USAGE_EXCEEDED en Deno Deploy
+// (org gratuita suspendida). Sacados el 2026-07-30 al confirmarse el redeploy con el hub ya
+// respondiendo 200 en los 4 manifests — si vuelve a pasar, reagregar los que corresponda.
+const KNOWN_FLAKY = ['WebStreamrMBG', 'Mubi Catalog'];
 manifestResults.forEach(({ data: m, retried }, i) => {
   const t = manifestTargets[i];
   if (m?.name && !retried) {

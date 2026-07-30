@@ -1641,6 +1641,91 @@ Standard/Pro sin cambios), Real-Debrid (~€4/mes, mismo filtro de copyright/pal
 documentado, sin escalar) ni AllDebrid (~€3/mes) esta semana. Agosto se acerca y la decisión de
 Pablo sigue sin tomarse; se sigue sin presionar.
 
+## Sesión 2026-07-30 — Latinobrid, reorden de Descubrir, AIOStreams, catálogo maestro y Miniseries
+
+Sesión larga, varios pedidos encadenados de Pablo. Cuenta pasó de 21 a **24 addons** en el
+transcurso. Regla de oro respetada en todo momento: cualquier escritura contra la cuenta real con
+backup previo + `health-check.mjs` verde después.
+
+**1. Addon "Latinobrid | TB" investigado** (índice 8, `community.latinobrid`) — no lo instaló el
+agente en ninguna sesión registrada, aparece sumado por fuera. Apunta a `latinobrid.stremx.net`
+(tercero, no ElfHosted) usando la API key real de TorBox de Pablo. Autor `drykilllogic7` en GitHub
+— mismo desarrollador del `stremio-account-bootstrapper` del que nació este proyecto, nombre
+conocido en el espacio. Proyecto chico (2 estrellas, 1 commit, "Checking" sin verificar en
+`stremio-addons.net`). Riesgo anotado, no accionado: la key de TorBox ahora también vive en un
+servidor de terceros. Se dejó instalado, sin tocar.
+
+**2. Los Mufas / El Marginal re-chequeados** (`anti-frustration.mjs review`): siguen en 0 streams
+reales ambos, sin cambios respecto al 26/07. Mismo hueco estructural de siempre.
+
+**3. Reorden de Descubrir — Paso A, aplicado (comit `395d110`)**. Pablo pidió los catálogos
+ordenados por **Servicio de stream → Región → País → Idioma → Género**. Hallazgo clave: AIOMetadata
+**ya tenía sus propios catálogos de plataforma** (`streaming.*`/`flixpatrol.*` — Netflix, Disney+,
+Prime Video, HBO Max, Paramount+, Hulu, Peacock, Apple TV+, Starz, Crunchyroll — 41 catálogos en
+total), así que la jerarquía completa se logró reordenando el array `aioMetadataConfig.catalogs.
+standard` de un solo addon (índice 0), sin tocar el addon separado "Streaming Catalogs" (30
+servicios, otra fuente). El núcleo curado (En Cartelera/Próximos Estrenos/Tendencias, primeros 11
+catálogos) se dejó intacto al frente — Pablo no confirmó explícitamente si debía moverse, así que
+se optó por no tocarlo (menor riesgo). Clasificación con regex sobre los 153 catálogos restantes,
+0 sin clasificar, 0 perdidos/ganados al regenerar (instancia nueva `81aed7e8-...`).
+**Hallazgo de depuración pendiente de confirmación de Pablo**: hay **duplicación real** entre los
+`streaming.*`/`flixpatrol.*` de AIOMetadata (9 servicios) y el addon separado "Streaming Catalogs"
+(30 servicios, incluye esos mismos 9 + 21 más) — dos fuentes distintas para las mismas plataformas
+grandes. No se tocó, queda anotado para cuando Pablo confirme qué depurar (ver punto 6).
+
+**4. Series policiales alemanas activas, estilo Mentalist/Cold Case** (investigación, sin
+instalar nada): SOKO Leipzig (ZDF, temporada 26 en emisión), Letzte Spur Berlin (ZDF, personas
+desaparecidas), Nord Nord Mord (ZDF, detective excéntrico en Sylt, nuevos episodios sept. 2026).
+
+**5. AIOStreams evaluado con TorBox activo — decisión: NO instalar**. La instancia pública gratuita
+de ElfHosted (`aiostreams.elfhosted.com`) **deshabilita Torrentio, P2P y HTTP streams** ("a pedido
+del desarrollador de Torrentio de no scrapear su instancia... para reducir responsabilidad legal")
+— exactamente las fuentes que hoy dan la cobertura real (Torrentio 24 proveedores + TorBox, Comet,
+NoTorrent/WebStreamrMBG/Nuvio). Sería una degradación de cobertura, no una mejora. La instancia
+privada paga cuesta **US$9/mes** (~3x TorBox) y no ofrece ventaja clara sobre Torrentio+Comet+sort
+friction-zero ya confirmado 100% cacheado-primero (auditoría 2026-07-25). Investigado contra la UI
+real del configurador (`claude-in-chrome`), no solo documentación — decisión con evidencia directa,
+no especulativa.
+
+**6. Paso B — catálogo "Descubrir Maestro" construido, deployado e instalado (comit `473fd12`)**.
+Nueva ruta `/discover` en `deno-hub.ts`: un catálogo único con **Servicio + Región + País + Idioma +
+Género como filtros TMDB Discover combinables simultáneamente** (`with_watch_providers`+
+`watch_region=AR`, `with_origin_country`, `with_original_language`, `with_genres`) — algo que
+AIOMetadata no puede hacer nativamente (cada eje ahí es un catálogo fijo separado, no un filtro
+dinámico). `provider_id` de TMDB verificados en vivo contra `/watch/providers/movie` (no adivinados)
+para 15 servicios: Netflix(8), Disney+(337), Prime Video(9), HBO Max(1899), Paramount+(2303, tier
+"Premium" — TMDB ya no expone un id "plano" único para Paramount+), Hulu(15), Peacock(386), Apple
+TV+(350), Starz(43), Mubi(11), Criterion Channel(258), Shudder(99), Acorn TV(87), BritBox(151),
+Crunchyroll(283). País/Región usan `with_origin_country` (región = unión OR pipe-delimited de
+países, ej. Latinoamérica = `AR|MX|CO|CL|BR|PE`). Resuelve `tmdbId→imdbId` por título vía
+`external_ids` con cache en memoria (no crítico si se pierde en cold start). Probado en vivo con
+combinaciones reales antes de instalar: País=Alemania+Género=Crimen dio Tatort/Der Alte/Polizeiruf
+110/Die Rosenheim-Cops/Derrick (calza con el gusto ya documentado del proyecto); Servicio=Netflix+
+Género=Crimen, Región=Latinoamérica+Idioma=Español, y una combinación de 3 ejes a la vez
+(Servicio+País+Género) — todas con resultados reales y paginación (`skip`) funcionando. Instalado
+en índice 19 (junto a AI Search/Streaming Catalogs, sin competir por el Inicio).
+
+**7. Catálogo "Miniseries" instalado** (índice 20) — existía en `deno-hub.ts` desde la sesión
+2026-07-26/27 pero nunca se había instalado en la cuenta. Devuelve pocos resultados en la prueba
+real (2 títulos: "Agente Kim reactivado", "Overflow") — es una limitación conocida del método
+(solo criba los ~40 títulos "Ended" más populares de TMDB Discover antes de filtrar por
+`number_of_seasons===1 && episodes<=10`, no un barrido amplio), documentada en el propio código,
+no un bug nuevo de esta sesión. Se instaló igual porque funciona (sin errores) y es lo que ya
+estaba construido — mejorar la cobertura del barrido queda fuera de esta sesión salvo que Pablo lo
+pida.
+
+**Verificación final**: `health-check.mjs` verde, **24 addons, sin duplicados**, streams/subs sin
+regresiones (Matrix 208, Breaking Bad 203, Will Trent 66).
+
+**Pendiente — requiere a Pablo confirmar en bloque (depuración "moderada", ver punto 3)**:
+- Streaming Catalogs (30 servicios) vs. los 9 `streaming.*`/`flixpatrol.*` de AIOMetadata:
+  ¿cuál fuente mantener para los 9 que se solapan (Netflix/Disney+/Prime/HBO Max/Paramount+/Hulu/
+  Peacock/Apple TV+/Starz)?
+- Bloques de Streaming Catalogs que Pablo marcó como candidatos a revisar: nicho UK (BritBox/Acorn
+  TV/ITVX/Sky Go/BBC iPlayer/Channel 4), documentales (Curiosity Stream/MagellanTV/Discovery+),
+  holandeses (Videoland/NLZIET), 7 países de Asia habilitados en AIOMetadata (Japón/Corea/China/
+  Taiwán/Tailandia/Hong Kong/India) — ¿cuáles se usan de verdad?
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

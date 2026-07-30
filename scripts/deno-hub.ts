@@ -12,7 +12,9 @@
  *   /latino/manifest.json     → Audio Latino (verificado), catálogo
  *   /synopsis/manifest.json   → MejoraStremio Synopsis IA, proxy de meta
  *   /miniseries/manifest.json → Miniseries (1 temporada, ≤10 episodios, finalizada), catálogo
- *   /health                   → estado de las 4 sub-funciones (config presente)
+ *   /discover/manifest.json   → Descubrir Maestro (Paso B) — servicio+región+país+idioma+género
+ *                                combinables en una sola pantalla, catálogo
+ *   /health                   → estado de las 5 sub-funciones (config presente)
  *
  * Deploy: deno.com/deploy → conectar repo pabloeckert/MejoraStremio →
  *   entry point: scripts/deno-hub.ts
@@ -733,7 +735,213 @@ async function handleMiniseries(subPath: string): Promise<Response> {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// ── /health — estado de config de las 4 sub-funciones ─────────────────────
+// ── /discover — Descubrir Maestro (Paso B): servicio+región+país+idioma+
+// género combinables como filtros simultáneos de un solo catálogo. TMDB
+// Discover soporta los 4 ejes en una sola query (with_watch_providers+
+// watch_region, with_origin_country, with_original_language, with_genres);
+// el protocolo de Stremio no permite esto en un catálogo nativo de
+// AIOMetadata (cada catálogo ahí es un preset fijo) — acá cada eje es un
+// "extra" del manifest con sus opciones, así que el cliente de Stremio
+// dibuja un dropdown por eje y los combina en la request al catálogo.
+// ════════════════════════════════════════════════════════════════════════
+
+// provider_id reales de TMDB (verificados contra /watch/providers/movie en
+// vivo, no adivinados — algunos ids cambian con el tiempo si el servicio se
+// relanza, ej. HBO Max → Max en 2023 mantuvo el id 1899).
+const SERVICE_IDS: Record<string, number> = {
+  "Netflix": 8,
+  "Disney+": 337,
+  "Prime Video": 9,
+  "HBO Max": 1899,
+  "Paramount+": 2303,
+  "Hulu": 15,
+  "Peacock": 386,
+  "Apple TV+": 350,
+  "Starz": 43,
+  "Mubi": 11,
+  "Criterion Channel": 258,
+  "Shudder": 99,
+  "Acorn TV": 87,
+  "BritBox": 151,
+  "Crunchyroll": 283,
+};
+const DISCOVER_WATCH_REGION = "AR"; // disponibilidad real para Pablo, no "world"/US genérico
+
+const COUNTRY_IDS: Record<string, string> = {
+  "Argentina": "AR", "España": "ES", "Francia": "FR", "Alemania": "DE",
+  "Italia": "IT", "Reino Unido": "GB", "Portugal": "PT", "México": "MX",
+  "Colombia": "CO", "Chile": "CL", "Brasil": "BR", "Perú": "PE",
+  "Estados Unidos": "US", "Canadá": "CA", "Australia": "AU", "Nueva Zelanda": "NZ",
+  "Japón": "JP", "Corea": "KR", "China": "CN", "Taiwán": "TW",
+  "Tailandia": "TH", "Hong Kong": "HK", "India": "IN",
+};
+// Uniones OR (pipe-delimited, TMDB con with_origin_country) — un pseudo-país
+// "regional" que no existe como código ISO propio.
+const REGION_IDS: Record<string, string> = {
+  "Latinoamérica": "AR|MX|CO|CL|BR|PE",
+  "Europa": "ES|FR|DE|IT|GB|PT",
+  "Norteamérica": "US|CA",
+  "Asia": "JP|KR|CN|TW|TH|HK|IN",
+  "Oceanía": "AU|NZ",
+};
+
+const LANGUAGE_IDS: Record<string, string> = {
+  "Español": "es", "Inglés": "en", "Francés": "fr", "Alemán": "de",
+  "Italiano": "it", "Portugués": "pt", "Japonés": "ja", "Coreano": "ko",
+  "Chino": "zh", "Hindi": "hi", "Tailandés": "th",
+};
+
+const GENRE_IDS_MOVIE: Record<string, number> = {
+  "Acción": 28, "Aventura": 12, "Animación": 16, "Comedia": 35, "Crimen": 80,
+  "Documental": 99, "Drama": 18, "Familia": 10751, "Fantasía": 14,
+  "Historia": 36, "Terror": 27, "Música": 10402, "Misterio": 9648,
+  "Romance": 10749, "Ciencia Ficción": 878, "Thriller": 53, "Bélica": 10752,
+  "Western": 37,
+};
+const GENRE_IDS_SERIES: Record<string, number> = {
+  "Acción y Aventura": 10759, "Animación": 16, "Comedia": 35, "Crimen": 80,
+  "Documental": 99, "Drama": 18, "Familia": 10751, "Infantil": 10762,
+  "Misterio": 9648, "Noticias": 10763, "Reality": 10764,
+  "Ciencia Ficción y Fantasía": 10765, "Telenovela": 10766, "Talk Show": 10767,
+  "Bélica y Política": 10768, "Western": 37,
+};
+
+function discoverExtra(genreMap: Record<string, number>) {
+  return [
+    { name: "service", options: ["None", ...Object.keys(SERVICE_IDS)], isRequired: false },
+    { name: "region", options: ["None", ...Object.keys(REGION_IDS)], isRequired: false },
+    { name: "country", options: ["None", ...Object.keys(COUNTRY_IDS)], isRequired: false },
+    { name: "language", options: ["None", ...Object.keys(LANGUAGE_IDS)], isRequired: false },
+    { name: "genre", options: ["None", ...Object.keys(genreMap)], isRequired: false },
+    { name: "skip" },
+  ];
+}
+
+const DISCOVER_MANIFEST = {
+  id: "com.mejorastremio.discover-master",
+  version: "1.0.0",
+  name: "Descubrir Maestro",
+  description:
+    "Catálogo único con servicio de streaming, región, país, idioma y género " +
+    "combinables como filtros simultáneos (TMDB Discover) — a diferencia de " +
+    "AIOMetadata, donde cada eje es un catálogo fijo separado.",
+  resources: ["catalog"],
+  types: ["movie", "series"],
+  idPrefixes: ["tt"],
+  catalogs: [
+    { type: "movie", id: "discover-master", name: "Descubrir Maestro", extra: discoverExtra(GENRE_IDS_MOVIE) },
+    { type: "series", id: "discover-master", name: "Descubrir Maestro", extra: discoverExtra(GENRE_IDS_SERIES) },
+  ],
+};
+
+// tmdbId -> imdbId. En memoria (vive mientras el isolate esté caliente) —
+// evita repetir el fetch de external_ids en refreshes sucesivos del mismo
+// título; no es crítico si se pierde en un cold start, se repuebla solo.
+const imdbIdCache = new Map<number, string | null>();
+
+async function resolveImdbId(tmdbId: number): Promise<string | null> {
+  if (imdbIdCache.has(tmdbId)) return imdbIdCache.get(tmdbId)!;
+  try {
+    const d = await tmdbGet(`/movie/${tmdbId}/external_ids`, {});
+    const id = d?.imdb_id ?? null;
+    imdbIdCache.set(tmdbId, id);
+    return id;
+  } catch {
+    return null;
+  }
+}
+async function resolveImdbIdTv(tmdbId: number): Promise<string | null> {
+  if (imdbIdCache.has(tmdbId)) return imdbIdCache.get(tmdbId)!;
+  try {
+    const d = await tmdbGet(`/tv/${tmdbId}/external_ids`, {});
+    const id = d?.imdb_id ?? null;
+    imdbIdCache.set(tmdbId, id);
+    return id;
+  } catch {
+    return null;
+  }
+}
+
+async function handleDiscover(subPath: string): Promise<Response> {
+  if (!TMDB_KEY) {
+    return new Response(
+      "TMDB_API_KEY_AISEARCH no configurada. Setear como Secret en Deno Deploy.",
+      { status: 503, headers: cors },
+    );
+  }
+
+  if (subPath === "/manifest.json") {
+    return jsonResponse(DISCOVER_MANIFEST);
+  }
+
+  const catalogMatch = subPath.match(/^\/catalog\/(movie|series)\/discover-master(?:\/([^/]+))?\.json$/);
+  if (!catalogMatch) {
+    return new Response("Not found", { status: 404, headers: cors });
+  }
+  const [, type, extraStr] = catalogMatch;
+  const genreMap = type === "movie" ? GENRE_IDS_MOVIE : GENRE_IDS_SERIES;
+
+  const extra = new URLSearchParams(extraStr ?? "");
+  const service = extra.get("service");
+  const region = extra.get("region");
+  const country = extra.get("country");
+  const language = extra.get("language");
+  const genre = extra.get("genre");
+  const skip = parseInt(extra.get("skip") ?? "0", 10);
+  const page = Math.floor(skip / 20) + 1;
+
+  const params: Record<string, string> = {
+    sort_by: "popularity.desc",
+    language: "es-ES",
+    page: String(page),
+    "vote_count.gte": "20",
+  };
+  if (service && service !== "None" && SERVICE_IDS[service]) {
+    params.with_watch_providers = String(SERVICE_IDS[service]);
+    params.watch_region = DISCOVER_WATCH_REGION;
+  }
+  // país puntual gana sobre región si ambos vienen seteados (evita una
+  // combinación contradictoria silenciosa).
+  if (country && country !== "None" && COUNTRY_IDS[country]) {
+    params.with_origin_country = COUNTRY_IDS[country];
+  } else if (region && region !== "None" && REGION_IDS[region]) {
+    params.with_origin_country = REGION_IDS[region];
+  }
+  if (language && language !== "None" && LANGUAGE_IDS[language]) {
+    params.with_original_language = LANGUAGE_IDS[language];
+  }
+  if (genre && genre !== "None" && genreMap[genre]) {
+    params.with_genres = String(genreMap[genre]);
+  }
+
+  try {
+    const path = type === "movie" ? "/discover/movie" : "/discover/tv";
+    const d = await tmdbGet(path, params);
+    // deno-lint-ignore no-explicit-any
+    const results = (d?.results ?? []) as any[];
+
+    const resolved = await Promise.all(results.map(async (r) => {
+      const imdbId = type === "movie"
+        ? await resolveImdbId(r.id)
+        : await resolveImdbIdTv(r.id);
+      if (!imdbId) return null;
+      return {
+        id: imdbId,
+        type,
+        name: r.title ?? r.name,
+        poster: r.poster_path ? `https://image.tmdb.org/t/p/w500${r.poster_path}` : null,
+        description: r.overview ?? "",
+      };
+    }));
+
+    return jsonResponse({ metas: resolved.filter((m) => m !== null) });
+  } catch (e) {
+    return jsonResponse({ metas: [], error: (e as Error).message }, { status: 500 });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ── /health — estado de config de las 5 sub-funciones ─────────────────────
 // ════════════════════════════════════════════════════════════════════════
 
 function handleHealth(): Response {
@@ -748,6 +956,7 @@ function handleHealth(): Response {
       openrouterConfigured: !!OPENROUTER_API_KEY,
     },
     miniseries: { configured: !!TMDB_KEY },
+    discover: { configured: !!TMDB_KEY },
   });
 }
 
@@ -772,6 +981,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           "/latino/manifest.json",
           "/synopsis/manifest.json",
           "/miniseries/manifest.json",
+          "/discover/manifest.json",
           "/health",
         ],
       });
@@ -794,6 +1004,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       route = "miniseries";
       const subPath = path.slice("/miniseries".length) || "/";
       res = await handleMiniseries(subPath);
+    } else if (path.startsWith("/discover")) {
+      route = "discover";
+      const subPath = path.slice("/discover".length) || "/";
+      res = await handleDiscover(subPath);
     } else {
       res = new Response("Not found", { status: 404, headers: cors });
     }

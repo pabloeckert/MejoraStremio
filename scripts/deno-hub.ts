@@ -567,7 +567,41 @@ const MINISERIES_MANIFEST = {
   resources: ["catalog"],
   types: ["series"],
   idPrefixes: ["tt"],
-  catalogs: [{ type: "series", id: "miniseries", name: "Miniseries" }],
+  catalogs: [{
+    type: "series",
+    id: "miniseries",
+    name: "Miniseries",
+    extra: [
+      {
+        name: "genre",
+        // Nombres tal cual los devuelve TMDB (genre/tv/list?language=es-ES) — mezcla
+        // inglés/español real de TMDB, no una traducción nuestra (mismo mix que ya
+        // se ve en los catálogos de AIOMetadata, ver CLAUDE.md "Metadata en español").
+        // Deben calzar exacto con detail.genres[].name para que el filtro matchee.
+        options: [
+          "None",
+          "Action & Adventure",
+          "Animación",
+          "Comedia",
+          "Crimen",
+          "Documental",
+          "Drama",
+          "Familia",
+          "Kids",
+          "Misterio",
+          "News",
+          "Reality",
+          "Sci-Fi & Fantasy",
+          "Soap",
+          "Talk",
+          "War & Politics",
+          "Western",
+        ],
+        isRequired: false,
+      },
+      { name: "skip" },
+    ],
+  }],
 };
 
 interface MiniseriesMeta {
@@ -576,6 +610,7 @@ interface MiniseriesMeta {
   name: string;
   poster: string | null;
   description: string;
+  genres: string[];
 }
 
 let miniseriesCache: { at: number; metas: MiniseriesMeta[]; partial: boolean } | null = null;
@@ -636,6 +671,8 @@ async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[]; part
           name: detail.name,
           poster: detail.poster_path ? `https://image.tmdb.org/t/p/w500${detail.poster_path}` : null,
           description: detail.overview ?? "",
+          // deno-lint-ignore no-explicit-any
+          genres: ((detail.genres ?? []) as any[]).map((g) => g.name),
         });
       }
     } catch {
@@ -674,9 +711,18 @@ async function handleMiniseries(subPath: string): Promise<Response> {
     return jsonResponse(MINISERIES_MANIFEST);
   }
 
-  if (subPath === "/catalog/series/miniseries.json") {
+  const catalogMatch = subPath.match(/^\/catalog\/series\/miniseries(?:\/([^/]+))?\.json$/);
+  if (catalogMatch) {
     try {
-      const metas = await getMiniseriesCatalog();
+      let metas = await getMiniseriesCatalog();
+      const extraStr = catalogMatch[1];
+      if (extraStr) {
+        const extra = new URLSearchParams(extraStr);
+        const genre = extra.get("genre");
+        if (genre && genre !== "None") metas = metas.filter((m) => m.genres.includes(genre));
+        const skip = parseInt(extra.get("skip") ?? "0", 10);
+        if (skip > 0) metas = metas.slice(skip);
+      }
       return jsonResponse({ metas });
     } catch (e) {
       return jsonResponse({ metas: [], error: (e as Error).message }, { status: 500 });

@@ -1,0 +1,105 @@
+name: daily-catalog-refresh
+
+on:
+  schedule:
+    - cron: '0 10 * * *'   # 07:00 Argentina (UTC-3) — antes del health-check de las 09:00
+  workflow_dispatch:          # disparo manual desde la pestaña Actions
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar resumen
+        run: echo "MejoraStremio — refresh diario $(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/summary.txt
+
+      - name: Refrescar fechas (En Cartelera / Próximos Estrenos)
+        run: |
+          node scripts/refresh-dates.mjs 2>&1 | tee -a /tmp/summary.txt
+
+      - name: Detectar si preset.json cambió
+        id: diff
+        run: |
+          if git diff --quiet -- data/preset.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Regenera la instancia de AIOMetadata en ElfHosted y la aplica a la cuenta real solo
+      # cuando refresh-dates.mjs efectivamente movió la ventana de fechas (ver CLAUDE.md →
+      # "AIOMetadata — reconstruir/editar la instancia"). Cada corrida exitosa crea un UUID
+      # nuevo en ElfHosted; no hay endpoint para borrar los viejos, es una limitación conocida.
+      - name: Regenerar y aplicar AIOMetadata
+        id: regen
+        if: steps.diff.outputs.changed == 'true'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          AIO_PASSWORD="${{ secrets.AIO_PASSWORD }}" \
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/regenerate-aiometadata.mjs --apply 2>&1 | tee -a /tmp/summary.txt
+
+      - name: Auditar orden de catálogos
+        id: audit
+        continue-on-error: true
+        run: node scripts/audit-catalog-order.mjs 2>&1 | tee -a /tmp/summary.txt
+
+      - name: Health check
+        id: health
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/health-check.mjs 2>&1 | tee -a /tmp/summary.txt
+
+      - name: Commitear preset.json si cambió
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/preset.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(preset): refresh diario de fechas/catálogos"
+            git push
+          fi
+
+      - name: Subir backup como artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-refresh-backup-${{ github.run_id }}
+          path: .backups/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Decidir si alertar por mail
+        id: meta
+        if: always()
+        run: |
+          FAIL="false"
+          [ "${{ steps.regen.outcome }}" = "failure" ] && FAIL="true"
+          [ "${{ steps.health.outcome }}" = "failure" ] && FAIL="true"
+          echo "send_email=$FAIL" >> "$GITHUB_OUTPUT"
+
+      - name: Enviar email si algo falló
+        if: always() && steps.meta.outputs.send_email == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: pabloeckert@gmail.com
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "[FALLA] MejoraStremio — refresh diario"
+          to: pabloeckert@gmail.com
+          from: "MejoraStremio <pabloeckert@gmail.com>"
+          body: file:///tmp/summary.txt
+
+      - name: Fallar el job si algo salió mal
+        if: always() && steps.meta.outputs.send_email == 'true'
+        run: exit 1

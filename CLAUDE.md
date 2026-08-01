@@ -547,6 +547,7 @@ depende de que Windows esté prendido.
 | MejoraStremio Synopsis IA | Enriquece sinopsis cortas/en inglés vía Gemini/OpenRouter | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/synopsis`) — **recuperado, ver "Sesión 2026-08-01"** |
 | Antifrustración | Revisión semanal de títulos sin streams reales | GitHub Actions (`.github/workflows/anti-frustration-review.yml`) |
 | Radar de estrenos | Avisa por email cuando el próximo episodio no visto de un show ya tiene stream cacheado + sub ES | GitHub Actions (`.github/workflows/premiere-radar.yml`) |
+| daily-catalog-refresh | Refresca fechas + regenera/aplica AIOMetadata a diario si preset.json cambió | GitHub Actions (`.github/workflows/daily-catalog-refresh.yml`) — ver detalle abajo |
 
 ### health-monitor — GitHub Actions (2026-07-01)
 
@@ -576,6 +577,36 @@ automáticamente en el próximo push.
 - `scripts/keep-warm.mjs` — reemplazado por el workflow de GitHub Actions
 - `scripts/setup-keep-warm.ps1` — reemplazado por el workflow de GitHub Actions
 - Tarea Windows `StremioKeepWarm` — desregistrada: `Unregister-ScheduledTask -TaskName "StremioKeepWarm" -Confirm:$false`
+
+### daily-catalog-refresh — GitHub Actions (creado ~2026-07-29, documentado retroactivamente 2026-08-01)
+
+`.github/workflows/daily-catalog-refresh.yml` no había quedado registrado en este archivo pese a
+estar activo y corriendo en producción — encontrado y documentado recién al auditar el estado de
+todos los workflows el 2026-08-01. Corre a diario (07:00 Argentina): `refresh-dates.mjs` →, si
+`data/preset.json` cambió, `regenerate-aiometadata.mjs --apply` contra la cuenta real → audita
+orden de catálogos → `health-check.mjs` → commitea `preset.json` si cambió → sube `.backups/` como
+artifact → manda `[FALLA]` por mail si el regen o el health-check fallaron. Como la ventana de
+fechas de "En Cartelera" se corre todos los días, `preset.json` cambia prácticamente cada corrida →
+**regenera una instancia nueva de AIOMetadata todos los días** (mismo límite ya documentado: no hay
+endpoint para borrar las viejas en ElfHosted, se van acumulando huérfanas — no es un problema
+práctico, solo ruido en el lado de ElfHosted que no controlamos).
+
+**Patrón de falso positivo encontrado en la auditoría del 2026-08-01, no corregido todavía**: el
+paso de `health-check.mjs` corre **inmediatamente** después de crear la instancia nueva de
+AIOMetadata (segundos de diferencia) — muy poco tiempo para que ElfHosted la termine de levantar.
+Confirmado con logs reales de dos corridas fallidas: el 2026-08-01 el health-check dio
+`✗ 7/10 catálogos con error` (fetches que fallan/timeoutean, no catálogos vacíos) apenas 45s después
+de "Instancia nueva creada"; un `health-check.mjs` corrido a mano ~11h más tarde sobre la MISMA
+instancia mostró la cuenta sana (los mismos catálogos bajaron a `⚠ 2/10 vacíos` — arrays vacíos
+reales, no fallas de red — que es tolerado sin romper el exit code). Es cold-start de la instancia
+recién creada, no una rotura real. Efecto colateral: como `health-monitor.yml` corre por separado y
+también puede toparse con la instancia recién creada (o con otro blip transitorio, ver
+"Chequeo semanal automático" de sesiones anteriores para el patrón ya conocido), Pablo puede recibir
+**dos emails `[FALLA]` distintos el mismo día** por la misma causa de fondo. No se tocó el workflow
+en esta auditoría (solo se detectó y documentó) — arreglo más simple si Pablo lo pide: mover el paso
+de regen ANTES del refresh de fechas no ayuda (el orden ya es correcto), lo que ayudaría es esperar
+unos segundos o hacer un primer fetch de "calentamiento" al manifest nuevo antes de correr
+`health-check.mjs` contra él, mismo principio que ya usa `keep-warm.yml` para la instancia estable.
 
 ### subdl-addon — Deno Deploy (reemplazó Task Scheduler local 2026-06-30)
 

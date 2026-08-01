@@ -65,8 +65,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/preset.json
           if ! git diff --cached --quiet; then
-            git pull --rebase origin main
             git commit -m "chore(preset): refresh diario de fechas/catálogos"
+            git pull --rebase origin main
             git push
           fi
 
@@ -95,8 +95,8 @@ jobs:
           node scripts/log-status.mjs daily-catalog-refresh "$STATUS" < /tmp/summary.txt
           git add data/internal-log.jsonl
           if ! git diff --cached --quiet; then
-            git pull --rebase origin main
             git commit -m "chore(log): daily-catalog-refresh $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase origin main
             git push
           fi
 

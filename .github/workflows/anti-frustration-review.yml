@@ -29,7 +29,7 @@ jobs:
           node scripts/log-status.mjs anti-frustration-review ok < /tmp/review-output.txt
           git add data/anti-frustration-log.json data/internal-log.jsonl
           if ! git diff --cached --quiet; then
-            git pull --rebase origin main
             git commit -m "chore(anti-frustration): actualizar log semanal"
+            git pull --rebase origin main
             git push
           fi

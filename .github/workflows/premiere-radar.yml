@@ -30,7 +30,7 @@ jobs:
           node scripts/log-status.mjs premiere-radar ok < /tmp/radar-output.txt
           git add data/premiere-radar-state.json data/internal-log.jsonl
           if ! git diff --cached --quiet; then
-            git pull --rebase origin main
             git commit -m "chore(premiere-radar): actualizar estado diario"
+            git pull --rebase origin main
             git push
           fi

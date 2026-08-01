@@ -26,6 +26,9 @@ data/anti-frustration-log.json      Registro de títulos que "no abren" (streams
                                     y su estado; ver scripts/anti-frustration.mjs abajo.
 data/premiere-radar-state.json      Estado del radar de estrenos (próximo episodio no visto por
                                     show + si ya se avisó) — ver scripts/premiere-radar.mjs abajo.
+data/internal-log.jsonl             Log interno (NO se manda por mail) de las corridas automáticas
+                                    diarias — para que Claude lo lea entre sesiones y siga el pulso
+                                    de la cuenta + los gustos/uso de Pablo. Ver "Sesión 2026-08-02".
 scripts/health-check.mjs            Auditoría de la cuenta y los addons (ver abajo).
 scripts/anti-frustration.mjs        Registra/revisa títulos sin streams reales (add/review/list) y
                                     detecta audio latino en contenido familiar/infantil. Ver abajo.
@@ -68,9 +71,14 @@ scripts/install-addon.mjs           Instala un addon NUEVO (manifest.id que no e
                                     update-addon-url.mjs, que solo tocan addons ya presentes.
                                     Guard + backup antes de aplicar.
 scripts/premiere-radar.mjs          Calcula el próximo episodio no visto de cada show en progreso/
-                                    watchlist en MyTrakt Sync y avisa por email la primera vez que
-                                    ese episodio tiene stream cacheado en TorBox + subtítulo ES real.
-                                    Estado en data/premiere-radar-state.json. Ver "Sesión 2026-08-01".
+                                    watchlist en MyTrakt Sync y detecta la primera vez que ese
+                                    episodio tiene stream cacheado en TorBox + subtítulo ES real.
+                                    Estado en data/premiere-radar-state.json. Sin email (ver
+                                    data/internal-log.jsonl más abajo) — Sesión 2026-08-01/02.
+scripts/log-status.mjs              Registra el resultado de cada corrida automatizada (health-
+                                    monitor, daily-catalog-refresh, anti-frustration-review,
+                                    premiere-radar) en data/internal-log.jsonl — reemplaza los
+                                    emails a Pablo (ver "Sesión 2026-08-02"). Poda a 90 días.
 scripts/lib/addon-signals.mjs       Heurísticas compartidas sobre streams/subtítulos crudos
                                     (cacheado en TorBox, stream "real", idioma español) — usado por
                                     anti-frustration.mjs y premiere-radar.mjs, no reescribir por script.
@@ -538,27 +546,27 @@ depende de que Windows esté prendido.
 | Servicio | Qué hace | Dónde corre |
 |---|---|---|
 | keep-warm (AIOMetadata) | Pingea el manifest cada 20 min para evitar cold start | GitHub Actions (`.github/workflows/keep-warm.yml`) |
-| health-monitor | Health-check 2×/día; email diario + alerta inmediata si falla | GitHub Actions (`.github/workflows/health-monitor.yml`) |
+| health-monitor | Health-check 2×/día; registra en el log interno, sin email (ver "Sesión 2026-08-02") | GitHub Actions (`.github/workflows/health-monitor.yml`) |
 | SubDL addon (subs ES sin SDH) | Proxy SubDL filtrando hi=true | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/subdl`) — **recuperado, ver "Sesión 2026-08-01"** |
 | AIOMetadata catálogos | ~132 catálogos TMDB Discover (idioma `es`) | ElfHosted (UUID en `preset.json → instanceId`) |
 | MyTrakt Sync recomendaciones | Watchlist/Recommended/Trending/Popular vía Trakt | ElfHosted (UUID `13e948e9-...` en manifest) |
 | SubMaker subs ES | Subs SubDL sin SDH, en la nube | ElfHosted (`submaker.elfhosted.com`) |
 | Audio Latino (verificado) | Catálogo de familiar/infantil con audio latino confirmado | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/latino`) — **recuperado, ver "Sesión 2026-08-01"** |
 | MejoraStremio Synopsis IA | Enriquece sinopsis cortas/en inglés vía Gemini/OpenRouter | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/synopsis`) — **recuperado, ver "Sesión 2026-08-01"** |
-| Antifrustración | Revisión semanal de títulos sin streams reales | GitHub Actions (`.github/workflows/anti-frustration-review.yml`) |
-| Radar de estrenos | Avisa por email cuando el próximo episodio no visto de un show ya tiene stream cacheado + sub ES | GitHub Actions (`.github/workflows/premiere-radar.yml`) |
+| Antifrustración | Revisión semanal de títulos sin streams reales, registra en el log interno | GitHub Actions (`.github/workflows/anti-frustration-review.yml`) |
+| Radar de estrenos | Detecta cuando el próximo episodio no visto de un show ya tiene stream cacheado + sub ES, registra en el log interno | GitHub Actions (`.github/workflows/premiere-radar.yml`) |
 | daily-catalog-refresh | Refresca fechas + regenera/aplica AIOMetadata a diario si preset.json cambió | GitHub Actions (`.github/workflows/daily-catalog-refresh.yml`) — ver detalle abajo |
 
-### health-monitor — GitHub Actions (2026-07-01)
+### health-monitor — GitHub Actions (2026-07-01, sin email desde 2026-08-02)
 
-`.github/workflows/health-monitor.yml` corre 2 veces por día:
-- **09:00 Argentina** (12:00 UTC): health-check completo. Email solo si hay falla.
-- **21:00 Argentina** (00:00 UTC): health-check completo. **Siempre envía resumen** a `pabloeckert@gmail.com`.
+`.github/workflows/health-monitor.yml` corre 2 veces por día (09:00 y 21:00 Argentina) y registra
+el resultado completo en `data/internal-log.jsonl` (ver "Sesión 2026-08-02" más abajo — ya no manda
+ningún email). El único secret que sigue necesitando es `STREMIO_EMAIL`/`STREMIO_PASS` (login a la
+API de Stremio real, no tiene nada que ver con el email de notificaciones que se sacó).
 
-Los 3 **GitHub Secrets** que necesita (`STREMIO_EMAIL`, `STREMIO_PASS`, `GMAIL_APP_PASSWORD`) están
-✅ cargados (confirmado con `gh secret list`) — el health-check corre autenticado, da verde, y el
-email llega. El job aparece rojo en GitHub si hay algún problema, así que las fallas también son
-visibles ahí.
+El job sigue marcándose en rojo en la pestaña Actions de GitHub si el health-check da mal (ver paso
+final "Fallar job si health check falló") — es la señal visual que queda ahora que no hay email;
+Claude puede chequearla con `gh run list --workflow=health-monitor.yml` al arrancar una sesión.
 
 **Reintento en manifests (2026-07-03)**: paso `[2/5]` de `health-check.mjs` reintenta una vez
 (tras 3s) antes de marcar `NO RESPONDE`, para no disparar FALLA por blips transitorios de un
@@ -585,7 +593,9 @@ estar activo y corriendo en producción — encontrado y documentado recién al 
 todos los workflows el 2026-08-01. Corre a diario (07:00 Argentina): `refresh-dates.mjs` →, si
 `data/preset.json` cambió, `regenerate-aiometadata.mjs --apply` contra la cuenta real → audita
 orden de catálogos → `health-check.mjs` → commitea `preset.json` si cambió → sube `.backups/` como
-artifact → manda `[FALLA]` por mail si el regen o el health-check fallaron. Como la ventana de
+artifact → registra el resultado en `data/internal-log.jsonl` (sin email desde el 2026-08-02, ver
+esa sesión más abajo) y marca el job en rojo si el regen o el health-check fallaron. Como la ventana
+de
 fechas de "En Cartelera" se corre todos los días, `preset.json` cambia prácticamente cada corrida →
 **regenera una instancia nueva de AIOMetadata todos los días** (mismo límite ya documentado: no hay
 endpoint para borrar las viejas en ElfHosted, se van acumulando huérfanas — no es un problema
@@ -599,14 +609,15 @@ Confirmado con logs reales de dos corridas fallidas: el 2026-08-01 el health-che
 de "Instancia nueva creada"; un `health-check.mjs` corrido a mano ~11h más tarde sobre la MISMA
 instancia mostró la cuenta sana (los mismos catálogos bajaron a `⚠ 2/10 vacíos` — arrays vacíos
 reales, no fallas de red — que es tolerado sin romper el exit code). Es cold-start de la instancia
-recién creada, no una rotura real. Efecto colateral: como `health-monitor.yml` corre por separado y
-también puede toparse con la instancia recién creada (o con otro blip transitorio, ver
-"Chequeo semanal automático" de sesiones anteriores para el patrón ya conocido), Pablo puede recibir
-**dos emails `[FALLA]` distintos el mismo día** por la misma causa de fondo. No se tocó el workflow
-en esta auditoría (solo se detectó y documentó) — arreglo más simple si Pablo lo pide: mover el paso
-de regen ANTES del refresh de fechas no ayuda (el orden ya es correcto), lo que ayudaría es esperar
-unos segundos o hacer un primer fetch de "calentamiento" al manifest nuevo antes de correr
-`health-check.mjs` contra él, mismo principio que ya usa `keep-warm.yml` para la instancia estable.
+recién creada, no una rotura real. Efecto colateral (histórico, ya no aplica desde que se sacaron los
+emails el 2026-08-02): como `health-monitor.yml` corre por separado y también puede toparse con la
+instancia recién creada, Pablo llegó a recibir dos emails `[FALLA]` distintos el mismo día por la
+misma causa de fondo — motivo real detrás de "estoy harto de recibir mails" que disparó esa sesión.
+No se tocó el workflow en esta auditoría (solo se detectó y documentó) — arreglo más simple si Pablo
+lo pide: esperar unos segundos o hacer un primer fetch de "calentamiento" al manifest nuevo antes de
+correr `health-check.mjs` contra él, mismo principio que ya usa `keep-warm.yml` para la instancia
+estable. Sigue pendiente — ahora es solo ruido en `data/internal-log.jsonl` (entradas `error` que en
+realidad son cold-start), no urgente sin el email de por medio.
 
 ### subdl-addon — Deno Deploy (reemplazó Task Scheduler local 2026-06-30)
 
@@ -1848,11 +1859,75 @@ líneas `LISTO_NUEVO` que el script imprime al final (mismo mecanismo de parseo 
 `health-monitor.yml` para decidir si envía email). Asunto dinámico: nombre+episodio si es uno solo,
 "`N series nuevas`" si son varias.
 
-**No verificado todavía**: la corrida real dentro de GitHub Actions (el workflow se creó y probó
-solo localmente contra la cuenta real vía `node scripts/premiere-radar.mjs`, no se disparó
-`workflow_dispatch` en esta sesión). Si el primer disparo automático (mañana 07:00 ART) falla,
-revisar que los secrets `STREMIO_EMAIL`/`STREMIO_PASS`/`GMAIL_APP_PASSWORD` (ya usados por los otros
-2 workflows) alcancen sin cambios — no debería hacer falta ninguno nuevo.
+**Verificado al día siguiente (2026-08-01, más tarde)**: se disparó `workflow_dispatch` manualmente
+y corrió bien de punta a punta en GitHub Actions — ver detalle en esa misma sesión más abajo (antes
+de "Sesión 2026-08-02"). **El diseño de email de esta sección quedó obsoleto un día después** — ver
+"Sesión 2026-08-02" (Pablo pidió sacar todos los emails del proyecto): el asunto dinámico, el parseo
+de `LISTO_NUEVO` para el cuerpo del mail y el paso "Enviar email" ya no existen en
+`premiere-radar.yml`. Lo que sigue vigente tal cual: el cálculo del episodio target vía MyTrakt, el
+criterio LISTO (cache + subs), y el estado en `data/premiere-radar-state.json`.
+
+### Verificación en GitHub Actions (2026-08-01, misma tarde)
+
+Antes de dar por cerrado el radar se encontró una divergencia real de git: el remoto ya tenía 2
+commits automáticos (`chore(preset): refresh diario de fechas/catálogos`, de `daily-catalog-refresh`
+— workflow que en ese momento todavía no se sabía que existía, ver el hallazgo completo más abajo en
+esta misma sesión) que no estaban en el historial local. Se resolvió con `git rebase origin/main`
+(sin conflictos, archivos distintos) antes de pushear. Con eso hecho, se disparó
+`workflow_dispatch` manualmente (`gh workflow run premiere-radar.yml`) y se lo miró correr con
+`gh run watch`: corrió limpio, reconoció los 14 episodios ya notificados (`[ya avisado]`, sin
+re-notificar), commiteó el estado actualizado, y saltó el paso de email porque no había nada nuevo
+— exactamente el comportamiento esperado un día sin novedades. El único tramo no ejercitado fue el
+envío real del email (nunca se disparó porque no hubo nada nuevo ese run) — igual quedó superado un
+día después al sacarse los emails por completo.
+
+## Sesión 2026-08-02 — Se sacan todos los emails del proyecto, log interno para Claude
+
+Pablo pidió explícitamente ("estoy harto de recibir mails desde este proyecto") eliminar toda
+notificación por email de los 4 workflows automatizados, y en su lugar crear **un log interno que
+solo Claude lea** — diario, para hacer seguimiento de cómo funciona todo, y que sirva de memoria y
+aprendizaje sobre sus gustos/uso para poder sugerir mejoras a futuro.
+
+**Removido, en los 4 workflows** (`health-monitor.yml`, `anti-frustration-review.yml`,
+`daily-catalog-refresh.yml`, `premiere-radar.yml`): el step `dawidd6/action-send-mail@v3` y toda la
+lógica de decidir asunto/cuerpo/destinatario. `GMAIL_APP_PASSWORD` queda sin uso en GitHub Secrets
+(no se borró el secret en sí — es un cambio de configuración de GitHub, no de código; Pablo puede
+borrarlo cuando quiera desde Settings → Secrets, no es urgente ni tiene costo dejarlo).
+
+**Nuevo: `scripts/log-status.mjs`** — reemplaza el email en los 4 workflows. Lee el output completo
+de la corrida por stdin, filtra las líneas de chequeo rutinario (`  ✓ ...`) para no acumular ruido
+pero conserva encabezados/advertencias/errores/resúmenes, y appendea una entrada JSON a
+**`data/internal-log.jsonl`** (`{date, source, status, summary}`), podando automáticamente lo de más
+de 90 días. Cada workflow sigue commiteando+pusheando ese archivo igual que ya hacía con sus otros
+datos (mismo patrón `git add && git commit && git push`), agregando `git pull --rebase origin main`
+antes de cada push nuevo — con 4 workflows tocando `data/` a horarios parecidos (`daily-catalog-
+refresh` 07:00 ART y `premiere-radar` corrido a 07:15 ART a propósito para no pisarse en el mismo
+minuto), el riesgo de carrera de dos pushes casi simultáneos es real aunque bajo; el rebase lo
+absorbe sin intervención.
+
+**Los jobs siguen fallando visualmente en GitHub Actions** (`exit 1` cuando corresponde) — no se
+sacó esa señal, solo el email. Es la forma de detectar problemas ahora: `gh run list --workflow=
+<nombre>.yml` o mirar la pestaña Actions. Documentado como hábito de arranque de sesión (ver memoria
+`reference_internal_log`).
+
+**Migración de memoria (hallazgo aparte, mismo día)**: la memoria persistente de Pablo (gustos,
+reglas de trabajo tipo "no usar AskUserQuestion", "push+apply siempre", etc.) vivía guardada bajo la
+ruta VIEJA del proyecto (`C--Github-MejoraStremio`, antes de moverlo a `Herramientas/`) — dejó de
+cargarse sola hace varias sesiones sin que nadie lo notara, porque el path cambió y la memoria queda
+indexada por path exacto. Migrada a la ruta actual, con los datos técnicos ya obsoletos (UUIDs,
+conteos de addons de julio) recortados a favor de lo que ya documenta este archivo con más detalle
+y vigencia — se conservó el contenido de comportamiento/gustos, que es lo que no se deriva solo de
+leer el repo. Ver memoria `reference_internal_log` para el mecanismo pensado a partir de ahora:
+Claude debe leer `data/internal-log.jsonl` al arrancar sesiones futuras de este proyecto y, cuando
+note un patrón real (no un solo dato suelto), volcarlo a memoria persistente — no todos los días,
+solo cuando haya señal genuina.
+
+**Verificación**: `node scripts/log-status.mjs` probado localmente con output real de
+`health-check.mjs` — filtra correctamente las líneas `✓` rutinarias y conserva `⚠`/`✅`/encabezados.
+Los 4 workflows quedaron sin ninguna referencia a `action-send-mail`/`GMAIL_APP_PASSWORD`
+(confirmado con `grep -r` sobre `.github/workflows/`). No se disparó `workflow_dispatch` de los 4
+en esta sesión para confirmar en vivo — recomendable revisarlo en el primer disparo real de cada uno
+(mañana temprano para los 3 diarios, el domingo para antifrustración).
 
 ## Reglas del repo
 

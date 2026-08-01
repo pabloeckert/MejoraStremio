@@ -2,9 +2,12 @@ name: health-monitor
 
 on:
   schedule:
-    - cron: '0 12 * * *'   # 09:00 Argentina (UTC-3) — alerta solo si falla
-    - cron: '0 0 * * *'    # 21:00 Argentina (UTC-3) — resumen diario siempre
+    - cron: '0 12 * * *'   # 09:00 Argentina (UTC-3)
+    - cron: '0 0 * * *'    # 21:00 Argentina (UTC-3)
   workflow_dispatch:         # disparo manual desde la pestaña Actions
+
+permissions:
+  contents: write
 
 jobs:
   health:
@@ -21,45 +24,22 @@ jobs:
           ST_PASS="${{ secrets.STREMIO_PASS }}" \
           node scripts/health-check.mjs 2>&1 | tee /tmp/health-output.txt
 
-      - name: Decidir si enviar email
-        id: meta
+      - name: Registrar en el log interno
         if: always()
         run: |
-          HOUR=$(date -u +%H)
-          OUTCOME="${{ steps.check.outcome }}"
-          EVENT="${{ github.event_name }}"
-
-          if [ "$OUTCOME" != "success" ]; then
-            EMOJI="FALLA"; RESULT="FALLA"; SEND="true"
-          else
-            EMOJI="OK"; RESULT="OK"
-            # Resumen diario solo en el run de las 00h UTC o si es manual
-            if [ "$HOUR" = "00" ] || [ "$EVENT" = "workflow_dispatch" ]; then
-              SEND="true"
-            else
-              SEND="false"
-            fi
+          STATUS="ok"; [ "${{ steps.check.outcome }}" != "success" ] && STATUS="error"
+          node scripts/log-status.mjs health-monitor "$STATUS" < /tmp/health-output.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/internal-log.jsonl
+          if ! git diff --cached --quiet; then
+            git pull --rebase origin main
+            git commit -m "chore(log): health-monitor $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
           fi
-
-          echo "emoji=$EMOJI"     >> "$GITHUB_OUTPUT"
-          echo "result=$RESULT"   >> "$GITHUB_OUTPUT"
-          echo "send_email=$SEND" >> "$GITHUB_OUTPUT"
-
-      - name: Enviar email
-        if: always() && steps.meta.outputs.send_email == 'true'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: pabloeckert@gmail.com
-          password: ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject: "[${{ steps.meta.outputs.emoji }}] MejoraStremio Health — ${{ steps.meta.outputs.result }}"
-          to: pabloeckert@gmail.com
-          from: "MejoraStremio <pabloeckert@gmail.com>"
-          body: file:///tmp/health-output.txt
 
       - name: Fallar job si health check falló
         if: always() && steps.check.outcome == 'failure'
         run: |
-          echo "Health check falló — ver output arriba"
+          echo "Health check falló — ver data/internal-log.jsonl o el output de arriba"
           exit 1

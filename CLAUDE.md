@@ -160,10 +160,11 @@ Latest, Top Rated, géneros, plataformas + Top 10 FlixPatrol, décadas), 15 paí
 Brasil, Perú, EE.UU., Canadá + Oceanía), **7 países de Asia** con filtro de calidad (Japón, Corea,
 China, Taiwán, Tailandia, Hong Kong, India — `vote_count.gte` alto + `vote_average.gte=7`),
 "Próximos Estrenos", "En Cartelera", y búsqueda por título y por actor. **Idioma TMDB: `es`** (sinopsis
-y títulos en español). **Inicio curado (opción A)**: solo En Cartelera + Próximos Estrenos + Tendencias
-(Trending/Latest/Top Rated/Best 2020s) tienen `showInHome=true`; géneros, países, décadas y
-plataformas quedan en `enabled=true` pero fuera del inicio (navegables en Descubrir). Trakt y Simkl
-conectados. **Streams** (idx 2-7 desde el reorden de MyTrakt del 2026-07-12 — antes idx 3-8;
+y títulos en español). **Home ampliado (2026-08-02, reemplaza "Inicio curado opción A" del
+2026-06-19)**: `showInHome=true` en 114 catálogos, orden fijo Próximos Estrenos → En Cartelera →
+Streaming (plataformas+Top10) → Género → País → Región (Latinoamérica) — ver "Sesión 2026-08-02
+(tarde)" más abajo para el detalle completo. Trending/Latest/Top Rated/Best 2020s **fuera del
+inicio** a pedido explícito de Pablo ("Trending no me interesa más"). Trakt y Simkl conectados. **Streams** (idx 2-7 desde el reorden de MyTrakt del 2026-07-12 — antes idx 3-8;
 **reordenados originalmente 2026-07-11** al integrar TorBox — ver
 `## TorBox (debrid activo)` más abajo, que supera al perfil temporal CGNAT de 2026-07-09):
 Torrentio (idx 2, **TorBox** como debrid — 24 proveedores habilitados, se agregaron
@@ -1922,12 +1923,101 @@ Claude debe leer `data/internal-log.jsonl` al arrancar sesiones futuras de este 
 note un patrón real (no un solo dato suelto), volcarlo a memoria persistente — no todos los días,
 solo cuando haya señal genuina.
 
-**Verificación**: `node scripts/log-status.mjs` probado localmente con output real de
-`health-check.mjs` — filtra correctamente las líneas `✓` rutinarias y conserva `⚠`/`✅`/encabezados.
-Los 4 workflows quedaron sin ninguna referencia a `action-send-mail`/`GMAIL_APP_PASSWORD`
-(confirmado con `grep -r` sobre `.github/workflows/`). No se disparó `workflow_dispatch` de los 4
-en esta sesión para confirmar en vivo — recomendable revisarlo en el primer disparo real de cada uno
-(mañana temprano para los 3 diarios, el domingo para antifrustración).
+**Verificación**: `node scripts/log-status.mjs` probado localmente, filtra correctamente. Los 4
+workflows quedaron sin ninguna referencia a `action-send-mail`/`GMAIL_APP_PASSWORD` (confirmado con
+`grep -r`). **Disparados los 4 vía `workflow_dispatch` más tarde la misma sesión**: el primer intento
+de `health-monitor` falló con `git pull --rebase` porque el paso hacía `git add` antes del `pull
+--rebase` (git no permite rebasear con cambios ya en el índice sin commitear) — corregido el orden a
+`commit → pull --rebase → push` en los 4 workflows, y las 4 re-corridas siguientes (`health-monitor`,
+`anti-frustration-review`, `premiere-radar`, `daily-catalog-refresh`) terminaron verdes, cada una
+appendeando su entrada a `data/internal-log.jsonl` sin pisarse entre sí.
+
+## Sesión 2026-08-02 (tarde) — Revisión de punta a punta + home ampliado + fix Próximos Estrenos
+
+Pablo pidió una revisión completa y un plan de mejoras, con 4 objetivos explícitos: (1) tener todos
+los estrenos y series con catálogo al día, (2) que todo reproduzca rápido con un clic, (3) subtítulos
+por default en español latino, (4) reordenar el inicio a Estreno → En Cartelera → Streams → Género →
+País → Región, sacando Trending. Pidió ejecutar en modo autónomo ("haz el plan y ejecuta... vuelvo y
+quiero ver que esté todo hecho").
+
+**Hallazgo real, no cosmético — "Próximos Estrenos" venía vacío hacía semanas**: el `⚠ 2/10
+catálogos vacíos: Próximos Estrenos, Próximos Estrenos (Series)` que aparecía en CADA health-check
+de las últimas sesiones (no un blip puntual) tenía causa de fondo: los catálogos de estrenos
+FUTUROS llevaban `vote_count.gte: 5`, un filtro que tiene sentido para contenido YA estrenado (En
+Cartelera) pero que vacía por completo cualquier catálogo de títulos que todavía no se estrenaron —
+nadie los vota todavía. Se sacó `vote_count.gte` de los 4 catálogos de fecha (Próximos Estrenos
+movie/series, En Cartelera movie/series), dejando el piso de `with_runtime.gte` (45min película/
+15min serie) como único filtro anti-basura — es el que de verdad frenaba el problema real de 2026-07-12
+("My Best Friend", entrada fantasma de 2min). Se probó agregar además `popularity.gte:5` para
+filtrar contenido extremadamente nicho (títulos chinos/árabes de baja relevancia que aparecían al
+tope una vez sacado el filtro de votos) — **el parámetro no tuvo ningún efecto medible** (mismos
+resultados con y sin él, TMDB Discover no lo está acotando de forma perceptible a ese umbral) — se
+dejó puesto de todas formas por si ayuda en el margen, pero no se puede afirmar que esté filtrando
+nada hoy. Verificado en vivo: "Próximos Estrenos" pasó de 0 a 19-20 resultados reales.
+
+**Hallazgo colateral, no resuelto — "Próximos Estrenos (Series)" y "En Cartelera (Series)" devuelven
+resultados casi idénticos** pese a tener ventanas de fecha opuestas (una futura ascendente, otra
+pasada descendente). Hipótesis más probable: a diferencia de una película (fecha de estreno única),
+una serie "en emisión" no tiene un evento de estreno discreto — shows con episodios diarios/
+semanales conviven en ambas ventanas alrededor de la fecha de hoy. No parece un bug de nuestro
+config sino una limitación conceptual de mapear "estreno"/"cartelera" a series vía TMDB Discover por
+fecha. No se investigó más a fondo por tiempo — anotado para revisar si Pablo nota que las dos filas
+de series se ven muy parecidas.
+
+**Nuevo catálogo: "En Cartelera (Series)"** (`tmdb.discover.tv.now_playing.pablo062`) — no existía,
+solo había el equivalente de películas. Espejo de "En Cartelera" (movie) pero con `first_air_date` y
+piso de runtime de 15min. Cubre el pedido de "todas las series", no solo películas.
+
+**Home ampliado a 114 catálogos visibles** (antes 11, "Inicio curado opción A" del 2026-06-19,
+ver arriba) — orden exacto pedido por Pablo: Próximos Estrenos(2) → En Cartelera(2) →
+Streaming/Top10(41, dentro de AIOMetadata) → Género(30: 19 de película + 11 de serie) → País(41:
+todos los países habilitados, individualmente) → Región(2: Latinoamérica). **Trending, Latest,
+Top Rated y Best of 2020s sacados del inicio** (`showInHome=false`, quedan `enabled=true` y
+navegables en Descubrir) — interpretación: como Pablo dio una lista cerrada de categorías para el
+inicio y solo nombró "Trending" como explícitamente no deseado, se tomó su lista como exhaustiva en
+vez de sumar Trending/Latest/etc. por fuera de ella. Si prefiere que Latest/Top Rated vuelvan al
+inicio, es un cambio de una línea (`showInHome: true` + regenerar).
+
+**Nota honesta sobre "todos los estrenos" ampliado**: sin ningún piso de calidad más allá del
+runtime, la cobertura ahora es real pero también trae contenido muy nicho (WWE SummerSlam, series
+chinas/árabes de bajísimo perfil) mezclado con estrenos grandes — es el costo directo de "quiero
+TODOS los estrenos" en vez de una curación editorial. No se filtró más porque Pablo pidió
+explícitamente amplitud sobre curación; si en la práctica se siente como demasiado ruido, es
+reversible sumando un piso de popularidad real (el que se probó no tuvo efecto, haría falta
+investigar un umbral que sí pegue, o filtrar por país/idioma de origen).
+
+**Auditoría de `scripts/audit-catalog-order.mjs`**: sigue funcionando pero su clasificación interna
+de categorías ("Plataformas y Top 10 (al fondo)", "Otros") quedó desactualizada para el nuevo
+esquema Género/País/Región — etiqueta mal las filas (llama "Plataformas" a los géneros, "Otros" a
+los países) aunque el ORDEN real que reporta es correcto. Es cosmético, no se corrigió por acotar
+el alcance de esta sesión — pendiente si se usa seguido este script.
+
+**Subtítulos por default en español (no "latino" específico) — investigado con evidencia, límite
+real confirmado por API**: Stremio SÍ tiene un ajuste real "Default Subtitles Language" en la app
+(cliente, sincronizable por cuenta según la documentación de `stremio-web`) que auto-selecciona el
+primer subtítulo que matchee ese idioma. Se intentó setearlo por API contra la cuenta real
+(`datastoreGet` con colecciones `settings`/`userSettings`/`profile`) — **la API devuelve `{"error":
+{"code":5992,"message":"Sync disabled"}}` en los 3 intentos**: el sync de settings vía API está
+deshabilitado para esta cuenta/deployment, no hay forma de fijarlo de forma remota. **Acción
+pendiente de Pablo, un solo toque**: en el TV box, Stremio → Configuración → Subtítulos → Idioma por
+defecto → Español. Con eso alcanza para "español por default". La variante **"latino" específica
+sigue siendo estructuralmente imposible** (límite ya documentado extensamente arriba, en
+"Subtítulos, variante latino vs. España" — ningún addon de subs distingue la variante en su campo
+`lang`, solo a veces en el nombre de archivo, no filtrable) — no hay nada nuevo que cambie esa
+conclusión, se re-confirmó en vez de asumirla.
+
+**Streams "clic y anda"**: no se tocó nada de Torrentio/Comet/TorBox esta sesión (fuera de alcance
+del pedido de catálogos) — se re-verificó con un spot-check en vivo que el top-5 de Torrentio para
+Matrix sigue siendo 100% `[TB+]` (cacheado), consistente con la auditoría exhaustiva ya hecha el
+2026-07-25. Nada que mejorar ahí sin tocar streams, que Pablo no pidió tocar esta vez.
+
+**Verificación real contra la cuenta**: `health-check.mjs` verde de punta a punta — el warning
+crónico de catálogos vacíos que aparecía en TODAS las corridas anteriores **desapareció** (10/10
+catálogos muestreados con contenido, antes 8/10). `test-content.mjs` sin regresiones. Backup:
+`.backups/backup-stremioeg-preregen-2026-08-01T23-32-05-415Z.json` (antes del primer regen) y
+`.backups/backup-stremioeg-preregen-2026-08-01T23-33-39-402Z.json` (antes del segundo, por el ajuste
+de popularity). Instancia final: `c41b805f-233c-4903-9f59-bbcd25c6095f`, 0 catálogos perdidos, 1
+ganado ("En Cartelera (Series)").
 
 ## Reglas del repo
 

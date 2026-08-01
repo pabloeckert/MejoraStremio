@@ -11,14 +11,9 @@
     ],
     "isFamily": false,
     "perAddon": {
-      "MyTrakt Sync | ElfHosted": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
-      },
       "Torrentio": {
-        "total": 5,
-        "real": 0,
+        "total": 7,
+        "real": 2,
         "unverifiable": false
       },
       "Comet": {
@@ -42,27 +37,42 @@
         "unverifiable": false
       },
       "Meteor": {
-        "total": 12,
+        "total": 1,
         "real": 0,
         "unverifiable": true
+      },
+      "Latinobrid | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
       },
       "Streailer": {
         "total": 1,
         "real": 1,
         "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
       }
     },
-    "totalReal": 9,
+    "totalReal": 12,
     "status": "resuelto",
     "latino": null,
     "label": "Balthazar S01E01",
     "addedAt": "2026-07-02T21:45:07.179Z",
-    "lastCheckedAt": "2026-07-02T21:50:41.329Z"
+    "lastCheckedAt": "2026-08-01T21:11:02.217Z"
   },
   {
     "id": "tt27763549",
     "type": "movie",
-    "name": "tt27763549",
+    "name": "A Man Like Maximilian",
     "genres": [],
     "isFamily": false,
     "perAddon": {
@@ -92,9 +102,14 @@
         "unverifiable": false
       },
       "Meteor": {
-        "total": 0,
+        "total": 1,
         "real": 0,
         "unverifiable": true
+      },
+      "Latinobrid | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
       },
       "Streailer": {
         "total": 0,
@@ -117,7 +132,7 @@
     "latino": null,
     "label": "Los Mufas: Suerte para la desgracia",
     "addedAt": "2026-07-02T21:47:44.909Z",
-    "lastCheckedAt": "2026-07-26T15:52:22.067Z"
+    "lastCheckedAt": "2026-07-30T14:01:36.347Z"
   },
   {
     "id": "tt5834132",
@@ -154,9 +169,14 @@
         "unverifiable": false
       },
       "Meteor": {
-        "total": 0,
+        "total": 1,
         "real": 0,
         "unverifiable": true
+      },
+      "Latinobrid | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
       },
       "Streailer": {
         "total": 0,
@@ -179,7 +199,7 @@
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-07-26T15:52:34.900Z"
+    "lastCheckedAt": "2026-07-30T14:02:17.639Z"
   },
   {
     "id": "tt2380307",
@@ -832,5 +852,285 @@
     "label": "Brainchild / Obra de tu mente",
     "addedAt": "2026-07-26T00:53:33.600Z",
     "lastCheckedAt": "2026-07-26T00:53:33.600Z"
+  },
+  {
+    "id": "tt38607962",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "Ágata y Lola",
+    "genres": [],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio": {
+        "total": 3,
+        "real": 3,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Latinobrid | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 5,
+    "status": "resuelto",
+    "latino": null,
+    "label": "Ágata y Lola S01E01",
+    "addedAt": "2026-08-01T21:02:32.575Z",
+    "lastCheckedAt": "2026-08-01T21:10:11.827Z"
+  },
+  {
+    "id": "tt14060708",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "HPI Haut Potentiel Intellectuel",
+    "genres": [
+      "Comedy",
+      "Crime",
+      "Mystery"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio": {
+        "total": 13,
+        "real": 13,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 12,
+        "real": 12,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Latinobrid | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 27,
+    "status": "resuelto",
+    "latino": null,
+    "label": "ACI S01E01",
+    "addedAt": "2026-08-01T21:05:29.832Z",
+    "lastCheckedAt": "2026-08-01T21:10:35.604Z"
+  },
+  {
+    "id": "tt29780951",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "Wild Cards",
+    "genres": [
+      "Comedy",
+      "Crime",
+      "Drama"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio": {
+        "total": 16,
+        "real": 16,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 16,
+        "real": 16,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Latinobrid | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 34,
+    "status": "resuelto",
+    "latino": null,
+    "label": "Wild Cards S01E01",
+    "addedAt": "2026-08-01T21:07:30.150Z",
+    "lastCheckedAt": "2026-08-01T21:11:26.504Z"
+  },
+  {
+    "id": "tt29780951",
+    "type": "series",
+    "season": 1,
+    "episode": 7,
+    "name": "Wild Cards",
+    "genres": [
+      "Comedy",
+      "Crime",
+      "Drama"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio": {
+        "total": 13,
+        "real": 13,
+        "unverifiable": false
+      },
+      "Comet": {
+        "total": 17,
+        "real": 17,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Latinobrid | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 31,
+    "status": "resuelto",
+    "latino": null,
+    "label": "Wild Cards S01E07",
+    "addedAt": "2026-08-01T21:07:49.693Z",
+    "lastCheckedAt": "2026-08-01T21:11:50.642Z"
   }
 ]

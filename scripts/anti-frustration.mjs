@@ -78,6 +78,10 @@ function seedCount(text) {
 function isRealStream(s) {
   const text = `${s.title || ''}\n${s.name || ''}`;
   const seeds = seedCount(text);
+  // [TB+] = ya cacheado en TorBox: se sirve directo desde su servidor, no depende
+  // del swarm P2P vivo, así que un torrent con 👤 0 hoy igual reproduce si TorBox
+  // ya lo tiene guardado (ver "TorBox (debrid activo)" en CLAUDE.md).
+  if (/\[TB\+\]/.test(s.name || '')) return true;
   return seeds === null || seeds > 0; // null = addon HTTP sin contador de seeds
 }
 function findLatino(streams) {

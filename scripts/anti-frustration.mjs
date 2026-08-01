@@ -26,6 +26,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { isUtilityStream, isRealStream } from './lib/addon-signals.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -64,26 +65,6 @@ function saveLog(log) {
   writeFileSync(LOG_PATH, JSON.stringify(log, null, 2) + '\n');
 }
 
-// MyTrakt Sync devuelve "streams" que en realidad son botones de acción
-// (Mark Watched / Add to Watchlist / etc, un mp4 de 27KB) para el scrobbling,
-// no contenido real — hay que descartarlos antes de contar nada.
-function isUtilityStream(s) {
-  return /^mytrakt-/.test(s.behaviorHints?.bingeGroup || '') || /\[MyTrakt\]/.test(s.name || '');
-}
-
-function seedCount(text) {
-  const m = String(text || '').match(/👤\s*([\d,.]+)/);
-  return m ? parseInt(m[1].replace(/[,.]/g, ''), 10) : null;
-}
-function isRealStream(s) {
-  const text = `${s.title || ''}\n${s.name || ''}`;
-  const seeds = seedCount(text);
-  // [TB+] = ya cacheado en TorBox: se sirve directo desde su servidor, no depende
-  // del swarm P2P vivo, así que un torrent con 👤 0 hoy igual reproduce si TorBox
-  // ya lo tiene guardado (ver "TorBox (debrid activo)" en CLAUDE.md).
-  if (/\[TB\+\]/.test(s.name || '')) return true;
-  return seeds === null || seeds > 0; // null = addon HTTP sin contador de seeds
-}
 function findLatino(streams) {
   const matches = [];
   for (const s of streams) {

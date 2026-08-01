@@ -24,6 +24,8 @@ data/test-content.json              Lista curada de contenido de nicho (series/p
                                     2020-hoy) con IMDb ids; insumo de test-content.mjs.
 data/anti-frustration-log.json      Registro de títulos que "no abren" (streams sin cobertura real)
                                     y su estado; ver scripts/anti-frustration.mjs abajo.
+data/premiere-radar-state.json      Estado del radar de estrenos (próximo episodio no visto por
+                                    show + si ya se avisó) — ver scripts/premiere-radar.mjs abajo.
 scripts/health-check.mjs            Auditoría de la cuenta y los addons (ver abajo).
 scripts/anti-frustration.mjs        Registra/revisa títulos sin streams reales (add/review/list) y
                                     detecta audio latino en contenido familiar/infantil. Ver abajo.
@@ -65,6 +67,13 @@ scripts/install-addon.mjs           Instala un addon NUEVO (manifest.id que no e
                                     <otro.manifest.id>). A diferencia de reorder-addons.mjs/
                                     update-addon-url.mjs, que solo tocan addons ya presentes.
                                     Guard + backup antes de aplicar.
+scripts/premiere-radar.mjs          Calcula el próximo episodio no visto de cada show en progreso/
+                                    watchlist en MyTrakt Sync y avisa por email la primera vez que
+                                    ese episodio tiene stream cacheado en TorBox + subtítulo ES real.
+                                    Estado en data/premiere-radar-state.json. Ver "Sesión 2026-08-01".
+scripts/lib/addon-signals.mjs       Heurísticas compartidas sobre streams/subtítulos crudos
+                                    (cacheado en TorBox, stream "real", idioma español) — usado por
+                                    anti-frustration.mjs y premiere-radar.mjs, no reescribir por script.
 scripts/deno-hub.ts                 App consolidada de Deno Deploy (`mejorastremio-hub`, config en
                                     deno.jsonc): un Deno.serve con router por prefijo que
                                     reimplementa inline deno-subdl-addon.ts (/subdl/*),
@@ -92,6 +101,7 @@ node scripts/refresh-dates.mjs --check            # audita si las fechas de En C
 SUBDL_KEY=... node scripts/test-subdl.mjs         # mide cobertura de subs SubDL sin SDH
 ST_EMAIL=... ST_PASS=... node scripts/anti-frustration.mjs list    # resumen del log antifrustración
 ST_EMAIL=... ST_PASS=... node scripts/anti-frustration.mjs review  # re-chequea títulos "pendiente"
+ST_EMAIL=... ST_PASS=... node scripts/premiere-radar.mjs           # próximo episodio no visto por show: ¿ya está listo?
 ```
 
 **Escritura contra la cuenta real** (todos son dry-run por defecto; agregar `--apply` para escribir.
@@ -529,13 +539,14 @@ depende de que Windows esté prendido.
 |---|---|---|
 | keep-warm (AIOMetadata) | Pingea el manifest cada 20 min para evitar cold start | GitHub Actions (`.github/workflows/keep-warm.yml`) |
 | health-monitor | Health-check 2×/día; email diario + alerta inmediata si falla | GitHub Actions (`.github/workflows/health-monitor.yml`) |
-| SubDL addon (subs ES sin SDH) | Proxy SubDL filtrando hi=true | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/subdl`) — **caído, ver "Sesión 2026-07-28"** |
+| SubDL addon (subs ES sin SDH) | Proxy SubDL filtrando hi=true | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/subdl`) — **recuperado, ver "Sesión 2026-08-01"** |
 | AIOMetadata catálogos | ~132 catálogos TMDB Discover (idioma `es`) | ElfHosted (UUID en `preset.json → instanceId`) |
 | MyTrakt Sync recomendaciones | Watchlist/Recommended/Trending/Popular vía Trakt | ElfHosted (UUID `13e948e9-...` en manifest) |
 | SubMaker subs ES | Subs SubDL sin SDH, en la nube | ElfHosted (`submaker.elfhosted.com`) |
-| Audio Latino (verificado) | Catálogo de familiar/infantil con audio latino confirmado | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/latino`) — **caído, ver "Sesión 2026-07-28"** |
-| MejoraStremio Synopsis IA | Enriquece sinopsis cortas/en inglés vía Gemini/OpenRouter | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/synopsis`) — **caído, ver "Sesión 2026-07-28"** |
+| Audio Latino (verificado) | Catálogo de familiar/infantil con audio latino confirmado | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/latino`) — **recuperado, ver "Sesión 2026-08-01"** |
+| MejoraStremio Synopsis IA | Enriquece sinopsis cortas/en inglés vía Gemini/OpenRouter | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/synopsis`) — **recuperado, ver "Sesión 2026-08-01"** |
 | Antifrustración | Revisión semanal de títulos sin streams reales | GitHub Actions (`.github/workflows/anti-frustration-review.yml`) |
+| Radar de estrenos | Avisa por email cuando el próximo episodio no visto de un show ya tiene stream cacheado + sub ES | GitHub Actions (`.github/workflows/premiere-radar.yml`) |
 
 ### health-monitor — GitHub Actions (2026-07-01)
 
@@ -1725,6 +1736,92 @@ regresiones (Matrix 208, Breaking Bad 203, Will Trent 66).
   TV/ITVX/Sky Go/BBC iPlayer/Channel 4), documentales (Curiosity Stream/MagellanTV/Discovery+),
   holandeses (Videoland/NLZIET), 7 países de Asia habilitados en AIOMetadata (Japón/Corea/China/
   Taiwán/Tailandia/Hong Kong/India) — ¿cuáles se usan de verdad?
+
+## Sesión 2026-08-01 — Radar de estrenos listos (feature nueva) + Deno Hub recuperado
+
+Pedido en modo autónomo ("una sola pasada", sin consultas salvo bloqueo real de credenciales/
+dinero — ninguno se dio, toda la sesión fue posible sin plata ni credenciales nuevas). Antes de
+construir, diagnóstico puntual de 4 títulos reportados como "no anda" (Ágata y Lola, ACI,
+Balthazar, Wild Cards) que quedó documentado por separado en el log de conversación — resultado:
+los 4 tenían streams reales, los problemas eran de otro tipo (episodio no estrenado, subs
+desincronizados por matching sin hash, o ausencia total de subs ES pre-hechos). De paso se corrigió
+un bug real en `anti-frustration.mjs`: contaba como "no real" cualquier stream con `👤 0` seeds,
+ignorando que un stream `[TB+]` (ya cacheado en TorBox) reproduce igual porque no depende del swarm
+vivo — ver commit `81a58d1`.
+
+**Deno Hub (`mejorastremio-hub`) recuperado**: el outage por `BILLING_SUSPENDED` documentado en
+"Sesión 2026-07-28" ya no está — `health-check.mjs` confirmó `SubDL ES (sin SDH)` respondiendo con
+subs reales (3-6 según título) y los manifests de Synopsis IA/Audio Latino en v1.0.0. No se tocó
+nada de nuestro lado — Pablo debe haber resuelto el billing en el dashboard de Deno en algún
+momento entre el 2026-07-28 y hoy, sin quedar registrado en ningún log de sesión. `KNOWN_FLAKY` en
+`health-check.mjs` todavía tiene los 3 nombres del hub — se dejó así a propósito (degradar a `⚠` en
+vez de `✗` no genera ningún falso positivo ahora que andan bien; sacarlos de la lista no es
+necesario para que el chequeo sea correcto, así que no se tocó sin que Pablo lo pida).
+
+### Radar de estrenos listos — `scripts/premiere-radar.mjs` + `.github/workflows/premiere-radar.yml`
+
+**Objetivo**: avisar por email la primera vez que el próximo episodio no visto de un show en
+progreso está realmente listo para ver (no solo "estrenado"), para no tener que entrar a Stremio a
+mano a revisar si ya hay stream/subs.
+
+**Fuente de "próximo episodio no visto" — hallazgo clave, sin necesidad de tokens de Trakt**:
+`MyTrakt Sync` (ElfHosted) expone en su propio endpoint `meta/series/<imdbId>.json` un campo
+`watched: true/false` por episodio, ya sincronizado con Trakt server-side — no hace falta la API de
+Trakt ni sus tokens (que ni siquiera son accesibles desde acá, ver "AIOMetadata — reconstruir/editar
+la instancia" más arriba sobre por qué los tokens viven server-side). El script arma la lista de
+shows a vigilar combinando los catálogos `continue_watching_shows` + `watchlist_shows` del propio
+MyTrakt (deduplicados por `imdb_id`), y para cada uno calcula el primer episodio con `watched !==
+true` ordenado por temporada/número — ese es el target.
+
+**Criterio "LISTO" (ambos, no uno solo)**:
+1. **Cacheado en TorBox**: al menos un stream de Torrentio o Comet para ese episodio puntual con el
+   marcador `[TB+]`/`[TB⚡]` (mismo criterio ya usado en el sort friction-zero y ahora también en
+   `anti-frustration.mjs` — ver bug fix de arriba). Reusa `isCachedStream()`.
+2. **Subtítulo ES real**: al menos un resultado con `lang` que empiece con `es`/`spa` en alguna de
+   las 5 fuentes de subs activas (SubSense, SubMaker, SubDL, OpenSubtitles v3, Stremio Community
+   Subtitles). A propósito **no** cuenta la traducción automática bajo demanda de SubMaker (aparece
+   con `lang: "Make Spanish (Latin America)"`, no un código ISO real) — eso es una promesa de
+   traducción futura, no un subtítulo ya hecho; contarla generaría falsos "LISTO".
+
+Si el episodio target todavía no se estrenó (`released`/`firstAired` > hoy), queda "pendiente" sin
+gastar requests en streams/subs. Si ya se estrenó pero falla alguno de los dos chequeos, también
+"pendiente" — se re-chequea al día siguiente, sin avisar nada (cero spam de falsos positivos).
+
+**Refactor de paso, no opcional**: `isUtilityStream`/`isRealStream` vivían duplicadas dentro de
+`anti-frustration.mjs`. Se extrajeron a `scripts/lib/addon-signals.mjs` junto con las funciones
+nuevas (`isCachedStream`, `isSpanishLang`) para que ambos scripts compartan la misma lógica en vez
+de reimplementarla — mismo patrón de `scripts/lib/collection-guard.mjs`. `anti-frustration.mjs`
+ahora importa del lib; comportamiento verificado idéntico post-refactor (`node scripts/
+anti-frustration.mjs list` sin cambios).
+
+**Estado persistido en `data/premiere-radar-state.json`** (array, un registro por show con su
+episodio target actual): guarda `status`, `lastCheckedAt` y `notifiedAt`. Solo se manda email la
+primera vez que un episodio pasa a "listo" (`notifiedAt` null → se completa y no se vuelve a
+avisar); verificado corriendo el script dos veces seguidas contra la cuenta real — la segunda
+corrida no generó ninguna línea `LISTO_NUEVO`, todo quedó marcado `[ya avisado]`.
+
+**Primer chequeo real contra la cuenta** (17 shows en `continue_watching_shows`, 0 en
+`watchlist_shows`): 14 episodios pasaron a LISTO en la primera corrida (esperable — primera vez que
+corre, todo lo que ya estaba disponible se notifica de una sola vez), 3 pendientes (`Mentiras, The
+Series`, `Time Flies`: cache OK pero sin sub ES todavía; `Los mufas: suerte para la desgracia`: ni
+cache ni subs — coincide con el hueco estructural ya documentado de contenido exclusivo Netflix
+Argentina), 0 sin estrenar.
+
+**Workflow — horario**: cron diario a las **07:00 Argentina (10:00 UTC)**, elegido para correr antes
+de los dos horarios de uso típico mencionados por Pablo al pedir la feature (~11h y ~23h) — así, si
+algo pasa a LISTO, el email ya está en la bandeja antes de la primera sesión de mirar del día.
+Mismo patrón que `anti-frustration-review.yml`: corre el script, commitea `premiere-radar-state.json`
+solo si cambió, y manda un solo email por corrida con TODOS los episodios recién listos (no uno por
+episodio — evita spam si varios shows se destraban el mismo día), extrayendo el resumen de las
+líneas `LISTO_NUEVO` que el script imprime al final (mismo mecanismo de parseo por líneas que ya usa
+`health-monitor.yml` para decidir si envía email). Asunto dinámico: nombre+episodio si es uno solo,
+"`N series nuevas`" si son varias.
+
+**No verificado todavía**: la corrida real dentro de GitHub Actions (el workflow se creó y probó
+solo localmente contra la cuenta real vía `node scripts/premiere-radar.mjs`, no se disparó
+`workflow_dispatch` en esta sesión). Si el primer disparo automático (mañana 07:00 ART) falla,
+revisar que los secrets `STREMIO_EMAIL`/`STREMIO_PASS`/`GMAIL_APP_PASSWORD` (ya usados por los otros
+2 workflows) alcancen sin cambios — no debería hacer falta ninguno nuevo.
 
 ## Reglas del repo
 

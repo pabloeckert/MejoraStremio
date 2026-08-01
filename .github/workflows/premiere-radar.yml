@@ -1,0 +1,67 @@
+name: premiere-radar
+
+# 07:00 Argentina (UTC-3) — antes de los dos horarios de uso típico documentados en CLAUDE.md
+# (~11h y ~23h): corre bien temprano para que, si algo pasa a LISTO, el email ya esté en la
+# bandeja de entrada antes de la primera sesión de mirar del día.
+on:
+  schedule:
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chequear próximos episodios
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/premiere-radar.mjs 2>&1 | tee /tmp/radar-output.txt
+
+      - name: Commitear el estado actualizado
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/premiere-radar-state.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(premiere-radar): actualizar estado diario"
+            git push
+          fi
+
+      - name: Armar el resumen para el email
+        id: meta
+        run: |
+          grep '^LISTO_NUEVO' /tmp/radar-output.txt > /tmp/radar-listos.txt || true
+          COUNT=$(wc -l < /tmp/radar-listos.txt | tr -d ' ')
+          awk -F'|' '{gsub(/^ +| +$/,"",$2); gsub(/^ +| +$/,"",$3); gsub(/^ +| +$/,"",$4); printf "%s — %s — \"%s\"\n", $2, $3, $4}' /tmp/radar-listos.txt > /tmp/radar-email-body.txt
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "send_email=false" >> "$GITHUB_OUTPUT"
+          elif [ "$COUNT" -eq 1 ]; then
+            SHOW=$(awk -F'|' '{gsub(/^ +| +$/,"",$2); print $2}' /tmp/radar-listos.txt)
+            EP=$(awk -F'|' '{gsub(/^ +| +$/,"",$3); print $3}' /tmp/radar-listos.txt)
+            echo "send_email=true" >> "$GITHUB_OUTPUT"
+            echo "subject=Listo para ver: $SHOW $EP" >> "$GITHUB_OUTPUT"
+          else
+            echo "send_email=true" >> "$GITHUB_OUTPUT"
+            echo "subject=Listo para ver: $COUNT series nuevas" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enviar email
+        if: steps.meta.outputs.send_email == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: pabloeckert@gmail.com
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "${{ steps.meta.outputs.subject }}"
+          to: pabloeckert@gmail.com
+          from: "MejoraStremio <pabloeckert@gmail.com>"
+          body: file:///tmp/radar-email-body.txt

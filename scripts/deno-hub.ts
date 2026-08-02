@@ -14,7 +14,9 @@
  *   /miniseries/manifest.json → Miniseries (1 temporada, ≤10 episodios, finalizada), catálogo
  *   /discover/manifest.json   → Descubrir Maestro (Paso B) — servicio+región+país+idioma+género
  *                                combinables en una sola pantalla, catálogo
- *   /health                   → estado de las 5 sub-funciones (config presente)
+ *   /ufc/manifest.json        → MMA / UFC (curado) — catálogo fijo para perfil fan de UFC
+ *                                (cuenta stremiojn, ver cuentas/stremiojn/CLAUDE.md), catálogo
+ *   /health                   → estado de las 6 sub-funciones (config presente)
  *
  * Deploy: deno.com/deploy → conectar repo pabloeckert/MejoraStremio →
  *   entry point: scripts/deno-hub.ts
@@ -296,6 +298,58 @@ async function handleLatino(subPath: string): Promise<Response> {
       })),
     );
 
+    return jsonResponse({ metas });
+  }
+
+  return new Response("Not found", { status: 404, headers: cors });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ── /ufc — MMA / UFC (curado), catálogo ────────────────────────────────
+// Lista fija (no depende de ningún archivo de datos) — perfil fan de UFC/MMA:
+// realities de captación de talento UFC, drama de gimnasio de MMA y wrestling.
+// IDs de IMDb verificados vía TMDB/búsqueda real, no adivinados (ver
+// cuentas/stremiojn/CLAUDE.md para el detalle de la curación).
+// ════════════════════════════════════════════════════════════════════════
+
+const UFC_MANIFEST = {
+  id: "com.mejorastremio.ufc-catalog",
+  version: "1.0.0",
+  name: "MMA / UFC (curado)",
+  description:
+    "Catálogo curado para perfil fan de UFC: realities de captación de talento MMA " +
+    "(Dana White's Contender Series, The Ultimate Fighter), drama de gimnasio de MMA " +
+    "(Kingdom, Cobra Kai), reality de aptitud física (Physical: 100) y wrestling (WWE Raw/SmackDown).",
+  resources: ["catalog"],
+  types: ["series"],
+  idPrefixes: ["tt"],
+  catalogs: [{ type: "series", id: "ufc-series", name: "MMA / UFC (curado)" }],
+};
+
+const UFC_TITLES: { id: string; name: string }[] = [
+  { id: "tt10845410", name: "Dana White's Contender Series" },
+  { id: "tt0445912", name: "The Ultimate Fighter" },
+  { id: "tt3673794", name: "Kingdom" },
+  { id: "tt7221388", name: "Cobra Kai" },
+  { id: "tt25274446", name: "Physical: 100" },
+  { id: "tt0185103", name: "WWE Raw" },
+  { id: "tt0227972", name: "WWE SmackDown" },
+];
+
+async function handleUfc(subPath: string): Promise<Response> {
+  if (subPath === "/manifest.json") {
+    return jsonResponse(UFC_MANIFEST);
+  }
+
+  if (subPath === "/catalog/series/ufc-series.json") {
+    const metas = await Promise.all(
+      UFC_TITLES.map(async (t) => ({
+        id: t.id,
+        type: "series",
+        name: t.name,
+        poster: await posterFor(t.id, "series"),
+      })),
+    );
     return jsonResponse({ metas });
   }
 
@@ -957,6 +1011,7 @@ function handleHealth(): Response {
     },
     miniseries: { configured: !!TMDB_KEY },
     discover: { configured: !!TMDB_KEY },
+    ufc: { configured: true },
   });
 }
 
@@ -982,6 +1037,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           "/synopsis/manifest.json",
           "/miniseries/manifest.json",
           "/discover/manifest.json",
+          "/ufc/manifest.json",
           "/health",
         ],
       });
@@ -1008,6 +1064,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       route = "discover";
       const subPath = path.slice("/discover".length) || "/";
       res = await handleDiscover(subPath);
+    } else if (path.startsWith("/ufc")) {
+      route = "ufc";
+      const subPath = path.slice("/ufc".length) || "/";
+      res = await handleUfc(subPath);
     } else {
       res = new Response("Not found", { status: 404, headers: cors });
     }

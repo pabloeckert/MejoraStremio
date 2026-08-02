@@ -19,6 +19,12 @@ Vite, deploy a GitHub Pages, etc.): Pablo gestiona el setup por terminal, no usa
 sitio `pabloeckert.github.io/MejoraStremio` se despublicó. El historial de git conserva la versión
 SPA si alguna vez hiciera falta.
 
+**Cuentas gestionadas por este repo**: además de la principal (`stremioeg@gmail.com`, documentada en
+todo este archivo), desde el 2026-08-02 también se gestiona una segunda cuenta —
+`stremiojn@gmail.com` ("Joaquín") — con su propio historial y documentación en
+`cuentas/stremiojn/CLAUDE.md` (complementario a este archivo, no lo duplica). Cualquier trabajo sobre
+esa cuenta puntual va documentado ahí, no acá.
+
 ## Estructura
 
 ```

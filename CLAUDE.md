@@ -1772,13 +1772,14 @@ pida.
 regresiones (Matrix 208, Breaking Bad 203, Will Trent 66).
 
 **Pendiente — requiere a Pablo confirmar en bloque (depuración "moderada", ver punto 3)**:
-- Streaming Catalogs (30 servicios) vs. los 9 `streaming.*`/`flixpatrol.*` de AIOMetadata:
-  ¿cuál fuente mantener para los 9 que se solapan (Netflix/Disney+/Prime/HBO Max/Paramount+/Hulu/
-  Peacock/Apple TV+/Starz)?
+- ✅ **RESUELTO 2026-08-02**: Streaming Catalogs (30 servicios) vs. los 9 `streaming.*`/`flixpatrol.*`
+  de AIOMetadata — se sacaron los `streaming.*` de AIOMetadata (peor calidad, ver "Sesión 2026-08-02
+  (noche)"), se conservan los `flixpatrol.*` (función distinta) y "Streaming Catalogs" queda como
+  fuente única de browse por plataforma.
 - Bloques de Streaming Catalogs que Pablo marcó como candidatos a revisar: nicho UK (BritBox/Acorn
   TV/ITVX/Sky Go/BBC iPlayer/Channel 4), documentales (Curiosity Stream/MagellanTV/Discovery+),
   holandeses (Videoland/NLZIET), 7 países de Asia habilitados en AIOMetadata (Japón/Corea/China/
-  Taiwán/Tailandia/Hong Kong/India) — ¿cuáles se usan de verdad?
+  Taiwán/Tailandia/Hong Kong/India) — ¿cuáles se usan de verdad? **Sigue sin resolver.**
 
 ## Sesión 2026-08-01 — Radar de estrenos listos (feature nueva) + Deno Hub recuperado
 
@@ -2035,6 +2036,59 @@ catálogos muestreados con contenido, antes 8/10). `test-content.mjs` sin regres
 `.backups/backup-stremioeg-preregen-2026-08-01T23-33-39-402Z.json` (antes del segundo, por el ajuste
 de popularity). Instancia final: `c41b805f-233c-4903-9f59-bbcd25c6095f`, 0 catálogos perdidos, 1
 ganado ("En Cartelera (Series)").
+
+### Sesión 2026-08-02 (noche) — 3 pendientes cerrados: dedup streaming, Latinobrid fuera, Jikan
+
+Pablo pidió resolver de una los 3 puntos que había quedado pendientes de sugerir: la duplicación de
+Streaming Catalogs vs. AIOMetadata, sacar Latinobrid, y adelantarse al cierre de Jikan.
+
+**1. Dedup Streaming — resuelto con evidencia, no a ojo**: antes de decidir qué fuente sacar, se
+comparó contenido real de las dos para Netflix: `streaming.nfx` de AIOMetadata devolvía **20
+títulos, todos estrenos recientísimos de 2026** (parece un discover por fecha, no un browse real del
+catálogo); el addon separado **"Streaming Catalogs" devolvió 99 títulos**, incluyendo clásicos de
+catálogo real (The Prestige 2006, Inside Man 2006, Encino Man 1992) — mucho más fiel a "qué hay
+realmente en Netflix". Con el dogma calidad>cantidad, se sacaron del lado de AIOMetadata los 20
+catálogos `streaming.*` que duplican lo que ya cubre mejor "Streaming Catalogs" (nfx/nfk/dnp/amp/
+hbm/pmp/hlu/pcp/atp/sta — Netflix, Netflix Kids, Disney+, Prime Video, HBO Max, Paramount+, Hulu,
+Peacock, Apple TV+, Starz). **Se conservaron** los `flixpatrol.*` (Top 10 charts — función distinta,
+no duplicada, "Streaming Catalogs" no tiene equivalente) y `streaming.cru` (Crunchyroll, único, no
+cubierto por el otro addon).
+  - **Trade-off aceptado y avisado, no escondido**: la sección "Streams" del home (Estreno→Cartelera→
+    **Streams**→Género→País→Región) ahora solo tiene los 18 `flixpatrol.*` Top 10 — el browse
+    completo por plataforma (el de mejor calidad, 99 títulos) vive en el addon "Streaming Catalogs",
+    que por estar en otro addon de la colección (más atrás) no puede interponerse en esa posición
+    exacta del home sin duplicar la instancia de AIOMetadata en dos (partir Estreno/Cartelera de
+    Género/País/Región en dos addons separados) — desproporcionado para esto. Se prioriza calidad +
+    prolijidad (sin duplicar) sobre la posición exacta.
+  - Home pasó de 114 a 96 catálogos visibles.
+
+**2. Latinobrid removido**: `community.latinobrid` (índice 8, addon de un desarrollador chico — 2
+estrellas en GitHub, 1 commit — con la API key real de TorBox cargada en su config) sacado de la
+colección. Backup pre-cambio en `.backups/`, verificado con un `addonCollectionGet` posterior que ya
+no aparece. 23 addons (antes 24).
+
+**3. Jikan/MAL — apagado proactivo**: `mal.search.movie`/`mal.search.series` (motores de búsqueda de
+respaldo, no el proveedor de catálogo de anime — ese es Kitsu, sin tocar) puestos en `false` en
+`aioMetadataConfig.config.search.engineEnabled`. Jikan brownout 2026-09-01, cierre 2026-10-01 — se
+adelantó el apagado en vez de esperar a que se rompa solo. Verificado que la búsqueda general sigue
+funcionando (Matrix por título, Tom Cruise por actor) sin ese motor.
+
+**Bug real encontrado en `regenerate-aiometadata.mjs` al aplicar esto**: el guard anti-pérdida
+funcionó bien (detectó los 18 catálogos que se sacaban a propósito y pidió `--force`, correcto). Pero
+con `--force`, el script reportó **"Swap NO confirmado"** (exit 1) pese a que el `addonCollectionSet`
+sí había aplicado bien — el chequeo de verificación post-escritura (`addonCollectionGet` inmediato
+después del `Set`) dio un falso negativo, probablemente por un delay de propagación del lado de la
+API de Stremio entre escribir y poder leer de vuelta el mismo valor. Confirmado con un
+`addonCollectionGet` manual segundos después: el `transportUrl` nuevo ya estaba aplicado
+correctamente. Se sincronizó `instanceId` en `preset.json` a mano para no dejar drift. **Pendiente
+de robustecer** (no se tocó el script todavía): agregar un pequeño reintento con backoff a esa
+verificación post-`Set` en vez de un solo chequeo inmediato, para no reportar falsos "NO confirmado"
+en corridas futuras — anotado, no bloqueante hoy porque se verificó a mano.
+
+**Verificación final**: `health-check.mjs` verde — 23 addons, sin duplicados, búsqueda OK, streams
+sin regresión (Matrix 157, Breaking Bad 157, Will Trent 62 — bajaron un poco respecto a la sesión
+anterior por la exclusión de 480p/4K, esperado). `test-content.mjs` sin regresiones en los 14
+títulos de nicho. Instancia final de AIOMetadata: `fc5d88dc-1965-4c10-b6db-4d1375ea61fa`.
 
 ## Reglas del repo
 

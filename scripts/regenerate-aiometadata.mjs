@@ -140,9 +140,16 @@ if (dup.length) die("manifest.id duplicado tras el swap: " + dup.join(", "));
 const set = await apiPost("addonCollectionSet", { type: "AddonCollectionSet", authKey, addons });
 if (!(set?.result || set?.success)) die("addonCollectionSet falló: " + JSON.stringify(set));
 
-const after = await apiPost("addonCollectionGet", { type: "AddonCollectionGet", authKey, update: true });
-const aioAfter = (after?.result?.addons || []).find((a) => a.manifest?.id === "aio-metadata");
-const okSwap = (aioAfter?.transportUrl || "").includes(newUuid);
+// La API a veces tarda un instante en propagar el Set antes de que un Get inmediato lo refleje
+// (encontrado el 2026-08-02: un swap real dio "NO confirmado" acá pero ya estaba aplicado al
+// reconsultar segundos después) — reintenta unas veces con backoff corto antes de declarar falla.
+let okSwap = false;
+for (let attempt = 0; attempt < 4 && !okSwap; attempt++) {
+  if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
+  const after = await apiPost("addonCollectionGet", { type: "AddonCollectionGet", authKey, update: true });
+  const aioAfter = (after?.result?.addons || []).find((a) => a.manifest?.id === "aio-metadata");
+  okSwap = (aioAfter?.transportUrl || "").includes(newUuid);
+}
 console.log(`\n${okSwap ? "✅" : "✗"} Swap ${okSwap ? "OK" : "NO confirmado"} — AIOMetadata → ${newUuid}`);
 console.log(`   Backup: .backups/backup-stremioeg-preregen-${stamp}.json`);
 

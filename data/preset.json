@@ -57,8 +57,8 @@
           "trakt.search": true,
           "tvmaze.search": true,
           "mdblist.search": true,
-          "mal.search.movie": true,
-          "mal.search.series": true,
+          "mal.search.movie": false,
+          "mal.search.series": false,
           "people_search_movie": true,
           "people_search_series": true,
           "tvdb.collections.search": false
@@ -408,8 +408,8 @@
           "sort": "release_date",
           "type": "movie",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -418,8 +418,8 @@
           "sort": "release_date",
           "type": "series",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -452,7 +452,7 @@
           "type": "movie",
           "source": "streaming",
           "enabled": false,
-          "showInHome": true,
+          "showInHome": false,
           "sort": "popularity",
           "sortDirection": "desc"
         },
@@ -462,7 +462,7 @@
           "type": "series",
           "source": "streaming",
           "enabled": false,
-          "showInHome": true,
+          "showInHome": false,
           "sort": "popularity",
           "sortDirection": "desc"
         },
@@ -472,8 +472,8 @@
           "sort": "release_date",
           "type": "movie",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -482,8 +482,8 @@
           "sort": "release_date",
           "type": "series",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -516,8 +516,8 @@
           "sort": "release_date",
           "type": "movie",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -526,8 +526,8 @@
           "sort": "release_date",
           "type": "series",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -560,8 +560,8 @@
           "sort": "release_date",
           "type": "movie",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -570,8 +570,8 @@
           "sort": "release_date",
           "type": "series",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -604,8 +604,8 @@
           "sort": "release_date",
           "type": "movie",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -614,8 +614,8 @@
           "sort": "release_date",
           "type": "series",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -648,8 +648,8 @@
           "sort": "release_date",
           "type": "movie",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -658,8 +658,8 @@
           "sort": "release_date",
           "type": "series",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -692,8 +692,8 @@
           "sort": "release_date",
           "type": "movie",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -702,8 +702,8 @@
           "sort": "release_date",
           "type": "series",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -736,8 +736,8 @@
           "sort": "release_date",
           "type": "movie",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -746,8 +746,8 @@
           "sort": "release_date",
           "type": "series",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -779,8 +779,8 @@
           "name": "Starz  Movies",
           "type": "movie",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sort": "release_date",
           "sortDirection": "desc",
           "displayType": "movie"
@@ -790,8 +790,8 @@
           "name": "Starz TV Shows",
           "type": "series",
           "source": "streaming",
-          "enabled": true,
-          "showInHome": true,
+          "enabled": false,
+          "showInHome": false,
           "sort": "release_date",
           "sortDirection": "desc",
           "displayType": "series"
@@ -9690,7 +9690,7 @@
         }
       ]
     },
-    "instanceId": "f524b34b-9670-4bcb-8f24-6764f9d3384c"
+    "instanceId": "fc5d88dc-1965-4c10-b6db-4d1375ea61fa"
   },
   "nuvioCollectionsConfig": [
     {

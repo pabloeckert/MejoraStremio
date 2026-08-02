@@ -1,6 +1,10 @@
 # CLAUDE.md
 
-Guía para Claude Code (claude.ai/code) al trabajar en este repositorio.
+Guía para Claude Code (claude.ai/code) al trabajar en este repositorio. **Este archivo es la única
+documentación del repo** (unificado el 2026-08-02 a pedido de Pablo — antes había también un
+`README.md` y un `SIESTA-REPORT.md` sueltos, ambos fusionados acá y borrados). No hay `README.md`
+a propósito: quien entre al repo por GitHub va a ver el listado de archivos en vez de un README
+renderizado — es una decisión consciente, no un descuido.
 
 # MejoraStremio
 
@@ -865,10 +869,47 @@ gusto que esa lista revela (fuerte inclinación a crimen/misterio alemán y brit
 volvió a traer `authKey` vacío, pero ST_EMAIL/ST_PASS ya se habían pasado antes en el mismo chat
 (sesión de TorBox) — Pablo pidió explícitamente guardarlos para no repetirlos, así que quedaron en
 `SECRETS.local.md` junto a `TORBOX_API_KEY` (mismo patrón gitignoreado, ver "Reglas del repo").
-Con eso se completaron las 6 fases contra los 6 addons de streams + 4 de subtítulos reales.
-Detalle completo, tabla de los 22 títulos y diagnóstico de cada 0-stream en **`SIESTA-REPORT.md`**
-(raíz del repo) y en **`data/test-siesta-titles.json`** (mismo formato que `test-content.json`,
-reusable).
+Con eso se completaron las 6 fases contra los 6 addons de streams + 4 de subtítulos reales. Lista
+reusable en **`data/test-siesta-titles.json`** (mismo formato que `test-content.json`). Detalle
+completo de los 22 títulos (antes en `SIESTA-REPORT.md`, unificado acá el 2026-08-02):
+
+| # | Título pedido | Identificado como | IMDb ID | Streams (6 addons) | TorBox tagged | Subs ES | Audio latino |
+|---|---|---|---|---|---|---|---|
+| 1 | El Diablo Viste a la Moda 2 | El diablo viste de Prada 2 (2026) | tt33612209 | 166 | 105 | 30 | — |
+| 2 | Will Trent | Will Trent (2023–) | tt17543592 | 100 | 57 | 6 | — |
+| 3 | S.W.A.T. / "los hombres de Harrilson" | Mismo show: S.W.A.T. (2017–2025, CBS) — "Los hombres de Harrelson" es el título en español | tt6111130 | 75 | 41 | 15 | — |
+| 4 | El Halcón Maltés | The Maltese Falcon (1941) | tt0033870 | 96 | 36 | 42 | — |
+| 5 | Dogs of Berlin | Dogs of Berlin (2018, Netflix) | tt6839788 | 56 | 16 | 6 | — |
+| 6 | Veteranos contra el crimen | Policial alemán (Colonia), COSMO | tt4449470 | **0** (confirmado en los 6 addons) | — | — | — |
+| 7 | Das Quartett | Miniserie criminal alemana (Leipzig) | tt9258854 | **0** (confirmado en los 6 addons) | — | — | — |
+| 8 | Einstein | Alemana original (Sat.1, 2017-2019) — no el remake eslovaco | tt5094068 | 10 | 3 | 0 | — |
+| 9 | Passenger | ITV, 2024 (el pedido decía "~2023") | tt18827746 | 46 | 23 | 3 | — |
+| 10 | Grams | NO IDENTIFICADO — probé Grantchester/Gangs of London/Gomorra/21 Grams, sin match confiable | — | — | — | — | — |
+| 11 | El Club de Asesinatos de Marlow | The Marlow Murder Club (2024–) | tt27950663 | 34 | 23 | 7 | — |
+| 12 | Las Ovejas Detectives | The Sheep Detectives (2026) | tt32565993 | 123 | 81 | 14 | **SÍ** (Cinecalidad Dual-Lat 🇲🇽 + WebStreamrMBG `[latino]` dedicado) |
+| 13 | Si Es Martes, Es Asesinato | Disney+ España (2026) | tt32474482 | 58 | 30 | 1 | — |
+| 14 | Se Tiene Que Morir Mucha Gente | Movistar Plus+ (2026) | tt37050740 | 4* | ~3 | 1 | — |
+| 15 | Muertos, S.L. | Movistar Plus+/Netflix (2024-2026) | tt29614148 | 8 | 4 | 4 | — |
+| 16 | El Fantasma de Mi Mujer | Comedia sobrenatural española (2026) | tt36120705 | 8 | 3 | 0 | — |
+| 17 | Spider-Man: Un Nuevo Día | Todavía NO estrenó (31/07/2026) | tt22084616 | No testeado a propósito | — | — | — |
+| 18 | Enola Holmes 3 | Netflix, estrenó 01/07/2026 | tt32278481 | 122 | 84 | 12 | **SÍ** (Cinecalidad Dual-Lat 🇲🇽 + WebStreamrMBG `[latino]`) |
+| 19 | Minions y Monstruos | Título real confirmado, cines fines de junio 2026 | tt32890033 | 9 | 7 | 0 | **SÍ, solo vía WebStreamrMBG** (Torrentio/Cinecalidad todavía no lo indexó) |
+| 20 | The Eternaut / El Eternauta | Netflix AR, T1 30/04/2025 (no "próximo"); T2 recién 2027 | tt27740241 | 84 | 47 | 3 | — |
+| 21 | Murder Mindfully T2 | Achtsam Morden S2 (28/05/2026) | tt30217222:2:1 | 47 | 28 | 9 | — |
+| 22 | How to Get to Heaven from Belfast | Corrección: Netflix, no BBC | tt31709373 | 62 | 49 | 3 | — |
+
+\* Se Tiene Que Morir Mucha Gente: Torrentio dio timeout en la primera pasada (0 ahí); reintentado
+aparte, respondió 3 streams. Total corregido: 3 (Torrentio) + 1 (Meteor) = 4.
+
+**Geo-rescate confirmado con streams reales** (candidatos típicos a no estar licenciados para cuenta
+Argentina — Dogs of Berlin, Veteranos contra el crimen, Das Quartett, Einstein de Alemania; Passenger,
+El Club de Asesinatos de Marlow, How to Get to Heaven from Belfast de Reino Unido/Irlanda): 5 de los
+7 reproducen sin problema (Dogs of Berlin 56, Einstein 10, Passenger 46, Marlow 34, Belfast 62 — el
+mejor cubierto). Los otros 2 son los mismos 0 ya diagnosticados en la tabla — ahí ni el mecanismo de
+rescate encuentra nada, por ser demasiado nicho incluso para eso. No se verificó presencia específica
+en "Streaming Catalogs" (expone 30 servicios pero sin búsqueda por título/id, solo navegación por
+plataforma — recorrerlo entero para 7 títulos puntuales no valía el tiempo frente a la evidencia más
+fuerte de que los streams ya reproducen).
 
 Hallazgos que quedan permanentes acá:
 - **21/22 títulos identificados**; "Grams" no se pudo (se probaron varias hipótesis de error de

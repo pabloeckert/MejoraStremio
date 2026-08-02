@@ -72,16 +72,16 @@
   {
     "id": "tt27763549",
     "type": "movie",
-    "name": "A Man Like Maximilian",
+    "name": "Los Mufas",
     "genres": [],
     "isFamily": false,
     "perAddon": {
-      "Torrentio": {
+      "Torrentio TB": {
         "total": 0,
         "real": 0,
         "unverifiable": false
       },
-      "Comet": {
+      "Comet | TB": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -105,11 +105,6 @@
         "total": 1,
         "real": 0,
         "unverifiable": true
-      },
-      "Latinobrid | TB": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
       },
       "Streailer": {
         "total": 0,
@@ -132,7 +127,7 @@
     "latino": null,
     "label": "Los Mufas: Suerte para la desgracia",
     "addedAt": "2026-07-02T21:47:44.909Z",
-    "lastCheckedAt": "2026-08-01T23:13:21.430Z"
+    "lastCheckedAt": "2026-08-02T15:50:12.034Z"
   },
   {
     "id": "tt5834132",
@@ -143,12 +138,12 @@
     "genres": [],
     "isFamily": false,
     "perAddon": {
-      "Torrentio": {
+      "Torrentio TB": {
         "total": 0,
         "real": 0,
         "unverifiable": false
       },
-      "Comet": {
+      "Comet | TB": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -173,11 +168,6 @@
         "real": 0,
         "unverifiable": true
       },
-      "Latinobrid | TB": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
-      },
       "Streailer": {
         "total": 0,
         "real": 0,
@@ -199,7 +189,7 @@
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-08-01T23:13:40.706Z"
+    "lastCheckedAt": "2026-08-02T15:50:38.950Z"
   },
   {
     "id": "tt2380307",

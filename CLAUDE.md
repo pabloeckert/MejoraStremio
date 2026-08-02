@@ -2148,6 +2148,63 @@ sin regresión (Matrix 157, Breaking Bad 157, Will Trent 62 — bajaron un poco 
 anterior por la exclusión de 480p/4K, esperado). `test-content.mjs` sin regresiones en los 14
 títulos de nicho. Instancia final de AIOMetadata: `fc5d88dc-1965-4c10-b6db-4d1375ea61fa`.
 
+### Chequeo semanal automático (2026-08-02)
+
+**Workflows del domingo**: ambos corrieron y terminaron en verde. `anti-frustration-review.yml`
+corrió a las 15:49 UTC (`success`, commit `9dea6fae`). `health-monitor.yml` corrió dos veces hoy
+(02:07 y 13:43 UTC, ambas `success`) — las dos corridas `failure` que aparecen en el historial son
+de ayer 2026-08-01 (`workflow_dispatch` y `schedule`), ya diagnosticadas y corregidas en la sesión
+de esa misma tarde (bug de orden `git add` antes de `pull --rebase`, ver "Sesión 2026-08-02" más
+arriba) — no repitieron hoy, confirma que el fix quedó sostenido.
+
+**Log antifrustración**: sin cambios de estado — **15 resueltos, 2 pendientes** (Los Mufas, El
+Marginal), mismo hueco estructural de siempre (contenido exclusivo Netflix Argentina sin cobertura
+en trackers/scrapers gratuitos). El diff de la corrida de hoy solo refleja el refresh de
+`lastCheckedAt` y la salida de "Latinobrid | TB" del desglose por addon (consistente con su
+remoción de la cuenta el 2026-08-02 noche) — nada más cambió. **Detalle menor, no accionable**: el
+campo `name` de Los Mufas (`tt27763549`) había quedado como "A Man Like Maximilian" en la corrida
+del 2026-08-01 (lookup de metadata equivocado, probablemente un hiccup puntual de Cinemeta) y se
+autocorrigió solo en la corrida de hoy a "Los Mufas" — no se repitió en ninguna otra entrada del
+log, no amerita ningún cambio de código por ahora.
+
+**Plan de debrid (agosto 2026)**: sin cambios de precio en TorBox — sigue en 4 planes (Free 3
+slots/10 descargas mes; **Essential ~US$3/mes, descargas ilimitadas, 300GB** — el que usa Pablo;
+Standard ~US$5/mes, 500GB; Pro ~US$10/mes, 1TB, Usenet) y sigue siendo, según varias reseñas
+independientes de 2026, el servicio de debrid de más rápido crecimiento del mercado. **Dato nuevo
+que refuerza la recomendación**: el filtro de copyright de Real-Debrid (activo desde mayo 2026, ya
+documentado en la sesión de esa fecha) escaló — reportes de junio/julio 2026 hablan de hasta **50-70%
+del contenido cacheado bloqueado** para suscriptores de larga data, no solo "algunos streams rotos"
+como se sabía antes. AllDebrid sigue como alternativa económica (~€3/mes) sin señales de aplicar el
+mismo tipo de filtro. Nada de esto cambia la recomendación ya dada (TorBox), solo la refuerza más
+fuerte que la semana pasada. Agosto ya llegó y la decisión de sumar debrid de pago **ya está
+tomada y aplicada** (TorBox activo desde el 2026-07-11) — este punto queda por completitud del
+chequeo semanal, no hay nada pendiente de decidir acá.
+
+**Investigación de mejoras — sin hallazgos que ameriten acción**:
+- **Nuvio Streams** (ya deprecado, documentado desde 2026-07-03): confirmado que su repo fue
+  **archivado en febrero 2026** (desarrollo parado del todo, no solo sin mantenimiento activo) —
+  no cambia nada de nuestro lado, el addon se dejó instalado por el mismo criterio ya documentado
+  (sigue dando algo de valor en contenido masivo, cero costo de mantenerlo).
+- **AIOStreams** sigue apareciendo recomendado en guías/reviews de terceros como agregador
+  primario (dedup entre Torrentio/Comet/MediaFusion) — ya evaluado a fondo el 2026-07-30 contra la
+  UI real: la instancia pública de ElfHosted **deshabilita justamente Torrentio/P2P/HTTP** (las
+  fuentes que dan la cobertura real hoy) y la privada cuesta US$9/mes, ~3x TorBox, sin ventaja
+  clara sobre Torrentio+Comet+sort friction-zero ya confirmado 100% cacheado-primero. Sin cambios
+  desde esa evaluación — no se reabre.
+- **Audio latino**: aparecieron dos nombres nuevos en búsquedas genéricas ("Progreso Latino",
+  "Stremio Latino") además de los dos ya evaluados (Primer Latino, pago; Addon Latam, gratis sin
+  garantías). Son hallazgos de sitios SEO genéricos, sin ninguna señal de comunidad/GitHub
+  verificable en esta pasada (mismo estándar que hizo descartar Latinobrid hace nada por falta de
+  trust) — no ameritan investigación más profunda todavía, quedan anotados nomás por si reaparecen
+  con más evidencia en futuras revisiones.
+- **ElfHosted**: nada nuevo que afecte a los addons instalados (AIOMetadata, MyTrakt Sync, SubMaker,
+  Comet, NoTorrent, Stremio Community Subtitles) más allá de lo ya conocido (baja de AIOLists/
+  Archivio/YourIPTV/Stremio-Jackett del 1 de julio, deprecación/archivado de Nuvio Streams).
+
+**Conclusión de la semana**: nada roto, nada nuevo que accionar. Los dos workflows automáticos
+están sanos, el hueco de Los Mufas/El Marginal sigue siendo el mismo límite estructural de siempre,
+y el ecosistema de addons/debrid no tuvo movimientos que ameriten un cambio de configuración.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

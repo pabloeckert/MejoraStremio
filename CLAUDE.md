@@ -1978,13 +1978,18 @@ inicio y solo nombró "Trending" como explícitamente no deseado, se tomó su li
 vez de sumar Trending/Latest/etc. por fuera de ella. Si prefiere que Latest/Top Rated vuelvan al
 inicio, es un cambio de una línea (`showInHome: true` + regenerar).
 
-**Nota honesta sobre "todos los estrenos" ampliado**: sin ningún piso de calidad más allá del
-runtime, la cobertura ahora es real pero también trae contenido muy nicho (WWE SummerSlam, series
-chinas/árabes de bajísimo perfil) mezclado con estrenos grandes — es el costo directo de "quiero
-TODOS los estrenos" en vez de una curación editorial. No se filtró más porque Pablo pidió
-explícitamente amplitud sobre curación; si en la práctica se siente como demasiado ruido, es
-reversible sumando un piso de popularidad real (el que se probó no tuvo efecto, haría falta
-investigar un umbral que sí pegue, o filtrar por país/idioma de origen).
+**CORREGIDO horas más tarde, misma sesión — ver dogma "calidad gana a cantidad"**: la nota de
+arriba quedó mal — Pablo corrigió explícitamente la premisa ("todos los estrenos" no significaba
+"sin ningún filtro de calidad"). Fix real aplicado a los 4 catálogos de fecha: `sort_by` cambiado a
+`popularity.desc` (TMDB Discover no soporta `popularity.gte` como filtro — lo confirmé probándolo,
+cero efecto medible — pero sí como criterio de orden, y popularity SÍ tiene señal real para
+contenido no estrenado, a diferencia de vote_count/vote_average que dependen de calificaciones
+post-estreno). Resultado verificado en vivo: "Próximos Estrenos" pasó de mostrar WWE SummerSlam y
+series chinas/árabes de nicho absoluto a mostrar Vengadores: Doomsday, Harry Potter y la piedra
+filosofal, Blade Runner 2099, Spider-Man: Brand New Day, Vaiana — títulos reales y reconocibles.
+El dogma completo (calidad > cantidad, máximo 1080p, cero contenido de baja calidad, prolijidad
+ante todo) queda como criterio permanente para cualquier curación futura de catálogos o streams,
+no solo para este fix puntual.
 
 **Auditoría de `scripts/audit-catalog-order.mjs`**: sigue funcionando pero su clasificación interna
 de categorías ("Plataformas y Top 10 (al fondo)", "Otros") quedó desactualizada para el nuevo
@@ -2006,10 +2011,22 @@ sigue siendo estructuralmente imposible** (límite ya documentado extensamente a
 `lang`, solo a veces en el nombre de archivo, no filtrable) — no hay nada nuevo que cambie esa
 conclusión, se re-confirmó en vez de asumirla.
 
-**Streams "clic y anda"**: no se tocó nada de Torrentio/Comet/TorBox esta sesión (fuera de alcance
-del pedido de catálogos) — se re-verificó con un spot-check en vivo que el top-5 de Torrentio para
-Matrix sigue siendo 100% `[TB+]` (cacheado), consistente con la auditoría exhaustiva ya hecha el
-2026-07-25. Nada que mejorar ahí sin tocar streams, que Pablo no pidió tocar esta vez.
+**Streams "clic y anda" — CORREGIDO horas más tarde, mismo dogma**: en la primera pasada no se tocó
+Torrentio/Comet (fuera de alcance del pedido inicial). Con el dogma "máximo 1080p, cero baja
+calidad" ya sí se tocaron los dos, vía `scripts/update-addon-url.mjs` (mismo `manifest.id`, solo
+cambia el `transportUrl`, sin duplicar entradas):
+- **Torrentio**: `qualityfilter` sumó `4k` y `480p` a la lista ya excluida
+  (`brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown`). Antes se excluía
+  intencionalmente el 4K "liso" pero se dejaba pasar (decisión de 2026-07-11, ahora revertida por
+  el dogma nuevo). Tokens exactos confirmados leyendo el código fuente real de Torrentio
+  (`TheBeastLT/torrentio-scraper`, `addon/lib/filter.js` → objeto `QualityFilter.options`), no
+  adivinados.
+- **Comet**: su config JSON (base64 en la URL) sumó `"r480p": false` a `resolutions` (ya excluía
+  `r2160p`/`r240p`/`r360p`/`unknown` desde antes — el tope de 1080p ya estaba, faltaba el piso).
+- Verificado en vivo antes de aplicar: Matrix contra ambos con las nuevas URLs devuelve solo
+  streams `720p`/`1080p`, cero `480p`/`2160p`/`4k`. `health-check.mjs` y `test-content.mjs`
+  post-cambio sin regresiones (incluido Höllental, el título de menor cobertura del set de
+  prueba — se mantiene en 5 streams reales, la exclusión de 480p no lo dejó en cero).
 
 **Verificación real contra la cuenta**: `health-check.mjs` verde de punta a punta — el warning
 crónico de catálogos vacíos que aparecía en TODAS las corridas anteriores **desapareció** (10/10

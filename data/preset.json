@@ -151,16 +151,15 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "primary_release_date.asc",
+                "sort_by": "popularity.desc",
                 "include_adult": false,
                 "primary_release_date.gte": "2026-08-01",
-                "with_runtime.gte": 45,
-                "popularity.gte": 5
+                "with_runtime.gte": 45
               },
               "formState": {
                 "catalogName": "Próximos Estrenos",
                 "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.asc",
+                "sortBy": "popularity.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -198,8 +197,7 @@
                 "firstAirTo": "",
                 "airDateFrom": "",
                 "airDateTo": "",
-                "releaseRegion": "",
-                "popularityMin": 5
+                "releaseRegion": ""
               }
             }
           }
@@ -219,16 +217,15 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "first_air_date.asc",
+                "sort_by": "popularity.desc",
                 "include_adult": false,
                 "first_air_date.gte": "2026-08-01",
-                "with_runtime.gte": 15,
-                "popularity.gte": 5
+                "with_runtime.gte": 15
               },
               "formState": {
                 "catalogName": "Próximos Estrenos (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "first_air_date.asc",
+                "sortBy": "popularity.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -266,8 +263,7 @@
                 "firstAirTo": "",
                 "airDateFrom": "",
                 "airDateTo": "",
-                "releaseRegion": "",
-                "popularityMin": 5
+                "releaseRegion": ""
               }
             }
           }
@@ -287,17 +283,16 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "primary_release_date.desc",
+                "sort_by": "popularity.desc",
                 "include_adult": false,
                 "primary_release_date.gte": "2026-05-18",
                 "primary_release_date.lte": "2026-08-01",
-                "with_runtime.gte": 45,
-                "popularity.gte": 5
+                "with_runtime.gte": 45
               },
               "formState": {
                 "catalogName": "En Cartelera",
                 "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
+                "sortBy": "popularity.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -335,8 +330,7 @@
                 "firstAirTo": "",
                 "airDateFrom": "",
                 "airDateTo": "",
-                "releaseRegion": "",
-                "popularityMin": 5
+                "releaseRegion": ""
               }
             }
           }
@@ -356,17 +350,16 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "first_air_date.desc",
+                "sort_by": "popularity.desc",
                 "include_adult": false,
                 "first_air_date.gte": "2026-05-18",
                 "first_air_date.lte": "2026-08-01",
-                "with_runtime.gte": 15,
-                "popularity.gte": 5
+                "with_runtime.gte": 15
               },
               "formState": {
                 "catalogName": "En Cartelera (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
+                "sortBy": "popularity.desc",
                 "cacheTTL": 86400,
                 "catalogType": "tv",
                 "includeGenres": [],
@@ -404,8 +397,7 @@
                 "firstAirTo": "2026-08-01",
                 "airDateFrom": "",
                 "airDateTo": "",
-                "releaseRegion": "",
-                "popularityMin": 5
+                "releaseRegion": ""
               }
             }
           }
@@ -9698,7 +9690,7 @@
         }
       ]
     },
-    "instanceId": "c41b805f-233c-4903-9f59-bbcd25c6095f"
+    "instanceId": "f524b34b-9670-4bcb-8f24-6764f9d3384c"
   },
   "nuvioCollectionsConfig": [
     {

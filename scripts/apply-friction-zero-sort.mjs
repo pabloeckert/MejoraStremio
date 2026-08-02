@@ -138,7 +138,8 @@ if (!(await assertNoFrozenEmptyCatalogs(updated, ['com.stremio.torrentio.addon',
 // ── 5. Backup + aplicar ──────────────────────────────────────────────────────
 mkdirSync(BACKUPS, { recursive: true });
 const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-const backupPath = join(BACKUPS, `backup-stremioeg-pre-frictionzero-${ts}.json`);
+const accountSlug = email.split('@')[0];
+const backupPath = join(BACKUPS, `backup-${accountSlug}-pre-frictionzero-${ts}.json`);
 writeFileSync(backupPath, JSON.stringify({ result: { addons } }, null, 2));
 console.log(`\n✓ Backup guardado: ${backupPath}`);
 

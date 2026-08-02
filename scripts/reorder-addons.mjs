@@ -109,7 +109,8 @@ if (!(await assertNoFrozenEmptyCatalogs(reordered, []))) {
 // Backup
 import { writeFileSync } from 'fs';
 const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-const backupPath = `.backups/backup-stremioeg-pre-reorder-${ts}.json`;
+const accountSlug = EMAIL.split('@')[0];
+const backupPath = `.backups/backup-${accountSlug}-pre-reorder-${ts}.json`;
 writeFileSync(backupPath, JSON.stringify({ result: { addons } }, null, 2));
 console.log(`\n✓ Backup guardado: ${backupPath}`);
 

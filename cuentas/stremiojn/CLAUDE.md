@@ -116,6 +116,61 @@ arriba (TorBox/Trakt/Community Subtitles).
    40, Breaking Bad 55) sin regresiones respecto a la corrida de 21 addons del paso 3. Migración
    cerrada de punta a punta, nada pendiente.
 
+## Home enfocado en el perfil (Sesión 2026-08-02, más tarde)
+
+Pablo probó la cuenta y pidió que la **primera pantalla** que ve Joaquín al entrar esté enfocada en
+su perfil UFC/MMA, no en el Home general curado de Pablo (que hasta acá era literalmente el mismo,
+por venir de la misma instancia compartida de AIOMetadata). Como esa instancia sigue sin tocarse
+(ver regla de arriba: no mezclar el gusto de Joaquín en el Home de Pablo), la única palanca
+disponible es el **orden de la colección de addons** — el Home de Stremio muestra los catálogos
+addon por addon, en el orden de la colección (mismo mecanismo ya documentado en el `CLAUDE.md` raíz
+para Mubi Catalog/Streaming Catalogs: "su prioridad en el board depende del orden de la colección de
+addons, no del preset").
+
+Reordenado con `scripts/reorder-addons.mjs` (dos pasadas, dry-run confirmado antes de `--apply` en
+ambas):
+1. `com.mejorastremio.ufc-catalog` ("MMA / UFC (curado)") → **índice 0**.
+2. `pw.ers.netflix-catalog` ("Streaming Catalogs") → **índice 1** (justo después). Se promovió este
+   addon en particular porque adentro tiene el catálogo de **Paramount+** (posición 10-11 de 56 en
+   su propio manifest, confirmado con un fetch real) — la plataforma que Pablo señaló como "hogar
+   exclusivo de la UFC en América Latina desde enero 2026". No se puede reordenar el catálogo interno
+   de ese addon (es de un tercero), pero Paramount+ ya estaba razonablemente cerca del principio de
+   su propia lista.
+3. AIOMetadata (Home general de Pablo) queda en índice 2 — sigue instalado igual, solo bajó de
+   prioridad visual para esta cuenta puntual.
+
+Orden final verificado con `addonCollectionGet` real (no solo el output del script):
+`com.mejorastremio.ufc-catalog` → `pw.ers.netflix-catalog` → `aio-metadata` → resto sin cambios.
+`health-check.mjs` post-cambio: verde, 22/22, sin regresiones en streams/subs.
+
+**Contenido del perfil — ya cubierto, sin agregar nada nuevo**: Pablo repitió la misma lista
+detallada de oferta UFC/MMA (Paramount+, TUF, Contender Series, WWE Raw/SmackDown, Kingdom, Cobra
+Kai, Physical: 100, UFC Fight Pass, podcasts, canales de YouTube, watch parties, UFC 330 del
+15/08/2026). Se revisó título por título contra el catálogo `/ufc` ya armado: **los 7 títulos
+catalogables de esa lista ya estaban incluidos** (ver tabla más arriba) — no había nada nuevo para
+sumar al catálogo en sí, el pedido de esta vuelta era de **prioridad/orden**, no de contenido.
+
+### Bug real encontrado y corregido de paso: nombre de backup hardcodeado
+
+Al reordenar, el backup que generó `reorder-addons.mjs` se guardó como
+`backup-stremioeg-pre-reorder-<ts>.json` **aunque la corrida fue contra la cuenta de Joaquín** — el
+nombre del archivo tenía `"stremioeg"` hardcodeado, sin relación con qué `ST_EMAIL` se usó
+realmente. Se encontró el mismo patrón en 9 scripts (grep `backup-stremioeg` sobre `scripts/`).
+Corregido en los 7 que están en uso activo (`reorder-addons.mjs`, `install-addon.mjs`,
+`update-addon-url.mjs`, `repair-frozen-catalogs.mjs`, `apply-torbox-profile.mjs`,
+`apply-friction-zero-sort.mjs`, `regenerate-aiometadata.mjs`): ahora derivan un `accountSlug` de la
+variable `EMAIL`/`email` ya existente en cada script (`email.split('@')[0]`), así que el nombre del
+backup refleja la cuenta real tocada (`backup-stremioeg-...` o `backup-stremiojn-...` según
+corresponda). **No se tocaron** `swap-aiolists-mytrakt.mjs` ni `apply-cgnat-profile.mjs` — son
+scripts de un solo uso histórico que el `CLAUDE.md` raíz ya marca como "no correr de nuevo salvo un
+caso equivalente", así que el nombre hardcodeado ahí no genera confusión práctica. Verificado con
+`node --check` en los 7 archivos tocados (sin errores de sintaxis). **Aclaración honesta**: los 2
+backups de los reordenamientos de ESTA sesión (`backup-stremioeg-pre-reorder-...` ×2, aunque
+tocaron la cuenta de Joaquín) se generaron ANTES del fix, así que todavía tienen el nombre viejo —
+el fix se detectó y aplicó recién después de correr ambos reordenamientos. Queda correcto desde la
+próxima corrida de cualquiera de los 7 scripts en adelante, no fue verificado con una corrida real
+posterior al fix por no ser necesario forzar una escritura extra a la cuenta solo para probarlo.
+
 ## A revisar / diferencias no resueltas, anotadas para no perderlas
 
 - **Meteor sin el filtro `minSeeders:1`** que sí tiene la config guardada de Pablo — al refrescar el

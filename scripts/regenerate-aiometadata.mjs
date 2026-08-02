@@ -127,7 +127,8 @@ if (lost.length && !FORCE) {
   die(`Se perderían ${lost.length} catálogos (${lost.join(", ")}). Abortado. Usá --force para forzar, o arreglá data/preset.json.`);
 }
 
-writeFileSync(join(BACKUPS, `backup-stremioeg-preregen-${stamp}.json`), JSON.stringify(col, null, 2));
+const accountSlug = (email || 'unknown').split('@')[0];
+writeFileSync(join(BACKUPS, `backup-${accountSlug}-preregen-${stamp}.json`), JSON.stringify(col, null, 2));
 const newManifest = await getJson(installUrl);
 newManifest.name = addons[aioIdx].manifest?.name || "AIOMetadata";
 addons[aioIdx] = { ...addons[aioIdx], transportUrl: installUrl, manifest: newManifest };
@@ -151,7 +152,7 @@ for (let attempt = 0; attempt < 4 && !okSwap; attempt++) {
   okSwap = (aioAfter?.transportUrl || "").includes(newUuid);
 }
 console.log(`\n${okSwap ? "✅" : "✗"} Swap ${okSwap ? "OK" : "NO confirmado"} — AIOMetadata → ${newUuid}`);
-console.log(`   Backup: .backups/backup-stremioeg-preregen-${stamp}.json`);
+console.log(`   Backup: .backups/backup-${accountSlug}-preregen-${stamp}.json`);
 
 if (okSwap) {
   const presetRaw = JSON.parse(readFileSync(PRESET_PATH, "utf8"));

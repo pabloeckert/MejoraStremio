@@ -128,7 +128,8 @@ if (!(await assertNoFrozenEmptyCatalogs(nextAddons, [newManifest.id]))) {
 import { mkdirSync, writeFileSync } from 'fs';
 mkdirSync('.backups', { recursive: true });
 const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-const backupPath = `.backups/backup-stremioeg-pre-install-${newManifest.id.replace(/[^a-z0-9.-]/gi, '_')}-${ts}.json`;
+const accountSlug = EMAIL.split('@')[0];
+const backupPath = `.backups/backup-${accountSlug}-pre-install-${newManifest.id.replace(/[^a-z0-9.-]/gi, '_')}-${ts}.json`;
 writeFileSync(backupPath, JSON.stringify(col, null, 2));
 console.log(`\n✓ Backup guardado: ${backupPath}`);
 

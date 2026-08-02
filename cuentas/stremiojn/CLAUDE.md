@@ -279,3 +279,12 @@ posterior al fix por no ser necesario forzar una escritura extra a la cuenta sol
   esta lista es fija en el código. Si en el futuro sale una serie nueva de este perfil (ej. una
   temporada nueva de algún reality), hay que agregarla a mano en `UFC_TITLES` (`scripts/deno-hub.ts`)
   y redeployar — no hay automatización pensada para esto todavía.
+- **Prueba real en dispositivo — pendiente de confirmación de Pablo/Joaquín**: todo lo de arriba está
+  verificado por API/fetch directo (`health-check.mjs`, `addonCollectionGet`, y un fetch real a cada
+  uno de los 8 streams de TV en vivo antes de sumarlos), pero **no se abrió la app de Stremio en un
+  dispositivo real en esta sesión** — no hay forma de confirmar desde acá que el video efectivamente
+  arranca al tocar play, sobre todo en los canales de TV en vivo (son streams de terceros que pueden
+  caerse entre el momento en que se probaron y el momento en que se los mira). Pablo avisó que iba a
+  probar la cuenta y reportar. Si algún canal puntual de "TV en Vivo — UFC / MMA / Combate" no anda
+  en la prueba real, el primer paso es re-verificar ese canal puntual contra `iptv-org` (puede haber
+  quedado offline del lado de la fuente) antes de asumir que es un problema de nuestro lado.

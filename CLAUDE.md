@@ -2080,10 +2080,10 @@ sí había aplicado bien — el chequeo de verificación post-escritura (`addonC
 después del `Set`) dio un falso negativo, probablemente por un delay de propagación del lado de la
 API de Stremio entre escribir y poder leer de vuelta el mismo valor. Confirmado con un
 `addonCollectionGet` manual segundos después: el `transportUrl` nuevo ya estaba aplicado
-correctamente. Se sincronizó `instanceId` en `preset.json` a mano para no dejar drift. **Pendiente
-de robustecer** (no se tocó el script todavía): agregar un pequeño reintento con backoff a esa
-verificación post-`Set` en vez de un solo chequeo inmediato, para no reportar falsos "NO confirmado"
-en corridas futuras — anotado, no bloqueante hoy porque se verificó a mano.
+correctamente. Se sincronizó `instanceId` en `preset.json` a mano para no dejar drift. **Corregido
+en la misma sesión** (commit `74ac120`): el chequeo post-`Set` ahora reintenta hasta 4 veces con 2s
+de espera entre intentos antes de declarar "NO confirmado" — afecta directamente a
+`daily-catalog-refresh.yml`, que corre este script sin supervisión todos los días.
 
 **Verificación final**: `health-check.mjs` verde — 23 addons, sin duplicados, búsqueda OK, streams
 sin regresión (Matrix 157, Breaking Bad 157, Will Trent 62 — bajaron un poco respecto a la sesión

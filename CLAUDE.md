@@ -33,6 +33,8 @@ data/premiere-radar-state.json      Estado del radar de estrenos (próximo episo
 data/internal-log.jsonl             Log interno (NO se manda por mail) de las corridas automáticas
                                     diarias — para que Claude lo lea entre sesiones y siga el pulso
                                     de la cuenta + los gustos/uso de Pablo. Ver "Sesión 2026-08-02".
+data/test-siesta-titles.json        Lista reusable de los 22 títulos identificados/testeados en la
+                                    sesión "siesta" 2026-07-11 (mismo formato que test-content.json).
 scripts/health-check.mjs            Auditoría de la cuenta y los addons (ver abajo).
 scripts/anti-frustration.mjs        Registra/revisa títulos sin streams reales (add/review/list) y
                                     detecta audio latino en contenido familiar/infantil. Ver abajo.
@@ -90,10 +92,15 @@ scripts/deno-hub.ts                 App consolidada de Deno Deploy (`mejorastrem
                                     deno.jsonc): un Deno.serve con router por prefijo que
                                     reimplementa inline deno-subdl-addon.ts (/subdl/*),
                                     deno-latino-catalog-addon.ts (/latino/*) y
-                                    deno-synopsis-enricher.ts (/synopsis/*), + /health. Reemplaza
-                                    las 3 apps sueltas (ver "Sesión 2026-07-26/27" más abajo).
-                                    Deployado y verificado; migración de la cuenta real de Stremio
-                                    a estas URLs todavía pendiente de confirmación.
+                                    deno-synopsis-enricher.ts (/synopsis/*), más dos catálogos sin
+                                    script standalone equivalente: /miniseries (catálogo TMDB de
+                                    miniseries) y /discover ("Descubrir Maestro", filtros
+                                    combinables de servicio/región/país/idioma/género — ver "Sesión
+                                    2026-07-30"), + /health. Reemplaza las 3 apps sueltas (ver
+                                    "Sesión 2026-07-26/27" más abajo). Deployado, migrado a la
+                                    cuenta real (2026-07-27) e instalado; tuvo un outage por
+                                    BILLING_SUSPENDED resuelto por Pablo (ver "Sesión 2026-07-28" y
+                                    "Sesión 2026-08-01").
 ```
 
 Los scripts son Node ≥ 20 sin dependencias (`fetch`/`https` nativos). No hay `package.json` ni
@@ -264,8 +271,9 @@ node scripts/anti-frustration.mjs list     # resumen del log
   contenido familiar/adolescente/infantil, registrar si hay alternativa de audio latino.
 - Log persistido en `data/anti-frustration-log.json` (versionado en git, no gitignoreado).
 - **Revisión automática semanal**: `.github/workflows/anti-frustration-review.yml` (domingos, cloud,
-  igual que health-monitor) corre `review`, commitea el log actualizado y manda un resumen a
-  `pabloeckert@gmail.com` de qué se resolvió y qué sigue pendiente.
+  igual que health-monitor) corre `review`, commitea el log actualizado y registra el resultado en
+  `data/internal-log.jsonl` vía `scripts/log-status.mjs` (sin email desde 2026-08-02, ver "Sesión
+  2026-08-02" más abajo).
 
 **Catálogo de audio latino — deployado e instalado (2026-07-02)**: `scripts/deno-latino-catalog-addon.ts`
 expone un catálogo Stremio (`Audio Latino (verificado)`, movie+series) con los títulos del log que
@@ -1892,9 +1900,12 @@ Series`, `Time Flies`: cache OK pero sin sub ES todavía; `Los mufas: suerte par
 cache ni subs — coincide con el hueco estructural ya documentado de contenido exclusivo Netflix
 Argentina), 0 sin estrenar.
 
-**Workflow — horario**: cron diario a las **07:00 Argentina (10:00 UTC)**, elegido para correr antes
-de los dos horarios de uso típico mencionados por Pablo al pedir la feature (~11h y ~23h) — así, si
-algo pasa a LISTO, el email ya está en la bandeja antes de la primera sesión de mirar del día.
+**Workflow — horario**: cron diario pensado originalmente para las 07:00 Argentina (10:00 UTC),
+elegido para correr antes de los dos horarios de uso típico mencionados por Pablo al pedir la
+feature (~11h y ~23h) — así, si algo pasa a LISTO, el email ya está en la bandeja antes de la
+primera sesión de mirar del día. **Corregido en la práctica a 07:15 Argentina (10:15 UTC)** —
+ver "Sesión 2026-08-02", corrido 15 min después de `daily-catalog-refresh` (07:00 ART) a propósito
+para no pisarse en el mismo push a `data/`.
 Mismo patrón que `anti-frustration-review.yml`: corre el script, commitea `premiere-radar-state.json`
 solo si cambió, y manda un solo email por corrida con TODOS los episodios recién listos (no uno por
 episodio — evita spam si varios shows se destraban el mismo día), extrayendo el resumen de las

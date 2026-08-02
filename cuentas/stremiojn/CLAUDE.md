@@ -150,6 +150,95 @@ Kai, Physical: 100, UFC Fight Pass, podcasts, canales de YouTube, watch parties,
 catalogables de esa lista ya estaban incluidos** (ver tabla más arriba) — no había nada nuevo para
 sumar al catálogo en sí, el pedido de esta vuelta era de **prioridad/orden**, no de contenido.
 
+## TV en Vivo (Sesión 2026-08-02, más tarde todavía)
+
+Pablo pidió sumar "TV en vivo y eventos en vivo" a la cuenta. Investigado a fondo antes de instalar
+nada — mismo criterio que ya aplica el proyecto para addons de subtítulos (Subdivx/TuSubtitulo/
+Argenteam, ver `CLAUDE.md` raíz): **no sumar algo sin evidencia real de que funciona**.
+
+**Candidatos de "PPV en vivo" investigados, ninguno viable — confirmado con fetch real, no solo
+la búsqueda**: StreamsPPV (confirmado roto desde enero 2026 por reportes de usuarios, manifest no
+resuelve), USA TV (`baby-beamup.club`, dominio caído — `fetch failed`), PPVStreams (`baby-beamup.club`,
+ídem), IPTVorg en Vercel (`404 DEPLOYMENT_NOT_FOUND` — el deploy ya no existe), PPVio de ElfHosted
+(la página del addon en `stremio-addons.net` da 404, y el listado oficial vigente de ElfHosted —
+`docs.elfhosted.com/stremio-addons/` — hoy solo tiene 7 addons: AIOStreams, Comet, Jackettio,
+MediaFusion, NuvioStreams, WebStreamr, YourIPTV; ninguno es de TV/eventos en vivo). Patrón conocido:
+el espacio de addons de PPV/IPTV comunitario tiene un ciclo de vida muy corto (mismo fenómeno ya
+documentado acá para Nuvio Streams, WebStreamr oficial, etc.) — no hay ninguna opción de terceros
+confiable hoy.
+
+**Solución adoptada: self-host sobre `iptv-org`** (`github.com/iptv-org/iptv`, proyecto open-source
+activo, ampliamente usado, con política propia de sacar canales bloqueados/con reclamos — no es una
+fuente pirata, son streams públicos de canales de aire/cable). Mismo patrón arquitectónico que
+`/ufc`/`/latino`/`/discover`: una ruta nueva propia en el hub (`/livetv`), no depender de un tercero
+frágil. Nueva ruta `/livetv` en `scripts/deno-hub.ts`, `manifest.id`: `com.mejorastremio.livetv`.
+
+**Diferencia clave de diseño respecto a `/ufc`**: ahí la lista es fija PERO la URL de stream de cada
+canal se resuelve **en vivo** contra la API de `iptv-org` (`streams.json`/`logos.json`, cache 10
+min) en cada consulta, no está hardcodeada — a diferencia de un id de IMDb (estable para siempre),
+la URL de un stream de TV en vivo es un endpoint real que cambia con el tiempo; hardcodearla se
+pudriría rápido. Si `iptv-org` actualiza la URL de un canal, el catálogo la toma sola sin
+redeploy.
+
+**8 canales, cada uno verificado con un fetch real antes de sumarlo, TODOS de combate/wrestling
+— sin canales generales** (Pablo corrigió explícitamente que no quería nada genérico: "solo lo de
+tv en vivo... referido a los gustos mencionados para Joaquín, WWE UFC etc"). Se probaron 20
+candidatos en total — quedaron afuera los que dieron 403/404/timeout, o que la propia data de
+`iptv-org` ya marca como `"Geo-blocked"` o `"Not 24/7"` (TyC Sports, Fox Sports AR, DSports,
+Premiere FC 1, Lucha Libre AAA), y también los 4 canales generales de aire que se habían probado en
+un primer intento (América TV, El Nueve, Telefe, La Nación+ — todos caídos, mismo host
+`playcom.trapemn.tv` roto) — **estos últimos se sacaron del catálogo aparte, no por estar rotos,
+sino porque no encajan con el pedido de Pablo de un catálogo 100% enfocado en el perfil**. Se buscó
+además **ONE Championship** (otra promoción grande de MMA que Pablo nombró) y canales de **WWE**:
+`iptv-org` no tiene ningún canal de ONE Championship, y los 4 canales de WWE que sí aparecen en su
+listado (`WWEChannel.au`, `WWEChannel Africa.za`, `WWENetwork.ca`, `WWENetwork.us`) **no tienen
+ningún stream real asociado** — no hay nada instalable de WWE en vivo hoy, aunque WWE Raw/SmackDown
+sí están cubiertos como series (no en vivo) en el catálogo `/ufc`.
+
+| Canal | Por qué |
+|---|---|
+| Bellator MMA | Promoción rival de UFC (ahora parte de PFL) |
+| PFL MMA | La liga que absorbió a Bellator — la "segunda más grande", per el pedido de Pablo |
+| Combate (Grupo Globo, BR) | Canal brasileño dedicado a MMA/UFC — **aclaración importante**: NO es
+  "Combate Global"/"Combate Américas" (la promoción hispana que mencionó Pablo, sin canal propio en
+  `iptv-org`); es "Combate" de Grupo Globo (`combate.globo.com`), que transmite UFC y MMA en Brasil.
+  Se corrige acá una etiqueta incorrecta de la primera versión de este catálogo. |
+| ESPN (BR) | Suele emitir prelims/contenido de UFC |
+| ESPN Deportes | Ídem, en español |
+| ESPN8: The Ocho | Deportes de nicho |
+| MMA TV | Canal dedicado a MMA |
+| Glory Kickboxing | Kickboxing en vivo |
+
+**No hay canal específico de Combate Global ni de ONE Championship** — investigado y confirmado
+ausente en la fuente (`iptv-org`), no es un descuido.
+
+**"Eventos en vivo" — interpretación honesta, no hay un catálogo de eventos PPV puntuales**: no
+existe hoy una fuente gratuita confiable de streams específicos de eventos PPV (UFC 330 del
+15/08/2026, UFC Fight Night Hernandez vs. Rodrigues del 22/08, UFC París del 05/09, etc. — todos
+mencionados por Pablo) — ver candidatos investigados y descartados arriba. Los canales de combate
+del catálogo SÍ emiten eventos en vivo como parte de su programación normal (prelims de ESPN, PPVs
+completos de Combate/BR, carteleras de Bellator/PFL) — es la aproximación más honesta y sostenible
+disponible hoy, no un catálogo de "próximo evento" con fecha/hora (eso requeriría una fuente de
+EPG/cartelera que no se investigó en esta sesión).
+
+**Instalado**: `com.mejorastremio.livetv` en índice 1 (justo después de "MMA / UFC (curado)",
+antes de "Streaming Catalogs") — mismo criterio de la sesión anterior, en la parte alta de la
+primera pantalla junto al resto del perfil. `install-addon.mjs --after com.mejorastremio.ufc-catalog
+--apply`. Backup: `.backups/backup-stremiojn-pre-install-com.mejorastremio.livetv-<ts>.json` (ya con
+el nombre de cuenta correcto, confirma que el fix de la sección anterior quedó funcionando).
+
+**Corrección post-instalación (mismo intercambio con Pablo)**: la primera versión instalada tenía 2
+catálogos (combate + un "General Argentina" con El Trece/Canal 26/A24). Pablo pidió acotarlo a solo
+el perfil — se sacó el catálogo general por completo (manifest pasó de v1.0.0 a v1.1.0, de 2
+catálogos a 1) y se refrescó el manifest ya instalado con `update-addon-url.mjs
+com.mejorastremio.livetv <misma-url> --apply` (mismo `manifest.id`, no duplica la entrada; fuerza un
+re-fetch del manifest nuevo). Verificado con el propio output del script: `version=1.1.0` reflejado
+en la cuenta real tras el refresh.
+
+`health-check.mjs` post-instalación (con el catálogo ya acotado): verde, 23/23, sin regresiones (el
+addon aparece con "=0" en el conteo de streams de película/serie del health-check — esperado, es un
+addon `type: "tv"`, no responde a pedidos de `movie`/`series`).
+
 ### Bug real encontrado y corregido de paso: nombre de backup hardcodeado
 
 Al reordenar, el backup que generó `reorder-addons.mjs` se guardó como

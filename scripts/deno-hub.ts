@@ -16,7 +16,10 @@
  *                                combinables en una sola pantalla, catálogo
  *   /ufc/manifest.json        → MMA / UFC (curado) — catálogo fijo para perfil fan de UFC
  *                                (cuenta stremiojn, ver cuentas/stremiojn/CLAUDE.md), catálogo
- *   /health                   → estado de las 6 sub-funciones (config presente)
+ *   /livetv/manifest.json     → TV en Vivo — canales de combate/deportes + noticias AR (cuenta
+ *                                stremiojn), fuente iptv-org (streams resueltos en vivo, cache 10
+ *                                min — la URL es volátil, no se hardcodea), catálogo+meta+stream
+ *   /health                   → estado de las 7 sub-funciones (config presente)
  *
  * Deploy: deno.com/deploy → conectar repo pabloeckert/MejoraStremio →
  *   entry point: scripts/deno-hub.ts
@@ -351,6 +354,118 @@ async function handleUfc(subPath: string): Promise<Response> {
       })),
     );
     return jsonResponse({ metas });
+  }
+
+  return new Response("Not found", { status: 404, headers: cors });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ── /livetv — TV en Vivo (curado), catálogo + meta + stream ───────────────
+// Fuente: iptv-org (github.com/iptv-org/iptv), datos públicos de canales de
+// aire/cable legítimos con streams m3u8. Lista de canales ALLOWLIST fija
+// (11 ids, verificados con fetch real antes de sumarlos — descartados los
+// que dieron 403/404/timeout o vienen marcados "Geo-blocked"/"Not 24/7" en
+// la propia data de iptv-org), pero la URL de stream se resuelve EN VIVO
+// contra la API pública (cache 10 min) en cada consulta — a diferencia de
+// /ufc, acá la URL es volátil (es un endpoint de streaming real, no un id
+// estable de IMDb) y hardcodearla se pudriría rápido.
+// ════════════════════════════════════════════════════════════════════════
+
+const IPTV_STREAMS_URL = "https://iptv-org.github.io/api/streams.json";
+const IPTV_LOGOS_URL = "https://iptv-org.github.io/api/logos.json";
+
+const LIVETV_MANIFEST = {
+  id: "com.mejorastremio.livetv",
+  version: "1.1.0",
+  name: "TV en Vivo",
+  description:
+    "Catálogo curado de canales en vivo de UFC/MMA/combate y wrestling, fuente iptv-org, cada " +
+    "canal verificado con un fetch real antes de sumarlo. Perfil fan de UFC.",
+  resources: ["catalog", "meta", "stream"],
+  types: ["tv"],
+  idPrefixes: ["iptv-"],
+  catalogs: [{ type: "tv", id: "livetv-combate", name: "TV en Vivo — UFC / MMA / Combate" }],
+};
+
+type LivetvCatalogId = "livetv-combate";
+
+const LIVETV_CHANNELS: { id: string; catalog: LivetvCatalogId; name: string }[] = [
+  { id: "BellatorMMA.us", catalog: "livetv-combate", name: "Bellator MMA" },
+  { id: "PFLMMA.us", catalog: "livetv-combate", name: "PFL MMA" },
+  { id: "Combate.br", catalog: "livetv-combate", name: "Combate (Grupo Globo, BR)" },
+  { id: "ESPN.br", catalog: "livetv-combate", name: "ESPN" },
+  { id: "ESPNDeportes.us", catalog: "livetv-combate", name: "ESPN Deportes" },
+  { id: "ESPN8TheOcho.us", catalog: "livetv-combate", name: "ESPN8: The Ocho" },
+  { id: "MMATV.us", catalog: "livetv-combate", name: "MMA TV" },
+  { id: "GloryKickboxing.us", catalog: "livetv-combate", name: "Glory Kickboxing" },
+];
+
+// deno-lint-ignore no-explicit-any
+type IptvStream = any;
+
+let livetvCache: { at: number; streams: Map<string, IptvStream>; logos: Map<string, string> } | null = null;
+const LIVETV_CACHE_TTL_MS = 10 * 60 * 1000; // 10 min
+
+async function loadLivetvData() {
+  if (livetvCache && Date.now() - livetvCache.at < LIVETV_CACHE_TTL_MS) return livetvCache;
+  const [stRes, logoRes] = await Promise.all([
+    fetch(IPTV_STREAMS_URL, { signal: AbortSignal.timeout(15000) }),
+    fetch(IPTV_LOGOS_URL, { signal: AbortSignal.timeout(15000) }),
+  ]);
+  const streamsArr: IptvStream[] = stRes.ok ? await stRes.json() : [];
+  const logosArr: IptvStream[] = logoRes.ok ? await logoRes.json() : [];
+  const streams = new Map<string, IptvStream>();
+  for (const s of streamsArr) if (s.channel && !streams.has(s.channel)) streams.set(s.channel, s);
+  const logos = new Map<string, string>();
+  for (const l of logosArr) if (l.channel && l.in_use && !logos.has(l.channel)) logos.set(l.channel, l.url);
+  livetvCache = { at: Date.now(), streams, logos };
+  return livetvCache;
+}
+
+async function handleLivetv(subPath: string): Promise<Response> {
+  if (subPath === "/manifest.json") {
+    return jsonResponse(LIVETV_MANIFEST);
+  }
+
+  const catMatch = subPath.match(/^\/catalog\/tv\/(livetv-combate)\.json$/);
+  if (catMatch) {
+    const catalogId = catMatch[1] as LivetvCatalogId;
+    const { logos } = await loadLivetvData();
+    const metas = LIVETV_CHANNELS.filter((c) => c.catalog === catalogId).map((c) => ({
+      id: `iptv-${c.id}`,
+      type: "tv",
+      name: c.name,
+      poster: logos.get(c.id) ?? null,
+    }));
+    return jsonResponse({ metas });
+  }
+
+  const metaMatch = subPath.match(/^\/meta\/tv\/iptv-(.+)\.json$/);
+  if (metaMatch) {
+    const ch = LIVETV_CHANNELS.find((c) => c.id === metaMatch[1]);
+    if (!ch) return new Response("Not found", { status: 404, headers: cors });
+    const { logos } = await loadLivetvData();
+    return jsonResponse({
+      meta: { id: `iptv-${ch.id}`, type: "tv", name: ch.name, poster: logos.get(ch.id) ?? null },
+    });
+  }
+
+  const streamMatch = subPath.match(/^\/stream\/tv\/iptv-(.+)\.json$/);
+  if (streamMatch) {
+    const ch = LIVETV_CHANNELS.find((c) => c.id === streamMatch[1]);
+    if (!ch) return new Response("Not found", { status: 404, headers: cors });
+    const { streams } = await loadLivetvData();
+    const s = streams.get(ch.id);
+    if (!s) return jsonResponse({ streams: [] });
+    const headers: Record<string, string> = {};
+    if (s.user_agent) headers["User-Agent"] = s.user_agent;
+    if (s.referrer) headers["Referer"] = s.referrer;
+    // deno-lint-ignore no-explicit-any
+    const stream: any = { url: s.url, title: `${ch.name} (en vivo)${s.quality ? " · " + s.quality : ""}` };
+    if (Object.keys(headers).length) {
+      stream.behaviorHints = { notWebReady: false, proxyHeaders: { request: headers } };
+    }
+    return jsonResponse({ streams: [stream] });
   }
 
   return new Response("Not found", { status: 404, headers: cors });
@@ -1012,6 +1127,7 @@ function handleHealth(): Response {
     miniseries: { configured: !!TMDB_KEY },
     discover: { configured: !!TMDB_KEY },
     ufc: { configured: true },
+    livetv: { configured: true },
   });
 }
 
@@ -1038,6 +1154,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           "/miniseries/manifest.json",
           "/discover/manifest.json",
           "/ufc/manifest.json",
+          "/livetv/manifest.json",
           "/health",
         ],
       });
@@ -1068,6 +1185,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       route = "ufc";
       const subPath = path.slice("/ufc".length) || "/";
       res = await handleUfc(subPath);
+    } else if (path.startsWith("/livetv")) {
+      route = "livetv";
+      const subPath = path.slice("/livetv".length) || "/";
+      res = await handleLivetv(subPath);
     } else {
       res = new Response("Not found", { status: 404, headers: cors });
     }

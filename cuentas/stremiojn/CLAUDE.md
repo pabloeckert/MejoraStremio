@@ -279,12 +279,38 @@ posterior al fix por no ser necesario forzar una escritura extra a la cuenta sol
   esta lista es fija en el código. Si en el futuro sale una serie nueva de este perfil (ej. una
   temporada nueva de algún reality), hay que agregarla a mano en `UFC_TITLES` (`scripts/deno-hub.ts`)
   y redeployar — no hay automatización pensada para esto todavía.
-- **Prueba real en dispositivo — pendiente de confirmación de Pablo/Joaquín**: todo lo de arriba está
-  verificado por API/fetch directo (`health-check.mjs`, `addonCollectionGet`, y un fetch real a cada
-  uno de los 8 streams de TV en vivo antes de sumarlos), pero **no se abrió la app de Stremio en un
-  dispositivo real en esta sesión** — no hay forma de confirmar desde acá que el video efectivamente
-  arranca al tocar play, sobre todo en los canales de TV en vivo (son streams de terceros que pueden
-  caerse entre el momento en que se probaron y el momento en que se los mira). Pablo avisó que iba a
-  probar la cuenta y reportar. Si algún canal puntual de "TV en Vivo — UFC / MMA / Combate" no anda
-  en la prueba real, el primer paso es re-verificar ese canal puntual contra `iptv-org` (puede haber
-  quedado offline del lado de la fuente) antes de asumir que es un problema de nuestro lado.
+- **Prueba real en dispositivo — ver "Sesión 2026-08-03" más abajo**: Pablo probó y reportó "no carga
+  nada" — diagnóstico y próximos pasos documentados en su propia sección al final de este archivo.
+
+## Sesión 2026-08-03 (madrugada) — "no carga nada", incidencia ABIERTA, esperando datos de Pablo
+
+**Reporte de Pablo, tras probar en dispositivo real**: "no anda nada ni iptv ni vivo ni las series ni
+nada, como que no carga nada" — no dijo todavía en qué dispositivo/app, si cerró sesión y volvió a
+entrar, ni el síntoma exacto (pantalla en blanco / spinner infinito / error puntual / carga pero
+filas vacías). **Se le preguntaron esas 3 cosas, sin responder todavía** — retomar apenas conteste.
+
+**Diagnóstico de backend hecho en el momento del reporte (2026-08-03 ~02:41-02:42 UTC), TODO
+verde — descarta que la cuenta o los addons estén caídos**:
+- `health-check.mjs` contra la cuenta real: 23/23 addons, sin duplicados, streams (Matrix 201,
+  Breaking Bad 252, Will Trent 85) y subs (Matrix 40, Breaking Bad 55) con datos reales, catálogos y
+  búsqueda de AIOMetadata OK. Exit code 0.
+- Las 2 rutas nuevas del hub (`/ufc`, `/livetv`) medidas con `curl -w %{time_total}`: manifest y
+  catálogo de ambas responden 200 OK en **menos de 1.5s** cada una — sin cuelgue ni timeout del lado
+  del servidor.
+
+**Hipótesis principal, no confirmada todavía**: en las horas previas al reporte se hicieron **3
+escrituras seguidas** a la colección de addons de esta cuenta (instalar TV en Vivo, reordenar dos
+veces, refrescar el manifest del catálogo ya acotado). Si el dispositivo de Joaquín tenía la sesión
+abierta durante esos cambios, es comportamiento conocido de los clientes de Stremio quedarse con una
+versión vieja/cacheada de la colección hasta cerrar sesión y volver a entrar (o reinstalar la app).
+Alternativa no descartada: problema de conexión/dispositivo del lado de Joaquín, sin relación con los
+cambios de esta cuenta.
+
+**Plan para cuando Pablo responda** (dispositivo/app usado, si re-logueó, síntoma exacto):
+1. Si suena a cache del cliente → sugerir cerrar sesión y volver a entrar (o reinstalar la app) como
+   primer intento simple, antes de tocar nada del lado del repo.
+2. Si el síntoma persiste después de eso → repetir el diagnóstico de backend (por si cambió algo
+   desde la última corrida) y, si sigue verde, es un problema de dispositivo/red de Joaquín, no algo
+   que se arregle desde este repo.
+3. Sin escrituras nuevas a la cuenta hasta tener más información — el diagnóstico de esta sesión fue
+   100% de lectura (`health-check.mjs` + `curl` a las rutas del hub, ningún `addonCollectionSet`).

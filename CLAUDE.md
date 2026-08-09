@@ -2205,6 +2205,67 @@ chequeo semanal, no hay nada pendiente de decidir acá.
 están sanos, el hueco de Los Mufas/El Marginal sigue siendo el mismo límite estructural de siempre,
 y el ecosistema de addons/debrid no tuvo movimientos que ameriten un cambio de configuración.
 
+### Chequeo semanal automático (2026-08-09)
+
+**Workflows del domingo**: los 4 workflows automatizados del proyecto corrieron en verde hoy —
+`anti-frustration-review.yml` (15:18 UTC, `success`), `health-monitor.yml` (dos corridas, 01:11 y
+13:05 UTC, ambas `success`, "Todo OK — setup funcionando correctamente" en las dos), `daily-catalog-
+refresh.yml` (10:40 UTC, `success`, 0 catálogos perdidos/ganados) y `premiere-radar.yml` (10:51 UTC,
+`success`). Dato menor, no accionable: `daily-catalog-refresh.yml` tuvo **una falla puntual el
+miércoles 2026-08-05** (no el domingo del chequeo), pero se auto-resolvió sola al día siguiente y
+las 4 corridas posteriores (06/08 a 09/08) vinieron todas en verde — consistente con el patrón de
+cold-start transitorio ya documentado arriba ("Patrón de falso positivo... no corregido todavía"),
+no es una rotura nueva.
+
+**Log antifrustración**: sin cambios de estado — **15 resueltos, 2 pendientes** (Los Mufas, El
+Marginal), mismo hueco estructural de siempre (contenido exclusivo Netflix Argentina sin cobertura
+en trackers/scrapers gratuitos). El único diff de la corrida de hoy fue el refresh de
+`lastCheckedAt` y el campo `name` de Los Mufas, que había quedado mal poblado la semana pasada
+("A Man Like Maximilian") y se corrigió solo de vuelta a "Los Mufas" — mismo patrón ya visto el
+2026-08-02, no amerita ningún cambio de código.
+
+**Hallazgo real de la semana — causa de fondo del outage de Deno Deploy del 2026-07-28, confirmada
+con la documentación oficial de pricing**: investigando si el patrón de `BILLING_SUSPENDED` de esa
+sesión podía repetirse, se confirmó que **Deno Deploy migró todas las organizaciones al plan Free
+por defecto** en la transición de plataforma de julio 2026 (Deploy Classic → Deploy nuevo), con
+límites de **1 millón de requests/mes, 100GB de banda saliente y 50ms de CPU por request** — y que,
+a diferencia de un plan pago (que factura el excedente), **un org Free que excede cualquiera de esos
+límites queda con sus apps PAUSADAS hasta el siguiente ciclo de facturación**, no hay auto-reactivación
+inmediata. Esto explica el mecanismo exacto detrás del outage de julio (no solo "se excedió una
+cuota", sino un pausado automático de plataforma) y, más importante: **el mismo pausado puede
+repetirse cualquier mes** si `mejorastremio-hub` (que sirve SubDL/Audio Latino/Synopsis IA) vuelve a
+superar esos límites — no fue un evento de una sola vez ya cerrado. Verificado que el hub está sano
+hoy (el health-check de esta semana no mostró ninguna advertencia de los 3 addons del hub, que
+siguen en `KNOWN_FLAKY` mientras tanto). No es accionable por el agente (implica decisión de plata:
+agregar método de pago o vigilar el uso) — queda anotado para que Pablo lo sepa, no para actuar solo.
+
+**stremio-ai-search (`au.itcon.aisearch`) — señal de mantenimiento floja, sin empeorar**: 6 issues
+nuevos abiertos en GitHub desde la instalación del 2026-07-18 (`#230`-`#235`, 23/07 al 01/08), todos
+siguen "Open" sin respuesta visible del mantenedor — mismo patrón de baja actividad ya anotado como
+"a vigilar" al instalarlo, sin señal de que haya empeorado a "addon roto" todavía. Sin acción por
+ahora (mismo criterio: si en algún momento deja de responder de verdad, se remueve sin drama).
+
+**Audio latino**: sin novedad verificable — reaparecieron los mismos dos nombres genéricos ya
+anotados la semana pasada (Progreso Latino, Stremio Latino) en búsquedas SEO, sin ninguna señal de
+comunidad/GitHub que los distinga de Latinobrid (ya descartado por falta de trust). No ameritan
+investigación todavía.
+
+**ElfHosted**: sin deprecaciones ni novedades nuevas esta semana más allá de lo ya documentado.
+
+**Plan de debrid (agosto 2026)**: sin cambios de precio en TorBox (Essential sigue ~US$3/mes;
+aparecen promociones de 20-30% off en planes anuales, sin relevancia porque Pablo ya está en el plan
+mensual) ni en AllDebrid. Real-Debrid: sin escalada nueva desde el filtro de mayo 2026, pero se
+confirmó con una fuente más autorizada (TorrentFreak) que el filtro **responde a obligaciones legales
+de la Digital Services Act de la UE** (no es una política reversible de la empresa) — refuerza que no
+es un problema temporal que vaya a aflojar, mismo motivo por el que TorBox sigue siendo la
+recomendación. La decisión de agosto ya está tomada y aplicada (TorBox activo desde el 2026-07-11);
+este punto queda solo por completitud del chequeo semanal.
+
+**Conclusión de la semana**: nada roto en la cuenta. El hallazgo que sí vale la pena que Pablo tenga
+en el radar es el de Deno Deploy — no es una falla, es una condición de plataforma (plan Free con
+pausado automático por exceso de uso) que ya pasó una vez en julio y puede repetirse cualquier mes
+mientras el hub no tenga un plan pago o el tráfico se mantenga bajo el límite gratuito.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

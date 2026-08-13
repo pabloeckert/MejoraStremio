@@ -1122,5 +1122,290 @@
     "label": "Wild Cards S01E07",
     "addedAt": "2026-08-01T21:07:49.693Z",
     "lastCheckedAt": "2026-08-01T21:11:50.642Z"
+  },
+  {
+    "id": "tt1710308",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "Regular Show",
+    "genres": [
+      "Animation",
+      "Action",
+      "Adventure"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 21,
+        "real": 21,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 20,
+        "real": 20,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 12,
+        "real": 12,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 14,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 55,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": true,
+      "samples": [
+        "Audio Latino [FREE TRIAL] ",
+        "Audio Latino [FREE TRIAL] ",
+        "Audio Latino [FREE TRIAL] "
+      ]
+    },
+    "label": "Regular Show / Un Show Más S01E01",
+    "addedAt": "2026-08-13T16:52:49.800Z",
+    "lastCheckedAt": "2026-08-13T16:52:49.800Z"
+  },
+  {
+    "id": "tt1710308",
+    "type": "series",
+    "season": 8,
+    "episode": 1,
+    "name": "Regular Show",
+    "genres": [
+      "Animation",
+      "Action",
+      "Adventure"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 13,
+        "real": 13,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 10,
+        "real": 10,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 12,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 3,
+        "real": 3,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 27,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": true,
+      "samples": [
+        "Audio Latino [FREE TRIAL] ",
+        "Audio Latino [FREE TRIAL] ",
+        "Audio Latino [FREE TRIAL] "
+      ]
+    },
+    "label": "Regular Show / Un Show Más S08E01 (temporada final)",
+    "addedAt": "2026-08-13T16:53:51.907Z",
+    "lastCheckedAt": "2026-08-13T16:53:51.907Z"
+  },
+  {
+    "id": "tt4920274",
+    "type": "movie",
+    "name": "Regular Show: The Movie",
+    "genres": [
+      "Animation",
+      "Action",
+      "Adventure"
+    ],
+    "isFamily": true,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 52,
+        "real": 9,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 20,
+        "real": 20,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 5,
+        "real": 5,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 23,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 37,
+    "status": "resuelto",
+    "latino": {
+      "checked": true,
+      "found": true,
+      "samples": [
+        "un-show-m-s-la-pel-cula-2015-latino[latino]",
+        "Un Show Más: La Película Trailer Español Latino"
+      ]
+    },
+    "label": "Regular Show: The Movie",
+    "addedAt": "2026-08-13T16:54:14.572Z",
+    "lastCheckedAt": "2026-08-13T16:54:14.572Z"
+  },
+  {
+    "id": "tt32604054",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "Regular Show: Lost Tapes",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Comedy"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 20,
+        "real": 20,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 13,
+        "real": 13,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 8,
+        "real": 8,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 3,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 43,
+    "status": "resuelto",
+    "latino": null,
+    "label": "Regular Show: Lost Tapes S01E01 (revival 2026)",
+    "addedAt": "2026-08-13T16:54:54.536Z",
+    "lastCheckedAt": "2026-08-13T16:54:54.536Z"
   }
 ]

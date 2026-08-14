@@ -59,6 +59,12 @@ scripts/validate-config.mjs         Valida el schema de preset.json (sin red ni 
 scripts/audit-catalog-order.mjs     Audita el orden de los catálogos del inicio (solo reporta).
 scripts/regenerate-aiometadata.mjs  Regenera la instancia de AIOMetadata desde el preset; reporta
                                     por defecto, swap en la cuenta con --apply (guard anti-pérdida).
+scripts/regenerate-aiometadata-solotveg.mjs  Variante para la cuenta juvenil (solotveg): misma
+                                    fuente (preset.json) pero con ageRating=PG-13 (cap TV-14 en
+                                    series), reorden Estrenos→Plataforma→Contenido→resto, país/
+                                    región/rating ocultos de Home, y catálogos "Acción Real" nuevos
+                                    (sin equivalente en el preset compartido). Instancia propia, no
+                                    toca data/preset.json — ver cuentas/solotveg/CLAUDE.md.
 scripts/refresh-dates.mjs           Recalcula las fechas de En Cartelera/Próximos Estrenos a hoy
                                     (--check para auditar sin escribir).
 scripts/fix-subtitles.*             Regenera la config de SubSense (.mjs Node, .ps1 PowerShell).

@@ -59,11 +59,36 @@ jobs:
           ST_PASS="${{ secrets.STREMIO_PASS }}" \
           node scripts/health-check.mjs 2>&1 | tee -a /tmp/summary.txt
 
-      - name: Commitear preset.json si cambió
+      # Instancia propia de solotveg (perfil juvenil, ver cuentas/solotveg/CLAUDE.md): reordena/
+      # filtra igual que regenerate-aiometadata.mjs pero con ageRating=PG-13 y sin país/región/
+      # rating en Home. Corre siempre que preset.json cambió (misma condición que la instancia
+      # compartida, porque lee las mismas fechas de Estrenos/Cartelera).
+      - name: Regenerar y aplicar AIOMetadata (solotveg)
+        id: regen_teen
+        if: steps.diff.outputs.changed == 'true'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          AIO_PASSWORD="${{ secrets.AIO_PASSWORD }}" \
+          ST_EMAIL_TEEN="${{ secrets.STREMIO_EMAIL_TEEN }}" \
+          ST_PASS_TEEN="${{ secrets.STREMIO_PASS_TEEN }}" \
+          node scripts/regenerate-aiometadata-solotveg.mjs --apply 2>&1 | tee -a /tmp/summary.txt
+
+      - name: Health check (solotveg)
+        id: health_teen
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL_TEEN }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS_TEEN }}" \
+          HEALTH_CHECK_SEARCH_PROBE="cars" \
+          node scripts/health-check.mjs 2>&1 | tee -a /tmp/summary.txt
+
+      - name: Commitear preset.json / instancia solotveg si cambiaron
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/preset.json
+          git add data/preset.json cuentas/solotveg/aiometadata-instance.json
           if ! git diff --cached --quiet; then
             git commit -m "chore(preset): refresh diario de fechas/catálogos"
             git pull --rebase origin main
@@ -86,6 +111,8 @@ jobs:
           FAIL="false"
           [ "${{ steps.regen.outcome }}" = "failure" ] && FAIL="true"
           [ "${{ steps.health.outcome }}" = "failure" ] && FAIL="true"
+          [ "${{ steps.regen_teen.outcome }}" = "failure" ] && FAIL="true"
+          [ "${{ steps.health_teen.outcome }}" = "failure" ] && FAIL="true"
           echo "failed=$FAIL" >> "$GITHUB_OUTPUT"
 
       - name: Registrar en el log interno

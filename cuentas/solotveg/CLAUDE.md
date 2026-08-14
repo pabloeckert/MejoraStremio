@@ -203,6 +203,95 @@ workflow de nuevo.
 
 Backup pre-cambio: `.backups/backup-solotveg-pre-aio-teen-2026-08-14T00-58-29-813Z.json`.
 `health-check.mjs` contra esta cuenta muestra `✗ Búsqueda por título no devuelve resultados` de
-forma **esperada y permanente** (usa "matrix" como sonda, que queda correctamente filtrado acá) —
-no es una regresión si se corre este chequeo genérico contra esta cuenta en el futuro; el resto del
-chequeo (addons, streams, subs, búsqueda con un título apto) da verde.
+forma **esperada** si se lo corre sin ajustar el sondeo (usa "matrix" por defecto, que queda
+correctamente filtrado acá) — resuelto agregando `HEALTH_CHECK_SEARCH_PROBE` (ver más abajo).
+
+## Orden de Descubrir/Inicio + cantidad sobre valoración + fuentes confiables (Sesión 2026-08-13, cont.)
+
+Tercera vuelta de pedidos sobre esta cuenta, todos resueltos vía la instancia propia (sin tocar la
+compartida): orden de catálogos, priorizar cantidad de contenido sobre rating, y curar los addons de
+streams por confiabilidad ("poco pero seguro").
+
+### Orden de catálogos (Descubrir e Inicio)
+
+Pedido: Estrenos/Cartelera primero (muy relevante) → Plataforma/Canal (Netflix, HBO, Nickelodeon,
+Cartoon Network, etc.) → Tipo de contenido (animación vs. acción real) → el resto. Top Rated, Más
+Vistos, Mejor Valorados, y país/región de origen: **no le interesan a este perfil** — deprioritizados
+y ocultos de Inicio.
+
+Implementado en `scripts/regenerate-aiometadata-solotveg.mjs`, que categoriza los ~112 catálogos
+habilitados de `preset.json` por regex sobre su `id` y arma un array nuevo en este orden:
+
+1. **Estrenos/Cartelera** (4): Próximos Estrenos y En Cartelera, movie+series.
+2. **Plataforma/Canal** (22): los 18 Top 10 de FlixPatrol (Netflix/Disney+/Prime/HBO Max/
+   Paramount+/Hulu/Peacock/Apple TV+/Starz) + Cartoon Network + Nickelodeon + Warner Bros. +
+   YouTube Premium — estos 4 últimos **ya existían en `preset.json` con `showInHome:false`** (nunca
+   se habían mostrado en ningún Home hasta ahora) y se activaron acá.
+3. **Tipo de contenido** (4): Animation Movies + Animated Shows (ya existían) + **2 catálogos
+   nuevos, "Acción Real" (Películas/Series)**, construidos con `without_genres:16` (excluye
+   Animación) — no tienen equivalente en el preset compartido, existen solo en esta instancia.
+4. **Resto de géneros** (34): Crime/Action/Adventure/Comedy/Documentary/Drama/Family/Fantasy/
+   History/Horror/Music/Mystery/Romance/SciFi/Thriller/War/Western, y los curados (Crimen y Misterio
+   Europeo/Británico, Drama Histórico Europeo, Familiar en Inglés) — todos forzados a
+   `showInHome:true` acá (varios estaban en `false` en el preset compartido).
+5. **Deprioritizados, `showInHome:false`, al final del array** (50): Trending/Latest/Top Rated/Best
+   of 2020s (4×2) y los **15 países + 7 de Asia + Latinoamérica** (32 movie/series) — siguen
+   `enabled:true` (navegables si se busca), pero no aparecen en Inicio ni cerca del principio de
+   Descubrir.
+
+### Cantidad de contenido por sobre valoración
+
+Pedido explícito: a este perfil "cantidad de contenido... más que valoraciones" — a diferencia de
+`stremioeg`, donde el dogma es calidad ante todo. En la instancia de esta cuenta:
+`vote_average.gte` se **saca por completo** de los catálogos de género/plataforma, y
+`vote_count.gte` se baja de 100/50 a **10** (se mantiene el piso de `with_runtime.gte`, que filtra
+basura real tipo entradas fantasma de 2 minutos — no es un filtro de gusto, no se tocó).
+
+**Bug encontrado y corregido al construir "Acción Real"**: sin ningún piso de votos, ordenar por
+fecha con el cap de edad activo daba **0 resultados** — TMDB devuelve 359k resultados brutos para
+esa combinación de filtros, pero la mayoría son títulos indie sin certificación cargada, y el cap
+PG-13 descarta todo lo "no verificado" (comportamiento del propio addon, ver sección de arriba). Se
+agregó `vote_count.gte:50` específicamente a los 2 catálogos nuevos de "Acción Real" — verificado
+en vivo: pasó de 0 a 9 resultados (pelis) y 4 (series). El resto de géneros con el piso más bajo
+(10) anduvo bien en las pruebas (Horror 2, War & Politics 3), salvo un caso de nicho genuino
+(Western Movies dio 0 en el momento de la prueba) — no se lo forzó más alto porque western es un
+género chico de por sí; puede variar día a día, no es una rotura.
+
+### Fuentes de streams — "poco pero seguro"
+
+Pedido explícito: para esta cuenta importa más que el contenido **abra** que tener muchas fuentes —
+"poco pero seguro" en vez de más opciones con riesgo de colgarse. Se sacaron 3 de los 6 addons de
+streams heredados del clon inicial:
+
+| Addon removido | Motivo |
+|---|---|
+| Meteor | P2P puro sin debrid — el caso de referencia documentado en todo este repo de "carga y nunca arranca" (torrents sin seeds) |
+| WebStreamrMBG | Ya catalogado como `KNOWN_FLAKY` en `health-check.mjs` — timeouts >15s y 504 documentados |
+| Nuvio Streams \| Elfhosted | Deprecado y archivado (feb. 2026) — daba 0 en las pruebas de streams de esta misma sesión |
+
+**Quedan**: Torrentio TB + Comet TB (cacheados en TorBox, no dependen de P2P entrante — la fuente
+más confiable del stack), NoTorrent (scraper HTTP estable), Streailer (bajo volumen, sin
+incidencias documentadas). Verificado post-cambio: Matrix 141 streams reales, Breaking Bad S01E01
+150, Will Trent S01E01 58 — cobertura amplia igual, sin las 3 fuentes de riesgo.
+
+### `health-check.mjs` — sondeo de búsqueda configurable
+
+Se agregó `HEALTH_CHECK_SEARCH_PROBE` (default `"matrix"`, sin romper el comportamiento existente
+en `stremioeg`/`stremiojn`) para poder correr el mismo script contra esta cuenta con un título apto
+(`cars`) y no disparar un falso `✗` por el cap de edad funcionando como corresponde.
+
+### Automatización diaria
+
+`daily-catalog-refresh.yml` (ya corría a diario para `stremioeg`, 07:00 ART) se extendió con 2 pasos
+nuevos: regenerar+aplicar esta instancia (`regenerate-aiometadata-solotveg.mjs --apply`, misma
+condición que la compartida — solo si `refresh-dates.mjs` movió la ventana de fechas) y un
+health-check con el probe `cars`. Mismo mecanismo de commit del archivo de tracking
+(`cuentas/solotveg/aiometadata-instance.json`) y de registro en `data/internal-log.jsonl`, sin
+duplicar el refresh de fechas (usa el mismo `preset.json` ya refrescado en el paso anterior).
+Secrets nuevos agregados al repo: `STREMIO_EMAIL_TEEN`/`STREMIO_PASS_TEEN` (mismo patrón que
+`STREMIO_EMAIL`/`STREMIO_PASS`). Esto también cubre el pedido de "revisión diaria de las fuentes" —
+el `[4/5] Streams` del health-check mide en vivo que Torrentio/Comet/NoTorrent/Streailer sigan
+respondiendo con streams reales cada día.
+
+Backups de esta vuelta: `.backups/backup-solotveg-pre-aio-regen-*.json` (instancia con reorden) y
+`.backups/backup-solotveg-pre-stream-curation-*.json` (curación de addons de streams).

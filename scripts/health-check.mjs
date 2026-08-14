@@ -213,12 +213,16 @@ if (!authKey) {
     ok(`${sample.length} catálogos muestreados con contenido`);
   }
 
-  // Búsqueda por título
-  const byTitle = await getJson(`${base}catalog/movie/search.movie/search=matrix.json`);
+  // Búsqueda por título — sondeo configurable: cuentas con cap de edad (ver
+  // cuentas/solotveg/CLAUDE.md) filtran títulos R/NC-17 hasta de la búsqueda,
+  // así que "matrix" da 0 ahí a propósito. HEALTH_CHECK_SEARCH_PROBE permite
+  // usar un título apto para esa cuenta sin tocar el resto del chequeo.
+  const searchProbe = process.env.HEALTH_CHECK_SEARCH_PROBE || 'matrix';
+  const byTitle = await getJson(`${base}catalog/movie/search.movie/search=${encodeURIComponent(searchProbe)}.json`);
   if ((byTitle?.metas?.length ?? 0) > 0) {
-    ok(`Búsqueda por título: "matrix" → ${byTitle.metas.length} resultados`);
+    ok(`Búsqueda por título: "${searchProbe}" → ${byTitle.metas.length} resultados`);
   } else {
-    fail('Búsqueda por título no devuelve resultados');
+    fail(`Búsqueda por título ("${searchProbe}") no devuelve resultados`);
     exitCode = 1;
   }
 

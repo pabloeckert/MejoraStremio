@@ -9,6 +9,10 @@
 # Secretos locales (API keys) — *.local no matchea *.local.md, entrada explícita
 SECRETS.local.md
 
+# Credenciales sueltas fuera de convención (ver SECRETS.local.md — nunca debería
+# haber quedado sin ignorar, agregado 2026-08-13 tras encontrarlo destrackeado)
+.env
+
 # Backups de colecciones de addons (datos de cuenta, no versionar)
 .backups
 

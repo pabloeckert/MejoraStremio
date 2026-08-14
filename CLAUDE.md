@@ -22,8 +22,10 @@ SPA si alguna vez hiciera falta.
 **Cuentas gestionadas por este repo**: además de la principal (`stremioeg@gmail.com`, documentada en
 todo este archivo), desde el 2026-08-02 también se gestiona una segunda cuenta —
 `stremiojn@gmail.com` ("Joaquín") — con su propio historial y documentación en
-`cuentas/stremiojn/CLAUDE.md` (complementario a este archivo, no lo duplica). Cualquier trabajo sobre
-esa cuenta puntual va documentado ahí, no acá.
+`cuentas/stremiojn/CLAUDE.md`. Desde el 2026-08-13 se gestiona además una tercera —
+`solotveg@gmail.com`, perfil juvenil/adolescente (hasta 17 años) — documentada en
+`cuentas/solotveg/CLAUDE.md`. Ambos archivos son complementarios a este, no lo duplican. Cualquier
+trabajo sobre una cuenta puntual va documentado en su propio archivo, no acá.
 
 ## Estructura
 
@@ -91,6 +93,11 @@ scripts/log-status.mjs              Registra el resultado de cada corrida automa
                                     monitor, daily-catalog-refresh, anti-frustration-review,
                                     premiere-radar) en data/internal-log.jsonl — reemplaza los
                                     emails a Pablo (ver "Sesión 2026-08-02"). Poda a 90 días.
+scripts/watch-log.mjs               Log inteligente de visualización: lee libraryItem (datastore
+                                    nativo de Stremio, sin Trakt) y reporta qué se mira más/qué
+                                    engancha. Con --save <slug> persiste snapshot en
+                                    data/watch-log-<slug>.jsonl. Usado para el perfil juvenil
+                                    (cuentas/solotveg/CLAUDE.md) — Sesión 2026-08-13.
 scripts/lib/addon-signals.mjs       Heurísticas compartidas sobre streams/subtítulos crudos
                                     (cacheado en TorBox, stream "real", idioma español) — usado por
                                     anti-frustration.mjs y premiere-radar.mjs, no reescribir por script.
@@ -118,7 +125,7 @@ build: es un toolkit, no un paquete. No usar `npm install`. Credenciales (`ST_EM
 
 **Diagnóstico (solo leen, no requieren credenciales para lo básico):**
 ```
-node scripts/validate-config.mjs                 # valida el schema de preset.json (sin red)
+node scripts/validate-config.mjs [--json]         # valida el schema de preset.json (sin red); --json = salida machine-readable
 node scripts/audit-catalog-order.mjs              # audita orden de catálogos del inicio
 node scripts/health-check.mjs                     # chequeo público (manifests); con ST_EMAIL/ST_PASS es dinámico y prueba streams/subs/búsqueda reales
 ST_EMAIL=... ST_PASS=... node scripts/test-content.mjs   # prueba streams+subs de data/test-content.json

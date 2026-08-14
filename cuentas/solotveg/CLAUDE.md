@@ -148,23 +148,61 @@ guardado en `data/watch-log-solotveg.jsonl`.
 periódica (ej. semanal, mismo patrón que el resto), es agregar un `.yml` que llame a este script con
 `--save solotveg`, no hace falta tocar el script en sí.
 
-## Pendiente — filtro de edad (hasta 17, excluir R/NC-17/TV-MA) — NO implementado
+## Filtro de edad (hasta 17, excluir R/NC-17/TV-MA) — implementado (Sesión 2026-08-13, cont.)
 
-El pedido original incluía `MAX_AGE_RATING=17` / `ALLOWED_RATINGS=G,PG,PG-13,TV-Y,TV-Y7,TV-G,TV-PG,
-TV-14`, excluyendo explícitamente contenido adulto/explícito. **Esto no se construyó en esta
-sesión** — a diferencia del filtro de idioma+año (ya investigado y descartado por no existir en el
-addon), el filtro de **certificación/rating SÍ existe** como parámetro real de TMDB Discover
-(`certification.lte` + `certification_country`), pero implementarlo bien requiere:
+Cerrado en la misma sesión, después de investigar el código fuente real de AIOMetadata
+(`github.com/cedya77/aiometadata`, `addon/utils/catalogFilters.ts` +
+`configure/src/components/sections/FiltersSettings.tsx`) en vez de intentar reconstruirlo a mano
+con parámetros de TMDB Discover:
 
-1. Catálogos custom nuevos (no alcanza con un toggle) — misma cantidad de trabajo que armar los 15
-   catálogos de país o los de fecha, pero para rating.
-2. Probablemente una **instancia de AIOMetadata separada** de la que comparten `stremioeg`/
-   `stremiojn` — mismo criterio ya aplicado para no mezclar el catálogo UFC de Joaquín con el Home
-   de Pablo: si se agregan catálogos con tope de rating a la instancia compartida, esos mismos
-   catálogos (con el filtro adentro) le aparecerían también a Pablo, lo cual no tiene sentido para
-   su propio uso — y si se agregan SIN filtro a la instancia compartida, el filtro no sirve de nada.
+**Hallazgo clave**: el addon ya trae un flag **global y nativo** `config.ageRating` (valores
+válidos: `None`, `G`, `PG`, `PG-13`, `R`, `NC-17`) que se aplica automáticamente a **todos los
+catálogos** (post-filtro sobre los resultados, no un parámetro de discover por catálogo). Jerarquía
+real del código: pelis `[G, PG, PG-13, R, NC-17]`, series `[TV-Y, TV-Y7, TV-G, TV-PG, TV-14,
+TV-MA]`, con mapeo automático interno `PG-13 → TV-14`. Con `ageRating: "PG-13"` se obtiene
+exactamente lo pedido: pelis hasta PG-13 (excluye R/NC-17), series hasta TV-14 (excluye TV-MA) — no
+hizo falta tocar cada catálogo, ni construir nada nuevo, es una sola línea de config.
 
-Por ahora esta cuenta usa el mismo Home/Descubrir compartido, **sin ningún filtro de rating
-aplicado** — no hay que asumir que está resuelto. Es la tarea más grande que quedó abierta de esta
-sesión; a definir con Pablo si vale la pena esa instancia separada o si hay una forma más liviana de
-lograrlo antes de construirla.
+**Contenido sin certificación cargada en TMDB queda excluido, a propósito** (comportamiento del
+propio addon, no una decisión nuestra): si un título no tiene rating registrado, se trata como
+"no verificado" y se descarta bajo un cap restrictivo. Es el mismo espíritu conservador que ya pidió
+Pablo para el audio ("si no está confirmado, no debe aparecer") — coherente, no un efecto secundario
+raro.
+
+**Por qué instancia separada, no la compartida**: `ageRating` es un flag de instancia completa, no
+por catálogo — aplicarlo a la instancia que comparten `stremioeg`/`stremiojn` le habría capado el
+catálogo a Pablo también. Se creó una instancia AIOMetadata nueva y exclusiva para este perfil
+(mismos ~119 catálogos que la compartida, **sin** tokens de Trakt/Simkl de Pablo — coherente con no
+tener Trakt conectado acá) vía `AIO_PASSWORD` + `/api/config/save`. UUID:
+**`208327a4-f8de-48a5-b186-aeeffce9814c`**, registrado en
+`cuentas/solotveg/aiometadata-instance.json` (no en `data/preset.json`, que sigue siendo solo de la
+instancia compartida). Instalada reemplazando el AIOMetadata heredado del clon inicial.
+
+**Verificado con evidencia real, no solo "quedó configurado"** — diff de títulos entre la instancia
+compartida (sin cap) y esta (con cap), mismo catálogo, mismo momento:
+- "En Cartelera" (películas): 20 → 11 resultados. Excluidos: *La Odisea, Posesión infernal: En
+  llamas, La muerte de Robin Hood, Soulm8te, Scary Movie, Lucky Strike, Leviticus, The Debt
+  Collector* (perfil de títulos de terror/acción/adultos, consistente con un cap PG-13).
+- "Top 10 Netflix Series": 10 → 8. Excluidos: *Extinction, Nando Between Two Worlds*.
+- Búsqueda general por título: `matrix` → **0 resultados** en esta cuenta (correcto: The Matrix es
+  R, el cap la excluye también de la búsqueda, no solo de los catálogos de Descubrir). `moana` → 3
+  resultados (Vaiana/Vaiana 2), `cars` → 5 resultados — confirma que la búsqueda sigue funcionando
+  normal para contenido apto, no está rota en general.
+
+**Caveat honesto, inherente a cómo funciona Stremio, no arreglable desde acá**: el cap frena el
+**descubrimiento** (Descubrir/Buscar/Home) — no bloquea la reproducción si alguien ya tiene/conoce
+el id de IMDb de un título puntual y lo abre directo (los addons de streams resuelven por id,
+sin pasar por el catálogo de AIOMetadata). Ningún addon de Stremio puede implementar control de
+acceso duro por contenido a ese nivel — es una limitación estructural del protocolo, la misma razón
+por la que tampoco existe un PIN parental nativo en este stack.
+
+**`keep-warm.yml` extendido** para pingear esta instancia además de la compartida (antes solo
+pingeaba `data/preset.json → instanceId`) — lee cualquier `cuentas/*/aiometadata-instance.json` que
+exista, así que futuras cuentas con instancia propia quedan cubiertas automáticamente sin tocar el
+workflow de nuevo.
+
+Backup pre-cambio: `.backups/backup-solotveg-pre-aio-teen-2026-08-14T00-58-29-813Z.json`.
+`health-check.mjs` contra esta cuenta muestra `✗ Búsqueda por título no devuelve resultados` de
+forma **esperada y permanente** (usa "matrix" como sonda, que queda correctamente filtrado acá) —
+no es una regresión si se corre este chequeo genérico contra esta cuenta en el futuro; el resto del
+chequeo (addons, streams, subs, búsqueda con un título apto) da verde.

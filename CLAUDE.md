@@ -2279,6 +2279,64 @@ en el radar es el de Deno Deploy — no es una falla, es una condición de plata
 pausado automático por exceso de uso) que ya pasó una vez en julio y puede repetirse cualquier mes
 mientras el hub no tenga un plan pago o el tráfico se mantenga bajo el límite gratuito.
 
+### Chequeo semanal automático (2026-08-16)
+
+**Workflows del domingo**: `anti-frustration-review.yml` corrió a las 15:08 UTC (`success`, commit
+`5071aa8`, solo refrescó `lastCheckedAt` de los 2 pendientes — sin cambios de estado).
+`daily-catalog-refresh.yml` (10:28 UTC) y `premiere-radar.yml` (10:38 UTC) corrieron ambos en verde,
+mismo patrón diario de siempre.
+
+**`health-monitor.yml` — hallazgo real de la semana**: de las 2 corridas de hoy, la de las 00:55 UTC
+salió `success`, pero la de las **12:52 UTC salió `failure`** — motivo: `✗ Torrentio TB: NO RESPONDE
+(2 intentos)` en el paso `[2/5]` (manifests). Es la **primera vez que falla el propio Torrentio**
+(no un addon ya catalogado como flaky) desde que arrancó el log interno (2026-08-01) — hubo un blip
+igual, mismo síntoma, el **2026-08-05** (dentro de una corrida de `daily-catalog-refresh`, que
+también corre `health-check.mjs`), y en ese caso el chequeo siguiente unas horas después ya daba
+`success` de nuevo. Torrentio es el addon de streams más importante de la cuenta (24 proveedores +
+TorBox, primero en la colección) — con solo 2 blips en 2 semanas y ambos autorresueltos, no amerita
+sumarlo a `KNOWN_FLAKY` todavía (ese mecanismo es para addons con flakiness recurrente y de bajo
+riesgo — Torrentio es lo opuesto: alto riesgo si de verdad se cae, así que conviene que siga
+disparando `✗` mientras no haya un patrón más sostenido). **No se pudo confirmar en vivo si ya se
+recuperó** — esta sesión no tiene `ST_EMAIL`/`ST_PASS` disponibles (corre sin credenciales de cuenta)
+y la próxima corrida programada de `health-monitor` es recién ~21:00 ART (00:00 UTC). Vale que Pablo
+sepa que, al momento de este chequeo, el health-check más reciente estaba en rojo por este motivo —
+si el patrón se repite una tercera vez en las próximas semanas, ahí sí valdría investigarlo más a
+fondo (o considerar agregar Torrentio a `KNOWN_FLAKY` si resulta ser blips cortos sin impacto real en
+streams, igual que WebStreamrMBG/Mubi Catalog en su momento).
+
+**Log antifrustración**: sin cambios de estado — **19 resueltos, 2 pendientes** (Los Mufas, El
+Marginal), mismo hueco estructural de siempre (contenido exclusivo Netflix Argentina sin cobertura en
+trackers/scrapers gratuitos). El único diff de la corrida de hoy fue el refresh de `lastCheckedAt` de
+esos 2 títulos — nada más cambió.
+
+**Investigación de mejoras — sin hallazgos que ameriten acción esta semana**:
+- **ElfHosted**: nada nuevo sobre los addons instalados (AIOMetadata, MyTrakt Sync, SubMaker, Comet,
+  NoTorrent, Stremio Community Subtitles) más allá de las deprecaciones ya conocidas de meses
+  anteriores (AIOLists/Archivio/YourIPTV/Stremio-Jackett/Nuvio Streams/KnightCrawler/Annatar). Sin
+  señales nuevas de riesgo.
+- **Torrentio (proyecto, no solo el blip de hoy)**: el repo (`TheBeastLT/torrentio-scraper`) sigue
+  activo, con issues abiertos regulares (incluidos varios de julio 2026) y sin señal de abandono —
+  el blip de hoy es consistente con el patrón histórico del proyecto (ya tuvo caídas puntuales por
+  problemas de hosting antes, ej. issue #450 de marzo 2026), no una señal de deprecación.
+- **stremio-ai-search**: actividad de issues sin cambios relevantes respecto al chequeo anterior —
+  sigue con baja respuesta del mantenedor pero sin empeorar a "addon roto". Sin acción.
+- **Audio latino**: no aparecieron addons nuevos con señal de comunidad/GitHub real esta semana —
+  mismos nombres genéricos de siempre (sin trust verificable). Sin acción.
+- **Subtítulos**: nada nuevo (SubDL/Community Subtitles/SubSense sin cambios de proveedor o API).
+
+**Plan de debrid (agosto 2026)**: sin cambios de precio en TorBox (sigue Free/Essential ~US$3/mes/
+Standard ~US$5/mes/Pro ~US$10/mes) ni en AllDebrid. Real-Debrid: se reconfirma que el filtro de
+copyright sigue activo y está atado a obligaciones legales (Digital Services Act de la UE), no es
+una política que vaya a revertirse — refuerza la recomendación de TorBox ya tomada y aplicada desde
+el 2026-07-11. Nada pendiente de decidir acá, agosto ya está cerrado con la decisión ya ejecutada.
+
+**Conclusión de la semana**: cuenta sana en general — el único punto real es que el health-check más
+reciente (12:52 UTC de hoy) está en rojo por Torrentio sin responder al manifest 2 veces seguidas,
+segundo blip así en 2 semanas, sin confirmación todavía de que ya se haya recuperado. No es un
+addon ya catalogado como flaky, así que vale la pena que Pablo lo tenga presente y, si tiene forma de
+chequear la app en el corto plazo, confirme que Torrentio sigue dando streams con normalidad. Nada
+más nuevo esta semana en addons/debrid.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

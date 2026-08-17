@@ -9,6 +9,9 @@
  *
  * Rutas:
  *   /subdl/manifest.json      → SubDL ES (sin SDH), subtítulos
+ *   /opensubtitles/manifest.json → OpenSubtitles ES (sin SDH), subtítulos (API moderna,
+ *                                catálogo grande, filtro real de hearing_impaired — ver
+ *                                CLAUDE.md "Sesión 2026-08-16")
  *   /latino/manifest.json     → Audio Latino (verificado), catálogo
  *   /synopsis/manifest.json   → MejoraStremio Synopsis IA, proxy de meta
  *   /miniseries/manifest.json → Miniseries (1 temporada, ≤10 episodios, finalizada), catálogo
@@ -215,6 +218,163 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
 
       if (!srtText) {
         return new Response("No se encontró SRT en el ZIP", { status: 502, headers: cors });
+      }
+      return new Response(srtText, {
+        headers: {
+          ...cors,
+          "Content-Type": "text/plain; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="sub.srt"',
+        },
+      });
+    } catch (e) {
+      return new Response("Error descargando: " + (e as Error).message, { status: 502, headers: cors });
+    }
+  }
+
+  return new Response("Not found", { status: 404, headers: cors });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ── /opensubtitles — OpenSubtitles ES (sin SDH), subtítulos ───────────────
+// A diferencia de SubDL (catálogo chico pero 100% confiable), esta es la
+// base de datos grande de OpenSubtitles vía su API REST moderna
+// (api.opensubtitles.com, NO la vieja XML-RPC que usan SubSense/OpenSubtitles
+// v3/SubMaker) — esa API sí trae un campo estructurado `hearing_impaired`
+// por archivo (confirmado contra la API real, no documentación), a
+// diferencia de la base vieja que no tiene ningún dato SDH filtrable (ver
+// CLAUDE.md, "Sesión 2026-08-16"). Se busca con `hearing_impaired=exclude`
+// server-side, antes de que Stremio vea la lista — igual de infalible que
+// SubDL, pero con mucha más cobertura (62 subs ES para Matrix vs 3 de SubDL).
+//
+// Cupo de la API key: 100 descargas/día (no de búsquedas), se resetea a las
+// 23:59:59 UTC. Por eso la descarga es perezosa (solo al abrir el subtítulo
+// elegido, no al listar) Y cacheada en KV — sin cache, cada apertura repetida
+// del mismo subtítulo gastaría cupo de nuevo.
+// ════════════════════════════════════════════════════════════════════════
+
+const OPENSUBTITLES_API_KEY = Deno.env.get("OPENSUBTITLES_API_KEY") ?? "";
+const OPENSUBTITLES_API = "https://api.opensubtitles.com/api/v1";
+const OPENSUBTITLES_UA = "MejoraStremio v1";
+const OPENSUBTITLES_SRT_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 días — un srt ya subido no cambia
+
+const OPENSUBTITLES_MANIFEST = {
+  id: "com.mejorastremio.opensubtitles",
+  version: "1.0.0",
+  name: "OpenSubtitles ES (sin SDH)",
+  description:
+    "Subtítulos en español de OpenSubtitles (API moderna). Filtra hearing-impaired " +
+    "(SDH) server-side con el campo real de la API, no por nombre de archivo.",
+  resources: ["subtitles"],
+  types: ["movie", "series"],
+  idPrefixes: ["tt"],
+  catalogs: [],
+};
+
+interface OpenSubtitlesSub { name: string; fileId: number }
+
+async function fetchOpenSubtitlesSubs(
+  imdbId: string,
+  season: number | null,
+  episode: number | null,
+): Promise<OpenSubtitlesSub[]> {
+  const params = new URLSearchParams({ languages: "es", hearing_impaired: "exclude" });
+  if (season != null && episode != null) {
+    params.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
+    params.set("season_number", String(season));
+    params.set("episode_number", String(episode));
+  } else {
+    params.set("imdb_id", imdbId.replace(/^tt0*/, ""));
+  }
+
+  const r = await fetch(`${OPENSUBTITLES_API}/subtitles?${params}`, {
+    headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA },
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!r.ok) return [];
+  const d = await r.json();
+
+  // deno-lint-ignore no-explicit-any
+  return ((d?.data ?? []) as any[])
+    .map((s) => ({
+      name: s.attributes?.release || s.attributes?.files?.[0]?.file_name || "OpenSubtitles ES",
+      fileId: s.attributes?.files?.[0]?.file_id as number,
+    }))
+    .filter((s) => Number.isFinite(s.fileId));
+}
+
+async function handleOpenSubtitles(subPath: string, mountBase: string): Promise<Response> {
+  if (!OPENSUBTITLES_API_KEY) {
+    return new Response(
+      "OPENSUBTITLES_API_KEY no configurada. Setear como Secret en Deno Deploy.",
+      { status: 503, headers: cors },
+    );
+  }
+
+  if (subPath === "/manifest.json") {
+    return jsonResponse(OPENSUBTITLES_MANIFEST);
+  }
+
+  const subMatch = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
+  if (subMatch) {
+    const [, , rawId] = subMatch;
+    const parts = rawId.split(":");
+    const imdbId = parts[0];
+    const season = parts[1] ? parseInt(parts[1], 10) : null;
+    const episode = parts[2] ? parseInt(parts[2], 10) : null;
+
+    try {
+      const subs = await fetchOpenSubtitlesSubs(imdbId, season, episode);
+      const subtitles = subs.map((s, idx) => ({
+        id: `opensubtitles-${idx}-${imdbId}`,
+        url: `${mountBase}/srt/${s.fileId}`,
+        lang: "spa",
+        name: `[OpenSubtitles] ${s.name}`,
+      }));
+      return jsonResponse({ subtitles });
+    } catch (e) {
+      return jsonResponse({ subtitles: [], error: (e as Error).message }, { status: 500 });
+    }
+  }
+
+  const srtMatch = subPath.match(/^\/srt\/(\d+)$/);
+  if (srtMatch) {
+    const fileId = parseInt(srtMatch[1], 10);
+    const cacheKey = ["opensubtitles-srt", fileId];
+
+    let kv: Deno.Kv | null = null;
+    try {
+      kv = await getKv();
+      const cached = await kv.get<string>(cacheKey);
+      if (cached.value) {
+        return new Response(cached.value, {
+          headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+    } catch {
+      kv = null;
+    }
+
+    try {
+      const dl = await fetch(`${OPENSUBTITLES_API}/download`, {
+        method: "POST",
+        headers: {
+          "Api-Key": OPENSUBTITLES_API_KEY,
+          "User-Agent": OPENSUBTITLES_UA,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ file_id: fileId }),
+        signal: AbortSignal.timeout(15000),
+      }).then((r) => r.json());
+
+      if (!dl?.link) {
+        return new Response("OpenSubtitles: sin link de descarga — " + JSON.stringify(dl), { status: 502, headers: cors });
+      }
+      const r = await fetch(dl.link, { signal: AbortSignal.timeout(20000) });
+      if (!r.ok) return new Response("OpenSubtitles error: " + r.status, { status: 502, headers: cors });
+      const srtText = await r.text();
+
+      if (kv) {
+        try { await kv.set(cacheKey, srtText, { expireIn: OPENSUBTITLES_SRT_CACHE_TTL_MS }); } catch { /* sin cache, no crítico */ }
       }
       return new Response(srtText, {
         headers: {
@@ -1118,6 +1278,7 @@ function handleHealth(): Response {
     hub: "mejorastremio-hub",
     timestamp: new Date().toISOString(),
     subdl: { configured: !!SUBDL_KEY },
+    opensubtitles: { configured: !!OPENSUBTITLES_API_KEY },
     latino: { configured: true },
     synopsis: {
       configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
@@ -1149,6 +1310,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         hub: "mejorastremio-hub",
         routes: [
           "/subdl/manifest.json",
+          "/opensubtitles/manifest.json",
           "/latino/manifest.json",
           "/synopsis/manifest.json",
           "/miniseries/manifest.json",
@@ -1165,6 +1327,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       route = "subdl";
       const subPath = path.slice("/subdl".length) || "/";
       res = await handleSubdl(subPath, `${url.origin}/subdl`);
+    } else if (path.startsWith("/opensubtitles")) {
+      route = "opensubtitles";
+      const subPath = path.slice("/opensubtitles".length) || "/";
+      res = await handleOpenSubtitles(subPath, `${url.origin}/opensubtitles`);
     } else if (path.startsWith("/latino")) {
       route = "latino";
       const subPath = path.slice("/latino".length) || "/";

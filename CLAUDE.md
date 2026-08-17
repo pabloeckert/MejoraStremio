@@ -111,9 +111,10 @@ scripts/deno-hub.ts                 App consolidada de Deno Deploy (`mejorastrem
                                     deno.jsonc): un Deno.serve con router por prefijo que
                                     reimplementa inline deno-subdl-addon.ts (/subdl/*),
                                     deno-latino-catalog-addon.ts (/latino/*) y
-                                    deno-synopsis-enricher.ts (/synopsis/*), más dos catálogos sin
-                                    script standalone equivalente: /miniseries (catálogo TMDB de
-                                    miniseries) y /discover ("Descubrir Maestro", filtros
+                                    deno-synopsis-enricher.ts (/synopsis/*), más /opensubtitles
+                                    (OpenSubtitles ES sin SDH vía la API REST moderna, filtro real de
+                                    hearing_impaired — ver "Sesión 2026-08-16"), /miniseries (catálogo
+                                    TMDB de miniseries) y /discover ("Descubrir Maestro", filtros
                                     combinables de servicio/región/país/idioma/género — ver "Sesión
                                     2026-07-30"), + /health. Reemplaza las 3 apps sueltas (ver
                                     "Sesión 2026-07-26/27" más abajo). Deployado, migrado a la
@@ -220,11 +221,12 @@ Torrentio/Comet):
 | Nuvio Streams | HTTP scraper | No |
 | Meteor | P2P puro, sin debrid | Sí |
 
-Subtítulos (orden): SubSense (idx 11) → SubMaker ElfHosted (idx 12) → SubDL Deno
-(idx 13, `mejorastremio-hub.pabloeckert.deno.net/subdl` desde el 2026-07-27, caído por
-`BILLING_SUSPENDED` — ver "Sesión 2026-07-28") → OpenSubtitles v3 (idx 14) → Stremio Community
-Subtitles (idx 15, sumado 2026-07-27, ver "Sesión 2026-07-27" más abajo). Catálogos de Mubi via
-"Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte, idx 10 y 16).
+Subtítulos (orden, actualizado 2026-08-16): **OpenSubtitles ES (sin SDH)** (idx 0,
+`mejorastremio-hub.pabloeckert.deno.net/opensubtitles` — nuevo, ver "Sesión 2026-08-16" más abajo)
+→ SubDL ES (sin SDH) (idx 1, `.../subdl`) → SubSense (idx 13) → SubMaker ElfHosted (idx 14) →
+OpenSubtitles v3 (idx 15) → Stremio Community Subtitles (idx 16). Los dos primeros son los únicos
+que filtran hearing-impaired (SDH) de forma genuina — ver esa sesión para el porqué. Catálogos de
+Mubi via "Mubi Catalog" y plataformas via "Streaming Catalogs" (addons aparte).
 
 **MyTrakt Sync** (`trakt.addon.v3.13e948e9-04c8-4917-a0d5-96af15b63d2f`, hosteado en ElfHosted,
 **índice 9** desde el 2026-07-12 — ver sección de esa fecha, antes índice 2) reemplazó a AIOLists
@@ -2336,6 +2338,64 @@ segundo blip así en 2 semanas, sin confirmación todavía de que ya se haya rec
 addon ya catalogado como flaky, así que vale la pena que Pablo lo tenga presente y, si tiene forma de
 chequear la app en el corto plazo, confirme que Torrentio sigue dando streams con normalidad. Nada
 más nuevo esta semana en addons/debrid.
+
+## Sesión 2026-08-16 — subtítulos SDH: causa real encontrada + addon propio "OpenSubtitles sin SDH"
+
+Pablo reportó que el subtítulo en español seguía trayendo contenido para sordos (texto descriptivo
+entre corchetes tipo "[susurro]"/"[música]") **incluso dentro de Stremio**, no solo con reproductor
+externo (VLC/Nova) — descartando la hipótesis inicial de que fuera un problema del reproductor
+externo. Diagnóstico + fix hecho de punta a punta, con evidencia real en cada paso, no supuesto.
+
+**Causa raíz confirmada (no adivinada)**: de los 4 addons de subtítulos que tenía la cuenta
+(SubSense, SubMaker, SubDL, OpenSubtitles v3), **solo SubDL filtra SDH de verdad** — es la única
+fuente con un campo estructurado `hi`/`hearing_impaired` en su API. Los otros 3 corren sobre la base
+de datos vieja de OpenSubtitles.org (XML-RPC/legacy), que **no tiene ningún dato de SDH filtrable,
+ni siquiera en el nombre del archivo** — comprobado bajando los 20 resultados reales de SubSense
+para Matrix: 0/20 con "HI"/"SDH" en el filename, pero seguramente varios sí lo son. Como esos 3
+addons sin filtrar aportan ~37 de los ~40 subtítulos ES totales de un título típico (SubDL solo 3),
+dominan la lista que ve Stremio — de ahí que un SDH se cuele "incluso adentro de Stremio".
+
+**Mitigación inmediata, gratis**: se reordenó SubDL al frente de los addons de subtítulos
+(`reorder-addons.mjs com.mejorastremio.subdl --apply`) — mejora las chances sin resolver el fondo.
+
+**Solución de fondo — addon propio nuevo, `/opensubtitles` en `scripts/deno-hub.ts`**: Pablo consiguió
+una API key gratis de `api.opensubtitles.com` (la API REST **moderna**, distinta de la vieja que usan
+SubSense/SubMaker/OpenSubtitles v3) — confirmado empíricamente contra la API real que esta sí trae
+`hearing_impaired: true/false` por archivo, filtrable con `hearing_impaired=exclude` en la búsqueda.
+Se armó un addon nuevo con el mismo patrón que `/subdl` (búsqueda perezosa, descarga solo al abrir el
+subtítulo elegido):
+
+- **Cupo real de la key: 100 descargas/día** (no de búsquedas, que están a 5/seg sin límite diario
+  aparente), reset a las 23:59:59 UTC — confirmado contra la API real, no documentación. Por eso la
+  descarga es perezosa y **cacheada en Deno KV** (90 días, mismo patrón ya usado por
+  `/synopsis` — `getKv()` compartida) para no gastar cupo en repeticiones del mismo archivo.
+  Verificado en vivo: pedir el mismo `file_id` dos veces solo consume 1 del cupo (la propia API de
+  OpenSubtitles tampoco re-descuenta descargas repetidas del mismo archivo en el día, un colchón
+  extra además del cache propio).
+- **Cobertura real medida**: 50 subtítulos ES (todos con `hearing_impaired:false` confirmado) para
+  Matrix, 26 para Breaking Bad S01E01 — muy por encima de los 3 de SubDL, con el mismo nivel de
+  confiabilidad del filtro.
+- Instalado en **índice 0** de la colección (primero de todos), `manifest.id`
+  `com.mejorastremio.opensubtitles`. Secret `OPENSUBTITLES_API_KEY` agregado a Deno Deploy y a
+  `SECRETS.local.md`. Deploy verificado en producción antes de instalar (no solo local).
+- `health-check.mjs` post-instalación: verde, 24 addons, Matrix pasó de 40 a **90 subs ES**
+  (OpenSubtitles sin SDH=50, SubDL sin SDH=3, resto sin filtrar=37 — quedan instalados igual, más
+  abajo en la lista, por volumen adicional aunque no filtren).
+
+**Límite que sigue sin solución, confirmado de nuevo, no reinvestigar**: la variante regional
+(latino vs. España) sigue sin ser filtrable en ninguna fuente, incluida esta nueva — mismo hallazgo
+ya documentado en "Subtítulos, variante latino vs. España" más arriba, la API moderna de
+OpenSubtitles tampoco distingue `es-419` de `es-ES`, todo cae bajo `language:"es"` genérico.
+
+**Reproductor externo — sin resolver, es límite del cliente, no de los addons**: investigado con
+evidencia real (varios issues abiertos en `Stremio/stremio-bugs`, incluido uno específico del mismo
+modelo de caja de Pablo, ZTE B866v2) que el lanzador de reproductor externo de Stremio en Android TV
+tiene bugs conocidos y activos (VLC se cierra solo y vuelve a la pantalla de selección). Recomendado
+probar **Nova Video Player** (abierto, con interfaz de TV dedicada, mejor reportado que VLC) en vez
+de VLC — instalado por Pablo, carga y reproduce bien, pero el traspaso del subtítulo elegido al
+reproductor externo específicamente quedó pendiente de que Pablo confirme si preseleccionar el
+subtítulo DENTRO de Stremio antes de abrir el externo soluciona el traspaso — no verificable sin el
+dispositivo real.
 
 ## Reglas del repo
 

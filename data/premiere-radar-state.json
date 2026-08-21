@@ -7,7 +7,7 @@
     "episode": 1,
     "episodeTitle": "Urban Guard",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -18,7 +18,7 @@
     "episode": 1,
     "episodeTitle": "Tinker Tailor Older Spy",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -29,7 +29,7 @@
     "episode": 2,
     "episodeTitle": "Deep Throat",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -40,7 +40,7 @@
     "episode": 2,
     "episodeTitle": "Work Drinks",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -51,7 +51,7 @@
     "episode": 2,
     "episodeTitle": "Episode 2",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -62,7 +62,7 @@
     "episode": 1,
     "episodeTitle": "Pilot",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -73,7 +73,7 @@
     "episode": 5,
     "episodeTitle": "Something to Share?",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -83,10 +83,9 @@
     "season": 1,
     "episode": 2,
     "episodeTitle": "Jackals, Beavers, and Parasites",
-    "status": "pendiente",
-    "reason": "sin-subs-es",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
-    "notifiedAt": null
+    "status": "listo",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
+    "notifiedAt": "2026-08-21T10:46:09.393Z"
   },
   {
     "key": "tt20883126:1:2",
@@ -96,7 +95,7 @@
     "episode": 2,
     "episodeTitle": "A Tattoo",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -107,7 +106,7 @@
     "episode": 2,
     "episodeTitle": "Dancers in the Dark",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -119,7 +118,7 @@
     "episodeTitle": "The Price of Poison",
     "status": "pendiente",
     "reason": "sin-subs-es",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": null
   },
   {
@@ -131,7 +130,7 @@
     "episodeTitle": "Episode 2",
     "status": "pendiente",
     "reason": "sin-cache-torbox",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": null
   },
   {
@@ -142,7 +141,7 @@
     "episode": 2,
     "episodeTitle": "Let's not be too modern",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -153,7 +152,7 @@
     "episode": 2,
     "episodeTitle": "Act II: Nothing Special",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -164,7 +163,7 @@
     "episode": 2,
     "episodeTitle": "Alfama",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -175,7 +174,7 @@
     "episode": 2,
     "episodeTitle": "Episode 2",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   },
   {
@@ -186,7 +185,7 @@
     "episode": 2,
     "episodeTitle": "Show Me the Murder",
     "status": "listo",
-    "lastCheckedAt": "2026-08-20T10:45:50.853Z",
+    "lastCheckedAt": "2026-08-21T10:46:09.393Z",
     "notifiedAt": "2026-08-14T11:07:31.428Z"
   }
 ]

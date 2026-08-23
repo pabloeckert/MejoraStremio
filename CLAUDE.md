@@ -2397,6 +2397,72 @@ reproductor externo específicamente quedó pendiente de que Pablo confirme si p
 subtítulo DENTRO de Stremio antes de abrir el externo soluciona el traspaso — no verificable sin el
 dispositivo real.
 
+### Chequeo semanal automático (2026-08-23)
+
+**Workflows del domingo**: los 4 workflows automatizados corrieron en verde hoy —
+`anti-frustration-review.yml` (15:09 UTC, `success`), `health-monitor.yml` (dos corridas, 00:55 y
+12:53 UTC, ambas `success`), `daily-catalog-refresh.yml` (10:29 UTC, `success`) y
+`premiere-radar.yml` (10:38 UTC, `success`).
+
+**`health-monitor.yml` — un blip nuevo esta semana, autorresuelto**: la corrida del **2026-08-22
+00:52 UTC salió `failure`** — motivo: `✗ AI Search: NO RESPONDE (2 intentos)` en el paso `[2/5]`
+(manifests). Es la primera vez que el propio `au.itcon.aisearch` (búsqueda conversacional por IA,
+instalada 2026-07-18, ya anotada como "de mantenimiento flojo") tira abajo el health-check — no
+está en `KNOWN_FLAKY`. La corrida siguiente, 12 horas después (12:53 UTC), ya dio `success` sin
+ninguna advertencia — autorresuelto, sin intervención. Solo un blip por ahora, no amerita sumarlo a
+`KNOWN_FLAKY` todavía (mismo criterio que Torrentio la semana pasada: hace falta un patrón
+sostenido, no un evento aislado). **Dato relacionado y tranquilizador**: el blip de Torrentio
+señalado el 2026-08-16 (dos caídas de manifest en 2 semanas) **no se repitió** en ninguna corrida
+de esta semana (17 al 23/08) — parece haber sido ruido puntual, no hace falta seguir vigilándolo
+con la misma urgencia.
+
+**Log antifrustración — cambio real, no solo refresco de fecha**: pasó de 19 resueltos/2
+pendientes (semana pasada) a **20 resueltos / 10 pendientes** hoy. La diferencia no viene de la
+revisión de `anti-frustration-review.yml` (que solo refrescó `lastCheckedAt` de Los Mufas/El
+Marginal, sin cambios de estado, de siempre) sino de un commit de **`daily-catalog-refresh.yml`
+más temprano hoy** (`37a2f65`, "registrar 4 series flojas del Seguir Viendo real") que auditó toda
+la lista de Continuar Viendo real de la cuenta y sumó al log 8 episodios nuevos con cobertura floja
+(1-2 streams reales, por debajo del umbral de 3) de 4 series que Pablo está mirando activamente
+ahora mismo: **Infiltrada** (S01E11), **Pa' Quererte** (S01E01, S01E02), **Pa' Seguirte Queriendo**
+(S01E02, S01E03) y **VisionQuest** (S01E01, S01E02) — más **Ágata y Lola S01E02** (el S01E03 sí
+tiene cobertura buena, 3 streams, quedó resuelto). Quedan "pendiente" para que el review semanal
+los reintente solo, mismo mecanismo de siempre. El propio commit documenta un límite real de la
+herramienta encontrado al armar esta lista: **2 títulos no se pudieron registrar** porque solo
+tienen id de TMDB, no de IMDb (Torrentio/Comet indexan por IMDb id, así que el script tal como está
+armado hoy no los puede consultar) — explica en parte por qué esos dos venían con poca cobertura
+percibida, sin que sea necesariamente un problema real de streams. Los 2 de siempre, **Los Mufas y
+El Marginal, siguen sin cambios** (0-1 streams reales), mismo hueco estructural de contenido
+exclusivo Netflix Argentina ya documentado.
+
+**Investigación de mejoras — sin hallazgos nuevos que ameriten acción esta semana**:
+- **ElfHosted**: nada nuevo sobre los addons instalados más allá de las deprecaciones ya conocidas
+  (AIOLists/Archivio/YourIPTV/Stremio-Jackett/Nuvio Streams/WebStreamr oficial — nuestro
+  WebStreamrMBG es un fork independiente y sigue sin señales de riesgo). La guía pública de
+  ElfHosted sigue recomendando AIOStreams/MediaFusion/Comet como "top 3" — ya evaluado a fondo el
+  2026-07-30 (AIOStreams público deshabilita justamente Torrentio/P2P/HTTP, la privada cuesta 3x
+  TorBox sin ventaja clara); sin cambios en esa conclusión.
+- **stremio-ai-search**: issues abiertos en el repo siguen sin mostrar señales de que el
+  mantenedor haya acelerado su respuesta, pero tampoco hay señal de abandono total — coincide con
+  el blip aislado de esta semana (más ruido de infra puntual que indicio de addon roto). Sin
+  acción, sigue en modo "vigilar".
+- **Audio latino**: no aparecieron addons nuevos con señal de comunidad/GitHub real esta semana.
+- **Deno Deploy**: sin cambios de plan gratuito reportados desde la migración de plataforma de
+  julio (1M requests/mes, límites de banda/CPU por request) — el riesgo de pausado automático ya
+  documentado (outage del 2026-07-28) sigue vigente como posibilidad, sin evento nuevo esta semana.
+
+**Plan de debrid (agosto 2026)**: sin cambios de precio en TorBox (Essential ~US$3/mes, sigue
+igual), Real-Debrid (~€4/mes, el filtro de copyright de mayo 2026 se reconfirma atado a la Digital
+Services Act de la UE, sin escalar más esta semana) ni AllDebrid (~€3/mes). La decisión de agosto
+ya está tomada y aplicada (TorBox activo desde el 2026-07-11) — este punto queda solo por
+completitud del chequeo semanal, nada pendiente de decidir.
+
+**Conclusión de la semana**: cuenta sana — el único punto real es el lote de 8 episodios nuevos con
+streams flojos que quedaron registrados hoy en el log antifrustración, todos de series que Pablo
+está viendo activamente ahora (Infiltrada, Pa' Quererte, Pa' Seguirte Queriendo, VisionQuest). No
+es una rotura de la cuenta, es contenido de nicho/reciente con poca cobertura en los
+trackers/scrapers gratuitos (mismo patrón estructural de siempre) — quedan en revisión automática
+semanal, sin necesidad de acción manual por ahora. Nada más nuevo en addons/debrid/ElfHosted.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

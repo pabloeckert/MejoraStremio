@@ -1407,5 +1407,571 @@
     "label": "Regular Show: Lost Tapes S01E01 (revival 2026)",
     "addedAt": "2026-08-13T16:54:54.536Z",
     "lastCheckedAt": "2026-08-13T16:54:54.536Z"
+  },
+  {
+    "id": "tt38607962",
+    "type": "series",
+    "season": 1,
+    "episode": 2,
+    "name": "Ágata y Lola",
+    "genres": [],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 2,
+    "status": "pendiente",
+    "latino": null,
+    "label": "Ágata y Lola S01E02",
+    "addedAt": "2026-08-23T01:52:08.797Z",
+    "lastCheckedAt": "2026-08-23T01:52:08.797Z"
+  },
+  {
+    "id": "tt38607962",
+    "type": "series",
+    "season": 1,
+    "episode": 3,
+    "name": "Ágata y Lola",
+    "genres": [],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 2,
+        "real": 2,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 3,
+    "status": "resuelto",
+    "latino": null,
+    "label": "Ágata y Lola S01E03",
+    "addedAt": "2026-08-23T01:53:07.864Z",
+    "lastCheckedAt": "2026-08-23T01:53:07.864Z"
+  },
+  {
+    "id": "tt29780951",
+    "type": "series",
+    "season": 1,
+    "episode": 11,
+    "name": "Wild Cards",
+    "genres": [
+      "Comedy",
+      "Crime",
+      "Drama"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 1,
+    "status": "pendiente",
+    "latino": null,
+    "label": "Infiltrada S01E11",
+    "addedAt": "2026-08-23T02:19:04.747Z",
+    "lastCheckedAt": "2026-08-23T02:19:04.747Z"
+  },
+  {
+    "id": "tt12014840",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "Pa' Quererte",
+    "genres": [
+      "Romance"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 2,
+    "status": "pendiente",
+    "latino": null,
+    "label": "Pa' Quererte S01E01",
+    "addedAt": "2026-08-23T02:19:31.325Z",
+    "lastCheckedAt": "2026-08-23T02:19:31.325Z"
+  },
+  {
+    "id": "tt12014840",
+    "type": "series",
+    "season": 1,
+    "episode": 2,
+    "name": "Pa' Quererte",
+    "genres": [
+      "Romance"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 1,
+    "status": "pendiente",
+    "latino": null,
+    "label": "Pa' Quererte S01E02",
+    "addedAt": "2026-08-23T02:20:07.985Z",
+    "lastCheckedAt": "2026-08-23T02:20:07.985Z"
+  },
+  {
+    "id": "tt43704317",
+    "type": "series",
+    "season": 1,
+    "episode": 2,
+    "name": "Pa Seguirte Queriendo",
+    "genres": [],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 1,
+    "status": "pendiente",
+    "latino": null,
+    "label": "Pa' Seguirte Queriendo S01E02",
+    "addedAt": "2026-08-23T02:20:37.808Z",
+    "lastCheckedAt": "2026-08-23T02:20:37.808Z"
+  },
+  {
+    "id": "tt43704317",
+    "type": "series",
+    "season": 1,
+    "episode": 3,
+    "name": "Pa Seguirte Queriendo",
+    "genres": [],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 1,
+    "status": "pendiente",
+    "latino": null,
+    "label": "Pa' Seguirte Queriendo S01E03",
+    "addedAt": "2026-08-23T02:20:55.820Z",
+    "lastCheckedAt": "2026-08-23T02:20:55.820Z"
+  },
+  {
+    "id": "tt23112594",
+    "type": "series",
+    "season": 1,
+    "episode": 1,
+    "name": "VisionQuest",
+    "genres": [],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 2,
+    "status": "pendiente",
+    "latino": null,
+    "label": "VisionQuest S01E01",
+    "addedAt": "2026-08-23T02:21:41.269Z",
+    "lastCheckedAt": "2026-08-23T02:21:41.269Z"
+  },
+  {
+    "id": "tt23112594",
+    "type": "series",
+    "season": 1,
+    "episode": 2,
+    "name": "VisionQuest",
+    "genres": [],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Meteor": {
+        "total": 1,
+        "real": 0,
+        "unverifiable": true
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "AI Search": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 1,
+    "status": "pendiente",
+    "latino": null,
+    "label": "VisionQuest S01E02",
+    "addedAt": "2026-08-23T02:21:58.824Z",
+    "lastCheckedAt": "2026-08-23T02:21:58.824Z"
   }
 ]

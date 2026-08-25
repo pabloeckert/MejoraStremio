@@ -2493,19 +2493,38 @@ solo para `stremioeg` (sin mezclar con `solotveg`/`stremiojn`). Aprobó todas la
    todavía. No se pudo automatizar (sin endpoint de API documentado) — queda como acción manual de
    Pablo en el dashboard de TorBox.
 
-**Investigado, no implementado (decisión pendiente de Pablo)**:
-- **TorBox lanzó su propio servidor Usenet (NNTP) en v9.0.0 (julio 2026)** — potencialmente relevante
-  para el hueco estructural de cobertura en contenido de nicho, porque Usenet suele indexar mejor que
-  los trackers de torrents públicos. **Pero TorBox solo da la descarga, no la búsqueda** — hace falta
-  un indexer aparte (Newznab-compatible). Costos reales investigados: **DrunkenSlug tiene tier
-  gratis** (5 NZBs/día, 100 requests/día); si no alcanza, NZBPlanet ~US$10/año o NZBGeek ~US$12/año —
-  costo trivial, no una barrera real. Addons de Stremio ya existentes para esto: `UsenetStreamer`
-  (github.com/Sanket9225/UsenetStreamer), `Usenet Ultimate` (github.com/DSmart33/Usenet-Ultimate,
-  también hosteado por ElfHosted). **No se creó ninguna cuenta ni se instaló nada** — crear la cuenta
-  en el indexer es una acción que le corresponde a Pablo (fuera de lo que el agente puede hacer por
-  él); en cuanto tenga la cuenta/API key, se arma la integración.
-- **AIOStreams** sumó un motor de Usenet propio — no cambia la conclusión ya tomada el 2026-07-30
-  (instancia pública deshabilita Torrentio/P2P/HTTP, la privada cuesta 3x TorBox sin ventaja clara).
+**Usenet vía TorBox — investigado a fondo y CERRADO, no reabrir salvo pedido explícito de Pablo**:
+TorBox lanzó su propio servidor Usenet (NNTP) en v9.0.0 (julio 2026) — parecía prometedor para el
+hueco estructural de cobertura en contenido de nicho (Usenet suele indexar mejor que los trackers de
+torrents públicos). Se investigó y se probó de punta a punta contra las APIs reales, no solo
+documentación:
+
+- **Indexers gratis probados, los 3 cerrados en la práctica**: DrunkenSlug tiene registro cerrado
+  ("The Bar is closed"), NZBPlanet da cuenta limitada que expira en 24hs sin upgrade. **NZBGeek**
+  (Pablo se registró, usuario `pabloeckert`) sí dio una API key, pero la cuenta queda en **"Trial
+  Account Only"** — probado en vivo contra la API real (Matrix, Breaking Bad): **0 resultados
+  siempre**, confirmado que el acceso real a búsqueda requiere membresía VIP (~US$12/año).
+- **Hallazgo más importante — TorBox mismo bloquea Usenet por plan**: al probar el flujo completo
+  (se armó y deployó localmente — nunca en producción — una ruta `/usenet` en `scripts/deno-hub.ts`
+  con NZBGeek + TorBox), la API de TorBox rechazó la creación de la descarga con
+  `PLAN_RESTRICTED_FEATURE — User is not allowed to use usenet downloads. Please upgrade your plan.`
+  — confirmado que **Usenet es exclusivo del plan Pro de TorBox (~US$10/mes)**, Essential y Standard
+  no lo incluyen. Costo real total para destrabar esto: **~US$96/año** (Pro de TorBox +VIP de
+  NZBGeek), no los "costos triviales" que se había estimado antes de probar contra las APIs reales.
+- **AIOStreams** (su modo Usenet) tampoco es gratis para esto — requiere instancia privada de pago,
+  mismo motivo por el que ya se había descartado el 2026-07-30 para el caso de torrents.
+- **Decisión de Pablo, informada y final**: no vale la pena — el costo (~US$96/año) no se justifica
+  frente a la mejora real esperada (los títulos flojos actuales son contenido español/latino de
+  nicho, y las comunidades de Usenet están tan sesgadas a inglés como las de torrents; los 2 casos
+  más frustrantes de siempre, Los Mufas/El Marginal, son exclusivos de streaming y Usenet no los
+  toca en absoluto). Lectura propia de Pablo sobre el ecosistema Usenet: percibe que está en
+  decadencia, no en expansión — coincide con el registro cerrado de 2 de los 3 indexers gratis
+  probados.
+- **Se revirtió todo lo tocado**: el código de `/usenet` en `deno-hub.ts` se descartó (`git
+  restore`, nunca se commiteó ni se deployó a producción — confirmado con un fetch real a
+  `/health` antes de revertir, sin ninguna mención de "usenet"). Las credenciales de NZBGeek se
+  sacaron de `SECRETS.local.md`. **No reabrir este tema salvo que Pablo lo pida explícitamente** —
+  ya está investigado a fondo, con evidencia real, y la decisión está tomada.
 - Nombres nuevos vistos en listados tipo SEO ("Debridio") sin evidencia técnica real — mismo criterio
   de siempre, no se persiguen sin señal de comunidad/GitHub verificable.
 

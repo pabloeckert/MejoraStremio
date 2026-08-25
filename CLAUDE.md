@@ -2463,6 +2463,52 @@ es una rotura de la cuenta, es contenido de nicho/reciente con poca cobertura en
 trackers/scrapers gratuitos (mismo patrón estructural de siempre) — quedan en revisión automática
 semanal, sin necesidad de acción manual por ahora. Nada más nuevo en addons/debrid/ElfHosted.
 
+## Sesión 2026-08-25 — revisión de mejoras en stremioeg: TorBox v9, AirLock, cross-check legal
+
+Pablo pidió revisar la cuenta a fondo, investigar novedades de TorBox/addons, y proponer mejoras
+solo para `stremioeg` (sin mezclar con `solotveg`/`stremiojn`). Aprobó todas las propuestas.
+
+**Ejecutado**:
+1. **SubSense** apareció caída en el health-check inicial, pero al reintentar minutos después ya
+   respondía 200 OK — blip transitorio autorresuelto, mismo patrón ya documentado, no requirió
+   regenerar nada.
+2. **Meteor y AI Search removidos** de la colección (24 → 22 addons). Motivo: Meteor es la fuente
+   menos confiable (P2P puro sin TorBox, sin verificar, historial de "carga y nunca arranca") y AI
+   Search venía causando fallos de health-check por mantenimiento flojo del addon aportando solo 1
+   stream por título — ninguno de los dos aportaba cobertura real que Torrentio/Comet/NoTorrent no
+   cubrieran ya. `health-check.mjs` post-cambio: verde, sin regresión (Matrix 148, Breaking Bad
+   S01E01 163, Will Trent S01E01 65). Backup:
+   `.backups/backup-stremioeg-pre-remove-meteor-aisearch-2026-08-25T11-17-*.json`.
+3. **Cross-check de disponibilidad legal** (TMDB `watch/providers`, no navegando "Streaming
+   Catalogs" a mano — ese addon no tiene búsqueda por título) para los 5 títulos flojos del log
+   antifrustración: **"Pa' Quererte" está en Amazon Prime Video Argentina** (ya instalado en
+   "Streaming Catalogs") — dato real para que Pablo lo busque ahí en vez de depender de torrents.
+   Los otros 4 (Infiltrada, Pa' Seguirte Queriendo, VisionQuest, Ágata y Lola) no tienen
+   disponibilidad legal real en AR (Infiltrada/Ágata y Lola aparecieron en plataformas de EE.UU./
+   España sin relevancia para la región de Pablo).
+4. **AirLock (TorBox, gratis en el plan Essential — 300GB, sin API pública, toggle manual en su
+   web)**: se identificaron **8 episodios de Ágata y Lola ya cacheados en TorBox** (caps 101-106,
+   ~13GB) que valdría la pena marcar para que no se purguen por los 30 días de inactividad — Pablo
+   los mira despacio, episodio a episodio. Ninguno de los otros 4 títulos flojos tenía nada cacheado
+   todavía. No se pudo automatizar (sin endpoint de API documentado) — queda como acción manual de
+   Pablo en el dashboard de TorBox.
+
+**Investigado, no implementado (decisión pendiente de Pablo)**:
+- **TorBox lanzó su propio servidor Usenet (NNTP) en v9.0.0 (julio 2026)** — potencialmente relevante
+  para el hueco estructural de cobertura en contenido de nicho, porque Usenet suele indexar mejor que
+  los trackers de torrents públicos. **Pero TorBox solo da la descarga, no la búsqueda** — hace falta
+  un indexer aparte (Newznab-compatible). Costos reales investigados: **DrunkenSlug tiene tier
+  gratis** (5 NZBs/día, 100 requests/día); si no alcanza, NZBPlanet ~US$10/año o NZBGeek ~US$12/año —
+  costo trivial, no una barrera real. Addons de Stremio ya existentes para esto: `UsenetStreamer`
+  (github.com/Sanket9225/UsenetStreamer), `Usenet Ultimate` (github.com/DSmart33/Usenet-Ultimate,
+  también hosteado por ElfHosted). **No se creó ninguna cuenta ni se instaló nada** — crear la cuenta
+  en el indexer es una acción que le corresponde a Pablo (fuera de lo que el agente puede hacer por
+  él); en cuanto tenga la cuenta/API key, se arma la integración.
+- **AIOStreams** sumó un motor de Usenet propio — no cambia la conclusión ya tomada el 2026-07-30
+  (instancia pública deshabilita Torrentio/P2P/HTTP, la privada cuesta 3x TorBox sin ventaja clara).
+- Nombres nuevos vistos en listados tipo SEO ("Debridio") sin evidencia técnica real — mismo criterio
+  de siempre, no se persiguen sin señal de comunidad/GitHub verificable.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

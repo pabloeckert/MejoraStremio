@@ -2528,6 +2528,58 @@ documentación:
 - Nombres nuevos vistos en listados tipo SEO ("Debridio") sin evidencia técnica real — mismo criterio
   de siempre, no se persiguen sin señal de comunidad/GitHub verificable.
 
+## Sesión 2026-08-27 — TorBox cambió sus Términos de Servicio (31/07/2026): ya no es "no-logs"
+
+Pedido de Pablo: revisión general de la cuenta + devolución de mejoras/actualizaciones. La cuenta
+en sí está sana (health-monitor/keep-warm/daily-catalog-refresh/premiere-radar en verde de forma
+sostenida, sin commits pendientes) — el hallazgo real de esta sesión es externo, sobre el propio
+proveedor de debrid del que depende todo el proyecto.
+
+**Hallazgo — investigado con fuentes reales, no SEO genérico**: TorBox reescribió sus Términos de
+Servicio y Política de Privacidad el **31 de julio de 2026**. Confirmado por
+[TroyPoint](https://troypoint.com/torbox-changes-their-terms-of-service/) (outlet establecido en
+este nicho, no un blog SEO genérico) y una comparativa técnica independiente
+([`fynks/debrid-services-comparison`](https://github.com/fynks/debrid-services-comparison) en
+GitHub). El cambio contradice directamente uno de los motivos por los que se eligió TorBox sobre
+Real-Debrid en su momento (ver "Plan debrid — proyección agosto 2026" más arriba: "no-logs" estaba
+listado explícitamente como punto a favor):
+
+- **Recolección de datos ampliada**: ahora incluye IP, identificador de dispositivo, geolocalización
+  y **session-replay** (grabación de movimientos de cursor/clics) — antes la política era de
+  mínima recolección.
+- **Se sacó el compromiso de borrado a pedido**: reemplazado por retención indefinida en "registros
+  de abuso" y "registros legales", sin plazo especificado. El lenguaje pasó de "vamos a borrar" a
+  "cuando sea razonablemente factible" — la diferencia entre un compromiso y una sugerencia de
+  mejor esfuerzo.
+- **Cláusula amplia de divulgación**: permite compartir datos de usuarios para cumplir con la ley,
+  responder a "pedidos gubernamentales", o "proteger a TorBox, usuarios, terceros o al público en
+  general".
+- **Cambio de estructura corporativa**: pasó a operar bajo dos entidades nuevas — Anonymous Systems
+  FZ-LLC (UAE) y ReAnonymous LLC (Delaware) — que, según analistas de privacidad citados en la
+  cobertura, oscurecen quién es el dueño real del servicio.
+
+**Estabilidad — dos incidentes recientes, ninguno con impacto medido en la cuenta real**:
+- **18/08/2026, 18:56-19:13 UTC**: ataque a la base de datos de TorBox (afectó API y DB), resuelto
+  en 17 minutos según el propio [status page](https://status.torbox.app/incident/1019820) de
+  TorBox — un incidente de seguridad puntual y corto, no una filtración de datos confirmada.
+- **19/08/2026**: outage más amplio de API/CDN reportado por usuarios en redes sociales y medios
+  (MSN, Times Now World), con el status page de TorBox confirmando "Some services are down" ese
+  día.
+- **Verificado contra el log interno de la cuenta** (`data/internal-log.jsonl`): `health-monitor`
+  corrió en verde las 3 fechas (19, 20 y 21 de agosto) sin ninguna degradación detectada — o el
+  outage no llegó a afectar los streams cacheados en curso, o los addons HTTP (NoTorrent/
+  WebStreamrMBG) taparon el bache sin que se notara. No hay evidencia de impacto real en el uso de
+  Pablo, solo se deja registrado el contexto.
+
+**Sin acción tomada — decisión pendiente de Pablo, no del agente**: esto no es un problema técnico
+con un fix de código, es un trade-off de privacidad vs. funcionalidad que le corresponde decidir a
+Pablo. Opciones sobre la mesa si en algún momento quiere reconsiderar: **AllDebrid** sigue como
+alternativa económica (~€3/mes) sin este historial de cambio de ToS ni de outages recientes, aunque
+con menos profundidad de caché para contenido de nicho/no-inglés que TorBox (mismo trade-off
+histórico ya documentado en "Plan debrid" más arriba). **No se aplicó ningún cambio** — TorBox
+sigue activo en Torrentio/Comet exactamente como está hoy. Si Pablo pide migrar o investigar
+AllDebrid más a fondo, es una sesión aparte.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

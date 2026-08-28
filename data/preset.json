@@ -826,7 +826,7 @@
           "sort": "release_date",
           "type": "movie",
           "source": "streaming",
-          "enabled": true,
+          "enabled": false,
           "showInHome": true,
           "sortDirection": "desc"
         },
@@ -836,7 +836,7 @@
           "sort": "release_date",
           "type": "series",
           "source": "streaming",
-          "enabled": true,
+          "enabled": false,
           "showInHome": true,
           "sortDirection": "desc"
         },
@@ -844,7 +844,7 @@
           "id": "flixpatrol.crunchyroll.us.all",
           "type": "all",
           "name": "Top 10 on Crunchyroll",
-          "enabled": true,
+          "enabled": false,
           "showInHome": true,
           "source": "flixpatrol",
           "enableRatingPosters": true,

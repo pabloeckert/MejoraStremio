@@ -13,7 +13,11 @@ jobs:
   health:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 — ver el comentario en daily-catalog-refresh.yml (mismo motivo: un shallow
+      # clone rompe "git pull --rebase origin main" si hay commits reales que reconciliar).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Health check
         id: check

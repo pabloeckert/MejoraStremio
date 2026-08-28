@@ -12,7 +12,16 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 (historia completa, no el shallow clone por defecto) — un checkout shallow
+      # rompe "git pull --rebase origin main" más abajo cuando hay commits para reconciliar (sin
+      # historia compartida, git no puede resolver el merge-base y todo archivo modificado en
+      # ambos lados aparece como conflicto "add/add", aunque el contenido no choque de verdad).
+      # Encontrado el 2026-08-28 al disparar este workflow manualmente contra una rama de trabajo
+      # divergente — el mismo riesgo existe en frío, aunque más raro, si dos de los 4 workflows que
+      # commitean a data/ llegan a correr casi al mismo tiempo sobre main (ver CLAUDE.md).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Preparar resumen
         run: echo "MejoraStremio — refresh diario $(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/summary.txt

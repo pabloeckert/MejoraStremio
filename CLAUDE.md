@@ -2670,6 +2670,77 @@ filtro de detalle debería subir mucho — se mantiene ese filtro igual como red
 efecto real** — mismo bloqueo de red de esta sesión, requiere `deno deploy` con
 `DENO_DEPLOY_TOKEN` en una sesión futura. Commiteado, no deployado.
 
+## Sesión 2026-08-28 (tarde) — plan integral ejecutado: catálogos aplicados en vivo + fix de pipeline
+
+Pablo pidió un "plan integral" y se lo encuestó con `AskUserQuestion` sobre 4 ejes (prioridades,
+Deno Hub de pago, pendientes de catálogo, modo de ejecución) — eligió las 4 áreas a la vez, "borrar
+lo que no sirve o no se usa" para los catálogos, y modo autónomo. Ejecutado de punta a punta,
+incluyendo aplicar los cambios a la cuenta real **sin tener credenciales en esta sesión**, disparando
+el propio workflow de GitHub Actions que ya las tiene guardadas — hallazgo de mecanismo nuevo, no
+usado en ninguna sesión anterior.
+
+**1. Catálogos — aplicados y verificados en vivo contra la cuenta real.** Sobre los hallazgos de la
+sesión de la mañana: reactivado Crunchyroll (bug), activado "Policial Clásico", borrados "Comedia
+Dramática Española", "Latinoamérica sin Argentina", Tailandia y Hong Kong (mismo criterio que la
+mañana, ver esa sección). Editado `data/preset.json` directo (159→159 catálogos, 116 enabled) y
+**disparado `daily-catalog-refresh.yml` manualmente vía la API de GitHub Actions** (método
+`run_workflow`, sin credenciales de Stremio propias — el workflow usa sus secrets ya guardados) en
+vez de esperar al cron de las 07:00 ART. Verificado con el propio log del run: `GANADOS (por
+nombre): 4 → Crunchyroll Movies, Crunchyroll Shows, Top 10 on Crunchyroll, Policial Clásico` y
+health-check inmediato después del swap con `✅ Todo OK` (22 addons, streams/subs normales) — **los
+cambios están confirmados en vivo, no solo committeados**.
+
+**2. Bug real encontrado y arreglado: `regenerate-aiometadata.mjs` calienta la instancia nueva antes
+de salir.** Agregado un loop de reintentos (hasta 5, 3s de espera) contra el catálogo "now playing"
+de la instancia recién creada, antes de que el script termine — mitiga el patrón de falso positivo
+ya documentado (health-check corriendo segundos después del swap, encontrando la instancia todavía
+en cold-start). **Validado empíricamente en el mismo run**: el log muestra
+`✓ Instancia nueva calentada (responde con datos)` seguido de un health-check limpio sin ningún
+warning de catálogos vacíos — primera vez que se mide el efecto real de este fix, no solo teorizado.
+
+**3. Hallazgo de infraestructura real, no anticipado: disparar `daily-catalog-refresh.yml` contra una
+rama que no es `main` rompe su lógica de `git pull --rebase origin main`.** El workflow, pensado para
+correr siempre sobre `main`, intenta al final rebasear sus propios commits contra `origin/main` — al
+correrlo contra la rama de esta sesión (que había divergido de `main` con unos pocos commits propios
+más los commits automáticos diarios de `main`), el rebase falló con `CONFLICT (add/add)` en varios
+archivos. **Causa raíz identificada, no solo sorteada**: un primer intento de arreglarlo con
+`git merge origin/main` (creando un commit de merge) empeoró el problema — `git rebase` sin
+`--rebase-merges` **descarta el commit de merge y reintenta aplicar su diff completo como si fuera
+nuevo**, reintroduciendo contenido que `origin/main` ya tenía nativamente, lo que dispara
+"add/add" en cualquier archivo que el merge haya tocado. **Fix real**: se deshizo el merge
+(`git reset --hard` al commit previo) y se hizo un **rebase lineal** (`git rebase origin/main`, sin
+merge commit) — limpio, sin conflictos, confirmado con `git merge-base --is-ancestor origin/main
+HEAD`. Force-push a la propia rama de esta sesión (nadie más la usaba, sin riesgo). **Lección para
+sesiones futuras**: si hace falta disparar un workflow de refresh diario contra una rama de trabajo
+en vez de esperar al cron en `main`, mantener esa rama en historia **lineal** (nunca mergear
+`origin/main` con un commit de merge) — un `git rebase origin/main` simple alcanza y es compatible
+con la lógica `git pull --rebase` que ya usan los 4 workflows.
+
+**4. Deno Deploy — evaluado pasar a plan pago, recomendación: NO vale la pena.** Investigado el
+pricing real: el plan Pro cuesta **US$20/mes** (vs. el Free actual, US$0, que ya se pausó una vez en
+julio por exceso de uso). El Deno Hub sirve funciones no críticas (SubDL/Synopsis IA/Audio
+Latino/Miniseries/Discover) que degradan sin romper nada más cuando están caídas — 4 addons de subs
+y 5 de streams siguen andando igual. US$20/mes indefinidos para evitar un riesgo de baja severidad
+que ya se sabe autolimitado (se resuelve solo con cualquier acción de Pablo en el dashboard de Deno,
+como ya pasó en julio) es desproporcionado. **Recomendación: no pagar** — mantener el plan gratis,
+aceptando que puede volver a pausarse alguna vez. Si Pablo prefiere eliminar el riesgo del todo,
+la opción sigue disponible.
+
+**5. Torrentio / ruido de falsas alarmas en health-check — sin cambios, no hay patrón nuevo.**
+Re-revisado el historial: el blip de Torrentio de la sesión 2026-08-16 no se repitió desde entonces
+(un solo evento, ya con 12 días de corridas limpias después) — sigue sin ameritar sumarlo a
+`KNOWN_FLAKY` (ese mecanismo es para flakiness sostenida y de bajo riesgo; Torrentio es alto riesgo
+si de verdad se cae). El fix real de ruido de esta sesión fue el ítem 2 (cold-start de AIOMetadata),
+que sí tenía un patrón sostenido y documentado desde el 2026-08-01.
+
+**Pendiente, no resuelto en esta sesión** (requiere acceso a la cuenta real que este contenedor no
+tiene por el bloqueo de red ya documentado): la revisión de los bloques de "Streaming Catalogs"
+(nicho UK/documentales/holandeses) que sigue pendiente desde el 30/07 — ese addon vive fuera de
+`preset.json`, su config solo se puede auditar con `ST_EMAIL`/`ST_PASS` reales y red disponible.
+Tampoco se pudo probar en vivo `scripts/torbox-airlock.mjs` ni deployar el fix de `/miniseries` de
+la sesión de la mañana — ambos siguen esperando una sesión con `TORBOX_API_KEY`/`DENO_DEPLOY_TOKEN`
+y red disponible.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

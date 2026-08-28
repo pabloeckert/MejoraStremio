@@ -1147,8 +1147,8 @@
         "unverifiable": false
       },
       "NoTorrent": {
-        "total": 12,
-        "real": 12,
+        "total": 14,
+        "real": 14,
         "unverifiable": false
       },
       "WebStreamrMBG": {
@@ -1161,11 +1161,6 @@
         "real": 0,
         "unverifiable": false
       },
-      "Meteor": {
-        "total": 14,
-        "real": 0,
-        "unverifiable": true
-      },
       "Streailer": {
         "total": 1,
         "real": 1,
@@ -1175,27 +1170,22 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
-      },
-      "AI Search": {
-        "total": 1,
-        "real": 1,
-        "unverifiable": false
       }
     },
-    "totalReal": 55,
+    "totalReal": 56,
     "status": "resuelto",
     "latino": {
       "checked": true,
       "found": true,
       "samples": [
-        "Audio Latino [FREE TRIAL] ",
-        "Audio Latino [FREE TRIAL] ",
-        "Audio Latino [FREE TRIAL] "
+        "Audio Latino",
+        "Audio Latino",
+        "Audio Latino"
       ]
     },
-    "label": "Regular Show / Un Show Más S01E01",
+    "label": "Un Show Más",
     "addedAt": "2026-08-13T16:52:49.800Z",
-    "lastCheckedAt": "2026-08-13T16:52:49.800Z"
+    "lastCheckedAt": "2026-08-28T20:24:17.918Z"
   },
   {
     "id": "tt1710308",

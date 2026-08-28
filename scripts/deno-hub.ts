@@ -1074,6 +1074,154 @@ async function handleMiniseries(subPath: string): Promise<Response> {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// ── /short-series — series con episodios de 30 minutos o menos (catálogo) ─
+// Mismo problema que Miniseries: TMDB Discover TV no soporta filtrar por
+// duración de episodio, así que se arma en dos pasos (candidate pool por
+// popularidad + fetch de detalle por título chequeando episode_run_time).
+// A diferencia de Miniseries, acá NO se filtra por with_status — el
+// formato "episodio corto" incluye tanto sitcoms en emisión como shows ya
+// terminados, no tiene sentido excluir contenido activo. Pedido de Pablo,
+// sesión 2026-08-28 (noche), junto con el catálogo de películas cortas
+// (tmdb.discover.movie.short-form.pablo065, ese sí resuelto directo en
+// preset.json porque Discover Movie SÍ soporta with_runtime).
+// ════════════════════════════════════════════════════════════════════════
+
+const SHORT_SERIES_MANIFEST = {
+  id: "com.mejorastremio.short-series",
+  version: "1.0.0",
+  name: "Series 30 Minutos o Menos",
+  description:
+    "Series cuyos episodios duran 30 minutos o menos — armado vía TMDB " +
+    "Discover + filtro de detalle por duración de episodio, que Discover " +
+    "no soporta de forma directa para series.",
+  resources: ["catalog"],
+  types: ["series"],
+  idPrefixes: ["tt"],
+  catalogs: [{
+    type: "series",
+    id: "short-series",
+    name: "Series 30 Minutos o Menos",
+    extra: [{ name: "skip" }],
+  }],
+};
+
+interface ShortSeriesMeta {
+  id: string;
+  type: "series";
+  name: string;
+  poster: string | null;
+  description: string;
+  genres: string[];
+  runtime: number;
+}
+
+let shortSeriesCache: { at: number; metas: ShortSeriesMeta[]; partial: boolean } | null = null;
+const SHORT_SERIES_FULL_TTL_MS = 12 * 60 * 60 * 1000;
+const SHORT_SERIES_PARTIAL_TTL_MS = 60 * 60 * 1000;
+const SHORT_SERIES_BUDGET_MS = 20000;
+const SHORT_SERIES_DISCOVER_PAGES = 3;
+
+async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMeta[]; partial: boolean }> {
+  const deadline = Date.now() + SHORT_SERIES_BUDGET_MS;
+  const candidates: number[] = [];
+
+  for (let page = 1; page <= SHORT_SERIES_DISCOVER_PAGES; page++) {
+    if (Date.now() > deadline) return { metas: [], partial: true };
+    try {
+      const d = await tmdbGet("/discover/tv", {
+        sort_by: "popularity.desc",
+        "vote_count.gte": "20",
+        language: "es-ES",
+        page: String(page),
+      });
+      // deno-lint-ignore no-explicit-any
+      for (const s of (d?.results ?? []) as any[]) candidates.push(s.id);
+    } catch {
+      break;
+    }
+  }
+
+  const metas: ShortSeriesMeta[] = [];
+  let partial = false;
+
+  for (const tmdbId of candidates) {
+    if (Date.now() > deadline) { partial = true; break; }
+    try {
+      const detail = await tmdbGet(`/tv/${tmdbId}`, {
+        language: "es-ES",
+        append_to_response: "external_ids",
+      });
+      const imdbId = detail?.external_ids?.imdb_id;
+      // deno-lint-ignore no-explicit-any
+      const runtimes = (detail?.episode_run_time ?? []) as any[];
+      const maxRuntime = runtimes.length ? Math.max(...runtimes) : null;
+      if (imdbId && maxRuntime !== null && maxRuntime > 0 && maxRuntime <= 30) {
+        metas.push({
+          id: imdbId,
+          type: "series",
+          name: detail.name,
+          poster: detail.poster_path ? `https://image.tmdb.org/t/p/w500${detail.poster_path}` : null,
+          description: detail.overview ?? "",
+          // deno-lint-ignore no-explicit-any
+          genres: ((detail.genres ?? []) as any[]).map((g) => g.name),
+          runtime: maxRuntime,
+        });
+      }
+    } catch {
+      // se salta este candidato, sigue con el resto
+    }
+  }
+
+  return { metas, partial };
+}
+
+async function getShortSeriesCatalog(): Promise<ShortSeriesMeta[]> {
+  const ttl = shortSeriesCache?.partial ? SHORT_SERIES_PARTIAL_TTL_MS : SHORT_SERIES_FULL_TTL_MS;
+  if (shortSeriesCache && Date.now() - shortSeriesCache.at < ttl) return shortSeriesCache.metas;
+
+  const stale = shortSeriesCache?.metas ?? [];
+  try {
+    const { metas, partial } = await buildShortSeriesCatalog();
+    if (metas.length === 0 && stale.length > 0) return stale;
+    shortSeriesCache = { at: Date.now(), metas, partial };
+    return metas;
+  } catch {
+    return stale;
+  }
+}
+
+async function handleShortSeries(subPath: string): Promise<Response> {
+  if (!TMDB_KEY) {
+    return new Response(
+      "TMDB_API_KEY_AISEARCH no configurada. Setear como Secret en Deno Deploy.",
+      { status: 503, headers: cors },
+    );
+  }
+
+  if (subPath === "/manifest.json") {
+    return jsonResponse(SHORT_SERIES_MANIFEST);
+  }
+
+  const catalogMatch = subPath.match(/^\/catalog\/series\/short-series(?:\/([^/]+))?\.json$/);
+  if (catalogMatch) {
+    try {
+      let metas = await getShortSeriesCatalog();
+      const extraStr = catalogMatch[1];
+      if (extraStr) {
+        const extra = new URLSearchParams(extraStr);
+        const skip = parseInt(extra.get("skip") ?? "0", 10);
+        if (skip > 0) metas = metas.slice(skip);
+      }
+      return jsonResponse({ metas });
+    } catch (e) {
+      return jsonResponse({ metas: [], error: (e as Error).message }, { status: 500 });
+    }
+  }
+
+  return new Response("Not found", { status: 404, headers: cors });
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // ── /discover — Descubrir Maestro (Paso B): servicio+región+país+idioma+
 // género combinables como filtros simultáneos de un solo catálogo. TMDB
 // Discover soporta los 4 ejes en una sola query (with_watch_providers+
@@ -1296,6 +1444,7 @@ function handleHealth(): Response {
       openrouterConfigured: !!OPENROUTER_API_KEY,
     },
     miniseries: { configured: !!TMDB_KEY },
+    shortSeries: { configured: !!TMDB_KEY },
     discover: { configured: !!TMDB_KEY },
     ufc: { configured: true },
     livetv: { configured: true },
@@ -1324,6 +1473,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           "/latino/manifest.json",
           "/synopsis/manifest.json",
           "/miniseries/manifest.json",
+          "/short-series/manifest.json",
           "/discover/manifest.json",
           "/ufc/manifest.json",
           "/livetv/manifest.json",
@@ -1353,6 +1503,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       route = "miniseries";
       const subPath = path.slice("/miniseries".length) || "/";
       res = await handleMiniseries(subPath);
+    } else if (path.startsWith("/short-series")) {
+      route = "short-series";
+      const subPath = path.slice("/short-series".length) || "/";
+      res = await handleShortSeries(subPath);
     } else if (path.startsWith("/discover")) {
       route = "discover";
       const subPath = path.slice("/discover".length) || "/";

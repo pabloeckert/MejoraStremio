@@ -2878,8 +2878,34 @@ fondo todavía** (no urgente, pasó una sola vez) — si se repite, revisar si c
 commits del paso final en uno solo para evitar la doble ventana de carrera.
 
 **Pendiente para una sesión futura con más acceso**: deployar `/short-series` en Deno Deploy
-(necesita `DENO_DEPLOY_TOKEN`), y la reorganización profunda de categorías por hábitos reales de
-toda la familia (necesita ver el historial de uso real de las 3 cuentas, no solo teorizar).
+(necesita `DENO_DEPLOY_TOKEN`).
+
+**6. Alcance de la reorganización, confirmado por Pablo**: consultado por chat sobre a qué cuenta
+aplica "revisá los hábitos de toda mi familia y reorganizá" — Pablo confirmó que es **solo
+`stremioeg`**, pero teniendo en cuenta también los gustos del resto de la familia para catálogos
+que sirvan cuando miran juntos (no reorganizar las cuentas de `stremiojn`/`solotveg`, que tienen su
+propia documentación y curación en `cuentas/*/CLAUDE.md`).
+
+**7. Segundo paso aplicado: catálogos combinados género+país.** Con ese alcance confirmado, se armó
+la primera "combinatoria inteligente" real: **"Crimen Alemán"** y **"Crimen Reino Unido"** (Cine +
+Series, 4 catálogos nuevos, ids `pablo066`-`069`). Alemania y Reino Unido son, por lejos, los dos
+países más repetidos en los pedidos de Pablo de policial/misterio a lo largo de TODO el historial
+del proyecto (Alemania: Tatort, Babylon Berlin, Criminal: Germany, Dogs of Berlin, Einstein, Murder
+Mindfully; Reino Unido: Marlow Murder Club, Wild Cards, Passenger, How to Get to Heaven from
+Belfast) — más preciso que "Europe Noir" (mezcla los 37 países) y que los catálogos de país ya
+existentes (mezclan todos los géneros, no solo policial). Mismo patrón que Europe Noir/Policial
+Clásico (`with_genres=80|9648`), pero con `vote_count.gte=15` (un poco más estricto porque un solo
+país da menos volumen que todo el continente). `showInHome=false`, ubicados junto al resto del
+cluster de descubrimiento avanzado. **Verificado en vivo contra la cuenta real** (swap OK +
+health-check `✅ Todo OK`, streams/subs sin regresión) — mismo mecanismo de aplicación vía
+`daily-catalog-refresh.yml` disparado a mano.
+
+**Nota sobre lo que falta de la reorganización pedida**: esto es un segundo paso, no el cierre del
+pedido. No se hizo un rediseño completo de todos los niveles de categoría/subcategoría (eso
+requeriría ver datos reales de qué mira cada uno en la familia, no solo el historial de pedidos por
+chat) — si Pablo quiere ir más a fondo, el camino natural es sumar más combos país+género según lo
+que él vaya señalando (o dar acceso a ver el Continue Watching real para basarlo en datos, no en
+lo ya documentado).
 
 ## Reglas del repo
 

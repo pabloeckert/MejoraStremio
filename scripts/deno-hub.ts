@@ -877,8 +877,17 @@ async function handleSynopsis(subPath: string): Promise<Response> {
 // ════════════════════════════════════════════════════════════════════════
 // ── /miniseries — 1 temporada, ≤10 episodios, finalizada (catálogo) ───────
 // TMDB Discover TV no soporta filtrar por temporadas/episodios (confirmado
-// contra su doc oficial) — se arma en dos pasos: Discover trae candidatos
-// por popularidad+status=Ended, y un fetch de detalle por título filtra por
+// contra su doc oficial) — pero SÍ soporta `with_type=2` (Miniseries, según
+// la clasificación propia de TMDB), sumado el 2026-08-28 tras confirmar el
+// parámetro contra la doc oficial de Discover TV — antes el candidate pool
+// era "cualquier show Ended por popularidad", con muy poco acierto real al
+// filtrar después por temporadas/episodios (de ahí la cobertura floja ya
+// documentada, ~2 títulos). Con with_type=2 el pool ya viene pre-filtrado
+// por la propia clasificación de TMDB, así que la tasa de acierto del
+// filtro de detalle debería subir mucho — se mantiene igual como red de
+// seguridad, porque "Miniseries" en TMDB no garantiza ≤10 episodios exactos.
+// Se arma en dos pasos: Discover trae candidatos por tipo+popularidad+
+// status=Ended, y un fetch de detalle por título filtra por
 // number_of_seasons/number_of_episodes. Requiere bastantes llamadas a TMDB
 // por refresh, por eso se cachea agresivo (12h) y se acota el trabajo por
 // request con un presupuesto de tiempo (deja lo que ya juntó si se pasa).
@@ -893,8 +902,8 @@ const MINISERIES_MANIFEST = {
   name: "Miniseries",
   description:
     "Series de 1 sola temporada, 10 episodios o menos, finalizadas — armado " +
-    "vía TMDB Discover + filtro de detalle (Discover no soporta este filtro " +
-    "directo).",
+    "vía TMDB Discover (with_type=Miniseries) + filtro de detalle por " +
+    "temporadas/episodios, que Discover no soporta de forma directa.",
   resources: ["catalog"],
   types: ["series"],
   idPrefixes: ["tt"],
@@ -968,6 +977,7 @@ async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[]; part
       const d = await tmdbGet("/discover/tv", {
         sort_by: "popularity.desc",
         with_status: "3",
+        with_type: "2", // Miniseries (clasificación propia de TMDB) — ver comentario arriba
         "vote_count.gte": "20",
         language: "es-ES",
         page: String(page),

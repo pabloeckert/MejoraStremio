@@ -99,6 +99,13 @@ scripts/log-status.mjs              Registra el resultado de cada corrida automa
                                     monitor, daily-catalog-refresh, anti-frustration-review,
                                     premiere-radar) en data/internal-log.jsonl — reemplaza los
                                     emails a Pablo (ver "Sesión 2026-08-02"). Poda a 90 días.
+scripts/torbox-airlock.mjs          Marca en TorBox como "airlocked" (no se purga a los 30 días)
+                                    los episodios cacheados de shows en Continue Watching (MyTrakt)
+                                    que Pablo todavía no vio. Dry-run por defecto, --apply para
+                                    marcar de verdad. El endpoint de escritura no se pudo verificar
+                                    contra la API real al escribirlo (ver "Sesión 2026-08-28") —
+                                    correr primero sin --apply y revisar la respuesta cruda antes
+                                    de confiar en él.
 scripts/watch-log.mjs               Log inteligente de visualización: lee libraryItem (datastore
                                     nativo de Stremio, sin Trakt) y reporta qué se mira más/qué
                                     engancha. Con --save <slug> persiste snapshot en
@@ -157,6 +164,7 @@ ST_EMAIL=... ST_PASS=... TORBOX_API_KEY=... node scripts/apply-torbox-profile.mj
 ST_EMAIL=... ST_PASS=... node scripts/apply-friction-zero-sort.mjs [--apply]
 ST_EMAIL=... ST_PASS=... node scripts/curate-streaming-catalogs.mjs [--apply]
 ST_EMAIL=... ST_PASS=... node scripts/anti-frustration.mjs add <imdbId> [movie|series] [season] [episode] ["título"]
+ST_EMAIL=... ST_PASS=... TORBOX_API_KEY=... node scripts/torbox-airlock.mjs [--apply]   # no toca addonCollectionSet
 ```
 `scripts/apply-cgnat-profile.mjs` y `scripts/swap-aiolists-mytrakt.mjs` son de un solo uso
 histórico (ver "Perfil CGNAT temporal" y "MyTrakt Sync" abajo) — mantener como referencia del
@@ -2579,6 +2587,88 @@ con menos profundidad de caché para contenido de nicho/no-inglés que TorBox (m
 histórico ya documentado en "Plan debrid" más arriba). **No se aplicó ningún cambio** — TorBox
 sigue activo en Torrentio/Comet exactamente como está hoy. Si Pablo pide migrar o investigar
 AllDebrid más a fondo, es una sesión aparte.
+
+## Sesión 2026-08-28 — investigación de optimización profunda (sin tocar la cuenta) + 4 decisiones
+
+Pedido de Pablo: investigar a fondo mejoras para `stremioeg`, "sin tocar nada, sin romper nada de
+lo que está". Se hizo una auditoría de `preset.json` local (sin red) + investigación externa del
+ecosistema, y se encuestó a Pablo sobre 4 hallazgos concretos con `AskUserQuestion`. Esta sección
+documenta las 4 decisiones tomadas y lo que se hizo con cada una. **Nota de entorno**: esta sesión
+corrió en un contenedor remoto con la salida de red bloqueada hacia el ecosistema Stremio completo
+(`api.strem.io`, ElfHosted, Deno Deploy, `api.torbox.app`, `support.torbox.app` — confirmado con
+`curl`/`WebFetch`, mismo bloqueo ya documentado en la sesión 2026-08-27) — todo lo que requería
+tocar la cuenta real o deployar quedó armado en código pero sin ejecutar/deployar.
+
+**1. Catálogos huérfanos — investigado, NO aplicado (Pablo pidió solo investigar)**. Se encontraron
+3 catálogos en `preset.json`, deshabilitados, sin mención en ningún session log anterior:
+- **"Policial Clásico"** (`classic-crime.pablo056`): películas de crimen/misterio pre-2010,
+  `vote_average.gte=6.5` + `vote_count.gte=100`, sin filtro de país/idioma. Calza fuerte con el
+  gusto de Pablo por crimen/misterio ya documentado extensamente (series alemanas/británicas,
+  catálogos "Crime Movies/Shows"). **Recomendación: activar** — parece un catálogo bien armado que
+  quedó olvidado, no un experimento descartado.
+- **"Comedia Dramática Española"** (`dramedy-spain.pablo057`): dramedias españolas 2020+,
+  `with_original_language=es` + `with_origin_country=ES`. Redundante en parte con "Cine España" ya
+  activo (mismo país, sin el filtro de género) — valor agregado dudoso salvo que a Pablo
+  específicamente le interese ese subgénero. **Recomendación: preguntar a Pablo antes de activar**,
+  no tan claro como el anterior.
+- **"Latinoamérica sin Argentina (Cine)"** (`latam-no-ar.pablo054`): probablemente un borrador
+  previo al catálogo "Latinoamérica (Cine/Series)" que sí está activo hoy (que incluye Argentina).
+  **Recomendación: borrar** — parece superado, sin razón de ser si el catálogo regional ya cubre
+  todo el continente.
+- **Hallazgo relacionado, NO parte del pedido pero descubierto en la misma auditoría**: Crunchyroll
+  (`streaming.cru` + `flixpatrol.crunchyroll.us.all`) está deshabilitado pese a que la sesión
+  2026-08-02 (noche) documenta explícitamente que debía **conservarse** (era el único de los 10
+  `streaming.*` que no se dedupicaba con "Streaming Catalogs"). Y de los "7 países de Asia"
+  documentados como habilitados, **solo 5 lo están de verdad** — Tailandia y Hong Kong tienen
+  `enabled:false` pese a `showInHome:true` (responde parcialmente al pendiente abierto desde
+  30/07 sobre "¿cuáles se usan de verdad?"). Ninguno de los dos se tocó — quedan para una futura
+  confirmación de Pablo, junto con los 3 catálogos huérfanos de arriba.
+
+**2. Automatización de TorBox AirLock — CÓDIGO ESCRITO, sin poder verificar contra la API real.**
+Pablo pidió automatizar el marcado de contenido cacheado en riesgo de purgarse (ver "Sesión
+2026-08-25", caso Ágata y Lola). Nuevo script `scripts/torbox-airlock.mjs`: reusa el mismo patrón
+de `premiere-radar.mjs` (MyTrakt `continue_watching_shows` + `isCachedStream` de
+`lib/addon-signals.mjs`) pero recorre TODOS los episodios no vistos de cada show en progreso (no
+solo el siguiente), extrae el `infoHash` de cada stream cacheado en Torrentio/Comet, y lo
+correlaciona contra `GET /api/torrents/mylist` de TorBox (documentado, confirmado por búsqueda web)
+para encontrar el `id` interno y marcarlo airlocked. **Límite real, declarado en el propio script**:
+el endpoint de escritura (`POST /api/torrents/controltorrent` con `{torrent_id, operation:
+"airlock"}`) es una analogía razonable con el patrón ya usado por TorBox para reannounce/delete/
+resume, pero no se pudo confirmar contra la documentación en vivo (bloqueo de red de esta sesión) —
+el script imprime la respuesta cruda de la API en cada intento para que sea evidente de inmediato
+si el nombre de la operación está mal (fix de una sola línea si es así). Dry-run por defecto, igual
+que el resto del repo. **Pendiente**: correrlo primero con `--apply` en una sesión con
+`TORBOX_API_KEY` real y confirmar el nombre exacto de la operación contra la doc en vivo o el
+support center de TorBox antes de confiar en él para uso rutinario.
+
+**3. TorBox vs. AllDebrid — recomendación: quedarse con TorBox, no migrar.** Pablo pidió elegir uno
+solo (no pagar los dos). Investigado con evidencia fresca:
+- **AllDebrid tiene una política real de riesgo específico para Pablo**: bloquea/traba cuentas que
+  usan más de 4 IPs distintas en el mismo día (reportado por usuarios, ninguna fuente oficial lo
+  desmiente). Pablo tiene **CGNAT confirmado** en su conexión de Claro Argentina (ver "Perfil CGNAT
+  temporal" más arriba) — una IP pública que rota o es compartida por el proveedor es exactamente
+  el escenario que esa política castiga. Riesgo concreto, no teórico.
+  ([Fuente](https://www.saashub.com/alldebrid-status))
+- **Profundidad de caché para contenido de nicho/extranjero**: TorBox, aunque más chico que
+  Real-Debrid por ser más nuevo, le sigue ganando a AllDebrid en ese terreno según comparativas
+  2026 — justo la dimensión que más le importa a Pablo dado su gusto por crimen/misterio
+  internacional. Migrar arriesgaría una regresión de cobertura real para ganar únicamente
+  tranquilidad de privacidad, sin evidencia de daño concreto hasta ahora (los 2 incidentes de
+  agosto de TorBox no tuvieron impacto medido en la cuenta, ver sesión 2026-08-27).
+  ([Fuente](https://factually.co/fact-checks/electronics-tech/best-debrid-services-2026-torbox-real-debrid-alldebrid-comparison-954d9e))
+- **Sin cambios aplicados** — TorBox sigue activo en Torrentio/Comet exactamente como está.
+
+**4. Catálogo "Miniseries" reescrito — código listo, falta redeploy.** `scripts/deno-hub.ts`
+(`buildMiniseriesCatalog`) sumó `with_type=2` (Miniseries, clasificación propia de TMDB) al
+`discover/tv` de TMDB — confirmado contra la documentación oficial de Discover TV que ese parámetro
+existe (no estaba documentado en ningún lado del repo, es un hallazgo nuevo). Antes, el candidate
+pool era "cualquier show Ended por popularidad" sin ninguna señal de "es miniserie", filtrado
+después por temporadas/episodios con muy poco acierto (de ahí la cobertura floja de ~2 títulos ya
+documentada). Con el pool pre-filtrado por la propia clasificación de TMDB, la tasa de acierto del
+filtro de detalle debería subir mucho — se mantiene ese filtro igual como red de seguridad, porque
+"Miniseries" en TMDB no garantiza exactamente ≤10 episodios. **No se pudo deployar ni medir el
+efecto real** — mismo bloqueo de red de esta sesión, requiere `deno deploy` con
+`DENO_DEPLOY_TOKEN` en una sesión futura. Commiteado, no deployado.
 
 ## Reglas del repo
 

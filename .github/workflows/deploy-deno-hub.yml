@@ -1,0 +1,42 @@
+name: deploy-deno-hub
+
+# Redeploya scripts/deno-hub.ts (la app "mejorastremio-hub" en Deno Deploy) desde un runner de
+# GitHub Actions, que sí tiene salida de red a deno.land/api de Deno Deploy — a diferencia de las
+# sesiones de Claude Code en contenedores con esa salida bloqueada (ver CLAUDE.md, varias sesiones
+# de agosto 2026). Solo disparo manual: un deploy es una acción deliberada, nunca automática.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Deno CLI
+        run: |
+          curl -fsSL https://deno.land/install.sh | sh -s -- --yes
+          echo "$HOME/.deno/bin" >> "$GITHUB_PATH"
+
+      - name: Deployar mejorastremio-hub
+        env:
+          DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
+        run: |
+          deno --version
+          deno deploy . --org pabloeckert --app mejorastremio-hub --prod --json --non-interactive
+
+      - name: Verificar /short-series y /miniseries en vivo
+        run: |
+          sleep 5
+          echo "--- /health ---"
+          curl -sS https://mejorastremio-hub.pabloeckert.deno.net/health || true
+          echo
+          echo "--- /short-series/manifest.json ---"
+          curl -sS https://mejorastremio-hub.pabloeckert.deno.net/short-series/manifest.json || true
+          echo
+          echo "--- /miniseries/manifest.json ---"
+          curl -sS https://mejorastremio-hub.pabloeckert.deno.net/miniseries/manifest.json || true

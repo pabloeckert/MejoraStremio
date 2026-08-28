@@ -2703,18 +2703,28 @@ rama que no es `main` rompe su lógica de `git pull --rebase origin main`.** El 
 correr siempre sobre `main`, intenta al final rebasear sus propios commits contra `origin/main` — al
 correrlo contra la rama de esta sesión (que había divergido de `main` con unos pocos commits propios
 más los commits automáticos diarios de `main`), el rebase falló con `CONFLICT (add/add)` en varios
-archivos. **Causa raíz identificada, no solo sorteada**: un primer intento de arreglarlo con
-`git merge origin/main` (creando un commit de merge) empeoró el problema — `git rebase` sin
-`--rebase-merges` **descarta el commit de merge y reintenta aplicar su diff completo como si fuera
-nuevo**, reintroduciendo contenido que `origin/main` ya tenía nativamente, lo que dispara
-"add/add" en cualquier archivo que el merge haya tocado. **Fix real**: se deshizo el merge
-(`git reset --hard` al commit previo) y se hizo un **rebase lineal** (`git rebase origin/main`, sin
-merge commit) — limpio, sin conflictos, confirmado con `git merge-base --is-ancestor origin/main
-HEAD`. Force-push a la propia rama de esta sesión (nadie más la usaba, sin riesgo). **Lección para
-sesiones futuras**: si hace falta disparar un workflow de refresh diario contra una rama de trabajo
-en vez de esperar al cron en `main`, mantener esa rama en historia **lineal** (nunca mergear
-`origin/main` con un commit de merge) — un `git rebase origin/main` simple alcanza y es compatible
-con la lógica `git pull --rebase` que ya usan los 4 workflows.
+archivos. **Diagnóstico en 3 pasos, cada uno descartando una hipótesis con evidencia real, no a la
+primera sospecha**:
+1. Primera hipótesis: un commit de merge en la rama (`git merge origin/main` local) rompía el
+   rebase, porque `git rebase` sin `--rebase-merges` descarta el commit de merge y reintenta
+   aplicar su diff completo como si fuera nuevo, reintroduciendo contenido que `origin/main` ya
+   tenía. Se deshizo el merge (`git reset --hard`) y se hizo un **rebase lineal** en su lugar.
+   **Resultado: siguió fallando exactamente igual** (run #32) — la hipótesis era incompleta.
+2. Causa raíz real: `actions/checkout@v4` hace un **shallow clone (fetch-depth 1) por defecto**.
+   Sin historia compartida real entre el checkout de la rama y el `git fetch origin main` posterior,
+   git no puede resolver un merge-base válido — y sin merge-base, **cualquier archivo que difiera
+   entre ambos lados aparece como conflicto "add/add"**, sin importar si el contenido en sí choca.
+   Esto explica por qué el conflicto persistía incluso con una rama ya perfectamente rebaseada y
+   sin merge commit (paso 1 no alcanzaba porque el problema nunca fue la forma de la historia local,
+   sino la profundidad del clone del runner).
+3. **Fix real, confirmado empíricamente**: agregado `fetch-depth: 0` al `actions/checkout@v4` de los
+   4 workflows que hacen `git commit`/`pull --rebase`/`push` (ver punto siguiente). Redisparado el
+   workflow una tercera vez contra la misma rama — **corrió limpio de punta a punta, incluyendo el
+   commit y push final** (`conclusion: success`, confirmado con la API de GitHub Actions, no
+   asumido).
+**Lección para sesiones futuras**: si hace falta disparar uno de estos 4 workflows contra una rama
+de trabajo en vez de esperar al cron en `main`, ya no hace falta ningún cuidado especial con la
+rama — el fix de `fetch-depth: 0` lo resuelve en la raíz para cualquier rama.
 
 **4. Deno Deploy — evaluado pasar a plan pago, recomendación: NO vale la pena.** Investigado el
 pricing real: el plan Pro cuesta **US$20/mes** (vs. el Free actual, US$0, que ya se pausó una vez en

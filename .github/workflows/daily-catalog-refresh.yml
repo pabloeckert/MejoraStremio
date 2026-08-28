@@ -39,13 +39,20 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # Regenera la instancia de AIOMetadata en ElfHosted y la aplica a la cuenta real solo
-      # cuando refresh-dates.mjs efectivamente movió la ventana de fechas (ver CLAUDE.md →
-      # "AIOMetadata — reconstruir/editar la instancia"). Cada corrida exitosa crea un UUID
-      # nuevo en ElfHosted; no hay endpoint para borrar los viejos, es una limitación conocida.
+      # Regenera la instancia de AIOMetadata en ElfHosted y la aplica a la cuenta real cuando
+      # refresh-dates.mjs efectivamente movió la ventana de fechas (ver CLAUDE.md → "AIOMetadata
+      # — reconstruir/editar la instancia"), O cuando el run se disparó a mano (workflow_dispatch)
+      # — un dispatch manual significa "aplicá esto ahora", y "changed" solo detecta si
+      # refresh-dates.mjs hizo cambios EN ESTA corrida, no si el preset.json ya commiteado
+      # (ej. un catálogo nuevo agregado antes de disparar) difiere de lo que está aplicado en la
+      # cuenta real — sin el OR, un dispatch manual el mismo día que ya corrió el cron se salta el
+      # regen en silencio (encontrado el 2026-08-28 al disparar esto para aplicar un catálogo
+      # nuevo — el health-check daba verde pero el catálogo nunca llegó a la cuenta real). Cada
+      # corrida exitosa crea un UUID nuevo en ElfHosted; no hay endpoint para borrar los viejos,
+      # es una limitación conocida.
       - name: Regenerar y aplicar AIOMetadata
         id: regen
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.diff.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         continue-on-error: true
         run: |
           set -o pipefail
@@ -74,7 +81,7 @@ jobs:
       # compartida, porque lee las mismas fechas de Estrenos/Cartelera).
       - name: Regenerar y aplicar AIOMetadata (solotveg)
         id: regen_teen
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.diff.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         continue-on-error: true
         run: |
           set -o pipefail

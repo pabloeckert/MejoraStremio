@@ -28,12 +28,10 @@ jobs:
         run: |
           deno --version
           echo "DENO_DEPLOY_TOKEN length: ${#DENO_DEPLOY_TOKEN}"
-          # Sin ningún flag, el CLI intentó auth interactiva y falló pidiendo
-          # DENO_DEPLOY_TOKEN — pese a que el step ya lo define via env. Si el secret está
-          # vacío/no existe en el repo, "${{ secrets.DENO_DEPLOY_TOKEN }}" interpola a "" y
-          # el CLI lo trata como no seteado. Probando --non-interactive solo, para separar
-          # "duplicado con org/app/prod/json" (ya descartado) de un problema real de token.
-          deno deploy --non-interactive
+          # Todo flag explícito probado (--org/--app, --prod, --json, --non-interactive) salió
+          # "duplicado" — el CLI ya los autocompleta solo en este entorno (org/app desde
+          # deno.jsonc, el resto detectado del entorno CI). Sintaxis correcta: sin flags.
+          deno deploy
 
       - name: Verificar /short-series y /miniseries en vivo
         run: |

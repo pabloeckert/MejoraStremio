@@ -6765,6 +6765,314 @@
           }
         },
         {
+          "id": "tmdb.discover.movie.crime-germany.pablo066",
+          "type": "movie",
+          "name": "Crimen Alemán (Cine)",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "popularity.desc",
+                "include_adult": false,
+                "with_genres": "80|9648",
+                "with_origin_country": "DE",
+                "vote_count.gte": 15,
+                "vote_average.gte": 5.5
+              },
+              "formState": {
+                "catalogName": "Crimen Alemán (Cine)",
+                "discoverSource": "tmdb",
+                "sortBy": "popularity.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [
+                  {
+                    "id": 80,
+                    "label": "Crime"
+                  },
+                  {
+                    "id": 9648,
+                    "label": "Mystery"
+                  }
+                ],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "DE",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5.5,
+                  10
+                ],
+                "voteCountMin": 15,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.crime-germany.pablo067",
+          "type": "series",
+          "name": "Crimen Alemán (Series)",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "popularity.desc",
+                "include_adult": false,
+                "with_genres": "80|9648",
+                "with_origin_country": "DE",
+                "vote_count.gte": 15,
+                "vote_average.gte": 5.5
+              },
+              "formState": {
+                "catalogName": "Crimen Alemán (Series)",
+                "discoverSource": "tmdb",
+                "sortBy": "popularity.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [
+                  {
+                    "id": 80,
+                    "label": "Crime"
+                  },
+                  {
+                    "id": 9648,
+                    "label": "Mystery"
+                  }
+                ],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "DE",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5.5,
+                  10
+                ],
+                "voteCountMin": 15,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.crime-uk.pablo068",
+          "type": "movie",
+          "name": "Crimen Reino Unido (Cine)",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "popularity.desc",
+                "include_adult": false,
+                "with_genres": "80|9648",
+                "with_origin_country": "GB",
+                "vote_count.gte": 15,
+                "vote_average.gte": 5.5
+              },
+              "formState": {
+                "catalogName": "Crimen Reino Unido (Cine)",
+                "discoverSource": "tmdb",
+                "sortBy": "popularity.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [
+                  {
+                    "id": 80,
+                    "label": "Crime"
+                  },
+                  {
+                    "id": 9648,
+                    "label": "Mystery"
+                  }
+                ],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "GB",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5.5,
+                  10
+                ],
+                "voteCountMin": 15,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.crime-uk.pablo069",
+          "type": "series",
+          "name": "Crimen Reino Unido (Series)",
+          "enabled": true,
+          "showInHome": false,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "popularity.desc",
+                "include_adult": false,
+                "with_genres": "80|9648",
+                "with_origin_country": "GB",
+                "vote_count.gte": 15,
+                "vote_average.gte": 5.5
+              },
+              "formState": {
+                "catalogName": "Crimen Reino Unido (Series)",
+                "discoverSource": "tmdb",
+                "sortBy": "popularity.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [
+                  {
+                    "id": 80,
+                    "label": "Crime"
+                  },
+                  {
+                    "id": 9648,
+                    "label": "Mystery"
+                  }
+                ],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "GB",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5.5,
+                  10
+                ],
+                "voteCountMin": 15,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
           "id": "tmdb.discover.movie.family-en.pablo055",
           "type": "movie",
           "name": "Familiar en Inglés",

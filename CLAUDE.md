@@ -2907,6 +2907,68 @@ chat) — si Pablo quiere ir más a fondo, el camino natural es sumar más combo
 que él vaya señalando (o dar acceso a ver el Continue Watching real para basarlo en datos, no en
 lo ya documentado).
 
+## Sesión 2026-08-28 (noche, segunda continuación) — audio latino de "Un Show Más" + deploy del hub
+
+Pablo pidió dos cosas puntuales: (a) confirmar que "Un Show Más" tenga audio latino real — marcado
+explícitamente como **"regla dura"**; (b) terminar "30 Minutos o Menos" para series, que había
+quedado pendiente de deploy en `scripts/deno-hub.ts`.
+
+**1. "Un Show Más" — ya estaba resuelto desde el 2026-08-13, reconfirmado hoy.** Identificado como
+el doblaje latino de **Regular Show** (Cartoon Network, 2010-2017, `tt1710308`) vía WebSearch. El
+log (`data/anti-frustration-log.json`) ya tenía **dos entradas previas** (S01E01 y S08E01/temporada
+final, ambas del 2026-08-13, sin sesión documentada acá) — ambas `RESUELTO` con audio latino
+confirmado. No era un hueco nuevo, era releer el log antes de asumir que faltaba. Se re-chequeó
+S01E01 igual, contra la cuenta real, para confirmar que sigue vigente hoy: **56 streams reales
+(subió de 55), audio latino sigue confirmado** — antes vía un addon ya removido (`Audio Latino
+[FREE TRIAL]`, probablemente Latinobrid o AI Search, ambos sacados el 2026-08-25), ahora directo
+vía Torrentio/Comet/NoTorrent.
+
+**Mecanismo nuevo**: `anti-frustration-review.yml` ganó inputs opcionales de `workflow_dispatch`
+(`add_imdb_id`/`add_type`/`add_season`/`add_episode`/`add_title`) para poder registrar o
+re-chequear un título puntual desde un disparo manual, sin esperar al domingo — corre
+`anti-frustration.mjs add` antes de la revisión semanal normal. El cron automático nunca pasa estos
+inputs, comportamiento de siempre sin cambios.
+
+**Bug real encontrado — conflicto genuino, no el de shallow-clone ya conocido**: el commit final del
+run (que guarda `anti-frustration-log.json` + `internal-log.jsonl`) chocó con un **conflicto de
+contenido real** en `internal-log.jsonl` (dos workflows habían tocado ese archivo casi al mismo
+tiempo) y el push nunca llegó a `origin` — se perdió en el runner efímero. Reconstruido a mano con
+los mismos números exactos que imprimió la corrida real (verificados contra el log del job en
+GitHub Actions, no inventados). No se investigó una solución de fondo para este conflicto puntual
+(un solo evento, distinto del bug de `fetch-depth` ya resuelto) — si se repite seguido, considerar
+separar el commit de `anti-frustration-log.json` del de `internal-log.jsonl` en pasos independientes.
+
+**2. Deploy de `mejorastremio-hub` — bloqueado: falta cargar `DENO_DEPLOY_TOKEN` como secret de
+GitHub.** Como esta sesión no tiene salida de red hacia Deno Deploy (ni siquiera para instalar el
+CLI), se creó `.github/workflows/deploy-deno-hub.yml` (disparo manual) que instala Deno en un
+runner de GitHub Actions (que sí tiene red completa) y corre `deno deploy`.
+
+**Sintaxis del CLI, resuelta tras 5 intentos** (CLI más nuevo que el usado en sesiones de julio,
+documentado en "Sesión 2026-07-26/27" — `deno deploy .` con flags explícitos ya no aplica):
+todo flag explícito que se probó (`--org`/`--app`, `--prod`, `--json`, `--non-interactive`) salió
+rechazado con `Option "..." can only occur once, but was found several times` — el CLI parece
+autocompletar todos esos valores solo en el entorno de GitHub Actions (org/app desde `deno.jsonc`,
+el resto probablemente detectado del entorno CI) y choca con cualquiera pasado a mano. **Comando
+correcto: `deno deploy` a secas, sin ningún flag.**
+
+**Causa real del fallo, encontrada recién en el 6º intento — no era de sintaxis**: agregado un
+`echo "DENO_DEPLOY_TOKEN length: ${#DENO_DEPLOY_TOKEN}"` justo antes del deploy (imprime la
+LONGITUD, nunca el valor) → **`DENO_DEPLOY_TOKEN length: 0`**. El secret está vacío/no existe en
+este repo de GitHub — nunca se había cargado ahí, porque en todas las sesiones anteriores
+(2026-07-26/27, 2026-07-28) se usó pegado directo en una sesión de Claude Code con red disponible,
+nunca como GitHub Secret. Los primeros intentos fallidos NO confirmaban que el token estuviera
+cargado (afirmación incorrecta hecha en el momento) — el CLI valida los argumentos ANTES de
+chequear autenticación, así que un `VALIDATION_ERROR` de sintaxis no dice nada sobre el token.
+
+**Acción pendiente de Pablo, no accionable por el agente** (no hay ninguna herramienta disponible
+para crear secrets de GitHub por API en esta sesión): cargar `DENO_DEPLOY_TOKEN` en
+`github.com/pabloeckert/MejoraStremio` → Settings → Secrets and variables → Actions → New
+repository secret → nombre exacto `DENO_DEPLOY_TOKEN`, valor = un token nuevo generado en
+Deno Deploy (`console.deno.com` → cuenta → Access Tokens). Una vez cargado, disparar
+`deploy-deno-hub.yml` a mano (ya queda con la sintaxis correcta, `deno deploy` sin flags) — debería
+deployar de una. El workflow ya incluye un paso que verifica `/health`, `/short-series/manifest.json`
+y `/miniseries/manifest.json` contra la URL de producción para confirmar que quedó bien.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

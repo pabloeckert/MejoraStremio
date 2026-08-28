@@ -27,12 +27,12 @@ jobs:
           DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
         run: |
           deno --version
-          # org/app ya vienen de deno.jsonc — pasarlos también como flag duplica la opción
-          # (VALIDATION_ERROR, 1er intento). --prod también salió duplicado en el 2do intento
-          # pese a no estar en deno.jsonc — probablemente el token de Deploy ya trae un scope
-          # de producción implícito. Sin --prod acá; si el deploy queda como preview en vez de
-          # producción, hay que revisar la respuesta JSON y ajustar.
-          deno deploy --json --non-interactive
+          # Cada flag que se agregó (--org/--app, --prod, --json) salió "duplicado" pese a no
+          # estar en deno.jsonc ni pasado dos veces — el CLI parece autocompletar todos esos
+          # valores solo (org/app desde deno.jsonc, prod/json/non-interactive detectados del
+          # entorno CI de GitHub Actions) y cualquier flag explícito choca con el que ya inyectó.
+          # Probando sin ningún flag.
+          deno deploy
 
       - name: Verificar /short-series y /miniseries en vivo
         run: |

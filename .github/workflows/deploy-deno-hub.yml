@@ -28,8 +28,11 @@ jobs:
         run: |
           deno --version
           # org/app ya vienen de deno.jsonc — pasarlos también como flag duplica la opción
-          # y el CLI lo rechaza (VALIDATION_ERROR, encontrado en el intento anterior).
-          deno deploy --prod --json --non-interactive
+          # (VALIDATION_ERROR, 1er intento). --prod también salió duplicado en el 2do intento
+          # pese a no estar en deno.jsonc — probablemente el token de Deploy ya trae un scope
+          # de producción implícito. Sin --prod acá; si el deploy queda como preview en vez de
+          # producción, hay que revisar la respuesta JSON y ajustar.
+          deno deploy --json --non-interactive
 
       - name: Verificar /short-series y /miniseries en vivo
         run: |

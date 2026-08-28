@@ -4,6 +4,14 @@ on:
   schedule:
     - cron: '0 10 * * *'   # 07:00 Argentina (UTC-3) — antes del health-check de las 09:00
   workflow_dispatch:          # disparo manual desde la pestaña Actions
+    inputs:
+      force:
+        description: >-
+          Forzar el regen aunque se detecten catálogos perdidos (usar solo cuando la pérdida es
+          intencional y ya confirmada — ej. Pablo pidió sacar un catálogo a mano). El cron
+          automático nunca pasa esto; el guard anti-pérdida sigue protegiendo por defecto.
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -56,10 +64,12 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
+          FORCE_FLAG=""
+          [ "${{ github.event.inputs.force }}" = "true" ] && FORCE_FLAG="--force"
           AIO_PASSWORD="${{ secrets.AIO_PASSWORD }}" \
           ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
           ST_PASS="${{ secrets.STREMIO_PASS }}" \
-          node scripts/regenerate-aiometadata.mjs --apply 2>&1 | tee -a /tmp/summary.txt
+          node scripts/regenerate-aiometadata.mjs --apply $FORCE_FLAG 2>&1 | tee -a /tmp/summary.txt
 
       - name: Auditar orden de catálogos
         id: audit

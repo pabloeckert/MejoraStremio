@@ -159,6 +159,22 @@ if (okSwap) {
   presetRaw.aioMetadataConfig.instanceId = newUuid;
   writeFileSync(PRESET_PATH, JSON.stringify(presetRaw, null, 2) + "\n");
   console.log(`✓ preset.json actualizado con instanceId=${newUuid}`);
+
+  // Calentamiento de la instancia nueva antes de salir — daily-catalog-refresh.yml corre
+  // health-check.mjs segundos después de este script, y una instancia de ElfHosted recién creada
+  // puede tardar en levantar del todo (cold-start), dando falsos "✗ catálogos con error" que no
+  // reflejan un problema real (ver CLAUDE.md, "Patrón de falso positivo... 2026-08-01"). Mismo
+  // principio que keep-warm.yml, pero repetido acá con reintentos cortos para no depender de que
+  // el cron de keep-warm pase a calentarla por su cuenta en los próximos 20 minutos.
+  if (nowPlaying) {
+    let warm = false;
+    for (let attempt = 0; attempt < 5 && !warm; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 3000));
+      const cat = await getJson(`${base}catalog/${nowPlaying.type}/${nowPlaying.id}.json`).catch(() => null);
+      warm = (cat?.metas?.length || 0) > 0;
+    }
+    console.log(warm ? "✓ Instancia nueva calentada (responde con datos)" : "⚠ Instancia nueva no terminó de calentar a tiempo — el próximo health-check podría dar falso ✗ transitorio");
+  }
 }
 
 process.exit(okSwap ? 0 : 1);

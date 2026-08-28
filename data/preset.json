@@ -826,7 +826,7 @@
           "sort": "release_date",
           "type": "movie",
           "source": "streaming",
-          "enabled": false,
+          "enabled": true,
           "showInHome": true,
           "sortDirection": "desc"
         },
@@ -836,7 +836,7 @@
           "sort": "release_date",
           "type": "series",
           "source": "streaming",
-          "enabled": false,
+          "enabled": true,
           "showInHome": true,
           "sortDirection": "desc"
         },
@@ -844,7 +844,7 @@
           "id": "flixpatrol.crunchyroll.us.all",
           "type": "all",
           "name": "Top 10 on Crunchyroll",
-          "enabled": false,
+          "enabled": true,
           "showInHome": true,
           "source": "flixpatrol",
           "enableRatingPosters": true,
@@ -5769,274 +5769,6 @@
           }
         },
         {
-          "id": "tmdb.discover.movie.th.pablo045",
-          "type": "movie",
-          "name": "Cine Tailandia",
-          "enabled": false,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "include_adult": false,
-                "with_origin_country": "TH",
-                "vote_count.gte": 100,
-                "vote_average.gte": 7
-              },
-              "formState": {
-                "catalogName": "Cine Tailandia",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "TH",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  7,
-                  10
-                ],
-                "voteCountMin": 100,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.th.pablo046",
-          "type": "series",
-          "name": "Series Tailandia",
-          "enabled": false,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "with_origin_country": "TH",
-                "vote_count.gte": 100,
-                "vote_average.gte": 7
-              },
-              "formState": {
-                "catalogName": "Series Tailandia",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "TH",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  7,
-                  10
-                ],
-                "voteCountMin": 100,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.hk.pablo047",
-          "type": "movie",
-          "name": "Cine Hong Kong",
-          "enabled": false,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "include_adult": false,
-                "with_origin_country": "HK",
-                "vote_count.gte": 200,
-                "vote_average.gte": 7
-              },
-              "formState": {
-                "catalogName": "Cine Hong Kong",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "HK",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  7,
-                  10
-                ],
-                "voteCountMin": 200,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.hk.pablo048",
-          "type": "series",
-          "name": "Series Hong Kong",
-          "enabled": false,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "with_origin_country": "HK",
-                "vote_count.gte": 200,
-                "vote_average.gte": 7
-              },
-              "formState": {
-                "catalogName": "Series Hong Kong",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "HK",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  7,
-                  10
-                ],
-                "voteCountMin": 200,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
           "id": "tmdb.discover.movie.in.pablo049",
           "type": "movie",
           "name": "Cine India",
@@ -6812,73 +6544,6 @@
           "showInHome": false
         },
         {
-          "id": "tmdb.discover.movie.latam-no-ar.pablo054",
-          "type": "movie",
-          "name": "Latinoamérica sin Argentina (Cine)",
-          "enabled": false,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "include_adult": false,
-                "with_origin_country": "MX|CO|CL|PE|BR|VE|EC|UY|PY|BO|CR|PA|GT|HN|SV|NI|DO|CU|PR",
-                "primary_release_date.gte": "2015-01-01",
-                "vote_count.gte": 15
-              },
-              "formState": {
-                "catalogName": "Latinoamérica sin Argentina (Cine)",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "MX|CO|CL|PE|BR|VE|EC|UY|PY|BO|CR|PA|GT|HN|SV|NI|DO|CU|PR",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 15,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "2015-01-01",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
           "id": "tmdb.discover.movie.family-en.pablo055",
           "type": "movie",
           "name": "Familiar en Inglés",
@@ -7197,7 +6862,7 @@
           "id": "tmdb.discover.movie.classic-crime.pablo056",
           "type": "movie",
           "name": "Policial Clásico",
-          "enabled": false,
+          "enabled": true,
           "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
@@ -7261,84 +6926,6 @@
                 ],
                 "primaryReleaseFrom": "",
                 "primaryReleaseTo": "2010-12-31",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.dramedy-spain.pablo057",
-          "type": "movie",
-          "name": "Comedia Dramática Española",
-          "enabled": false,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "include_adult": false,
-                "with_genres": "35,18",
-                "with_original_language": "es",
-                "with_origin_country": "ES",
-                "primary_release_date.gte": "2020-01-01",
-                "vote_count.gte": 10
-              },
-              "formState": {
-                "catalogName": "Comedia Dramática Española",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [
-                  {
-                    "id": 35,
-                    "label": "Comedy"
-                  },
-                  {
-                    "id": 18,
-                    "label": "Drama"
-                  }
-                ],
-                "excludeGenres": [],
-                "genreJoinMode": "and",
-                "originalLanguage": "es",
-                "originCountry": "ES",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 10,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "2020-01-01",
-                "primaryReleaseTo": "",
                 "firstAirFrom": "",
                 "firstAirTo": "",
                 "airDateFrom": "",

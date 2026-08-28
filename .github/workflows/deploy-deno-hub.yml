@@ -27,7 +27,9 @@ jobs:
           DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
         run: |
           deno --version
-          deno deploy --org pabloeckert --app mejorastremio-hub --prod --json --non-interactive
+          # org/app ya vienen de deno.jsonc — pasarlos también como flag duplica la opción
+          # y el CLI lo rechaza (VALIDATION_ERROR, encontrado en el intento anterior).
+          deno deploy --prod --json --non-interactive
 
       - name: Verificar /short-series y /miniseries en vivo
         run: |

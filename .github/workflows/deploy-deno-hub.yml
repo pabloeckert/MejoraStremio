@@ -27,12 +27,13 @@ jobs:
           DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
         run: |
           deno --version
-          # Cada flag que se agregó (--org/--app, --prod, --json) salió "duplicado" pese a no
-          # estar en deno.jsonc ni pasado dos veces — el CLI parece autocompletar todos esos
-          # valores solo (org/app desde deno.jsonc, prod/json/non-interactive detectados del
-          # entorno CI de GitHub Actions) y cualquier flag explícito choca con el que ya inyectó.
-          # Probando sin ningún flag.
-          deno deploy
+          echo "DENO_DEPLOY_TOKEN length: ${#DENO_DEPLOY_TOKEN}"
+          # Sin ningún flag, el CLI intentó auth interactiva y falló pidiendo
+          # DENO_DEPLOY_TOKEN — pese a que el step ya lo define via env. Si el secret está
+          # vacío/no existe en el repo, "${{ secrets.DENO_DEPLOY_TOKEN }}" interpola a "" y
+          # el CLI lo trata como no seteado. Probando --non-interactive solo, para separar
+          # "duplicado con org/app/prod/json" (ya descartado) de un problema real de token.
+          deno deploy --non-interactive
 
       - name: Verificar /short-series y /miniseries en vivo
         run: |

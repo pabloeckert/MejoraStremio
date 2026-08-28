@@ -2751,6 +2751,74 @@ Tampoco se pudo probar en vivo `scripts/torbox-airlock.mjs` ni deployar el fix d
 la sesión de la mañana — ambos siguen esperando una sesión con `TORBOX_API_KEY`/`DENO_DEPLOY_TOKEN`
 y red disponible.
 
+## Sesión 2026-08-28 (noche) — investigación web autónoma + catálogo Nordic Noir + 2 bugs de pipeline
+
+Pablo pidió investigar a fondo por toda la web/foros/redes actualizaciones que calcen con su perfil
+y aplicar directamente lo que se encontrara, en modo 100% autónomo ("dejo la PC encendida, me voy a
+dormir"). Investigación amplia con WebSearch (addons nuevos, changelogs de AIOMetadata/TorBox/Comet,
+r/StremioAddons, alternativas de subtítulos) — la mayoría de los hallazgos no ameritaron acción
+(ver detalle abajo), pero uno sí: un hueco real en los catálogos.
+
+**1. Catálogo nuevo aplicado: "Nordic Noir" (Cine + Series)**. Auditando `preset.json` contra el
+gusto ya documentado de Pablo (crimen/misterio europeo, "Policial Clásico", series alemanas/
+británicas), se encontró que **ningún catálogo cubre el policial escandinavo** — género insignia
+justo de ese gusto (The Bridge, Wallander, Borgen, Trapped, Department Q). Construido con el mismo
+patrón que "Policial Clásico": `with_origin_country=SE|DK|NO|FI|IS` + `with_genres=80|9648`
+(Crime|Mystery), piso `vote_count.gte=10` + `vote_average.gte=5.5`. Ids `pablo063`/`064`,
+`showInHome=false` (vive en Descubrir, no altera el orden curado del inicio ya fijado por Pablo).
+**Verificado en vivo, no solo committeado**: el log del regen real contra la cuenta confirma
+`GANADOS (por nombre): 2 → Nordic Noir (Cine), Nordic Noir (Series)`, y el health-check posterior
+dio `✅ Todo OK` (22 addons, streams/subs normales).
+
+**2. Bug real encontrado y arreglado — el regen se saltaba en silencio en disparos manuales.**
+Al aplicar Nordic Noir, el paso "Regenerar y aplicar AIOMetadata" salió `skipped`: la condición que
+lo dispara (`steps.diff.outputs.changed`) solo detecta si `refresh-dates.mjs` cambió algo **en esa
+corrida puntual** — no si el `preset.json` ya commiteado (por un cambio de catálogo hecho antes)
+difiere de lo que está aplicado en la cuenta real. Como las fechas ya estaban al día (refrescadas
+horas antes esa misma noche), el regen nunca corrió — el run se marcaba `success` (el health-check
+solo re-verifica lo que ya estaba aplicado) pero el catálogo nuevo nunca llegaba a la cuenta,
+**sin ningún error visible**. Mismo bug afectó silenciosamente la remoción de Crunchyroll de la
+sesión de la tarde (ver más abajo). **Fix**: el regen ahora corre si cambiaron las fechas O si el
+evento es `workflow_dispatch` (un disparo manual ya significa "aplicá esto ahora"); el cron
+automático de las 07:00 mantiene el comportamiento de siempre.
+
+**3. Hallazgo relacionado — la remoción de Crunchyroll de la tarde nunca había llegado a la cuenta
+real.** Al re-disparar el regen ya arreglado, el guard anti-pérdida abortó correctamente al detectar
+que se perderían los 3 catálogos de Crunchyroll — evidencia de que la instancia en vivo (`be3d0d02`)
+todavía los tenía, es decir el pedido de Pablo de sacar Crunchyroll (sesión de la tarde) **nunca se
+había aplicado de verdad**, por el mismo bug del punto 2 (esa sesión también coincidió con fechas ya
+al día). **Fix complementario**: nuevo input `workflow_dispatch.force` (default `false`) que agrega
+`--force` a `regenerate-aiometadata.mjs` solo cuando se pasa explícitamente — usado una vez esta
+noche, con la pérdida ya confirmada como intencional (Pablo la pidió horas antes). El cron
+automático nunca pasa `force`, el guard sigue protegiendo por defecto contra drift accidental.
+**Verificado en vivo tras el fix**: el regen con `--force` corrió limpio (`conclusion: success`,
+ya no aborta), y el health-check posterior volvió a dar `✅ Todo OK`. Crunchyroll y Nordic Noir
+quedaron aplicados en la misma corrida — confirmado y luego fusionado a `main` (fast-forward limpio,
+sin conflictos) para que el cron de las 07:00 no lo revierta.
+
+**4. Investigado, sin acción — el resto de los hallazgos de la noche no ameritaron cambios**:
+- **MediaFusion**: se confirmó que su instancia pública (ElfHosted) es gratis y soporta TorBox
+  (contradice el motivo de rechazo original de sesiones de junio/julio, que era sobre costo). Pero
+  sin `TORBOX_API_KEY` disponible en este contenedor no se pudo configurar con debrid — sin eso,
+  reintroduce el mismo problema estructural de Meteor (P2P puro afectado por el CGNAT de Pablo, ya
+  removido por esa razón). **Queda como candidato real para una sesión futura con la key
+  disponible**, no descartado de plano como antes.
+- **Orion**: requiere su propia cuenta/API key de pago (orionoid.com) y no soporta TorBox
+  nativamente (Real-Debrid/Premiumize/Offcloud) — no encaja.
+- **AIOStreams/MediaFusion "top 3" de ElfHosted**: sin cambios respecto a la evaluación del
+  2026-07-30 (instancia pública sin Torrentio, privada 3x el costo de TorBox).
+- **xtremexq/StremioSubMaker**: es el proyecto open-source del que la instancia ElfHosted ya
+  instalada (SubMaker) es un fork hosteado — no es un addon nuevo, ya se tiene su funcionalidad.
+- **AIOMetadata PublicMetaDB** (sync de watchlists/resume progress, sumado en v2.0.0): potencialmente
+  interesante pero significaría tocar la relación con MyTrakt Sync (de la que dependen
+  `premiere-radar.mjs` y `torbox-airlock.mjs`) sin poder verificarlo en vivo — no se tocó, requiere
+  una sesión con cuenta real para evaluar con cuidado.
+- **NoTorrent**: apareció un reporte de terceros de inestabilidad (05/08), pero la evidencia propia
+  de esta misma noche (health-check con `NoTorrent=9/15/12` streams reales) lo contradice — se anota
+  como dato de contexto, sin acción, ya que la evidencia directa contra la cuenta pesa más.
+- Dogma de siempre aplicado sin excepción: nada que requiriera gastar dinero (Orion, MediaFusion
+  privado) se instaló sin consultar a Pablo primero.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

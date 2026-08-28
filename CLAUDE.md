@@ -2819,6 +2819,68 @@ sin conflictos) para que el cron de las 07:00 no lo revierta.
 - Dogma de siempre aplicado sin excepción: nada que requiriera gastar dinero (Orion, MediaFusion
   privado) se instaló sin consultar a Pablo primero.
 
+## Sesión 2026-08-28 (noche, continuación) — Europe Noir, catálogo "30 Minutos o Menos", reorden de géneros
+
+Pablo dio feedback directo sobre lo aplicado en la sesión anterior (misma noche) y sumó 3 pedidos
+nuevos, todos para `stremioeg`: (a) "Nordic Noir" pasa a **"Europe Noir"**, ampliado a todo el
+continente en vez de solo los 5 países nórdicos; (b) catálogo nuevo **"30 Minutos o Menos"** para
+todo el contenido que dure eso o menos; (c) revisar hábitos/gustos de Pablo y su familia y
+reorganizar a fondo categorías/subcategorías con "combinatorias inteligentes", tanto en películas
+como en series. También reportó un bug: al intentar ver "Un Show Más" con audio latino en NoTorrent
+vía reproductor externo VLC, Stremio decía que no tenía app para reproducir y se colgaba.
+
+**1. Europe Noir — aplicado y verificado en vivo.** Mismo patrón de género (`with_genres=80|9648`,
+Crime|Mystery) pero `with_origin_country` pasó de los 5 países nórdicos a **37 países de toda
+Europa** (Europa occidental, nórdicos, Europa del este, Balcanes, Báltico — de Portugal a Ucrania).
+Verificado en el log del regen real: `PERDIDOS (por nombre): 2 → Nordic Noir (Cine/Series)` /
+`GANADOS (por nombre): 3 → Europe Noir (Cine/Series), 30 Minutos o Menos` — el guard anti-pérdida
+detectó el rename como pérdida+ganancia (por nombre) y pidió `--force`, usado a propósito porque la
+pérdida era intencional (Pablo pidió el cambio).
+
+**2. "30 Minutos o Menos" — solo la mitad aplicada, la otra mitad requiere un paso pendiente.**
+Para **películas** fue directo: TMDB Discover sí soporta filtrar por duración
+(`with_runtime.lte=30`) — catálogo nuevo `pablo065`, aplicado y confirmado en vivo. Para **series**
+TMDB Discover NO soporta ese filtro (mismo límite ya conocido de "Miniseries") — quedó escrita una
+ruta nueva `/short-series` en `scripts/deno-hub.ts` (mismo método en dos pasos que usa Miniseries:
+trae candidatos por popularidad, después consulta la duración real de cada uno y descarta los que
+duran más de 30 min), pero **no se pudo deployar** — esta sesión no tiene la clave de Deno Deploy
+disponible. Queda lista en el código para la próxima sesión con esa clave a mano.
+
+**3. Reorganización de categorías — solo un primer paso acotado, no la reorganización completa
+pedida.** Se hizo un reordenamiento real pero limitado: el bloque de 30 catálogos de género (cine +
+series) pasó de estar en orden alfabético a estar agrupado por temática, con Policial/Suspenso
+(Crimen+Misterio+Thriller) primero — el combo de gusto ya comprobado en todo el historial del
+proyecto — seguido de Familia, Acción/Aventura, Drama, y Nicho al final. Los 3 catálogos nuevos
+(Europe Noir ×2 + 30 min) se ubicaron junto al grupo de herramientas de descubrimiento avanzado que
+ya existía. **No se tocó** el orden curado del Inicio (Estreno→Cartelera→Streaming→Género→País→
+Región, fijado explícitamente por Pablo en sesiones anteriores) ni se armó la reorganización más
+profunda por hábitos de toda la familia que pidió — esta sesión no tiene acceso a historial real de
+visualización de las 3 cuentas (`stremioeg`/`stremiojn`/`solotveg`) para basar esa reorganización en
+datos reales en vez de suposiciones. Queda pendiente de una sesión con acceso a las 3 cuentas reales
+para hacerlo bien, con datos, no a ciegas.
+
+**4. Verificado en vivo, no solo committeado**: el regen real (disparado vía
+`daily-catalog-refresh.yml` con `force: true`) confirmó el swap OK
+(`AIOMetadata → 5e8297f0-e32c-40f0-8a1b-374c50f6f73a`) y los dos health-checks (cuenta principal +
+solotveg) dieron `✅ Todo OK` — streams y subtítulos sin regresión.
+
+**5. Bug nuevo de pipeline encontrado — dos commits del propio workflow chocan al pushear al final
+de una corrida.** El paso final de `daily-catalog-refresh.yml` hace DOS commits separados
+(preset.json con el `instanceId` nuevo, y el log interno) cada uno con su propio
+`git pull --rebase && git push`. En esta corrida, el primer commit se pusheó bien pero algo dejó al
+segundo intento de push rechazado por "non-fast-forward" — investigado, no es el bug de
+`fetch-depth` ya resuelto (ese seguía andando bien). El commit que sincronizaba el `instanceId`
+nuevo en `preset.json` se perdió en el runner (efímero, se descarta al terminar el job) — se
+reconstruyó a mano en esta sesión (`preset.json → instanceId = 5e8297f0-...`, confirmado que
+coincide con la instancia real ya aplicada). **No es grave** — el swap a la cuenta real ya había
+pasado antes de este paso, solo quedó desincronizado el archivo de bookkeeping. **No investigado a
+fondo todavía** (no urgente, pasó una sola vez) — si se repite, revisar si conviene combinar los dos
+commits del paso final en uno solo para evitar la doble ventana de carrera.
+
+**Pendiente para una sesión futura con más acceso**: deployar `/short-series` en Deno Deploy
+(necesita `DENO_DEPLOY_TOKEN`), y la reorganización profunda de categorías por hábitos reales de
+toda la familia (necesita ver el historial de uso real de las 3 cuentas, no solo teorizar).
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

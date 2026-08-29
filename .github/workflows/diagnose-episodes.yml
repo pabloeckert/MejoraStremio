@@ -1,0 +1,34 @@
+name: diagnose-episodes
+
+# Disparo manual: corre scripts/diagnose-episodes.mjs contra la cuenta real para ver, a partir del
+# último episodio marcado como visto de un show puntual, cuántos streams reales hay en los
+# episodios siguientes. Pensado para diagnosticar reportes de "se quedó sin andar" sin tener que
+# adivinar en qué episodio está el usuario. No escribe nada (solo lee), no requiere commit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      imdb_id:
+        description: 'IMDb id del show (ej. tt1710308 para Regular Show / Un Show Más)'
+        type: string
+        required: true
+      count:
+        description: 'Cuántos episodios siguientes probar (default 6)'
+        type: string
+        default: '6'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Diagnosticar episodios
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/diagnose-episodes.mjs "${{ github.event.inputs.imdb_id }}" "${{ github.event.inputs.count }}"

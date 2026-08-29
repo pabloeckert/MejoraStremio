@@ -153,7 +153,7 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-08-28",
+                "primary_release_date.gte": "2026-08-29",
                 "with_runtime.gte": 45
               },
               "formState": {
@@ -191,7 +191,7 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-08-28",
+                "primaryReleaseFrom": "2026-08-29",
                 "primaryReleaseTo": "",
                 "firstAirFrom": "",
                 "firstAirTo": "",
@@ -219,7 +219,7 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "first_air_date.gte": "2026-08-28",
+                "first_air_date.gte": "2026-08-29",
                 "with_runtime.gte": 15
               },
               "formState": {
@@ -259,7 +259,7 @@
                 ],
                 "primaryReleaseFrom": "",
                 "primaryReleaseTo": "",
-                "firstAirFrom": "2026-08-28",
+                "firstAirFrom": "2026-08-29",
                 "firstAirTo": "",
                 "airDateFrom": "",
                 "airDateTo": "",
@@ -285,8 +285,8 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-06-14",
-                "primary_release_date.lte": "2026-08-28",
+                "primary_release_date.gte": "2026-06-15",
+                "primary_release_date.lte": "2026-08-29",
                 "with_runtime.gte": 45
               },
               "formState": {
@@ -324,8 +324,8 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-06-14",
-                "primaryReleaseTo": "2026-08-28",
+                "primaryReleaseFrom": "2026-06-15",
+                "primaryReleaseTo": "2026-08-29",
                 "firstAirFrom": "",
                 "firstAirTo": "",
                 "airDateFrom": "",
@@ -9806,7 +9806,7 @@
         }
       ]
     },
-    "instanceId": "4e564749-893f-48a5-9e52-bb36be8af92b"
+    "instanceId": "f9262546-59da-4e5f-b17c-357d99aa3323"
   },
   "nuvioCollectionsConfig": [
     {

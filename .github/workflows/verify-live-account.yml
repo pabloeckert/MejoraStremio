@@ -1,0 +1,25 @@
+name: verify-live-account
+
+# Disparo manual: corre scripts/verify-live-account.mjs contra la cuenta real para comparar,
+# catálogo por catálogo, lo que Stremio tiene guardado vs. lo que el manifest en vivo de
+# AIOMetadata expone vs. lo que dice preset.json en el repo. Diagnóstico de solo lectura, pensado
+# para casos donde Pablo reporta que "nada de lo aplicado se ve" en ningún dispositivo.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar cuenta real
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/verify-live-account.mjs

@@ -25,16 +25,18 @@ jobs:
       - name: Deployar mejorastremio-hub
         env:
           DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
+          # Hallazgo 2026-08-29: CUALQUIER flag explícito (--org/--app/--prod/--json/
+          # --non-interactive, incluso --help) sale "duplicado" — hasta --help, que nada
+          # debería auto-inyectar. Esto apunta a que el CLI, al detectar GITHUB_ACTIONS=true,
+          # inyecta sus propios argumentos por CI y los está mezclando mal con cualquier
+          # flag manual. Se limpia GITHUB_ACTIONS/CI para este paso puntual y se apunta bien
+          # a producción con --prod, ahora sin la autodetección de CI de por medio.
+          GITHUB_ACTIONS: ""
+          CI: ""
         run: |
           deno --version
           echo "DENO_DEPLOY_TOKEN length: ${#DENO_DEPLOY_TOKEN}"
-          # "deno deploy" sin flags SÍ funciona con el token cargado, pero deployó como preview
-          # (URL random tipo mejorastremio-hub-XXXX.pabloeckert.deno.net), no a la URL de
-          # producción — confirmado el 2026-08-29: /health en la URL de producción no reflejaba
-          # el código nuevo tras ese deploy. Los intentos anteriores de --prod fallaban con
-          # "duplicado" mientras el token estaba vacío (run #3) — ahora que el token es válido,
-          # probando de nuevo con --prod para ver si el comportamiento cambia.
-          deno deploy --prod || { echo "--prod falló, mostrando ayuda del comando:"; deno deploy --help; exit 1; }
+          deno deploy --prod --non-interactive
 
       - name: Verificar /short-series y /miniseries en vivo
         run: |

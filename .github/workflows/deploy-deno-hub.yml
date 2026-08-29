@@ -28,10 +28,13 @@ jobs:
         run: |
           deno --version
           echo "DENO_DEPLOY_TOKEN length: ${#DENO_DEPLOY_TOKEN}"
-          # Todo flag explícito probado (--org/--app, --prod, --json, --non-interactive) salió
-          # "duplicado" — el CLI ya los autocompleta solo en este entorno (org/app desde
-          # deno.jsonc, el resto detectado del entorno CI). Sintaxis correcta: sin flags.
-          deno deploy
+          # "deno deploy" sin flags SÍ funciona con el token cargado, pero deployó como preview
+          # (URL random tipo mejorastremio-hub-XXXX.pabloeckert.deno.net), no a la URL de
+          # producción — confirmado el 2026-08-29: /health en la URL de producción no reflejaba
+          # el código nuevo tras ese deploy. Los intentos anteriores de --prod fallaban con
+          # "duplicado" mientras el token estaba vacío (run #3) — ahora que el token es válido,
+          # probando de nuevo con --prod para ver si el comportamiento cambia.
+          deno deploy --prod || { echo "--prod falló, mostrando ayuda del comando:"; deno deploy --help; exit 1; }
 
       - name: Verificar /short-series y /miniseries en vivo
         run: |

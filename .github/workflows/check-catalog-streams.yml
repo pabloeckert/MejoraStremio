@@ -1,0 +1,41 @@
+name: check-catalog-streams
+
+# Disparo manual: trae los títulos reales de un catálogo puntual (en vivo) y prueba streams reales
+# contra todos los addons de streams para cada uno. Diagnóstico de solo lectura, pensado para
+# verificar reportes tipo "todo lo de tal catálogo no anda" con evidencia real.
+
+on:
+  workflow_dispatch:
+    inputs:
+      catalog_id:
+        description: 'Id del catálogo (ej. tmdb.discover.movie.crime-germany.pablo066)'
+        type: string
+        required: true
+      type:
+        description: 'Tipo del catálogo'
+        type: choice
+        options: ['movie', 'series']
+        default: 'movie'
+      count:
+        description: 'Cuántos títulos probar (default 8)'
+        type: string
+        default: '8'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chequear streams reales del catálogo
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/check-catalog-streams.mjs \
+            "${{ github.event.inputs.catalog_id }}" \
+            "${{ github.event.inputs.type }}" \
+            "${{ github.event.inputs.count }}"

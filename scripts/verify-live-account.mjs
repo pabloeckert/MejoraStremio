@@ -102,7 +102,26 @@ if (!liveManifest || liveManifest.__error) {
     const inLive = [...liveCatalogIds].some((id) => id.includes(idFrag));
     const flag = inSaved && inLive ? '✓' : '✗';
     console.log(`  ${flag} ${name} (${idFrag}) — guardado en Stremio: ${inSaved ? 'SÍ' : 'NO'} | manifest en vivo: ${inLive ? 'SÍ' : 'NO'}`);
+    const raw = (liveManifest.catalogs || []).find((c) => c.id.includes(idFrag));
+    if (raw) {
+      console.log(`      raw: type="${raw.type}" name="${raw.name}" extra=${JSON.stringify(raw.extra || raw.extraSupported || [])}`);
+    }
   }
+  const refId = 'pablo001';
+  const ref = (liveManifest.catalogs || []).find((c) => c.id.includes(refId));
+  if (ref) {
+    console.log(`\n  Referencia — catálogo YA conocido que sí se ve bien (Argentina, ${refId}):`);
+    console.log(`      raw: type="${ref.type}" name="${ref.name}" extra=${JSON.stringify(ref.extra || ref.extraSupported || [])}`);
+  }
+  const movieCatalogs = (liveManifest.catalogs || []).filter((c) => c.type === 'movie');
+  const seriesCatalogs = (liveManifest.catalogs || []).filter((c) => c.type === 'series');
+  console.log(`\n  Total en el selector de Descubrir si elegís "Películas": ${movieCatalogs.length} catálogos de este addon`);
+  console.log(`  Total en el selector de Descubrir si elegís "Series": ${seriesCatalogs.length} catálogos de este addon`);
+  const idxOf = (idFrag) => movieCatalogs.findIndex((c) => c.id.includes(idFrag));
+  const idxOfSeries = (idFrag) => seriesCatalogs.findIndex((c) => c.id.includes(idFrag));
+  console.log(`\n  Posición de "Policial Clásico" en la lista de Películas: ${idxOf('pablo056') + 1} de ${movieCatalogs.length}`);
+  console.log(`  Posición de "Europe Noir (Cine)" en la lista de Películas: ${idxOf('pablo063') + 1} de ${movieCatalogs.length}`);
+  console.log(`  Posición de "Crimen Alemán (Series)" en la lista de Series: ${idxOfSeries('pablo067') + 1} de ${seriesCatalogs.length}`);
 
   console.log('\n[6] showInHome de esos mismos catálogos (según preset.json — determina si aparecen en el Inicio o solo en Descubrir)');
   try {

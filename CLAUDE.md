@@ -2969,6 +2969,62 @@ Deno Deploy (`console.deno.com` → cuenta → Access Tokens). Una vez cargado, 
 deployar de una. El workflow ya incluye un paso que verifica `/health`, `/short-series/manifest.json`
 y `/miniseries/manifest.json` contra la URL de producción para confirmar que quedó bien.
 
+## Sesión 2026-08-29 — deploy de "30 Minutos o Menos" resuelto, NoTorrent chequeado, hueco real en el final de Regular Show
+
+Continuación directa de la sesión anterior. Pablo cargó `DENO_DEPLOY_TOKEN` en GitHub Secrets;
+además reportó dos síntomas puntuales (NoTorrent "caído", "Un Show Más" sin andar desde cierto
+punto) que se investigaron contra la cuenta real.
+
+**1. Deploy de `mejorastremio-hub` — resuelto tras 12 corridas de `deploy-deno-hub.yml`.** Con el
+token ya cargado, siguieron 5 fallos más de sintaxis: **cualquier flag explícito en la línea de
+comando de `deno deploy` sale "Option can only occur once, but was found several times" en este
+entorno** — probado con `--prod`, `--json`, `--non-interactive` e incluso `--help` (que nada
+debería auto-inyectar), y también limpiando `GITHUB_ACTIONS`/`CI` del paso puntual (mismo error,
+descarta que sea autodetección de CI). `deno deploy` sin ningún flag SÍ funciona pero deployaba
+como **preview** (URL random `mejorastremio-hub-XXXX.pabloeckert.deno.net`), no a la URL de
+producción — confirmado dos veces con `/health` devolviendo el código viejo en la URL pública tras
+un deploy "exitoso". Ni pasar `--prod` (falla) ni declarar `"prod": true` en `deno.jsonc → deploy`
+(deployó igual como preview) lo resolvieron. **Causa de fondo no identificada** — queda como
+comportamiento raro del CLI en este entorno específico, no resuelto por ingeniería de flags.
+**Solución real, manual**: Pablo entró al link de la build (`console.deno.com/pabloeckert/
+mejorastremio-hub/builds/<id>`) y usó el botón de promoción a producción de la consola web — con
+eso, `/short-series/manifest.json` en la URL pública quedó respondiendo el manifest real
+(`com.mejorastremio.short-series`, confirmado). **"30 Minutos o Menos" para series ya está
+funcionando en producción.** Si hace falta un redeploy futuro del hub, el patrón que funciona es:
+disparar `deploy-deno-hub.yml` (deploya como preview, sin poder evitarlo con los flags probados) y
+después promoverlo a mano desde la consola de Deno — no hay forma encontrada de automatizar ese
+último paso desde este workflow.
+
+**2. NoTorrent — chequeado en vivo, sano.** Pablo reportó que "parece que se cayó" — probado con
+`health-monitor.yml` disparado a mano: `NoTorrent: v2.7.0` responde normal, con streams reales
+(Matrix=9, Breaking Bad S01E01=15, Will Trent S01E01=12). No estaba caído — probablemente un blip
+puntual del momento o de su conexión/dispositivo, sin señal de rotura del lado de la cuenta.
+
+**3. "Un Show Más" (Regular Show) sin andar "desde cierto punto" — diagnosticado con una
+herramienta nueva, hallazgo real confirmado, no accionable.** Pablo precisó: desde temporada 8,
+episodio 21 en adelante no arranca; su forma habitual de verlo es NoTorrent (única fuente real de
+audio latino) con reproductor externo para tomar la pista de audio. Nuevo script de solo lectura
+`scripts/diagnose-episodes.mjs` + workflow `diagnose-episodes.yml` (disparo manual, sin escritura):
+dado un IMDb id, encuentra el último episodio marcado como visto en MyTrakt Sync (o permite fijar
+temporada/episodio de inicio a mano) y prueba streams reales contra TODOS los addons de streams
+para los N episodios siguientes.
+
+- **Hallazgo colateral**: la cuenta no tiene NINGÚN episodio de este show marcado como visto en
+  Trakt — el auto-detect de "último visto" no sirve para este título en particular (por eso hizo
+  falta el override manual de temporada/episodio agregado al script).
+- **Temporada 8 es la última** (llega hasta el episodio 28, el final de la serie — confirmado
+  contra MyTrakt, no asumido). Probados los 8 episodios desde S08E21: **el total combinado de
+  streams se ve sano (33-39 por episodio)**, pero desglosado por addon, **NoTorrent cayó de
+  12-21 streams en la temporada 1 a solo 3-4 en este tramo final** — el resto del volumen lo
+  aportan Torrentio/Comet, que no necesariamente traen la pista de audio latino que Pablo necesita.
+  Además, la señal "latino" que el script detectó en estos episodios decía **"9 Premium Streams
+  Available"** en vez de "Audio Latino" explícito como en los primeros capítulos — probablemente
+  un aviso de contenido pago/bloqueado de otro addon (Streailer), no audio latino real y gratis.
+- **Conclusión: hueco real y verificado de cobertura, no un bug de configuración.** Mismo patrón
+  estructural ya documentado varias veces en este archivo (contenido de nicho/cola de una serie
+  con mucha menos circulación en fuentes gratuitas) — sin acción de configuración posible del lado
+  del proyecto. Se le explicó a Pablo en estos términos.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

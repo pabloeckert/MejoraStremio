@@ -8,6 +8,8 @@
  * Requiere: ST_EMAIL, ST_PASS
  * Uso:
  *   node scripts/diagnose-episodes.mjs <imdbId> [cantidadEpisodios=6]
+ *   node scripts/diagnose-episodes.mjs <imdbId> [cantidadEpisodios] [temporadaInicio] [episodioInicio]
+ *     — si se pasan temporada/episodio de inicio, arranca ahí en vez de calcular el "último visto".
  *
  * Node >= 20, sin dependencias.
  */
@@ -30,9 +32,11 @@ const getJson = (url, t = 20000) =>
     .catch(() => null);
 const baseOf = (u) => (/manifest\.json$/.test(u) ? u.replace(/manifest\.json$/, '') : u.replace(/\/?$/, '/'));
 
-const [, , imdbId, countArg] = process.argv;
-if (!imdbId) die('Uso: diagnose-episodes.mjs <imdbId> [cantidadEpisodios=6]');
+const [, , imdbId, countArg, seasonArg, episodeArg] = process.argv;
+if (!imdbId) die('Uso: diagnose-episodes.mjs <imdbId> [cantidadEpisodios=6] [temporadaInicio] [episodioInicio]');
 const count = countArg ? Number(countArg) : 6;
+const explicitSeason = seasonArg ? Number(seasonArg) : null;
+const explicitEpisode = episodeArg ? Number(episodeArg) : null;
 
 const email = process.env.ST_EMAIL;
 const pass = process.env.ST_PASS;
@@ -68,16 +72,22 @@ if (!videos.length) die(`MyTrakt Sync no devolvió episodios para ${imdbId} — 
 const showName = meta?.meta?.name || imdbId;
 console.log(`Show: ${showName} (${videos.length} episodios listados por MyTrakt Sync)\n`);
 
-const watched = videos.filter((v) => v.watched === true);
-const lastWatched = watched.length ? watched[watched.length - 1] : null;
-const startIdx = lastWatched
-  ? videos.findIndex((v) => v.season === lastWatched.season && v.number === lastWatched.number) + 1
-  : 0;
-
-if (lastWatched) {
-  console.log(`Último visto: S${String(lastWatched.season).padStart(2, '0')}E${String(lastWatched.number).padStart(2, '0')} "${lastWatched.name || lastWatched.title || ''}"`);
+let startIdx;
+if (explicitSeason !== null && explicitEpisode !== null) {
+  startIdx = videos.findIndex((v) => v.season === explicitSeason && v.number === explicitEpisode);
+  if (startIdx < 0) die(`MyTrakt Sync no lista S${explicitSeason}E${explicitEpisode} para ${imdbId}.`);
+  console.log(`Arrancando manualmente en S${String(explicitSeason).padStart(2, '0')}E${String(explicitEpisode).padStart(2, '0')} (pedido explícito).`);
 } else {
-  console.log('Sin ningún episodio marcado como visto — arrancando desde el primero.');
+  const watched = videos.filter((v) => v.watched === true);
+  const lastWatched = watched.length ? watched[watched.length - 1] : null;
+  startIdx = lastWatched
+    ? videos.findIndex((v) => v.season === lastWatched.season && v.number === lastWatched.number) + 1
+    : 0;
+  if (lastWatched) {
+    console.log(`Último visto: S${String(lastWatched.season).padStart(2, '0')}E${String(lastWatched.number).padStart(2, '0')} "${lastWatched.name || lastWatched.title || ''}"`);
+  } else {
+    console.log('Sin ningún episodio marcado como visto — arrancando desde el primero.');
+  }
 }
 
 const targets = videos.slice(startIdx, startIdx + count);

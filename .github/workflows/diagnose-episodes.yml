@@ -16,6 +16,14 @@ on:
         description: 'Cuántos episodios siguientes probar (default 6)'
         type: string
         default: '6'
+      start_season:
+        description: 'Opcional: temporada de inicio explícita (si no, usa el último visto)'
+        type: string
+        default: ''
+      start_episode:
+        description: 'Opcional: episodio de inicio explícito (requiere start_season)'
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -31,4 +39,8 @@ jobs:
           set -o pipefail
           ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
           ST_PASS="${{ secrets.STREMIO_PASS }}" \
-          node scripts/diagnose-episodes.mjs "${{ github.event.inputs.imdb_id }}" "${{ github.event.inputs.count }}"
+          node scripts/diagnose-episodes.mjs \
+            "${{ github.event.inputs.imdb_id }}" \
+            "${{ github.event.inputs.count }}" \
+            "${{ github.event.inputs.start_season }}" \
+            "${{ github.event.inputs.start_episode }}"

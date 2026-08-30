@@ -6439,7 +6439,8 @@
                 "with_genres": "80|9648",
                 "with_origin_country": "DE",
                 "vote_count.gte": 15,
-                "vote_average.gte": 5.5
+                "vote_average.gte": 5.5,
+                "with_original_language": "de"
               },
               "formState": {
                 "catalogName": "Crimen Alemán (Cine)",
@@ -6459,7 +6460,7 @@
                 ],
                 "excludeGenres": [],
                 "genreJoinMode": "or",
-                "originalLanguage": "",
+                "originalLanguage": "de",
                 "originCountry": "DE",
                 "certificationCountry": "",
                 "certificationValue": "",

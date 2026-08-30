@@ -101,11 +101,6 @@
         "real": 0,
         "unverifiable": false
       },
-      "Meteor": {
-        "total": 1,
-        "real": 0,
-        "unverifiable": true
-      },
       "Streailer": {
         "total": 0,
         "real": 0,
@@ -115,19 +110,14 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
-      },
-      "AI Search": {
-        "total": 1,
-        "real": 1,
-        "unverifiable": false
       }
     },
-    "totalReal": 1,
+    "totalReal": 0,
     "status": "pendiente",
     "latino": null,
     "label": "Los Mufas: Suerte para la desgracia",
     "addedAt": "2026-07-02T21:47:44.909Z",
-    "lastCheckedAt": "2026-08-23T15:10:12.012Z"
+    "lastCheckedAt": "2026-08-30T18:13:35.715Z"
   },
   {
     "id": "tt5834132",
@@ -163,11 +153,6 @@
         "real": 0,
         "unverifiable": false
       },
-      "Meteor": {
-        "total": 1,
-        "real": 0,
-        "unverifiable": true
-      },
       "Streailer": {
         "total": 0,
         "real": 0,
@@ -177,19 +162,14 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
-      },
-      "AI Search": {
-        "total": 1,
-        "real": 1,
-        "unverifiable": false
       }
     },
-    "totalReal": 1,
+    "totalReal": 0,
     "status": "pendiente",
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-08-23T15:10:27.934Z"
+    "lastCheckedAt": "2026-08-30T18:13:57.495Z"
   },
   {
     "id": "tt2380307",
@@ -1413,8 +1393,8 @@
         "unverifiable": false
       },
       "Comet | TB": {
-        "total": 0,
-        "real": 0,
+        "total": 1,
+        "real": 1,
         "unverifiable": false
       },
       "NoTorrent": {
@@ -1432,11 +1412,6 @@
         "real": 0,
         "unverifiable": false
       },
-      "Meteor": {
-        "total": 1,
-        "real": 0,
-        "unverifiable": true
-      },
       "Streailer": {
         "total": 0,
         "real": 0,
@@ -1446,11 +1421,6 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
-      },
-      "AI Search": {
-        "total": 1,
-        "real": 1,
-        "unverifiable": false
       }
     },
     "totalReal": 2,
@@ -1458,7 +1428,7 @@
     "latino": null,
     "label": "Ágata y Lola S01E02",
     "addedAt": "2026-08-23T01:52:08.797Z",
-    "lastCheckedAt": "2026-08-23T15:10:47.378Z"
+    "lastCheckedAt": "2026-08-30T18:14:31.833Z"
   },
   {
     "id": "tt38607962",
@@ -1560,11 +1530,6 @@
         "real": 0,
         "unverifiable": false
       },
-      "Meteor": {
-        "total": 1,
-        "real": 0,
-        "unverifiable": true
-      },
       "Streailer": {
         "total": 0,
         "real": 0,
@@ -1574,19 +1539,14 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
-      },
-      "AI Search": {
-        "total": 1,
-        "real": 1,
-        "unverifiable": false
       }
     },
-    "totalReal": 1,
+    "totalReal": 0,
     "status": "pendiente",
     "latino": null,
     "label": "Infiltrada S01E11",
     "addedAt": "2026-08-23T02:19:04.747Z",
-    "lastCheckedAt": "2026-08-23T15:11:21.728Z"
+    "lastCheckedAt": "2026-08-30T18:14:47.991Z"
   },
   {
     "id": "tt43704317",
@@ -1622,11 +1582,6 @@
         "real": 0,
         "unverifiable": false
       },
-      "Meteor": {
-        "total": 1,
-        "real": 0,
-        "unverifiable": true
-      },
       "Streailer": {
         "total": 0,
         "real": 0,
@@ -1636,19 +1591,14 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
-      },
-      "AI Search": {
-        "total": 1,
-        "real": 1,
-        "unverifiable": false
       }
     },
-    "totalReal": 1,
+    "totalReal": 0,
     "status": "pendiente",
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E02",
     "addedAt": "2026-08-23T02:20:37.808Z",
-    "lastCheckedAt": "2026-08-23T15:12:06.689Z"
+    "lastCheckedAt": "2026-08-30T18:15:14.277Z"
   },
   {
     "id": "tt43704317",
@@ -1684,11 +1634,6 @@
         "real": 0,
         "unverifiable": false
       },
-      "Meteor": {
-        "total": 1,
-        "real": 0,
-        "unverifiable": true
-      },
       "Streailer": {
         "total": 0,
         "real": 0,
@@ -1698,19 +1643,14 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
-      },
-      "AI Search": {
-        "total": 1,
-        "real": 1,
-        "unverifiable": false
       }
     },
-    "totalReal": 1,
+    "totalReal": 0,
     "status": "pendiente",
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E03",
     "addedAt": "2026-08-23T02:20:55.820Z",
-    "lastCheckedAt": "2026-08-23T15:12:25.030Z"
+    "lastCheckedAt": "2026-08-30T18:15:37.645Z"
   },
   {
     "id": "tt23112594",
@@ -1746,11 +1686,6 @@
         "real": 0,
         "unverifiable": false
       },
-      "Meteor": {
-        "total": 1,
-        "real": 0,
-        "unverifiable": true
-      },
       "Streailer": {
         "total": 1,
         "real": 1,
@@ -1760,19 +1695,14 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
-      },
-      "AI Search": {
-        "total": 1,
-        "real": 1,
-        "unverifiable": false
       }
     },
-    "totalReal": 2,
+    "totalReal": 1,
     "status": "pendiente",
     "latino": null,
     "label": "VisionQuest S01E01",
     "addedAt": "2026-08-23T02:21:41.269Z",
-    "lastCheckedAt": "2026-08-23T15:12:44.538Z"
+    "lastCheckedAt": "2026-08-30T18:15:56.852Z"
   },
   {
     "id": "tt23112594",
@@ -1808,11 +1738,6 @@
         "real": 0,
         "unverifiable": false
       },
-      "Meteor": {
-        "total": 1,
-        "real": 0,
-        "unverifiable": true
-      },
       "Streailer": {
         "total": 0,
         "real": 0,
@@ -1822,18 +1747,13 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
-      },
-      "AI Search": {
-        "total": 1,
-        "real": 1,
-        "unverifiable": false
       }
     },
-    "totalReal": 1,
+    "totalReal": 0,
     "status": "pendiente",
     "latino": null,
     "label": "VisionQuest S01E02",
     "addedAt": "2026-08-23T02:21:58.824Z",
-    "lastCheckedAt": "2026-08-23T15:13:02.234Z"
+    "lastCheckedAt": "2026-08-30T18:16:14.850Z"
   }
 ]

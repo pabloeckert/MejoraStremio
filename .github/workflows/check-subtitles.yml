@@ -1,0 +1,47 @@
+name: check-subtitles
+
+# Disparo manual: prueba subtítulos reales (crudos, con lang/id) contra TODOS los addons de subs
+# instalados para un título puntual. Diagnóstico de solo lectura, pensado para verificar el orden
+# de fuentes y si el addon de traducción IA (SubMaker) ofrece un resultado "Make Spanish" cuando
+# no hay subtítulo ya hecho.
+
+on:
+  workflow_dispatch:
+    inputs:
+      imdb_id:
+        description: 'IMDb id (ej. tt0305095)'
+        type: string
+        required: true
+      type:
+        description: 'Tipo'
+        type: choice
+        options: ['movie', 'series']
+        default: 'series'
+      season:
+        description: 'Temporada (solo series)'
+        type: string
+        default: '1'
+      episode:
+        description: 'Episodio (solo series)'
+        type: string
+        default: '1'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chequear subtítulos crudos
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/check-subtitles.mjs \
+            "${{ github.event.inputs.imdb_id }}" \
+            "${{ github.event.inputs.type }}" \
+            "${{ github.event.inputs.season }}" \
+            "${{ github.event.inputs.episode }}"

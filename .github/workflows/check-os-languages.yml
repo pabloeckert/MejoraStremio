@@ -1,0 +1,20 @@
+name: check-os-languages
+
+# Disparo manual, de un solo uso: consulta el endpoint público /infos/languages de la API moderna
+# de OpenSubtitles para confirmar si existe un código de idioma separado para español
+# latinoamericano ("ea", según una búsqueda web — nunca probado contra la API real). No requiere
+# API key ni credenciales de Stremio. Ver CLAUDE.md "Subtítulos, variante latino vs. España".
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Chequear idiomas de OpenSubtitles
+        run: node scripts/check-os-languages.mjs

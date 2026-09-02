@@ -12,6 +12,10 @@
  *   /opensubtitles/manifest.json → OpenSubtitles ES (sin SDH), subtítulos (API moderna,
  *                                catálogo grande, filtro real de hearing_impaired — ver
  *                                CLAUDE.md "Sesión 2026-08-16")
+ *   /opensubtitles-latino/manifest.json → OpenSubtitles Latino (sin SDH), subtítulos — mismo
+ *                                mecanismo que /opensubtitles pero con languages="ea" (código
+ *                                real de "Spanish (LA)" en la API moderna, distinto de "es"/"sp"
+ *                                — confirmado 2026-09-02, ver CLAUDE.md)
  *   /latino/manifest.json     → Audio Latino (verificado), catálogo
  *   /synopsis/manifest.json   → MejoraStremio Synopsis IA, proxy de meta
  *   /miniseries/manifest.json → Miniseries (1 temporada, ≤10 episodios, finalizada), catálogo
@@ -270,14 +274,35 @@ const OPENSUBTITLES_MANIFEST = {
   catalogs: [],
 };
 
+// "ea" = Spanish (LA), código separado de "es" (genérico) y "sp" (Spanish EU) — confirmado
+// contra GET /api/v1/infos/languages de la API real el 2026-09-02 (nunca antes verificado; las
+// pruebas viejas con es-419/es-MX/es-AR/lat contra SubSense no aplicaban a esta API). Primera
+// fuente de subtítulos del proyecto que puede filtrar la variante latina de verdad, en vez de
+// depender de que el uploader la haya mencionado en el nombre del archivo (ver CLAUDE.md,
+// "Subtítulos, variante latino vs. España").
+const OPENSUBTITLES_LATINO_MANIFEST = {
+  id: "com.mejorastremio.opensubtitles-latino",
+  version: "1.0.0",
+  name: "OpenSubtitles Latino (sin SDH)",
+  description:
+    "Subtítulos en español LATINOAMERICANO real de OpenSubtitles (API moderna, código de " +
+    "idioma \"ea\" — distinto del español genérico/España). Filtra hearing-impaired (SDH) " +
+    "server-side con el campo real de la API, no por nombre de archivo.",
+  resources: ["subtitles"],
+  types: ["movie", "series"],
+  idPrefixes: ["tt"],
+  catalogs: [],
+};
+
 interface OpenSubtitlesSub { name: string; fileId: number }
 
 async function fetchOpenSubtitlesSubs(
   imdbId: string,
   season: number | null,
   episode: number | null,
+  lang: string = "es",
 ): Promise<OpenSubtitlesSub[]> {
-  const params = new URLSearchParams({ languages: "es", hearing_impaired: "exclude" });
+  const params = new URLSearchParams({ languages: lang, hearing_impaired: "exclude" });
   if (season != null && episode != null) {
     params.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
     params.set("season_number", String(season));
@@ -302,7 +327,15 @@ async function fetchOpenSubtitlesSubs(
     .filter((s) => Number.isFinite(s.fileId));
 }
 
-async function handleOpenSubtitles(subPath: string, mountBase: string): Promise<Response> {
+async function handleOpenSubtitles(
+  subPath: string,
+  mountBase: string,
+  // deno-lint-ignore no-explicit-any
+  manifest: any = OPENSUBTITLES_MANIFEST,
+  lang: string = "es",
+  idTag: string = "opensubtitles",
+  nameTag: string = "OpenSubtitles",
+): Promise<Response> {
   if (!OPENSUBTITLES_API_KEY) {
     return new Response(
       "OPENSUBTITLES_API_KEY no configurada. Setear como Secret en Deno Deploy.",
@@ -311,7 +344,7 @@ async function handleOpenSubtitles(subPath: string, mountBase: string): Promise<
   }
 
   if (subPath === "/manifest.json") {
-    return jsonResponse(OPENSUBTITLES_MANIFEST);
+    return jsonResponse(manifest);
   }
 
   const subMatch = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
@@ -323,12 +356,12 @@ async function handleOpenSubtitles(subPath: string, mountBase: string): Promise<
     const episode = parts[2] ? parseInt(parts[2], 10) : null;
 
     try {
-      const subs = await fetchOpenSubtitlesSubs(imdbId, season, episode);
+      const subs = await fetchOpenSubtitlesSubs(imdbId, season, episode, lang);
       const subtitles = subs.map((s, idx) => ({
-        id: `opensubtitles-${idx}-${imdbId}`,
+        id: `${idTag}-${idx}-${imdbId}`,
         url: `${mountBase}/srt/${s.fileId}`,
         lang: "spa",
-        name: `[OpenSubtitles] ${s.name}`,
+        name: `[${nameTag}] ${s.name}`,
       }));
       return jsonResponse({ subtitles });
     } catch (e) {
@@ -1437,6 +1470,7 @@ function handleHealth(): Response {
     timestamp: new Date().toISOString(),
     subdl: { configured: !!SUBDL_KEY },
     opensubtitles: { configured: !!OPENSUBTITLES_API_KEY },
+    opensubtitlesLatino: { configured: !!OPENSUBTITLES_API_KEY },
     latino: { configured: true },
     synopsis: {
       configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
@@ -1470,6 +1504,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         routes: [
           "/subdl/manifest.json",
           "/opensubtitles/manifest.json",
+          "/opensubtitles-latino/manifest.json",
           "/latino/manifest.json",
           "/synopsis/manifest.json",
           "/miniseries/manifest.json",
@@ -1487,6 +1522,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
       route = "subdl";
       const subPath = path.slice("/subdl".length) || "/";
       res = await handleSubdl(subPath, `${url.origin}/subdl`);
+    } else if (path.startsWith("/opensubtitles-latino")) {
+      // Debe ir ANTES que "/opensubtitles" — ese startsWith también matchea este path.
+      route = "opensubtitles-latino";
+      const subPath = path.slice("/opensubtitles-latino".length) || "/";
+      res = await handleOpenSubtitles(
+        subPath,
+        `${url.origin}/opensubtitles-latino`,
+        OPENSUBTITLES_LATINO_MANIFEST,
+        "ea",
+        "opensubtitles-latino",
+        "OpenSubtitles Latino",
+      );
     } else if (path.startsWith("/opensubtitles")) {
       route = "opensubtitles";
       const subPath = path.slice("/opensubtitles".length) || "/";

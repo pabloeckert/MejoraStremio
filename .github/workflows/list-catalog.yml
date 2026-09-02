@@ -1,0 +1,33 @@
+name: list-catalog
+
+# Disparo manual: lista los títulos reales de un catálogo (en vivo, con fecha) sin probar
+# streams. Diagnóstico de solo lectura, más rápido que check-catalog-streams.yml, pensado para
+# auditar si un piso de vote_count está excluyendo estrenos muy recientes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      catalog_id:
+        description: 'Id del catálogo (ej. tmdb.discover.movie.crime-germany.pablo066)'
+        type: string
+        required: true
+      type:
+        description: 'Tipo del catálogo'
+        type: choice
+        options: ['movie', 'series']
+        default: 'series'
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Listar catálogo
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/list-catalog.mjs "${{ github.event.inputs.catalog_id }}" "${{ github.event.inputs.type }}"

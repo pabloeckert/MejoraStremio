@@ -1444,6 +1444,9 @@ async function handleDiscover(subPath: string): Promise<Response> {
     page: String(page),
     "vote_count.gte": "20",
   };
+  // Series: sacar telediarios y talk shows — se cuelan con with_origin_country
+  // por país (ej. "Alemania + Crimen" traía Tagesschau) y nunca son lo buscado.
+  if (type === "series") params.without_genres = "10763,10767";
   if (service && service !== "None" && SERVICE_IDS[service]) {
     params.with_watch_providers = String(SERVICE_IDS[service]);
     params.watch_region = DISCOVER_WATCH_REGION;

@@ -1508,67 +1508,6 @@
     "lastCheckedAt": "2026-08-23T01:53:07.864Z"
   },
   {
-    "id": "tt29780951",
-    "type": "series",
-    "season": 1,
-    "episode": 11,
-    "name": "Wild Cards",
-    "genres": [
-      "Comedy",
-      "Crime",
-      "Drama"
-    ],
-    "isFamily": false,
-    "perAddon": {
-      "Torrentio TB": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
-      },
-      "Comet | TB": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
-      },
-      "Mediathek DE (Tatort)": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
-      },
-      "NoTorrent": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
-      },
-      "WebStreamrMBG": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
-      },
-      "Nuvio Streams | Elfhosted": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
-      },
-      "Streailer": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
-      },
-      "MyTrakt Sync | ElfHosted": {
-        "total": 0,
-        "real": 0,
-        "unverifiable": false
-      }
-    },
-    "totalReal": 0,
-    "status": "pendiente",
-    "latino": null,
-    "label": "Infiltrada S01E11",
-    "addedAt": "2026-08-23T02:19:04.747Z",
-    "lastCheckedAt": "2026-09-03T11:20:49.556Z"
-  },
-  {
     "id": "tt43704317",
     "type": "series",
     "season": 1,

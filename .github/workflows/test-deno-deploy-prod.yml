@@ -1,12 +1,13 @@
 name: test-deno-deploy-prod
 
-# Disparo manual, de un solo uso: retest de --prod contra el CLI de Deno Deploy actual. Sesiones
-# anteriores (2026-08-29) encontraron que CUALQUIER flag explícito salía "Option can only occur
-# once" en este entorno — hipótesis nueva: deno.jsonc ya declara org/app/prod:true en su sección
-# "deploy", y el CLI podría estar fusionando esos valores con los flags de línea de comando antes
-# de parsear, duplicando cualquier flag que ya esté en el config. Este test prueba --prod aislado
-# (documentado como el mecanismo oficial real para apuntar a producción) para ver si el CLI
-# (que se auto-actualiza) cambió de comportamiento desde entonces.
+# Disparo manual, de un solo uso: retest de --prod contra el CLI de Deno Deploy actual.
+#
+# Primer intento (con deno.jsonc todavía con "prod": true en su sección "deploy") CONFIRMÓ la
+# causa raíz real del bug documentado desde 2026-08-29: el CLI convierte "prod": true del config
+# en un --prod implícito, y pasar --prod también en la línea de comando lo duplica ("Option
+# "--prod" can only occur once, but was found several times"). Se sacó "prod": true de
+# deno.jsonc — este segundo intento prueba si --prod explícito ya funciona limpio sin esa
+# duplicación (que es, según la doc oficial, el mecanismo real para deployar a producción).
 
 on:
   workflow_dispatch:

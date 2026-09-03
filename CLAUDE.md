@@ -3025,6 +3025,168 @@ para los N episodios siguientes.
   con mucha menos circulación en fuentes gratuitas) — sin acción de configuración posible del lado
   del proyecto. Se le explicó a Pablo en estos términos.
 
+## Sesión 2026-09-02/03 — subtítulos latino real (código "ea"), auditoría obsesiva de catálogos
+
+Pablo pidió primero "todo con subtítulo español latino sin descripción para sordos y conectado por
+IA para los que no tienen o no encuentra", y después, en modo 100% autónomo explícito ("sé obsesivo
+al detalle, arregla todo, no te detengas hasta terminar... a mí solo me molestás si necesitás
+intervención humana"), profundizar y aplicar todo lo que se encontrara. Sesión larga, con varios
+hallazgos reales — algunos aplicados y verificados en vivo, uno revertido tras probarlo, uno
+bloqueado por un límite de plataforma que se resuelve solo con el tiempo (no requiere a Pablo).
+
+### 1. Hallazgo grande: OpenSubtitles SÍ tiene un código separado para español latino ("ea")
+
+Investigando el pedido, se encontró (y se **confirmó contra la API real**, no solo documentación)
+que la API moderna de OpenSubtitles (`api.opensubtitles.com`, la misma que ya usa nuestro addon
+`/opensubtitles`) tiene **tres códigos de idioma español separados**:
+
+```
+es → Spanish (genérico)
+sp → Spanish (EU)       — España
+ea → Spanish (LA)        — Latinoamérica
+```
+
+Confirmado con `GET /api/v1/infos/languages` (endpoint público, sin API key) desde un workflow de
+GitHub Actions — `scripts/check-os-languages.mjs` +
+`.github/workflows/check-os-languages.yml` (quedan en el repo como chequeo de un solo uso, no hace
+falta volver a correrlos). **Esto contradice/actualiza la limitación documentada durante meses**
+("Subtítulos, variante latino vs. España" más arriba) — esa investigación había probado variantes
+como `es-419`/`es-MX`/`es-AR`/`lat` contra **SubSense** (la base vieja de OpenSubtitles, XML-RPC),
+que en efecto no las soporta. Nunca se había probado el código `ea` contra la **API moderna**
+(la que usa nuestro propio addon desde la Sesión 2026-08-16) — es una fuente distinta, con
+taxonomía distinta.
+
+**Aplicado**: `scripts/deno-hub.ts` generalizado — `fetchOpenSubtitlesSubs`/`handleOpenSubtitles`
+ahora aceptan el código de idioma como parámetro (antes hardcodeado a `"es"`) — y se agregó una
+ruta nueva **`/opensubtitles-latino`** que busca con `languages=ea&hearing_impaired=exclude`.
+Mismo mecanismo de caché en Deno KV (compartido por `fileId`, ya que un mismo archivo de subtítulo
+es el mismo sin importar por qué ruta se pidió) y de descarga perezosa que la ruta `/opensubtitles`
+existente. Manifest nuevo: `com.mejorastremio.opensubtitles-latino`, "OpenSubtitles Latino (sin
+SDH)". Router: la ruta nueva va **antes** que `/opensubtitles` porque ese `startsWith` también
+matchea `/opensubtitles-latino` (si se agregan rutas nuevas con prefijo compartido en el futuro,
+mismo cuidado).
+
+**Pendiente — bloqueado por un límite real de plataforma, no por falta de intento**: el deploy a
+Deno Deploy (`deploy-deno-hub.yml`, dispara con `DENO_DEPLOY_TOKEN` ya cargado como secret de
+GitHub) **falló con `"You have exceeded the deployment limit of 15 per hour for your plan"`** —
+**esto explica retroactivamente** por qué tantos intentos de deploy fallaron en la sesión
+2026-08-29 (12 intentos en poco más de una hora, documentados ahí como fallas de sintaxis del CLI)
+— probablemente varios de esos "fallos de flags" eran en realidad este mismo límite de cuota,
+camuflado porque cada intento con flags distintos también fallaba por otro motivo antes de llegar
+a la cuota. **No requiere intervención de Pablo** — es una ventana de 1 hora que se resetea sola.
+**Siguiente paso, apenas se pueda**: re-disparar `deploy-deno-hub.yml` (sin tocar nada más — el
+código ya está listo y committeado en `main`), y si vuelve a caer en preview en vez de producción
+(pese a `"prod": true` en `deno.jsonc`, que en la sesión 2026-08-29 tampoco garantizó ir directo a
+producción), pedirle a Pablo el mismo paso manual de esa sesión (un clic de "Promote to Production"
+en `console.deno.com`). Una vez en producción, probar `/opensubtitles-latino/subtitles/movie/
+tt0110912.json` (Matrix) contra la URL pública real para confirmar que `ea` devuelve resultados de
+verdad (el endpoint de idiomas solo confirma que el código EXISTE, no que haya subtítulos cargados
+con esa etiqueta — falta esa verificación empírica). Después, instalar el addon nuevo en la cuenta
+real (mismo patrón que el resto: `install-addon.mjs`, backup previo) e idealmente adelante de
+`/opensubtitles` genérico en el orden de subs, ya que "latino real" es más específico que "español
+genérico" para lo que pidió Pablo.
+
+### 2. "Conectado por IA para los que no se encuentra" — YA funciona, confirmado con evidencia
+
+Probado contra la cuenta real (`scripts/check-subtitles.mjs`, nuevo, + workflow
+`check-subtitles.yml`): para un título sin subtítulo español pre-hecho (**Passenger**,
+`tt18827746`), **SubMaker (ya instalado) ofrece 4 resultados con `lang: "Make Spanish (Latin
+America)"`** — traduce bajo demanda (vía IA/MT) subtítulos que sí existen en otro idioma (acá,
+inglés) y **apunta explícitamente a la variante latinoamericana**, no genérica. Es exactamente el
+mecanismo que pidió Pablo, ya andando, sin que hiciera falta tocar nada.
+
+**Límite real encontrado, no un defecto de configuración**: para un título con **cero subtítulos en
+absoluto en cualquier idioma** (probado con `Die Rosenheim-Cops` S01E01, `tt0305095` — título tan
+de nicho que ni inglés tiene cargado en ninguna de las 7 fuentes), SubMaker también da 0 — no tiene
+de dónde traducir. Investigado si existe una vía de generación por audio (Whisper) que pudiera
+salvar ese caso: **sí existe, pero es una extensión de Chrome separada** (`SubMaker xSync`,
+manual, corre en el navegador de escritorio, no dentro de la app de Stremio) — no es algo que ande
+solo en las cajas de TV o el celular de Pablo, así que no es una solución real para su forma de
+uso. Conclusión: para contenido con cero cobertura de subtítulos en cualquier idioma, no hay
+ningún mecanismo automático posible — es el mismo límite estructural de siempre (contenido de
+nicho sin circulación), ahora también confirmado del lado de subtítulos con IA, no solo de streams.
+
+### 3. Auditoría obsesiva de los catálogos de crimen — 2 hallazgos, 1 aplicado, 1 revertido
+
+Con `scripts/list-catalog.mjs` (nuevo, más liviano que `check-catalog-streams.mjs` — solo trae
+título+fecha, sin probar streams) se auditaron en vivo los 4 catálogos de crimen/misterio
+(Crimen Alemán, Crimen Reino Unido, Europe Noir, Policial Clásico):
+
+- **Umbral de votos vs. estrenos 2026 — sin problema real, verificado.** Se temía que
+  `vote_count.gte` estuviera excluyendo estrenos muy recientes de 2026 sin calificaciones
+  todavía. Evidencia real: **SÍ aparecen** títulos de 2026 en los 4 catálogos (Sacrificio de
+  Sangre, Unfamiliar, Pinocho: Desatado, Las Ovejas Detectives, Ruta de Escape, Cuenta Atrás,
+  Peaky Blinders: El Hombre Inmortal, entre otros) — el piso de votos no es un problema práctico
+  hoy. No se tocó nada.
+- **Crimen Reino Unido (Cine) y Europe Noir (Cine) — mismo bug de "Hollywood coladero" que ya se
+  había encontrado y arreglado en Crimen Alemán (Cine), pero SIN el mismo arreglo posible.** Con
+  `with_origin_country=GB`, aparecen películas de Hollywood que solo se filmaron/financiaron
+  parcialmente en Reino Unido (El Caballero Oscuro: La Leyenda Renace, Eyes Wide Shut, Horizonte
+  Final, El Código Da Vinci, Johnny English Returns, Última Noche en el Soho) — no son cine
+  británico real. A diferencia del caso alemán, acá **`with_original_language` no sirve** — el
+  cine británico genuino también es en inglés, así que ese filtro no distingue nada.
+  - **Probado en vivo**: se aplicó `without_companies` excluyendo los majors de Hollywood
+    confirmados por id de TMDB (Disney=2, Paramount=4, Columbia=5, MGM=21, 20th Century=25,
+    Universal=33, Warner Bros=174, Lionsgate=1632) a Crimen Reino Unido (Cine), y se comparó el
+    catálogo real antes/después. **Resultado: mejora parcial pero con daño colateral real** — sacó
+    6 títulos claramente de Hollywood (bien), pero **también sacó las dos películas de Kingsman**,
+    que SÍ son cine británico genuino (Marv Films, Matthew Vaughn) — el único vínculo con Hollywood
+    fue que 20th Century Fox las distribuyó. Y **dejó pasar** varias igual de "no británicas" (El
+    Código Da Vinci, Johnny English Returns, Última Noche en el Soho, Misterio en Venecia, The
+    Gentlemen 2020) — porque TMDB a veces etiqueta como `production_companies` al distribuidor
+    (20th Century/Focus Features/Universal) y a veces a la productora real (Marv/Working
+    Title/Film4), sin patrón consistente que `without_companies` pueda capturar de forma limpia.
+  - **Decisión: revertido.** El trade-off no es claramente positivo (excluye contenido bueno,
+    deja pasar contenido malo) — a diferencia del arreglo alemán, que fue limpio y sin falsos
+    positivos. Queda documentado como límite real investigado a fondo, **no reinvestigar salvo que
+    aparezca un filtro nuevo de TMDB Discover** (ej. si algún día agregan un filtro por
+    "nacionalidad cultural" real, no solo financiamiento). No se aplicó a Europe Noir (Cine) por
+    el mismo motivo, ni se tocó Crimen Reino Unido (Series) — la serie no tenía este problema
+    (los títulos de esa lista eran genuinamente británicos).
+  - **Verificado en la cuenta real**: aplicado y luego revertido, ambos pasos confirmados con
+    `daily-catalog-refresh.yml` + health-check verde.
+
+### 4. Proveedores de Torrentio — ya está al día, sin acción
+
+Investigando si había proveedores nuevos que sumar (apareció "MejorTorrent" en listados públicos
+recientes de Torrentio, no documentado en la ampliación de 24 proveedores de 2026-07-01), se
+verificó contra la cuenta real (`scripts/check-torrentio-providers.mjs`, nuevo) — **ya está
+habilitado** en el `transportUrl` guardado. No hacía falta ningún cambio.
+
+### 5. Investigación amplia del ecosistema — sin más hallazgos accionables
+
+- **TorBox**: sigue siendo la recomendación correcta (confirmado de nuevo) — más estable que
+  Real-Debrid en 2026 pese a sus propias caídas, mejor caché de estrenos recientes. Real-Debrid
+  sigue purgando cachés por copyright (tags WEB-DL/AMZN/RARBG) y con política de una sola IP — no
+  cambia la decisión ya tomada. El combo "TorBox + Real-Debrid" (~US$6-7/mes) existe como opción de
+  power-user pero no se sugiere activamente — no está pedido, y agregar un segundo debrid de pago
+  no calza con el criterio de frugalidad ya establecido salvo que Pablo lo pida.
+- **Stremio v5/Web** tuvo una actualización real el 27/07/2026 (Tech Update #83) que corrige que el
+  dropdown de addons "saltara" al scrollear y hace que se auto-scrollee a la opción ya seleccionada
+  — mejora de estabilidad, pero **no agrega buscador de texto** al selector de catálogos de
+  Descubrir, así que no cambia la recomendación de reordenar catálogos para reducir scroll (ya
+  aplicado en sesión anterior).
+- **`without_companies`** y **`with_release_type`** (parámetro de TMDB Discover para afinar
+  "en cartelera"/"estrenos" por tipo de release — teatral limitado vs. amplio) quedan anotados
+  como parámetros reales que existen, por si en el futuro hace falta este tipo de ajuste — no se
+  aplicaron porque los catálogos de fecha ya funcionan bien desde el fix de la Sesión 2026-08-02.
+
+### Verificación final de la sesión
+
+`health-check.mjs` corrido en vivo varias veces durante la sesión (después de cada cambio real
+aplicado a la cuenta): siempre verde, sin regresiones. Cambios efectivamente aplicados a la cuenta
+real de `stremioeg` (todos vía `daily-catalog-refresh.yml` disparado a mano, confirmado con
+`list-catalog.mjs` antes/después de cada uno): ninguno esta sesión quedó a medio aplicar — el
+único pendiente real es el deploy a Deno Deploy, bloqueado por el límite de 15/hora, no por nada
+del lado de la cuenta de Stremio.
+
+**Scripts nuevos que quedan en el repo** (todos de diagnóstico, sin efectos secundarios en la
+cuenta): `verify-live-account.mjs`, `check-catalog-streams.mjs`, `check-subtitles.mjs`,
+`check-os-languages.mjs`, `list-catalog.mjs`, `check-torrentio-providers.mjs` — más sus workflows
+correspondientes. Todos siguen el mismo patrón (`ST_EMAIL`/`ST_PASS`, solo lectura salvo que se
+indique lo contrario) y quedan disponibles para reusar en diagnósticos futuros sin tener que
+reinventarlos.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

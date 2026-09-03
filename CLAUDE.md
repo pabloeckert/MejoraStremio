@@ -3274,15 +3274,23 @@ descripción de escenas de crimen). Reensambla el SRT y lo cachea 90 días en De
 **Se auto-limita**: si OpenSubtitles.com ya tiene algún subtítulo ES real para el título, devuelve
 `[]` (no ensucia contenido que ya está bien cubierto — Matrix, etc. no ven este addon).
 - Parámetros afinados tras medir: lotes de 220 líneas, 4 en paralelo (el free tier de Gemini tira
-  429 con más concurrencia; lotes grandes bajan el total de requests a ~4-6 por episodio), timeout
-  48s por lote, hasta 5 rondas de reintento dentro de un presupuesto de 55s.
+  429 con más concurrencia; lotes grandes bajan el total de requests a ~5-6 por episodio), timeout
+  48s por lote, hasta 5 rondas + reintento por-línea de lo que la IA saltea (Gemini devuelve
+  212-218 de 220 aunque termine con STOP — saltea 2-8 líneas por lote). Umbral de aceptación 0.8:
+  un lote con ≥80% traducido se cachea igual (el resto queda en alemán) para no rehacer 30s en cada
+  apertura. Backoff en 429 (cuota) y 503 (sobrecarga). Cache de KV versionada (`v8`).
 - **Tiempos reales medidos en producción (Deno Deploy)**: primera apertura de un episodio ~30-56s
-  (Deno Deploy NO mata el request largo — verificado), completa. Cualquier apertura posterior (otro
-  dispositivo, otra sesión): **<1.5s desde KV**. Calidad de traducción: buena, latino neutro
-  ("¿Qué quieres decir con eso?", "Ay, vamos", "¡Al suelo!").
+  (Deno Deploy NO mata el request largo — verificado), completa o ~97%. Cualquier apertura
+  posterior (otro dispositivo, otra sesión): **<1.5s desde KV**. Calidad de traducción: buena,
+  latino neutro ("¿Qué quieres decir con eso?", "Ay, vamos", "¡Al suelo!").
+- **Cuota de Gemini**: el free tier de `gemini-flash-lite` es ~1000 requests/día + ~15 RPM. Un
+  episodio = ~5-6 requests. Uso normal (pre-warm diario + alguna apertura en frío) está muy por
+  debajo. En esta sesión se agotó la cuota diaria por el volumen de pruebas — resetea a medianoche
+  Pacífico; no es un problema de producción.
 - **OpenRouter quedó descartado del camino de subtítulos**: su router `openrouter/free` tarda >40s
   por request. Gemini flash-lite hace 220 líneas en ~12-15s. `callGemini` ahora manda
-  `safetySettings` + `generationConfig` (usado también por `/synopsis`, sin efecto adverso ahí).
+  `safetySettings: BLOCK_NONE` + `generationConfig` (usado también por `/synopsis`, sin efecto
+  adverso ahí). El `thinkingConfig` NO va — `gemini-flash-lite-latest` lo rechaza con 400.
 
 **3. Pre-warm — `scripts/tatort-prewarm.mjs` + `.github/workflows/tatort-subs-prewarm.yml`** (07:30
 ART diario, 15 min después de premiere-radar). Calienta la cache de traducción para los Tatort que

@@ -1,0 +1,38 @@
+name: test-deno-deploy-prod
+
+# Disparo manual, de un solo uso: retest de --prod contra el CLI de Deno Deploy actual. Sesiones
+# anteriores (2026-08-29) encontraron que CUALQUIER flag explícito salía "Option can only occur
+# once" en este entorno — hipótesis nueva: deno.jsonc ya declara org/app/prod:true en su sección
+# "deploy", y el CLI podría estar fusionando esos valores con los flags de línea de comando antes
+# de parsear, duplicando cualquier flag que ya esté en el config. Este test prueba --prod aislado
+# (documentado como el mecanismo oficial real para apuntar a producción) para ver si el CLI
+# (que se auto-actualiza) cambió de comportamiento desde entonces.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar Deno CLI
+        run: |
+          curl -fsSL https://deno.land/install.sh | sh -s -- --yes
+          echo "$HOME/.deno/bin" >> "$GITHUB_PATH"
+      - name: Version y config actual
+        run: |
+          deno --version
+          echo "--- deno.jsonc ---"
+          cat deno.jsonc
+      - name: Test 1 -- deno deploy --prod
+        env:
+          DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
+        run: |
+          echo "::group::deno deploy --prod"
+          deno deploy --prod || echo "EXIT CODE: $?"
+          echo "::endgroup::"
+        continue-on-error: true

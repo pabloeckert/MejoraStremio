@@ -24,7 +24,7 @@ jobs:
           set -o pipefail
           ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
           ST_PASS="${{ secrets.STREMIO_PASS }}" \
-          node scripts/tatort-prewarm.mjs --recent 10 --max 16 2>&1 | tee /tmp/prewarm-output.txt
+          node scripts/tatort-prewarm.mjs --recent 12 --max 24 2>&1 | tee /tmp/prewarm-output.txt
 
       - name: Commitear el estado y registrar en el log interno
         run: |

@@ -31,7 +31,7 @@ const API = 'https://api.strem.io/api';
 
 const args = process.argv.slice(2);
 const recentN = Number(args[args.indexOf('--recent') + 1]) || (args.includes('--recent') ? 10 : 6);
-const maxRun = Number(args[args.indexOf('--max') + 1]) || 14;
+const maxRun = Number(args[args.indexOf("--max") + 1]) || 24;
 
 const post = (p, b) =>
   fetch(`${API}/${p}`, {
@@ -66,6 +66,17 @@ const vids = (meta?.meta?.videos || [])
   .sort((a, b) => new Date(b.released || 0) - new Date(a.released || 0));
 
 for (const v of vids.slice(0, recentN)) targets.set(`${v.season}:${v.number}`, v.name || `S${v.season}E${v.number}`);
+
+// Relleno de fondo: episodios de los últimos 4 años todavía no calientes, para
+// que con el correr de los días toda la ventana reciente quede pre-generada
+// (la base es la Mediathek alemana → gratis, solo consume cuota de Gemini, y el
+// tope por corrida la mantiene baja). Los recientes/watchlist van primero.
+const backfillCutoff = new Date();
+backfillCutoff.setFullYear(backfillCutoff.getFullYear() - 4);
+for (const v of vids) {
+  if (new Date(v.released || v.firstAired || 0) < backfillCutoff) break; // vids está ordenado desc
+  targets.set(`${v.season}:${v.number}`, v.name || `S${v.season}E${v.number}`);
+}
 
 // 2. MyTrakt: continue watching + watchlist filtrados a Tatort
 const email = process.env.ST_EMAIL;
@@ -102,7 +113,17 @@ if (email && pass) {
 }
 
 const state = loadState();
-const todo = [...targets.entries()].filter(([k]) => state.warmed[k]?.complete !== true).slice(0, maxRun);
+const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+const todo = [...targets.entries()]
+  .filter(([k]) => {
+    const w = state.warmed[k];
+    if (w?.complete === true) return false;
+    // "sin-base" es permanente (la Mediathek no lo tiene) — no reintentar cada
+    // día; recién re-chequear pasado un mes por si la ARD lo sube.
+    if (w?.reason === 'sin-base' && Date.now() - new Date(w.at || 0).getTime() < MONTH_MS) return false;
+    return true;
+  })
+  .slice(0, maxRun);
 
 console.log(`Objetivos: ${targets.size} | ya calientes: ${targets.size - todo.length} | a calentar esta corrida: ${todo.length}\n`);
 

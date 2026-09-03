@@ -1136,19 +1136,18 @@ async function handleMiniseries(subPath: string): Promise<Response> {
 
 const SHORT_SERIES_MANIFEST = {
   id: "com.mejorastremio.short-series",
-  version: "1.0.0",
-  name: "Series 30 Minutos o Menos",
+  version: "1.1.0",
+  name: "Comedias Cortas (30 min o menos)",
   description:
-    "Series cuyos episodios duran 30 minutos o menos — armado vía TMDB " +
-    "Discover + filtro de detalle por duración de episodio, que Discover " +
-    "no soporta de forma directa para series.",
+    "Sitcoms y comedias live-action cuyos episodios duran 30 minutos o menos. " +
+    "TMDB Discover (comedia, sin animación) + confirmación por episode_run_time.",
   resources: ["catalog"],
   types: ["series"],
   idPrefixes: ["tt"],
   catalogs: [{
     type: "series",
     id: "short-series",
-    name: "Series 30 Minutos o Menos",
+    name: "Comedias Cortas (≤30 min)",
     extra: [{ name: "skip" }],
   }],
 };
@@ -1166,8 +1165,8 @@ interface ShortSeriesMeta {
 let shortSeriesCache: { at: number; metas: ShortSeriesMeta[]; partial: boolean } | null = null;
 const SHORT_SERIES_FULL_TTL_MS = 12 * 60 * 60 * 1000;
 const SHORT_SERIES_PARTIAL_TTL_MS = 60 * 60 * 1000;
-const SHORT_SERIES_BUDGET_MS = 20000;
-const SHORT_SERIES_DISCOVER_PAGES = 3;
+const SHORT_SERIES_BUDGET_MS = 24000;
+const SHORT_SERIES_DISCOVER_PAGES = 5;
 
 async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMeta[]; partial: boolean }> {
   const deadline = Date.now() + SHORT_SERIES_BUDGET_MS;
@@ -1178,7 +1177,19 @@ async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMeta[]; pa
     try {
       const d = await tmdbGet("/discover/tv", {
         sort_by: "popularity.desc",
-        "vote_count.gte": "20",
+        // with_runtime SÍ funciona en /discover/tv (la doc de la sesión
+        // 2026-08-28 estaba equivocada) — pre-filtra a formato corto. Es un
+        // filtro laxo (incluye shows sin dato de runtime), por eso abajo se
+        // confirma con episode_run_time del detalle. vote_count alto para
+        // sacar el ruido (soaps regionales, telediarios).
+        "with_runtime.lte": "30",
+        "vote_count.gte": "150",
+        // Comedia + sin animación/kids/noticias/talk: "series ≤30min por
+        // popularidad" a secas es 90% anime y dibujos (es lo que domina el
+        // formato corto a nivel mundial). Acotarlo a comedia live-action lo
+        // vuelve el catálogo útil para la cuenta — sitcoms para "algo cortito".
+        with_genres: "35",
+        without_genres: "16,10762,10763,10767",
         language: "es-ES",
         page: String(page),
       });
@@ -1190,20 +1201,24 @@ async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMeta[]; pa
   }
 
   const metas: ShortSeriesMeta[] = [];
+  const seen = new Set<string>();
   let partial = false;
 
-  for (const tmdbId of candidates) {
+  // Confirmación de detalle en paralelo (de a 8) — el fetch por título era el
+  // cuello de botella y dejaba el catálogo en ~7 resultados.
+  for (let i = 0; i < candidates.length; i += 8) {
     if (Date.now() > deadline) { partial = true; break; }
-    try {
-      const detail = await tmdbGet(`/tv/${tmdbId}`, {
-        language: "es-ES",
-        append_to_response: "external_ids",
-      });
+    const batch = candidates.slice(i, i + 8);
+    const details = await Promise.all(batch.map((id) =>
+      tmdbGet(`/tv/${id}`, { language: "es-ES", append_to_response: "external_ids" }).catch(() => null)
+    ));
+    for (const detail of details) {
       const imdbId = detail?.external_ids?.imdb_id;
       // deno-lint-ignore no-explicit-any
       const runtimes = (detail?.episode_run_time ?? []) as any[];
       const maxRuntime = runtimes.length ? Math.max(...runtimes) : null;
-      if (imdbId && maxRuntime !== null && maxRuntime > 0 && maxRuntime <= 30) {
+      if (imdbId && !seen.has(imdbId) && maxRuntime !== null && maxRuntime > 0 && maxRuntime <= 30) {
+        seen.add(imdbId);
         metas.push({
           id: imdbId,
           type: "series",
@@ -1215,8 +1230,6 @@ async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMeta[]; pa
           runtime: maxRuntime,
         });
       }
-    } catch {
-      // se salta este candidato, sigue con el resto
     }
   }
 

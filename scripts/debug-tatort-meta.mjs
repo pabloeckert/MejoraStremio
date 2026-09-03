@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * debug-tatort-meta.mjs — Diagnóstico de un solo uso: diagnose-tatort.mjs encontró que Cinemeta
- * solo lista 14 episodios TOTALES para Tatort (tt0185906) — sospechosamente poco para un show que
+ * solo lista 14 episodios TOTALES para Tatort (tt0806910) — sospechosamente poco para un show que
  * corre desde 1970 con ~30 episodios/año. Este script vuelca la lista cruda (fecha, temporada,
  * episodio, nombre) para entender si es un límite real de la fuente (TheTVDB, que Cinemeta usa
  * para episodios, no maneja bien shows de 50+ temporadas) o un problema de nuestro filtro.
@@ -9,7 +9,7 @@
  * Sin credenciales — Cinemeta es público.
  * Uso: node scripts/debug-tatort-meta.mjs
  */
-const IMDB_ID = 'tt0185906';
+const IMDB_ID = 'tt0806910';
 const CINEMETA = 'https://v3-cinemeta.strem.io';
 
 const res = await fetch(`${CINEMETA}/meta/series/${IMDB_ID}.json`, { signal: AbortSignal.timeout(20000) });

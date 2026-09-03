@@ -3116,6 +3116,30 @@ producción. Una vez promovido: instalar el addon nuevo en la cuenta real (mismo
 `install-addon.mjs` + backup), idealmente adelante de `/opensubtitles` genérico en el orden de
 subs, ya que "latino real" es más específico que "español genérico" para lo que pidió Pablo.
 
+**Investigación adicional 2026-09-03 (mañana) — hipótesis descartada con test real, no solo
+teorizada**: la doc oficial de Deno (`denoland/skills`, `deno-deploy/SKILL.md`) documenta
+`deno deploy --prod` como el mecanismo real para apuntar a producción — se probó de nuevo, aislado.
+**Primer test**: con `deno.jsonc → deploy` todavía con `"prod": true`, `deno deploy --prod` falló
+con `Option "--prod" can only occur once, but was found several times` — hipótesis armada: el CLI
+convierte `"prod": true` del config en un `--prod` implícito, y el flag explícito lo duplica.
+**Se sacó `"prod": true` de `deno.jsonc`** (deja solo `org`/`app`) y se repitió el test — **mismo
+error exacto, sin cambios**. La hipótesis queda **descartada por evidencia directa**: la
+duplicación de `--prod` NO viene de `deno.jsonc` — es otra cosa (¿un valor por defecto interno del
+propio subcomando `deno deploy`? ¿algo del entorno del runner? — no identificado). El cambio de
+`deno.jsonc` (sacar `"prod": true`) se dejó igual — es inocuo y más simple, pero no es la solución.
+**Un tercer intento, `deno deploy` sin ningún flag, volvió a pegar el límite de 15 deploys/hora**
+(`You have exceeded the deployment limit of 15 per hour for your plan`) — la ventana de una hora
+ya estaba consumida por los intentos previos de esta sesión (runs #13/#14/#15 de
+`deploy-deno-hub.yml` más los 3 tests de este bloque). **No seguir intentando deploys hasta que
+pase al menos una hora desde el último intento real** (el de `deno deploy` sin flags que sí llegó
+al servidor, 2026-09-03 11:27 UTC) — cada intento cuenta contra la cuota aunque falle por el bug de
+`--prod` duplicado (ese falla client-side, antes de tocar la red, así que NO cuenta; pero el bare
+`deno deploy` sí llegó al servidor y si cuenta). **Sigue sin encontrarse una forma 100% por CLI de
+llegar a producción** — el camino que funciona siempre es: `deno deploy` (sin flags, deployará como
+preview) + promoción manual de Pablo en la consola web. No perder más tiempo en esto salvo pista
+nueva real (ej. un changelog de Deno que documente el bug del `--prod` duplicado, o un mensaje de
+error distinto en un intento futuro que dé una pista nueva).
+
 ### 2. "Conectado por IA para los que no se encuentra" — YA funciona, confirmado con evidencia
 
 Probado contra la cuenta real (`scripts/check-subtitles.mjs`, nuevo, + workflow

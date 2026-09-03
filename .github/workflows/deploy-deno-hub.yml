@@ -28,12 +28,10 @@ jobs:
         run: |
           deno --version
           echo "DENO_DEPLOY_TOKEN length: ${#DENO_DEPLOY_TOKEN}"
-          # 2026-09-03: el bug de "flags duplicados" de 2026-08-29 ya NO ocurre con el
-          # CLI actual (deno 2.9.4) — se deployó a producción con --prod explícito ~6
-          # veces limpio en la sesión coordinada. deno.jsonc NO tiene "prod": true, así
-          # que hay que pasar --prod acá o esto deploya como PREVIEW (y habría que
-          # promover a mano). org/app salen de deno.jsonc.
-          deno deploy --prod --json --non-interactive
+          # NO agregar flags (--prod/--json/--non-interactive): el runner de GitHub
+          # Actions los duplica y falla ("Option --prod can only occur once") —
+          # reconfirmado 2026-09-03. Producción sale de "prod": true en deno.jsonc.
+          deno deploy
 
       - name: Verificar /short-series y /miniseries en vivo
         run: |

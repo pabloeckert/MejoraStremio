@@ -3153,6 +3153,29 @@ recientes de Torrentio, no documentado en la ampliación de 24 proveedores de 20
 verificó contra la cuenta real (`scripts/check-torrentio-providers.mjs`, nuevo) — **ya está
 habilitado** en el `transportUrl` guardado. No hacía falta ningún cambio.
 
+### 4.5. Bug real encontrado y arreglado: `torbox-airlock.mjs` usaba el endpoint equivocado
+
+La sesión 2026-08-28 había dejado el mecanismo de escritura de `torbox-airlock.mjs` sin poder
+verificar (esa sesión también estaba bloqueada de red hacia TorBox) — asumió por analogía
+`POST /api/torrents/controltorrent` con `operation: "airlock"`, con un aviso explícito de "probar
+antes de confiar en --apply". Con salida a la web disponible esta sesión, se investigó a fondo y
+**se confirmó que esa asunción estaba mal**:
+
+- La documentación oficial del SDK de TorBox (`TorBox-App/torbox-sdk-js` y `torbox-sdk-py` en
+  GitHub) confirma que **`controltorrent` solo acepta tres operaciones: Reannounce, Delete,
+  Resume** — "airlock" nunca fue un valor válido ahí.
+- El mecanismo real, confirmado leyendo el **código fuente real de un cliente TorBox de terceros
+  open-source** (`jittarao/torbox-app`, `backend/src/api/ApiClient.js`, método `setAirlock`):
+  **`PUT /api/torrents/edittorrent`** con body `{ torrent_id, airlocked: true }` (rutas gemelas
+  `editusenetdownload`/`editwebdownload` para los otros tipos de asset, no usadas por nuestro
+  script porque solo trabaja con torrents).
+
+**Corregido**: `torboxSetAirlock()` en `scripts/torbox-airlock.mjs` ahora hace el PUT correcto.
+Sigue sin poder probarse contra la cuenta real desde esta sesión (mismo bloqueo de red hacia
+`api.torbox.app`) — la próxima vez que se corra con `TORBOX_API_KEY` disponible, seguir corriendo
+primero sin `--apply` y revisar la respuesta cruda antes de confiar en el endpoint, por las dudas,
+aunque ahora la base es mucho más sólida (código fuente real, no una analogía).
+
 ### 5. Investigación amplia del ecosistema — sin más hallazgos accionables
 
 - **TorBox**: sigue siendo la recomendación correcta (confirmado de nuevo) — más estable que

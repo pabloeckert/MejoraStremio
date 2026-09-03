@@ -19,3 +19,6 @@ SECRETS.local.md
 # Copia de staging para deployar deno-hub.ts aislado del resto del repo
 # (evita subir SECRETS.local.md/.backups al acotar el root-path del deploy)
 .deploy-hub
+
+# Config/estado local de Claude Code + worktrees de agentes (no versionar)
+.claude/

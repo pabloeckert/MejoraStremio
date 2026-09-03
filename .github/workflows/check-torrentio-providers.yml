@@ -1,0 +1,23 @@
+name: check-torrentio-providers
+
+# Disparo manual, de un solo uso: imprime el transportUrl real de Torrentio guardado en la
+# cuenta para ver qué proveedores están habilitados hoy, y poder compararlo contra la lista
+# vigente de Torrentio (evaluando si conviene sumar alguno nuevo, ej. MejorTorrent).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Chequear proveedores de Torrentio
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/check-torrentio-providers.mjs

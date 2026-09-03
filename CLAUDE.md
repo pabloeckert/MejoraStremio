@@ -3548,12 +3548,18 @@ Discovery+. Quedan 24 servicios / 46 catálogos (antes 30/~60). El bloque UK (IT
 BBC iPlayer/Channel 4) se conservó entero — es el más usado (Ghosts 1318min, Ludwig, Slow Horses,
 Dept Q…). Backup: `.backups/backup-streaming-catalogs-pre-curate-*.json`. health-check verde.
 
+**5b. Catálogos de Asia fuera del Home — APLICADO** (Pablo lo confirmó al cierre; lo ejecutó una
+sesión de Claude en paralelo, commit `a852730`). Los 10 catálogos
+`tmdb.discover.{movie,tv}.{jp,kr,cn,tw,in}.pablo0NN` (Cine/Series de Japón, Corea, China, Taiwán,
+India) → `showInHome:false`, `enabled:true` intacto → siguen navegables en Descubrir. Motivo: 0
+contenido asiático en 290 títulos del historial real (medición de dev 2). Reemplaza el pedido de
+2026-08-02 tarde ("todos los países en el Home"). Instancia AIOMetadata regenerada por el cron
+(`e4fd56c7`), 10 catálogos de Asia confirmados en el manifest en vivo (127 total), health-check
+verde. Nota: dos sesiones hicieron el mismo cambio casi simultáneo — el commit local duplicado
+`414b33c` se descartó con `git reset --hard origin/main`, la cuenta quedó consistente
+(`preset.json instanceId == transportUrl en vivo == e4fd56c7`).
+
 **5. Pendientes que quedan (NO aplicados — requieren a Pablo):**
-- **Catálogos de Asia en AIOMetadata a `showInHome:false`** — dev 2 midió 0 contenido asiático en
-  290 títulos del historial. PERO Pablo pidió explícitamente (sesión 2026-08-02 tarde) "todos los
-  países habilitados, individualmente" en el Home. Conflicto entre dato y pedido explícito → no se
-  tocó, queda para que Pablo decida. Es `showInHome:false` en `preset.json` para los ~10 catálogos
-  `tmdb.discover.{movie,tv}.<JP|KR|CN|TW|IN>.*` + regenerar.
 - **`torbox-airlock.mjs --apply`** — el fix del endpoint (PUT `edittorrent`) tiene la base
   verificada (read `/api/torrents/mylist` OK, 256 torrents, campos correctos) pero el write nunca se
   ejerció. Dry-run hoy: 0 candidatos (nada cacheado sin ver que valga la pena bloquear). Correr

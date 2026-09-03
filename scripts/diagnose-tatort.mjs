@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 /**
  * diagnose-tatort.mjs — Diagnóstico de un solo uso: Pablo pidió esfuerzo máximo para conseguir
- * Tatort (tt0185906) en alemán con subtítulos español latino, al menos los últimos 10 años.
+ * Tatort (tt0806910) en alemán con subtítulos español latino, al menos los últimos 10 años.
  * Tatort corre desde 1970 con ~30 episodios/año (cada uno una película standalone de 90min con
  * elenco distinto) — son cientos de episodios en la última década, así que este script muestrea
  * en vez de probar todos: agarra los episodios de los últimos N años (de la lista real de
  * MyTrakt/Cinemeta) y prueba streams (cualquier addon) + subtítulos ES (cualquier fuente) contra
  * la cuenta real, para saber con evidencia si hay cobertura real antes de instalar/armar nada.
+ *
+ * Corregido 2026-09-03: el primer intento usaba tt0185906, que en realidad es "Band of Brothers"
+ * (confirmado contra Cinemeta: devolvía ese nombre, 14 episodios, todos de 2001) — id equivocado,
+ * no un límite real de cobertura de Tatort. El id correcto, confirmado por búsqueda externa
+ * (imdb.com/title/tt0806910), es tt0806910.
  *
  * Requiere: ST_EMAIL, ST_PASS
  * Uso: node scripts/diagnose-tatort.mjs [años=10] [muestraPorAño=2]
@@ -16,7 +21,7 @@
 import { isUtilityStream, isRealStream } from './lib/addon-signals.mjs';
 
 const API = 'https://api.strem.io/api';
-const IMDB_ID = 'tt0185906';
+const IMDB_ID = 'tt0806910';
 const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
 const apiPost = (path, body) =>
   fetch(`${API}/${path}`, {

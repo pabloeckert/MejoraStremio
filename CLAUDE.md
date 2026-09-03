@@ -1876,7 +1876,17 @@ regresiones (Matrix 208, Breaking Bad 203, Will Trent 66).
 - Bloques de Streaming Catalogs que Pablo marcó como candidatos a revisar: nicho UK (BritBox/Acorn
   TV/ITVX/Sky Go/BBC iPlayer/Channel 4), documentales (Curiosity Stream/MagellanTV/Discovery+),
   holandeses (Videoland/NLZIET), 7 países de Asia habilitados en AIOMetadata (Japón/Corea/China/
-  Taiwán/Tailandia/Hong Kong/India) — ¿cuáles se usan de verdad? **Sigue sin resolver.**
+  Taiwán/Tailandia/Hong Kong/India) — ¿cuáles se usan de verdad?
+  **Mitad técnica resuelta 2026-09-03**: `scripts/audit-streaming-catalogs.mjs` probó los 56
+  catálogos reales (movie+series de los 30 servicios) contra la cuenta — **56/56 con contenido
+  real, 0 vacíos, 0 con error**, incluidos los 11 marcados arriba como "nicho/en duda" (ej. Acorn TV
+  20 películas/98 series, Curiosity Stream 86-89, NLZIET 93-100, Sky Go 98-99). Ninguno está roto —
+  no hay nada que sacar por motivo técnico. **La otra mitad de la pregunta (¿Pablo los usa de
+  verdad, más allá de que anden?) sigue sin resolver** — es una pregunta de gusto/hábito, no de
+  funcionamiento, y este addon (catálogo de solo lectura, sin resource `subtitles`/`stream`) no
+  deja rastro de qué browsea Pablo; no hay señal automática disponible para inferirlo sin
+  preguntarle directamente. No se sacó nada — dogma de siempre (no perder cobertura sin evidencia
+  real de que sobra).
 
 ## Sesión 2026-08-01 — Radar de estrenos listos (feature nueva) + Deno Hub recuperado
 

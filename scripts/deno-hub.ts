@@ -1803,17 +1803,24 @@ async function translateBatch(
   const prompt = `${TRANSLATE_SYS}\n\n${payload}`;
 
   const merged = new Map<number, string>();
-  for (let attempt = 0; attempt < 3 && merged.size < items.length; attempt++) {
+  for (let attempt = 0; attempt < 4 && merged.size < items.length; attempt++) {
+    // Tras el primer intento, se re-piden SOLO las líneas que faltan — un lote
+    // más chico parsea mejor y no re-gasta tiempo en lo ya traducido.
+    const todo = attempt === 0 ? items : items.filter((it) => !merged.has(it.n));
+    if (!todo.length) break;
+    const p = attempt === 0
+      ? prompt
+      : `${TRANSLATE_SYS}\n\n${todo.map((it) => `${it.n}▸ ${it.text.replace(/\n/g, NL)}`).join("\n")}`;
     try {
-      const parsed = parseNumbered(await callGemini(prompt, GEMINI_API_KEY, signal));
-      for (const it of items) {
+      const parsed = parseNumbered(await callGemini(p, GEMINI_API_KEY, signal));
+      for (const it of todo) {
         if (!merged.has(it.n) && parsed.has(it.n)) merged.set(it.n, parsed.get(it.n)!);
       }
     } catch (e) {
       const msg = (e as Error).message;
-      // 429 = rate limit de Gemini: esperar y reintentar dentro del presupuesto.
-      if (/429/.test(msg) && attempt < 2) await sleep(3500 + attempt * 3000);
-      else if (attempt >= 2) console.log(`[translate] batch n0=${items[0]?.n} agotó reintentos: ${msg}`);
+      // 429 (cuota) / 503 (sobrecarga) de Gemini: esperar y reintentar.
+      if (/429|503/.test(msg) && attempt < 3) await sleep(3500 + attempt * 3500);
+      else if (attempt >= 3) console.log(`[translate] batch n0=${items[0]?.n} agotó reintentos: ${msg}`);
     }
   }
 
@@ -1822,7 +1829,9 @@ async function translateBatch(
     const t = merged.get(it.n);
     map.set(it.n, t ? t.replace(new RegExp(NL, "g"), "\n") : it.text);
   }
-  return { map, ok: merged.size >= items.length * 0.9 };
+  // ≥80% traducido = se acepta y se cachea (el resto queda en alemán). Un puñado
+  // de líneas sueltas sin traducir no justifica que cada apertura rehaga 30s.
+  return { map, ok: merged.size >= items.length * 0.8 };
 }
 
 // Traduce solo las cues de diálogo, con cache por-lote en KV para que un
@@ -1849,7 +1858,7 @@ async function translateCues(
   if (kv) {
     await Promise.all([...pending].map(async (bi) => {
       try {
-        const hit = await kv.get<Record<string, string>>(["tr-batch", "v7", cacheRef, bi]);
+        const hit = await kv.get<Record<string, string>>(["tr-batch", "v8", cacheRef, bi]);
         if (hit.value) {
           for (const idx of batches[bi]) texts[idx] = hit.value[idx] ?? texts[idx];
           pending.delete(bi);
@@ -1877,7 +1886,7 @@ async function translateCues(
         if (kv) {
           const obj: Record<string, string> = {};
           for (const idx of batchIdxs) obj[idx] = texts[idx];
-          try { await kv.set(["tr-batch", "v7", cacheRef, bi], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+          try { await kv.set(["tr-batch", "v8", cacheRef, bi], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
         }
       }
     }));
@@ -2003,7 +2012,7 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
       return new Response("token inválido", { status: 400, headers: cors });
     }
 
-    const cacheKey = ["translate-srt", "v7", src.r];
+    const cacheKey = ["translate-srt", "v8", src.r];
     let kv: Deno.Kv | null = null;
     try {
       kv = await getKv();
@@ -2024,10 +2033,13 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         .filter((c) => !isSoundOnly(c.text));
       const srt = serializeSrt(outCues);
 
-      // Solo se cachea el SRT ensamblado si la traducción se completó entera.
-      // Los lotes individuales sí quedan cacheados aunque se corte (resumible).
-      if (kv && done) {
-        try { await kv.set(cacheKey, srt, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+      // Completa → cache 90 días. Parcial (algún lote nunca parseó — típico:
+      // una escena que la IA se niega a devolver) → igual se cachea el SRT pero
+      // 2 días, así las aperturas repetidas son instantáneas mientras el resto
+      // ya está traducido; se re-genera solo pasado ese plazo por si mejora.
+      if (kv) {
+        const ttl = done ? TRANSLATE_CACHE_TTL_MS : 2 * 24 * 60 * 60 * 1000;
+        try { await kv.set(cacheKey, srt, { expireIn: ttl }); } catch { /* sin cache */ }
       }
       return new Response(srt, {
         headers: {

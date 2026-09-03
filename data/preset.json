@@ -5237,7 +5237,7 @@
           "type": "movie",
           "name": "Cine Japón",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -5304,7 +5304,7 @@
           "type": "series",
           "name": "Series Japón",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -5371,7 +5371,7 @@
           "type": "movie",
           "name": "Cine Corea",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -5438,7 +5438,7 @@
           "type": "series",
           "name": "Series Corea",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -5505,7 +5505,7 @@
           "type": "movie",
           "name": "Cine China",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -5572,7 +5572,7 @@
           "type": "series",
           "name": "Series China",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -5639,7 +5639,7 @@
           "type": "movie",
           "name": "Cine Taiwán",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -5706,7 +5706,7 @@
           "type": "series",
           "name": "Series Taiwán",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -5773,7 +5773,7 @@
           "type": "movie",
           "name": "Cine India",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -5840,7 +5840,7 @@
           "type": "series",
           "name": "Series India",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {

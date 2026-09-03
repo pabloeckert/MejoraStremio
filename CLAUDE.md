@@ -43,6 +43,11 @@ data/internal-log.jsonl             Log interno (NO se manda por mail) de las co
                                     de la cuenta + los gustos/uso de Pablo. Ver "Sesión 2026-08-02".
 data/test-siesta-titles.json        Lista reusable de los 22 títulos identificados/testeados en la
                                     sesión "siesta" 2026-07-11 (mismo formato que test-content.json).
+docs/encuesta-catalogos.md          Encuesta de gustos para curar los catálogos de stremioeg — el
+                                    *por qué* de cómo están organizados (preset.json es el *qué*).
+                                    Pablo la responde por partes; cada respuesta se aplica al preset
+                                    y se registra en su tabla final. Fuente de verdad de la
+                                    curaduría — leerla antes de tocar showInHome/orden de catálogos.
 scripts/health-check.mjs            Auditoría de la cuenta y los addons (ver abajo).
 scripts/anti-frustration.mjs        Registra/revisa títulos sin streams reales (add/review/list) y
                                     detecta audio latino en contenido familiar/infantil. Ver abajo.
@@ -3701,6 +3706,15 @@ varios hallazgos externos anotados (no accionables sin decisión de Pablo).
   **Contingencia**: si el addon actual (sin mantenimiento) se cae, el reemplazo es (a) OmniCatalogs
   con `country=GB` (mantiene el bloque UK más usado + Netflix/Disney/Prime que son globales), o (b)
   agregar filas fijas por plataforma a `/discover` (más laburo pero 100% bajo nuestro control).
+
+**Cierre de la sesión (2026-09-03 noche):** nada roto, fixes chicos aplicados y documentados arriba,
+research volcado. Pablo pidió además una **encuesta extensa para curar los catálogos** — creada en
+`docs/encuesta-catalogos.md` (11 partes: filosofía del inicio, estrenos, Top 10 por plataforma,
+géneros, países, cluster policial, herramientas de descubrimiento, familia vs solo, preferencias de
+contenido, lista negra, ideas nuevas). Pablo la responde por partes; cada respuesta se aplica al
+`preset.json` y se anota en la tabla final del archivo. **Próxima sesión: revisar si Pablo respondió
+la encuesta y aplicar.** El inicio hoy tiene 86 filas — el objetivo de la encuesta es bajarlo a lo
+que de verdad usa.
 - **DMM Cast para TorBox** ya funciona (debridmediamanager.com/stremio-torbox) — posible fuente de
   streams complementaria, muestra los 5 links cacheados más grandes por título. No evaluado a
   fondo.

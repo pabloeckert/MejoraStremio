@@ -295,3 +295,76 @@ respondiendo con streams reales cada día.
 
 Backups de esta vuelta: `.backups/backup-solotveg-pre-aio-regen-*.json` (instancia con reorden) y
 `.backups/backup-solotveg-pre-stream-curation-*.json` (curación de addons de streams).
+
+## Sesión 2026-09-03 — llevar las mejoras de subtítulos de `stremioeg` a esta cuenta
+
+Handoff de la sesión anterior (ver `CLAUDE.md` raíz, "HANDOFF 2026-09-03"): `stremioeg` sumó 4
+rutas nuevas al hub (`/opensubtitles-latino`, `/translate`, `/mediathek`, `/short-series`) —
+evaluar con criterio propio de esta cuenta, no copiar a ciegas.
+
+**Diagnóstico primero, con datos reales, no supuestos**:
+- `health-check.mjs` (con `HEALTH_CHECK_SEARCH_PROBE=cars`, el probe ya configurado para esta
+  cuenta por el cap de edad): verde, 20/20 addons, sin duplicados, streams y subs normales.
+- `watch-log.mjs`: **sigue prácticamente sin uso real** — los mismos 2 títulos ya documentados en
+  la sesión de origen (2026-08-13), *Will Trent* y *The Dinosaurs*, ambos de **2026-03-22** (antes
+  de que esta cuenta se migrara al toolkit del repo — son resto de actividad orgánica previa, no
+  uso real del setup actual), menos de 1 minuto cada uno, no guardados en biblioteca. **No hay
+  ninguna señal de que esta cuenta mire contenido alemán, Tatort, ni nada en particular** — el
+  historial está, en la práctica, vacío. Las decisiones de abajo se basan en esto: sin evidencia de
+  uso, no hay justificación para sumar addons de nicho pensados para un gusto que no se puede medir
+  todavía.
+
+**Decisiones, addon por addon**:
+
+1. **`/opensubtitles-latino` (código `ea`, subs español latino real) — INSTALADO.** Sin downside:
+   mismo criterio que `stremioeg`, filtra SDH de verdad y prioriza la variante latina cuando existe,
+   se auto-silencia si no hay resultado. `manifest.id: com.mejorastremio.opensubtitles-latino`,
+   índice 0 (primero de todos los addons).
+2. **`/opensubtitles` (código `es` genérico, sin SDH) — INSTALADO, hallazgo aparte no pedido
+   explícitamente.** Auditando el manifest actual se encontró que esta cuenta **nunca había
+   recibido esta ruta**, agregada a `stremioeg`/`stremiojn` desde la sesión 2026-08-16 — quedó
+   afuera del clon original porque esta cuenta se armó antes de esa fecha (2026-08-13) y nunca se
+   sincronizó después. Mismo criterio "cualquier otra mejora que veas, resolvela" del pedido de esta
+   sesión: se instaló, `manifest.id: com.mejorastremio.opensubtitles`, índice 1 (justo después del
+   latino). Resultado medido: subs ES de Matrix pasaron de 40 a **91** (Breaking Bad, 55 a 81) — la
+   mejora más grande de la sesión para esta cuenta, y sin ningún trade-off (ambos addons filtran SDH
+   real, no solo por nombre de archivo).
+3. **`/translate` (sub ES latino por IA desde pista alemana) — NO instalado, decisión explícita, no
+   un olvido.** Hoy la única fuente real de audio para esta ruta en la práctica es Tatort
+   (contenido policial alemán, violencia — la sección de "solo si el resto de las reglas de este
+   archivo se lo permite" no aplica: ni siquiera hay evidencia de que esta cuenta vea nada alemán, y
+   Tatort específicamente es contenido adulto que no encaja con el cap `ageRating: PG-13` que define
+   toda la curación de esta cuenta). Instalarlo no expondría video (es un addon de subtítulos, no de
+   streams/catálogo), pero tampoco hay ningún beneficio real sin uso de contenido alemán — se deja
+   afuera hasta que haya evidencia de lo contrario.
+4. **`/mediathek` (streams de Tatort vía Mediathek alemana) — NO instalado.** Mismo motivo que
+   arriba: 0 evidencia de consumo de contenido alemán, y Tatort es contenido adulto fuera del perfil
+   de edad de esta cuenta. El addon ni siquiera responde para otro id que no sea `tt0806910`
+   (Tatort), así que no aporta nada salvo que la cuenta empiece a mirar esa serie puntual — no hay
+   caso de uso hoy.
+5. **`/short-series` ("Comedias Cortas ≤30min") — NO instalado, evaluado y descartado por diseño,
+   no por falta de interés en el concepto.** La versión que arma `stremioeg` excluye a propósito
+   animación/kids (`without_genres` incluye `16`/`10762`/`10763`/`10767`) y **no tiene ningún filtro
+   de edad** — es un catálogo separado del hub compartido, fuera de la instancia AIOMetadata propia
+   de esta cuenta que sí aplica `ageRating: PG-13`. Instalarlo tal cual **rompería la garantía
+   central de esta cuenta** (todo lo que aparece en Descubrir/Home está filtrado por edad) sin
+   ningún control: sitcoms como *Frasier*, *It's Always Sunny*, *The Golden Girls* no están
+   verificadas contra el cap de PG-13/TV-14 de esta cuenta, y podrían traer humor/temática adulta
+   sin pasar por el mismo filtro que protege todo lo demás. No se armó una variante propia
+   (requeriría tocar `scripts/deno-hub.ts` + redeploy solo para un catálogo sin evidencia de demanda
+   todavía) — queda anotado como mejora futura si Pablo confirma que quiere comedias cortas para
+   este perfil: la opción más simple sería sumar `with_genres=35` + el piso de edad correspondiente
+   como un catálogo nuevo **dentro de la instancia AIOMetadata propia de esta cuenta**
+   (`regenerate-aiometadata-solotveg.mjs`), no reusar la ruta del hub compartido — así hereda el cap
+   de edad automáticamente en vez de necesitar su propio filtro.
+
+**Verificación final**: `health-check.mjs` post-cambio, verde — **22/22 addons**, sin duplicados,
+streams sin regresión (Matrix 142, Breaking Bad 150, Will Trent 62 — idénticos a antes, como
+corresponde ya que solo se tocaron addons de subtítulos), subs ES **91/81** (Matrix/Breaking Bad),
+arriba de los 40/55 previos. Backup automático de `install-addon.mjs` en cada corrida (subido como
+artifact de GitHub Actions, `install-backup-*`, 14 días de retención — no en `.backups/` local
+porque esta sesión corrió todo vía `workflow_dispatch`, sin checkout persistente).
+
+**Nada más pendiente de esta cuenta en esta sesión** — el resto del handoff (mediathek/translate/
+short-series) queda explícitamente descartado o pospuesto con la razón documentada arriba, no
+olvidado.

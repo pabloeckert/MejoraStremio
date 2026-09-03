@@ -48,12 +48,22 @@ const getJson = (url, t = 15000) =>
 // (ninguno lo está todavía) — quedan afuera hasta que haya una señal concreta.
 const KEEP = [
   'nfx', 'dnp', 'amp', 'atp', 'hbm', 'pmp', 'sst', 'cpd', 'mp9', 'hlu', // 9 originales + Hulu
-  'pcp', 'nfk', 'cts', 'mgl', 'gop', 'clv', 'nlz', 'hay', 'vil', 'mbi',
-  'dpe', 'stz', 'sgo', 'itv', 'act', 'bbo', 'bbc', 'al4', 'crc', 'shd',
+  'pcp', 'nfk', 'gop', 'clv', 'mbi', 'stz', 'sgo',
+  'itv', 'act', 'bbo', 'bbc', 'al4', 'crc', 'shd', // bloque UK: Pablo lo usa fuerte (ver abajo)
 ];
 // Excluidos por ahora (Asia/Medio Oriente, sin comprobar): cru (Crunchyroll),
 // jhs (JioHotstar), zee (Zee5), vik (Rakuten Viki), sonyliv (Sony Liv),
 // iqi (iQIYI), sha (Shahid VIP).
+//
+// Sacados 2026-09-03 (dev 2) por "borrar lo que no se usa" (dogma 2026-08-28 tarde), con
+// evidencia real de watch-log.mjs — 290 títulos con actividad real en stremioeg, CERO minutos
+// en cualquiera de estos:
+//   cts (Curiosity Stream), mgl (MagellanTV), dpe (Discovery+) — bloque documentales
+//   nlz (NLZIET), vil (Videoland)                              — bloque holandés
+//   hay (Hayu)                                                 — reality TV
+// El bloque UK (itv/act/bbo/bbc/al4 + sgo) se CONSERVA: es el 2º más mirado de Pablo por lejos
+// (Ghosts 1318min, Ludwig 396min, Slow Horses, Dept Q, Douglas Is Cancelled, Harry Wild,
+// The Boroughs). Aplicar con: ST_EMAIL=... ST_PASS=... node scripts/curate-streaming-catalogs.mjs --apply
 
 const LABELS = {
   nfx: 'Netflix', dnp: 'Disney+', amp: 'Prime Video', atp: 'Apple TV+',

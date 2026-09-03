@@ -827,7 +827,7 @@
           "type": "movie",
           "source": "streaming",
           "enabled": false,
-          "showInHome": true,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -837,7 +837,7 @@
           "type": "series",
           "source": "streaming",
           "enabled": false,
-          "showInHome": true,
+          "showInHome": false,
           "sortDirection": "desc"
         },
         {
@@ -845,7 +845,7 @@
           "type": "all",
           "name": "Top 10 on Crunchyroll",
           "enabled": false,
-          "showInHome": true,
+          "showInHome": false,
           "source": "flixpatrol",
           "enableRatingPosters": true,
           "metadata": {

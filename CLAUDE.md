@@ -3033,8 +3033,10 @@ puntual del momento o de su conexión/dispositivo, sin señal de rotura del lado
 herramienta nueva, hallazgo real confirmado, no accionable.** Pablo precisó: desde temporada 8,
 episodio 21 en adelante no arranca; su forma habitual de verlo es NoTorrent (única fuente real de
 audio latino) con reproductor externo para tomar la pista de audio. Nuevo script de solo lectura
-`scripts/diagnose-episodes.mjs` + workflow `diagnose-episodes.yml` (disparo manual, sin escritura):
-dado un IMDb id, encuentra el último episodio marcado como visto en MyTrakt Sync (o permite fijar
+`scripts/diagnose-episodes.mjs` + workflow `diagnose-episodes.yml` (disparo manual, sin escritura)
+— **ambos borrados el 2026-09-03 (dev 2) como cruft de un solo uso; para un caso equivalente,
+`check-catalog-streams.mjs` cubre lo mismo por título** — dado un IMDb id, encuentra el último
+episodio marcado como visto en MyTrakt Sync (o permite fijar
 temporada/episodio de inicio a mano) y prueba streams reales contra TODOS los addons de streams
 para los N episodios siguientes.
 
@@ -3372,6 +3374,136 @@ aparece en la lista de subs de Matrix/BB (correcto — se auto-silencia donde ya
   poder paralelizar más — requiere decisión de Pablo (ver `feedback_stay_free`), no se hace solo.
 - El addon `stremio-ai-search` (`au.itcon.aisearch`) fue **removido de la cuenta el 2026-08-25**;
   no confundir con estos.
+
+## Sesión 2026-09-03 (dev 2) — higiene de repo + auditoría de catálogos
+
+Sesión en paralelo con dev 1 (que hacía el hub: OpenSubtitles Latino, Comedias Cortas, Tatort
+prewarm). Lane de dev 2: higiene del repo, auditoría de `preset.json` (lectura + fix de
+inconsistencias), validación de la cuenta (solo lectura), y el dry-run de `torbox-airlock.mjs`.
+Sin escrituras a la cuenta real ni deploys — eso lo aplica dev 1 tras el merge.
+
+### A. Higiene de repo — cruft de diagnóstico borrado
+
+La sesión anterior (2026-08-28/09-03) dejó muchos workflows+scripts de un solo uso. Borrados
+(workflow **y** script cuando había):
+- `debug-tatort-meta` — volcado crudo de metadata de Tatort, superado por `tatort-coverage.mjs`.
+- `diagnose-tatort` — muestreo de streams/subs de Tatort, superado por `tatort-coverage.mjs`.
+- `diagnose-episodes` — "próximos N episodios de un show", one-off del final de Regular Show
+  (conclusión fue "hueco real, no accionable"). Para un caso equivalente, `check-catalog-streams.mjs`
+  prueba streams por título.
+- `check-preview-latino.yml` — verificó el preview de `/opensubtitles-latino`; ya se promovió a
+  prod, no vuelve a hacer falta (no tenía script, era curl inline).
+- `list-addons` (workflow + script) — volcado de addons instalados, redundante con
+  `verify-live-account.mjs`.
+- `audit-streaming-catalogs.yml` — el workflow del one-off de dev 1 de esta misma sesión; el
+  script `scripts/audit-streaming-catalogs.mjs` **se conserva** (auditor de solo lectura reusable,
+  mismo criterio que la familia `check-*.mjs`/`list-catalog.mjs`).
+- `test-deno-deploy-prod.yml` — se marcó para borrar pero dev 1 lo seguía usando en paralelo
+  (commits `4b05ed7`/`06c4103` para diagnosticar el `--prod` duplicado del CLI de Deno Deploy);
+  **se conserva** hasta que dev 1 cierre ese hilo.
+
+**Se conservan** (cron activo o diagnóstico reusable en sesiones con red bloqueada): `keep-warm`,
+`health-monitor`, `daily-catalog-refresh`, `premiere-radar`, `anti-frustration-review`,
+`tatort-subs-prewarm`, `deploy-deno-hub`, más `check-catalog-streams`, `check-subtitles`,
+`check-os-languages`, `check-torrentio-providers`, `list-catalog`, `verify-live-account`
+(workflow + script cada uno) y `audit-streaming-catalogs.mjs` (solo script).
+
+### B. Auditoría de `preset.json` — inconsistencias y pendientes
+
+- **Fix aplicado (3 líneas)**: `streaming.cru` (movie+series) y `flixpatrol.crunchyroll.us.all`
+  tenían `enabled:false` pero `showInHome:true` — inconsistencia dejada por el commit `cd4cab1`
+  ("sacar Crunchyroll de nuevo, a pedido de Pablo", que solo tocó `enabled`). Pasados a
+  `showInHome:false`. Crunchyroll sigue OUT (decisión de Pablo, respetada). No cambia el conteo de
+  catálogos visibles (96) porque `enabled:false` ya los excluía de Home.
+- **Catálogos huérfanos — tema CERRADO**: `dramedy-spain` y `latam-no-ar` ya **no existen** en
+  `preset.json` (borrados el 2026-08-28 tarde). `classic-crime`/"Policial Clásico" está
+  `enabled:true` (activo, correcto). Nada que borrar.
+- **Tailandia / Hong Kong** ya no están (borrados el 2026-08-28 tarde). 5 países de Asia activos
+  (Japón/Corea/China/Taiwán/India), todos `showInHome:true`.
+- **`validate-config.mjs`**: OK — 166 catálogos, 120 enabled (era 120 antes también; el fix de
+  Crunchyroll no cambia `enabled`).
+
+### B'. Streaming Catalogs — cerrada con evidencia de uso real (watch-log)
+
+dev 1 cerró la "mitad técnica" (56/56 catálogos andan, 0 rotos — ver su nota más arriba). dev 2
+cerró la **mitad de uso** con `watch-log.mjs` (lee `libraryItem`, el datastore nativo de Stremio):
+**290 títulos con actividad real** en `stremioeg`. Resultado:
+- **Bloque UK — muy usado, se CONSERVA entero**: Ghosts (1318 min), Ludwig (396 min), Slow Horses,
+  Dept. Q, Douglas Is Cancelled, Harry Wild, The Boroughs. UK es la 2ª región más mirada por
+  lejos. ITVX/Acorn TV/BritBox/BBC iPlayer/Channel 4/Sky Go quedan.
+- **Documentales (Curiosity Stream, MagellanTV, Discovery+)**: 0 minutos en 290 títulos.
+- **Holandeses (NLZIET, Videoland)**: 0 minutos.
+- **Hayu (reality)**: 0 minutos.
+
+**Aplicado a la KEEP list de `scripts/curate-streaming-catalogs.mjs`** (30 → 24 servicios): sacados
+`cts`, `mgl`, `dpe`, `nlz`, `vil`, `hay`, con el detalle de la evidencia en un comentario del
+script. **El `--apply` contra la cuenta lo hace dev 1** (dev 2 no tiene acceso de escritura). Report
+mode confirmado: 46 catálogos nuevos (antes 56), swap limpio.
+- **Asia en AIOMetadata** (Japón/Corea/China/Taiwán/India ×2 = 10 catálogos `showInHome:true`, al
+  fondo del Home): 0 contenido asiático en el historial. **Propuesta, NO aplicada** (Pablo los armó
+  a propósito el 2026-07-01 con filtro de calidad — es decisión de gusto, no inconsistencia): pasar
+  esos 10 a `showInHome:false` dejándolos `enabled` para Descubrir. A confirmar con Pablo.
+
+### C. Validación de la cuenta (solo lectura)
+
+- `health-check.mjs` contra la cuenta real: **✅ Todo OK, exit 0**, 24 addons (corrido antes de que
+  dev 1 instalara OpenSubtitles Latino + Comedias Cortas → 26), sin `manifest.id` duplicados,
+  streams (Matrix 156, BB S01E01 163, Will Trent 65) y subs (Matrix 90, BB 81) normales.
+- `audit-catalog-order.mjs`: exit 0, 96 catálogos visibles, orden correcto (las etiquetas de
+  categoría siguen cosméticamente desactualizadas — ya documentado, no se tocó).
+- `refresh-dates.mjs --check`: fechas al día.
+- `anti-frustration.mjs review`: 0 resueltos, **8 pendientes** (Los Mufas, El Marginal, Ágata y
+  Lola S01E02, Infiltrada S01E11, Pa' Seguirte Queriendo S01E02/03, VisionQuest S01E01/02) — mismo
+  hueco estructural de contenido exclusivo Netflix AR / Movistar. Log commiteado. La review sumó la
+  columna del addon nuevo "Mediathek DE (Tatort)" (0 en todos, esperado — no es Tatort).
+
+### C'. BUG REAL — `premiere-radar.mjs` borró todo su estado el 2026-09-02
+
+La corrida programada del **2026-09-02 14:28 UTC** commiteó `data/premiere-radar-state.json`
+pasándolo de 158 líneas a `[]`. Causa: si `MyTrakt Sync` devuelve 0 shows (fallo transitorio del
+endpoint — `getJson` → `null` → `metas: []`), `shows` queda vacío, el loop no corre, y
+`saveState([])` **borra todo el estado**. La corrida siguiente ve el estado vacío y trata cada
+episodio como nuevo → re-"notifica" todo desde cero. Sin emails desde 2026-08-02 ya no spamea a
+Pablo, pero ensucia `internal-log.jsonl` y pierde la memoria de "ya avisado".
+- **Fix**: guard `if (shows.size === 0) die(...)` antes de `saveState`, en `premiere-radar.mjs` y
+  (mismo patrón) en `torbox-airlock.mjs`. Ahora una corrida con MyTrakt caído sale con exit 1 (job
+  rojo, señal visible) en vez de borrar el estado en silencio.
+- **Estado regenerado**: la corrida de dev 2 produjo 17 entries válidas (16 LISTO + 1 pendiente:
+  Los Mufas). Commiteado — es mejor que el `[]` que había. Los `notifiedAt` quedaron todos con
+  fecha de hoy (se perdió el histórico real en el wipe del 02/09), pero como no hay emails eso solo
+  afecta ruido de log, no comportamiento.
+
+### D. `torbox-airlock.mjs` — dry-run: el fix del endpoint parece correcto
+
+- **Read endpoint** `GET /api/torrents/mylist`: HTTP 200, `success: true`, **256 torrents**. Cada
+  objeto torrent trae `id` (entero, ej. `89071413`), `hash` y `airlocked` — los 4 campos que usa el
+  script (`t.id`, `t.hash`, `t.airlocked`, `t.name`) existen y están bien nombrados. `airlocked`
+  presente en 256/256, hoy en `true` en 0 (Pablo no marcó nada).
+- **Write endpoint** `PUT /api/torrents/edittorrent` con `{ torrent_id, airlocked: true }`:
+  `torrent_id` = `t.id`, coherente. **No probado** (requiere `--apply` sobre un torrent real).
+  Recomendación: dev 1 o Pablo corren `--apply` una vez cuando haya contenido cacheado sin ver que
+  valga la pena bloquear, y revisan la respuesta cruda. La base es sólida (campos confirmados +
+  código fuente de tercero ya citado en el header del script).
+- **Bug de usabilidad arreglado**: el dry-run recorría TODOS los episodios no vistos de los 17
+  shows de Continue Watching (X-Files 200+ eps) probando 2 streams c/u → no terminaba nunca
+  (>20 min). Acotado: ventana de 2 años sobre `released`/`firstAired` + tope de 30 eps/show
+  (mismo criterio de "reciente" que `tatort-prewarm.mjs`). Con el bound, el dry-run cierra limpio:
+  **0 candidatos hoy** (nada cacheado reciente sin ver que matchee un torrent de la mylist — Pablo
+  se puso al día con lo de Ágata y Lola de la sesión 2026-08-25).
+
+### Archivos tocados por dev 2 (para el merge)
+
+- `data/preset.json` — 3 líneas (Crunchyroll `showInHome:false`)
+- `data/anti-frustration-log.json` — `review` (refresh + columna Mediathek)
+- `data/premiere-radar-state.json` — regenerado (17 entries, sale del `[]`)
+- `scripts/premiere-radar.mjs` — guard `shows.size === 0`
+- `scripts/torbox-airlock.mjs` — guard `shows.size === 0` + bound de 2 años / 30 eps por show
+- `scripts/curate-streaming-catalogs.mjs` — KEEP list 30 → 24 (`--apply` pendiente para dev 1)
+- borrados: 6 workflows (`debug-tatort-meta`, `diagnose-tatort`, `diagnose-episodes`,
+  `check-preview-latino`, `list-addons`, `audit-streaming-catalogs.yml`) + 4 scripts
+  (`debug-tatort-meta`, `diagnose-tatort`, `diagnose-episodes`, `list-addons`). `test-deno-deploy-prod.yml`
+  NO se borró (dev 1 lo sigue usando). — ver bloque A
+- `CLAUDE.md` — esta sección + nota inline en la sesión 2026-08-29 sobre `diagnose-episodes`
 
 ## Reglas del repo
 

@@ -72,7 +72,7 @@
   {
     "id": "tt27763549",
     "type": "movie",
-    "name": "A Man Like Maximilian",
+    "name": "Los Mufas",
     "genres": [],
     "isFamily": false,
     "perAddon": {
@@ -82,6 +82,11 @@
         "unverifiable": false
       },
       "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Mediathek DE (Tatort)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -117,7 +122,7 @@
     "latino": null,
     "label": "Los Mufas: Suerte para la desgracia",
     "addedAt": "2026-07-02T21:47:44.909Z",
-    "lastCheckedAt": "2026-08-30T18:13:35.715Z"
+    "lastCheckedAt": "2026-09-03T11:20:09.243Z"
   },
   {
     "id": "tt5834132",
@@ -134,6 +139,11 @@
         "unverifiable": false
       },
       "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Mediathek DE (Tatort)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -169,7 +179,7 @@
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-08-30T18:13:57.495Z"
+    "lastCheckedAt": "2026-09-03T11:20:25.012Z"
   },
   {
     "id": "tt2380307",
@@ -1397,6 +1407,11 @@
         "real": 1,
         "unverifiable": false
       },
+      "Mediathek DE (Tatort)": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
       "NoTorrent": {
         "total": 0,
         "real": 0,
@@ -1428,7 +1443,7 @@
     "latino": null,
     "label": "Ágata y Lola S01E02",
     "addedAt": "2026-08-23T01:52:08.797Z",
-    "lastCheckedAt": "2026-08-30T18:14:31.833Z"
+    "lastCheckedAt": "2026-09-03T11:20:37.257Z"
   },
   {
     "id": "tt38607962",
@@ -1515,6 +1530,11 @@
         "real": 0,
         "unverifiable": false
       },
+      "Mediathek DE (Tatort)": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
       "NoTorrent": {
         "total": 0,
         "real": 0,
@@ -1546,7 +1566,7 @@
     "latino": null,
     "label": "Infiltrada S01E11",
     "addedAt": "2026-08-23T02:19:04.747Z",
-    "lastCheckedAt": "2026-08-30T18:14:47.991Z"
+    "lastCheckedAt": "2026-09-03T11:20:49.556Z"
   },
   {
     "id": "tt43704317",
@@ -1563,6 +1583,11 @@
         "unverifiable": false
       },
       "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Mediathek DE (Tatort)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1598,7 +1623,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E02",
     "addedAt": "2026-08-23T02:20:37.808Z",
-    "lastCheckedAt": "2026-08-30T18:15:14.277Z"
+    "lastCheckedAt": "2026-09-03T11:20:59.294Z"
   },
   {
     "id": "tt43704317",
@@ -1615,6 +1640,11 @@
         "unverifiable": false
       },
       "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Mediathek DE (Tatort)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1650,7 +1680,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E03",
     "addedAt": "2026-08-23T02:20:55.820Z",
-    "lastCheckedAt": "2026-08-30T18:15:37.645Z"
+    "lastCheckedAt": "2026-09-03T11:21:12.496Z"
   },
   {
     "id": "tt23112594",
@@ -1667,6 +1697,11 @@
         "unverifiable": false
       },
       "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Mediathek DE (Tatort)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1702,7 +1737,7 @@
     "latino": null,
     "label": "VisionQuest S01E01",
     "addedAt": "2026-08-23T02:21:41.269Z",
-    "lastCheckedAt": "2026-08-30T18:15:56.852Z"
+    "lastCheckedAt": "2026-09-03T11:21:31.835Z"
   },
   {
     "id": "tt23112594",
@@ -1719,6 +1754,11 @@
         "unverifiable": false
       },
       "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Mediathek DE (Tatort)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1754,6 +1794,6 @@
     "latino": null,
     "label": "VisionQuest S01E02",
     "addedAt": "2026-08-23T02:21:58.824Z",
-    "lastCheckedAt": "2026-08-30T18:16:14.850Z"
+    "lastCheckedAt": "2026-09-03T11:21:43.929Z"
   }
 ]

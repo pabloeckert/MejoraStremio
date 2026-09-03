@@ -1,0 +1,43 @@
+name: torbox-airlock
+
+# 07:45 Argentina (UTC-3) — 15 min después de tatort-subs-prewarm, para no competir por el push a
+# data/. Pablo pidió correr torbox-airlock.mjs --apply "cuando haya un candidato": el script mismo
+# calcula si hay algo cacheado sin ver que valga la pena bloquear (0 candidatos = no-op seguro), así
+# que se puede automatizar a diario en vez de esperar a que alguien lo dispare a mano. Sin --apply
+# no marca nada; con --apply solo marca los candidatos reales que encuentre esa corrida — idempotente,
+# no re-marca lo que ya está airlocked. El script es stateless (no escribe ningún data/*.json), así
+# que este workflow solo registra el resultado en el log interno, no commitea ningún estado propio.
+
+on:
+  schedule:
+    - cron: '45 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  airlock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Airlock de contenido cacheado en progreso
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          TORBOX_API_KEY="${{ secrets.TORBOX_API_KEY }}" \
+          node scripts/torbox-airlock.mjs --apply 2>&1 | tee /tmp/airlock-output.txt
+
+      - name: Registrar en el log interno
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          node scripts/log-status.mjs torbox-airlock ok < /tmp/airlock-output.txt
+          git add data/internal-log.jsonl
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(log): torbox-airlock $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase origin main
+            git push
+          fi

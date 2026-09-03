@@ -3566,20 +3566,62 @@ verde. Nota: dos sesiones hicieron el mismo cambio casi simultáneo — el commi
   `--apply` una vez cuando haya un candidato real y revisar la respuesta cruda.
 - test-content.mjs: con 26 addons tarda >12min; health-check (camino crítico) cubre lo importante.
 
-**6. `deploy-deno-hub.yml` estaba roto y se arregló.** El comentario decía que `"prod": true`
-estaba en `deno.jsonc` pero NO estaba → el workflow corría `deno deploy` a secas = deploy a
-PREVIEW, no producción. Intenté pasar `--prod` explícito: **el runner de GitHub Actions lo duplica
-y falla** (`Option "--prod" can only occur once`) — el bug de 2026-08-29 sigue siendo real EN CI
-(local con deno 2.9.4 no pasa, por eso confundía). Fix definitivo: `"prod": true` agregado a
-`deno.jsonc` de verdad + workflow y deploys locales usan `deno deploy` **sin ningún flag**. Local
-también: pasar `--prod` ahora rompe igual (duplica con el config). Verificado que `deno deploy` a
-secas pasa la validación de argumentos (solo frenó por el límite de 15 deploys/hora, no por
-sintaxis). Borrado `test-deno-deploy-prod.yml` (diagnóstico de un solo uso, tema cerrado).
+**6. Deploy del hub — conclusión definitiva (probado a fondo esta sesión).**
+- **LOCAL funciona**: `deno deploy --prod --org=pabloeckert --app=mejorastremio-hub` → producción
+  directa, limpio. Se usó ~8 veces esta sesión. `deno.jsonc` tiene solo `{org, app}` (NO `"prod":
+  true` — rompe el `--prod` local por duplicación).
+- **CI (`deploy-deno-hub.yml`) NO deploya a producción**: en el runner de GitHub Actions cualquier
+  flag se duplica y falla (`Option "--prod" can only occur once`), y `"prod": true` en `deno.jsonc`
+  tampoco alcanza — el workflow "tiene éxito" pero deja el deploy en **preview**, hay que promoverlo
+  a mano en `console.deno.com`. Confirmado con una corrida real (run 33757090985, "Preview url:").
+  El workflow queda como fallback documentado, no como camino principal.
+- Límite real de Deno: **15 deploys/hora**. Se agotó esta sesión por volumen.
+- Borrado `test-deno-deploy-prod.yml` (diagnóstico de un solo uso, tema cerrado).
 
 **Estado de la colección al cierre: 26 addons** (idx 0 OpenSubtitles Latino, idx 3 Traducción IA,
 idx 8 Mediathek DE, idx 22 Comedias Cortas). Sin `manifest.id` duplicados. `mejorastremio-hub` en
 producción con `/short-series` v1.1.0 y `osHasSpanish` chequeando `es,sp,ea` (verificado en vivo:
 `/translate` devuelve `[]` para Matrix porque ya tiene sub `es`+`ea`).
+
+## HANDOFF 2026-09-03 — para la próxima sesión (aplicar lo de stremioeg a las otras cuentas)
+
+Pablo cerró la sesión por límite y pidió **continuar con "la otra cuenta"** — llevar las mejoras de
+`stremioeg` de esta sesión a `stremiojn` (Joaquín, `cuentas/stremiojn/CLAUDE.md`) y/o `solotveg`
+(perfil juvenil PG-13, `cuentas/solotveg/CLAUDE.md`), respetando la curación propia de cada una.
+
+**Estado de `stremioeg` al cierre (TODO aplicado y verificado, health-check verde):**
+- Hub `mejorastremio-hub` en producción con rutas nuevas: `/mediathek` (streams Tatort de la
+  Mediathek alemana), `/translate` (sub ES latino por IA desde pista alemana), `/short-series`
+  (Comedias Cortas ≤30min, reescrito). `/opensubtitles-latino` (código `ea`) ya existía.
+- Addons instalados en stremioeg esta sesión: OpenSubtitles Latino (idx 0), Mediathek DE (idx 8),
+  Traducción IA (idx 3), Comedias Cortas (idx 22). 26 addons total.
+- Streaming Catalogs curado (30→24, sacados los de 0 uso). Asia fuera del Home. Repo limpio de
+  cruft de diagnóstico. Bugs arreglados: premiere-radar wipe, torbox-airlock endpoint+bound.
+- Pre-warm de Tatort corriendo a diario (`tatort-subs-prewarm.yml`).
+
+**Qué evaluar para stremiojn / solotveg (decidir con criterio, no copiar a ciegas):**
+1. **`/opensubtitles-latino` + `/translate`**: ambas cuentas se benefician de subs ES latino real /
+   por IA. `/mediathek` solo si esa cuenta ve Tatort u otro contenido alemán (revisar su
+   `watch-log.mjs` primero). `/short-series` (comedias cortas) probablemente sí para ambas.
+2. **`solotveg` es PG-13**: `/translate` traduce Tatort (contenido policial adulto, violencia) — no
+   encaja con el perfil juvenil. `/short-series` con `with_genres=35` sin animación puede servir,
+   pero OJO que ahí sí quitó Kids/animación — para un perfil juvenil quizás querés animación. Ver
+   `regenerate-aiometadata-solotveg.mjs` (esa cuenta tiene instancia y reglas propias).
+3. `install-addon.mjs` funciona con `ST_EMAIL_JN`/`ST_PASS_JN` y `ST_EMAIL_TEEN`/`ST_PASS_TEEN`
+   (en `SECRETS.local.md`) — exportar la que corresponda antes de correr.
+4. Documentar el trabajo de cada cuenta en SU propio `cuentas/*/CLAUDE.md`, no acá.
+
+**Pendientes que quedan abiertos (stremioeg, NO bloquean, requieren a Pablo o verificación):**
+- `torbox-airlock.mjs --apply`: una sesión paralela lo automatizó a diario (`torbox-airlock.yml`,
+  commit `def0a4f`). El write endpoint (PUT `edittorrent`) todavía no se ejerció con un candidato
+  real — vigilar la primera corrida con candidatos y revisar la respuesta cruda.
+- Deno hub: si hay que redeployar, hacerlo LOCAL con `--prod` (ver punto 6 arriba), no por el
+  workflow.
+- Episodios de Tatort "parciales" en la cache de traducción (~8, quedaron al 96% por cuota de
+  Gemini agotada esta sesión) — se completan solos con el pre-warm diario cuando resetea la cuota.
+- **Múltiples sesiones de Claude tocaron este repo en paralelo hoy** (al menos 3): hubo carreras de
+  git y trabajo duplicado (el cambio de Asia lo hicieron dos sesiones). Antes de arrancar la
+  próxima, confirmar que no hay otra sesión activa sobre el repo.
 
 ## Reglas del repo
 

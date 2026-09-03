@@ -28,9 +28,11 @@ jobs:
         run: |
           deno --version
           echo "DENO_DEPLOY_TOKEN length: ${#DENO_DEPLOY_TOKEN}"
-          # NO agregar flags (--prod/--json/--non-interactive): el runner de GitHub
-          # Actions los duplica y falla ("Option --prod can only occur once") —
-          # reconfirmado 2026-09-03. Producción sale de "prod": true en deno.jsonc.
+          # OJO: en el runner de GitHub Actions este comando deploya a PREVIEW, no a
+          # producción — hay que promover a mano en console.deno.com. Cualquier flag
+          # (--prod/--json) el runner lo duplica y falla; "prod": true en deno.jsonc
+          # tampoco alcanza acá (reconfirmado 2026-09-03). Para un deploy a prod real
+          # y directo, correr LOCAL: deno deploy --prod --org=pabloeckert --app=mejorastremio-hub
           deno deploy
 
       - name: Verificar /short-series y /miniseries en vivo

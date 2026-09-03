@@ -1,11 +1,14 @@
 {
-  // "prod": true → "deno deploy" a secas apunta a producción. NO pasar --prod
-  // en la línea de comando: el runner de GitHub Actions lo duplica y falla
-  // ("Option --prod can only occur once") — bug real y persistente del CLI en
-  // ese entorno (2026-08-29, reconfirmado 2026-09-03). Ver deploy-deno-hub.yml.
+  // Deploy: LOCAL con `deno deploy --prod --org=pabloeckert --app=mejorastremio-hub`
+  // (funciona, probado ~8 veces la sesión del 2026-09-03).
+  //
+  // NO poner "prod": true acá: en el runner de GitHub Actions NO alcanza para
+  // deployar a producción (deploya a preview igual) Y rompe el `--prod` explícito
+  // local por duplicación. En CI (deploy-deno-hub.yml) el deploy queda en preview
+  // y hay que promoverlo a mano en console.deno.com — quirk conocido del CLI en
+  // Actions, ver CLAUDE.md sesión 2026-08-29 / 2026-09-03.
   "deploy": {
     "org": "pabloeckert",
-    "app": "mejorastremio-hub",
-    "prod": true
+    "app": "mejorastremio-hub"
   }
 }

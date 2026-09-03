@@ -3505,6 +3505,65 @@ Pablo, pero ensucia `internal-log.jsonl` y pierde la memoria de "ya avisado".
   NO se borró (dev 1 lo sigue usando). — ver bloque A
 - `CLAUDE.md` — esta sección + nota inline en la sesión 2026-08-29 sobre `diagnose-episodes`
 
+## Sesión 2026-09-03 (dev 1, continuación) — /short-series usable, OpenSubtitles Latino, pre-warm ampliado
+
+Lane de dev 1 en la sesión coordinada de dos agentes (dev 2 hizo higiene de repo + catálogos, arriba).
+
+**1. `/short-series` reescrito y por fin usable → "Comedias Cortas (≤30 min)"** (instalado idx 22).
+La query vieja era `discover/tv` por popularidad SIN filtro de runtime, y recién el fetch de detalle
+filtraba por `episode_run_time` → quedaban ~7 títulos (telediarios, anime, soaps regionales).
+Hallazgo: **`with_runtime.lte` SÍ funciona en `/discover/tv`** — la nota de la sesión 2026-08-28 que
+decía que no, estaba equivocada (probablemente se probó sin `vote_count.gte`/género y el ruido tapó
+el resultado). Ahora: `discover/tv` con `with_runtime.lte=30` + `with_genres=35` (comedia) +
+`without_genres=16,10762,10763,10767` (animación/kids/noticias/talk) + confirmación por
+`episode_run_time<=30` en paralelo (de a 8). **41 sitcoms live-action reales** (Frasier, Parks and
+Rec, New Girl, 30 Rock, Big Bang, Golden Girls, El Chavo del Ocho, Bromistas Imprácticos…). Se
+acotó a comedia a propósito: "series ≤30min por popularidad" a secas es 90% anime/dibujos a nivel
+mundial. Si Pablo quiere incluir animación adulta o drama corto, es sacar `with_genres=35` / el `16`
+del `without_genres`.
+
+**2. `OpenSubtitles Latino` (código `ea`) instalado** (idx 0, primero de todos los subs). La sesión
+anterior (commit `37ad73a`) creó y deployó la ruta `/opensubtitles-latino` (código de idioma `ea` =
+Spanish LA, distinto del `es` genérico) pero **nunca la instaló**. Verificado en vivo que devuelve
+subs latino reales (Matrix 1, Enola Holmes 3 1) — cobertura fina pero cuando pega es latino de
+verdad, mejor que el `es` genérico. Se auto-silencia donde no hay `ea`. Orden de subs ahora:
+OpenSubtitles Latino (`ea`) → OpenSubtitles ES (`es`) → SubDL → Traducción IA → SubSense → SubMaker →
+OpenSubtitles v3 → Community. `/translate` también actualizado: `osHasSpanish` ahora chequea
+`es,sp,ea` (los 3 códigos), no solo `es`, para no ofrecer traducción IA donde ya hay sub real.
+
+**3. Pre-warm de Tatort ampliado** (`scripts/tatort-prewarm.mjs`, workflow `--recent 12 --max 24`):
+además de recientes/watchlist, ahora hace **backfill de los últimos 4 años** todavía sin calentar
+(tope 24/corrida). La base de traducción de Tatort es el subtítulo alemán oficial de la Mediathek →
+no consume cupo de OpenSubtitles, solo de Gemini, y el tope lo mantiene bajo. Los "sin-base" no se
+reintentan a diario (se re-chequean al mes por si la ARD los sube). Con lo corrido esta sesión,
+**~108/132 episodios del backfill de 4 años ya están cacheados**; el resto cae en ~1 semana de
+corridas diarias. Nota: durante esta sesión se agotó la cuota diaria de Gemini por volumen de
+pruebas — varios episodios quedaron "parcial" (~96% traducido, cacheados 2 días); se completan solos
+cuando la cuota resetea.
+
+**4. Streaming Catalogs curado — APLICADO** (era el `--apply` que dev 2 dejó pendiente).
+`curate-streaming-catalogs.mjs --apply` sacó los 6 servicios con **0 minutos de uso real**
+(evidencia `watch-log.mjs`, 290 títulos): Curiosity Stream, MagellanTV, NLZIET, Hayu, Videoland,
+Discovery+. Quedan 24 servicios / 46 catálogos (antes 30/~60). El bloque UK (ITVX/Acorn TV/BritBox/
+BBC iPlayer/Channel 4) se conservó entero — es el más usado (Ghosts 1318min, Ludwig, Slow Horses,
+Dept Q…). Backup: `.backups/backup-streaming-catalogs-pre-curate-*.json`. health-check verde.
+
+**5. Pendientes que quedan (NO aplicados — requieren a Pablo):**
+- **Catálogos de Asia en AIOMetadata a `showInHome:false`** — dev 2 midió 0 contenido asiático en
+  290 títulos del historial. PERO Pablo pidió explícitamente (sesión 2026-08-02 tarde) "todos los
+  países habilitados, individualmente" en el Home. Conflicto entre dato y pedido explícito → no se
+  tocó, queda para que Pablo decida. Es `showInHome:false` en `preset.json` para los ~10 catálogos
+  `tmdb.discover.{movie,tv}.<JP|KR|CN|TW|IN>.*` + regenerar.
+- **`torbox-airlock.mjs --apply`** — el fix del endpoint (PUT `edittorrent`) tiene la base
+  verificada (read `/api/torrents/mylist` OK, 256 torrents, campos correctos) pero el write nunca se
+  ejerció. Dry-run hoy: 0 candidatos (nada cacheado sin ver que valga la pena bloquear). Correr
+  `--apply` una vez cuando haya un candidato real y revisar la respuesta cruda.
+- test-content.mjs: con 26 addons tarda >12min; health-check (camino crítico) cubre lo importante.
+
+**Estado de la colección al cierre: 26 addons** (idx 0 OpenSubtitles Latino, idx 3 Traducción IA,
+idx 8 Mediathek DE, idx 22 Comedias Cortas). Sin `manifest.id` duplicados. `mejorastremio-hub`
+redeployado con `/short-series` v1.1.0.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

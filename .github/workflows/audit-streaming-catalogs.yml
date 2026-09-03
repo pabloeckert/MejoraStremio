@@ -1,0 +1,23 @@
+name: audit-streaming-catalogs
+
+# Disparo manual, de un solo uso: retoma el pendiente abierto desde 2026-07-30 (¿cuáles de los 30
+# servicios de "Streaming Catalogs" andan de verdad? — nicho UK/documentales/holandeses en duda).
+# Solo lee, no escribe nada.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Auditar Streaming Catalogs
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/audit-streaming-catalogs.mjs

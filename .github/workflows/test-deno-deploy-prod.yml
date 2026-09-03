@@ -37,3 +37,16 @@ jobs:
           deno deploy --prod || echo "EXIT CODE: $?"
           echo "::endgroup::"
         continue-on-error: true
+      - name: Test 2 -- deno deploy (sin flags, ver a qué apunta ahora sin prod:true en config)
+        env:
+          DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
+        run: |
+          echo "::group::env relevante (git/deploy)"
+          env | grep -Ei '^(GITHUB_REF|GITHUB_SHA|GITHUB_HEAD_REF|GITHUB_BASE_REF|DENO_)' || true
+          git branch -vv
+          git status
+          echo "::endgroup::"
+          echo "::group::deno deploy (sin flags)"
+          deno deploy || echo "EXIT CODE: $?"
+          echo "::endgroup::"
+        continue-on-error: true

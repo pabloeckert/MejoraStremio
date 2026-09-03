@@ -1,0 +1,39 @@
+name: tatort-subs-prewarm
+
+# 07:30 Argentina (UTC-3) — 15 min después de premiere-radar, para no competir por el push a data/.
+# Calienta la cache de traducción IA→ES latino del hub para los Tatort que Pablo tiene más a mano
+# (Continuar viendo / Watchlist de MyTrakt + estrenos recientes), así el subtítulo carga al instante
+# cuando abre el episodio. La base de traducción es el subtítulo alemán oficial de la Mediathek, no
+# OpenSubtitles — no consume cupo de nada, se puede correr a diario.
+on:
+  schedule:
+    - cron: '30 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prewarm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Calentar subtítulos IA de Tatort
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/tatort-prewarm.mjs --recent 10 --max 16 2>&1 | tee /tmp/prewarm-output.txt
+
+      - name: Commitear el estado y registrar en el log interno
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          node scripts/log-status.mjs tatort-subs-prewarm ok < /tmp/prewarm-output.txt
+          git add data/tatort-prewarm-state.json data/internal-log.jsonl
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(tatort-prewarm): actualizar estado de cache de subtítulos"
+            git pull --rebase origin main
+            git push
+          fi

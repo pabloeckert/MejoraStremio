@@ -114,6 +114,19 @@ scripts/watch-log.mjs               Log inteligente de visualización: lee libra
 scripts/lib/addon-signals.mjs       Heurísticas compartidas sobre streams/subtítulos crudos
                                     (cacheado en TorBox, stream "real", idioma español) — usado por
                                     anti-frustration.mjs y premiere-radar.mjs, no reescribir por script.
+scripts/tatort-coverage.mjs        Audita la cobertura de Tatort (tt0806910) episodio por episodio,
+                                    últimos ~10 años: ¿stream? ¿sub ES? Resumible, deja
+                                    data/tatort-coverage.jsonl. Reporta, no escribe. Ver "Sesión
+                                    2026-09-03". --report re-imprime el resumen.
+scripts/tatort-coverage-after.mjs  Igual pero midiendo la cobertura DESPUÉS de sumar /mediathek y
+                                    /translate (Mediathek + Comet para audio DE, traducción IA para
+                                    sub ES). data/tatort-coverage-after.jsonl.
+scripts/tatort-prewarm.mjs         Calienta la cache de traducción IA→ES latino del hub para los
+                                    Tatort de Continuar-viendo/Watchlist de MyTrakt + estrenos
+                                    recientes, para que el subtítulo cargue al instante. Base de
+                                    traducción = sub alemán oficial de la Mediathek → no consume
+                                    cupo de nada. Estado en data/tatort-prewarm-state.json. Corre a
+                                    diario vía .github/workflows/tatort-subs-prewarm.yml.
 scripts/deno-hub.ts                 App consolidada de Deno Deploy (`mejorastremio-hub`, config en
                                     deno.jsonc): un Deno.serve con router por prefijo que
                                     reimplementa inline deno-subdl-addon.ts (/subdl/*),
@@ -121,9 +134,12 @@ scripts/deno-hub.ts                 App consolidada de Deno Deploy (`mejorastrem
                                     deno-synopsis-enricher.ts (/synopsis/*), más /opensubtitles
                                     (OpenSubtitles ES sin SDH vía la API REST moderna, filtro real de
                                     hearing_impaired — ver "Sesión 2026-08-16"), /miniseries (catálogo
-                                    TMDB de miniseries) y /discover ("Descubrir Maestro", filtros
+                                    TMDB de miniseries), /discover ("Descubrir Maestro", filtros
                                     combinables de servicio/región/país/idioma/género — ver "Sesión
-                                    2026-07-30"), + /health. Reemplaza las 3 apps sueltas (ver
+                                    2026-07-30"), /mediathek (streams directos de la Mediathek
+                                    alemana para Tatort) y /translate (subtítulo ES latino generado
+                                    con IA desde la pista alemana — ver "Sesión 2026-09-03"),
+                                    + /health. Reemplaza las 3 apps sueltas (ver
                                     "Sesión 2026-07-26/27" más abajo). Deployado, migrado a la
                                     cuenta real (2026-07-27) e instalado; tuvo un outage por
                                     BILLING_SUSPENDED resuelto por Pablo (ver "Sesión 2026-07-28" y
@@ -598,6 +614,9 @@ depende de que Windows esté prendido.
 | Antifrustración | Revisión semanal de títulos sin streams reales, registra en el log interno | GitHub Actions (`.github/workflows/anti-frustration-review.yml`) |
 | Radar de estrenos | Detecta cuando el próximo episodio no visto de un show ya tiene stream cacheado + sub ES, registra en el log interno | GitHub Actions (`.github/workflows/premiere-radar.yml`) |
 | daily-catalog-refresh | Refresca fechas + regenera/aplica AIOMetadata a diario si preset.json cambió | GitHub Actions (`.github/workflows/daily-catalog-refresh.yml`) — ver detalle abajo |
+| tatort-subs-prewarm | Calienta la cache de traducción IA→ES latino de Tatort (Continuar viendo/Watchlist + estrenos recientes) | GitHub Actions (`.github/workflows/tatort-subs-prewarm.yml`), 07:30 ART — ver "Sesión 2026-09-03" |
+| Mediathek DE (Tatort) | Streams directos de la Mediathek pública alemana para Tatort (audio DE + sub DE oficial) | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/mediathek`) |
+| Traducción IA → ES latino | Subtítulo ES latino generado con IA desde la pista alemana; cache 90d en KV | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/translate`) |
 
 ### health-monitor — GitHub Actions (2026-07-01, sin email desde 2026-08-02)
 
@@ -3209,6 +3228,107 @@ cuenta): `verify-live-account.mjs`, `check-catalog-streams.mjs`, `check-subtitle
 correspondientes. Todos siguen el mismo patrón (`ST_EMAIL`/`ST_PASS`, solo lectura salvo que se
 indique lo contrario) y quedan disponibles para reusar en diagnósticos futuros sin tener que
 reinventarlos.
+## Sesión 2026-09-03 — Tatort en alemán con subtítulos ES latino (2 addons nuevos en el hub)
+
+Pablo pidió, en modo autónomo ("no pares hasta terminar, molestame solo si necesitás intervención
+humana manual"): poder ver **Tatort** (la antología policial alemana, `tt0806910`) **en alemán con
+subtítulos en español latino**, al menos los últimos 10 años, idealmente todo.
+
+### Diagnóstico — por qué no se podía (baseline medido, no asumido)
+
+`scripts/tatort-coverage.mjs` (nuevo, resumible, deja `data/tatort-coverage.jsonl`) auditó los **369
+episodios estrenados desde 2016** contra la cuenta real, addon por addon:
+- **Streams: 15/369 (4%) tenían algún stream**, casi todos de Comet en 2024-2026. Torrentio: 0 casi
+  siempre. Causa raíz confirmada: los indexers de torrents (yts/eztv/1337x/rutracker/…) **no mapean
+  los releases de Tatort** al esquema `imdbId:año:número` de Cinemeta — los nombran por número de
+  Folge o por título de caso, sin `SxxExx` parseable. Solo los pocos episodios con un release
+  scene-style (`Tatort.S2024E10.German…`) matchean. **No es config rota, es estructural.**
+- **Subtítulos ES: 0/369.** OpenSubtitles.com (API moderna) tiene **1 subtítulo ES en toda la
+  historia de la serie** (S1E25, de los 70). SubDL: 0. Los otros addons: 0. En cambio hay **916
+  episodios con subtítulo alemán** y ~123 con inglés en OpenSubtitles. Tatort es contenido
+  doméstico alemán que casi nadie subtitula al español. SubMaker (traducción bajo demanda) devuelve
+  `[]` para Tatort porque no tiene ninguna base que traducir.
+
+### Solución — 2 rutas nuevas en `scripts/deno-hub.ts`, deployadas e instaladas
+
+**1. `/mediathek` — addon de streams** (`com.mejorastremio.mediathek`, idx 7 de la colección,
+`--after stremio.comet.fast`). Fuente: **MediathekViewWeb** (`mediathekviewweb.de/api/query`), la
+API JSON pública que agrega las Filmlisten de todos los canales públicos alemanes (ARD/SWR/WDR/NDR/
+BR/HR/… + ORF). `topic=Tatort` devuelve ~1550 entradas, ~1140 films completos (`duration > 3300s`,
+sin Audiodeskription/Gebärden/klare Sprache). Para un episodio: resuelve el título del caso vía
+Cinemeta (`"Odenthal - 81 - Der Stelzenmann"` → `"Der Stelzenmann"`), lo matchea contra la lista
+(exacto + containment, **matching estricto a propósito** — token-overlap daba falsos positivos con
+otros episodios de Tatort y con otras series alemanas homónimas tipo "Zorn"), y devuelve el MP4
+progresivo directo (HD) + adjunta en el propio stream el subtítulo alemán oficial (`url_subtitle`,
+EBU-TT-D, perfectamente sincronizado) y un subtítulo `lang:"spa"` que apunta a `/translate`.
+Devuelve `{streams:[]}` para cualquier id que no sea `tt0806910` — no molesta al resto del catálogo.
+
+**2. `/translate` — addon de subtítulos IA→ES latino** (`com.mejorastremio.translate`, idx 2,
+`--after com.mejorastremio.subdl`). Toma la mejor pista base disponible —**alemán oficial de la
+Mediathek** si es Tatort y está, si no **alemán/inglés de OpenSubtitles.com** (non-SDH)— la parsea a
+cues, **descarta las cues de puro sonido** (`(Musik)`, `[Tür quietscht]`, `* Musik *` — ruido para
+quien mira en alemán), y traduce el diálogo al **español latino neutro de doblaje** con Gemini
+(`gemini-flash-lite-latest`, `safetySettings: BLOCK_NONE` — sin eso Gemini bloquea lotes con
+descripción de escenas de crimen). Reensambla el SRT y lo cachea 90 días en Deno KV, **por lote**
+(`["tr-batch","v7",<ref>,<i>]`) para que un reintento o el pre-warm no rehaga lo ya hecho.
+**Se auto-limita**: si OpenSubtitles.com ya tiene algún subtítulo ES real para el título, devuelve
+`[]` (no ensucia contenido que ya está bien cubierto — Matrix, etc. no ven este addon).
+- Parámetros afinados tras medir: lotes de 220 líneas, 4 en paralelo (el free tier de Gemini tira
+  429 con más concurrencia; lotes grandes bajan el total de requests a ~4-6 por episodio), timeout
+  48s por lote, hasta 5 rondas de reintento dentro de un presupuesto de 55s.
+- **Tiempos reales medidos en producción (Deno Deploy)**: primera apertura de un episodio ~30-56s
+  (Deno Deploy NO mata el request largo — verificado), completa. Cualquier apertura posterior (otro
+  dispositivo, otra sesión): **<1.5s desde KV**. Calidad de traducción: buena, latino neutro
+  ("¿Qué quieres decir con eso?", "Ay, vamos", "¡Al suelo!").
+- **OpenRouter quedó descartado del camino de subtítulos**: su router `openrouter/free` tarda >40s
+  por request. Gemini flash-lite hace 220 líneas en ~12-15s. `callGemini` ahora manda
+  `safetySettings` + `generationConfig` (usado también por `/synopsis`, sin efecto adverso ahí).
+
+**3. Pre-warm — `scripts/tatort-prewarm.mjs` + `.github/workflows/tatort-subs-prewarm.yml`** (07:30
+ART diario, 15 min después de premiere-radar). Calienta la cache de traducción para los Tatort que
+Pablo tiene más a mano: los "Continuar viendo"/"Watchlist" de MyTrakt (solo si el próximo no visto
+es de los últimos 3 años) + los ~10 estrenos más recientes. Como la base de traducción de Tatort es
+el subtítulo alemán oficial de la Mediathek (no OpenSubtitles), calentar **no consume cupo de
+nada** y se puede correr a diario. Estado en `data/tatort-prewarm-state.json`, tope 16 episodios/
+corrida, registra en `data/internal-log.jsonl` vía `log-status.mjs`. Primera corrida manual: 9
+episodios calientes, 1 parcial (reintenta), 2 sin base (los "up-next" de Trakt eran de los 70 —
+por eso se agregó el filtro de 3 años).
+
+### Resultado
+
+- **Antes**: 15/369 (4%) de los episodios con stream, 0/369 (0%) con subtítulo ES.
+- **Después** (medido sobre los **370 episodios 2016-2026** con `scripts/tatort-coverage-after.mjs`
+  → `data/tatort-coverage-after.jsonl`):
+  - **Audio alemán disponible: 276/370 (74.6%)** — Mediathek (mayoría) + Comet/TorBox.
+  - **Subtítulo español disponible: 247/370 (66.8%)** — la traducción IA, cuando hay pista base
+    alemana (Mediathek oficial o OpenSubtitles).
+  - **Mirable en alemán con sub ES latino (ambos): 247/370 (66.8%)**.
+  - Por año: fuerte en 2019-2026 (24-33 de ~35 por año; 2023 y 2026 casi completos), más flojo en
+    2016-2018 (13-19 de ~37). La ARD rota su archivo online — muchos episodios viejos simplemente
+    no están hoy. Eso es indisponibilidad real, no un bug de matching (se probó token-overlap y
+    query por título: daban falsos positivos con otros episodios/series, se descartaron).
+- El ~33% que falta: ~94 episodios sin ningún stream (ni Mediathek ni torrent mapeable) y ~29 con
+  stream pero sin ninguna pista base alemana para traducir. Sin fuente gratuita para esos hoy.
+
+### Verificación
+
+`health-check.mjs` verde post-instalación (24 addons, sin duplicados, streams/subs de Matrix/BB/
+Will Trent sin regresión). `/mediathek` devuelve 0 para no-Tatort (correcto). `/translate` no
+aparece en la lista de subs de Matrix/BB (correcto — se auto-silencia donde ya hay ES).
+`deno check scripts/deno-hub.ts` limpio. Instancia `mejorastremio-hub` redeployada
+(revision `7zhvbe4s9c0g`), `/health` muestra `mediathek` y `translate` configurados.
+
+### Pendiente / notas
+
+- **`OPENSUBTITLES_API_KEY` ya estaba en Deno Deploy** (se usa desde la sesión 2026-08-16) — el
+  fallback de `/translate` a base alemana de OpenSubtitles funciona sin tocar nada.
+- La primera apertura de ~40s de un episodio no pre-calentado es el único costo visible. El
+  pre-warm cubre lo que Pablo mira; para un episodio elegido al azar, es 40s una vez y después
+  instantáneo. **Si molesta**: la única mejora real sería habilitar billing en el proyecto de
+  Google Cloud de la key de Gemini (a este volumen, centavos/mes) para levantar el límite de RPM y
+  poder paralelizar más — requiere decisión de Pablo (ver `feedback_stay_free`), no se hace solo.
+- El addon `stremio-ai-search` (`au.itcon.aisearch`) fue **removido de la cuenta el 2026-08-25**;
+  no confundir con estos.
 
 ## Reglas del repo
 

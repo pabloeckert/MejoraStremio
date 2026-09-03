@@ -18,6 +18,8 @@
  *                                — confirmado 2026-09-02, ver CLAUDE.md)
  *   /latino/manifest.json     → Audio Latino (verificado), catálogo
  *   /synopsis/manifest.json   → MejoraStremio Synopsis IA, proxy de meta
+ *   /mediathek/manifest.json  → Mediathek DE (Tatort), streams directos ARD/ZDF/ORF
+ *   /translate/manifest.json  → Traducción IA → ES latino, subtítulos generados
  *   /miniseries/manifest.json → Miniseries (1 temporada, ≤10 episodios, finalizada), catálogo
  *   /discover/manifest.json   → Descubrir Maestro (Paso B) — servicio+región+país+idioma+género
  *                                combinables en una sola pantalla, catálogo
@@ -784,18 +786,31 @@ function buildPrompt(meta: any, description: string): string {
   );
 }
 
+const GEMINI_SAFETY_OFF = [
+  "HARM_CATEGORY_HARASSMENT",
+  "HARM_CATEGORY_HATE_SPEECH",
+  "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+  "HARM_CATEGORY_DANGEROUS_CONTENT",
+].map((category) => ({ category, threshold: "BLOCK_NONE" }));
+
 async function callGemini(prompt: string, apiKey: string, signal: AbortSignal): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
   const r = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      // Tatort es contenido policial (violencia, crimen) — sin esto Gemini
+      // bloquea lotes con descripciones de escenas y la traducción sale a medias.
+      safetySettings: GEMINI_SAFETY_OFF,
+      generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
+    }),
     signal,
   });
   if (!r.ok) throw new Error(`Gemini respondió ${r.status}`);
   const d = await r.json();
   const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini: sin texto en la respuesta");
+  if (!text) throw new Error("Gemini: sin texto (" + (d?.candidates?.[0]?.finishReason || JSON.stringify(d).slice(0, 120)) + ")");
   return String(text).trim();
 }
 
@@ -1461,7 +1476,574 @@ async function handleDiscover(subPath: string): Promise<Response> {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// ── /health — estado de config de las 5 sub-funciones ─────────────────────
+// ── /mediathek — streams directos de la Mediathek alemana (Tatort) ────────
+// La antología Tatort (tt0806910) casi no tiene cobertura en los indexers de
+// torrents (los releases se nombran por Folge/caso, no SxxExx, así que
+// Torrentio/Comet no los mapean al esquema season=año de Cinemeta). Pero la
+// ARD/SWR/WDR/NDR/… mantienen online cientos de episodios en la Mediathek
+// pública, con MP4 progresivo directo + subtítulo alemán oficial (EBU-TT-D).
+// Este addon los expone como streams y adjunta, en el propio stream, un
+// subtítulo en español latino generado por /translate a partir de esa pista
+// alemana (perfectamente sincronizada con el mismo archivo).
+//
+// Fuente: MediathekViewWeb (mediathekviewweb.de/api/query) — API JSON pública
+// que agrega las Filmlisten de todos los canales públicos alemanes + ORF.
+// ════════════════════════════════════════════════════════════════════════
+
+const TATORT_IMDB = "tt0806910";
+const MVW_API = "https://mediathekviewweb.de/api/query";
+
+const MEDIATHEK_MANIFEST = {
+  id: "com.mejorastremio.mediathek",
+  version: "1.0.0",
+  name: "Mediathek DE (Tatort)",
+  description:
+    "Streams directos de la Mediathek pública alemana (ARD/SWR/WDR/NDR/…) para Tatort — " +
+    "audio alemán en calidad HD, sin torrents ni debrid. Cada stream ya trae adjunto el " +
+    "subtítulo alemán oficial y una traducción IA al español latino.",
+  resources: ["stream"],
+  types: ["series"],
+  idPrefixes: ["tt"],
+  catalogs: [],
+};
+
+interface MvwFilm {
+  channel: string;
+  title: string;
+  duration: number;
+  urlHd: string;
+  urlMp4: string;
+  urlLow: string;
+  urlSub: string;
+  ts: number;
+  normTitle: string;
+}
+
+let mvwCache: { at: number; films: MvwFilm[] } | null = null;
+const MVW_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+
+function normTitleKey(s: string): string {
+  return String(s)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\bteil\b/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// "Odenthal - 81 - Der Stelzenmann" -> "Der Stelzenmann"
+// "Tatort: Das Haus am Ende der Straße" -> "Das Haus am Ende der Straße"
+function tatortCaseTitle(episodeName: string): string {
+  let n = String(episodeName || "");
+  const dash = n.match(/^.*?-\s*\d+\s*-\s*(.+)$/);
+  if (dash) n = dash[1];
+  n = n.replace(/^Tatort[:\s-]+/i, "").replace(/\(.*?\)/g, "").trim();
+  return n;
+}
+
+async function loadMvwTatort(): Promise<MvwFilm[]> {
+  if (mvwCache && Date.now() - mvwCache.at < MVW_CACHE_TTL_MS) return mvwCache.films;
+  const films: MvwFilm[] = [];
+  for (let offset = 0; offset < 2000; offset += 100) {
+    const r = await fetch(MVW_API, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        queries: [{ fields: ["topic"], query: "Tatort" }],
+        sortBy: "timestamp",
+        sortOrder: "desc",
+        future: false,
+        offset,
+        size: 100,
+      }),
+      signal: AbortSignal.timeout(15000),
+    }).then((x) => x.json()).catch(() => null);
+    // deno-lint-ignore no-explicit-any
+    const res: any[] = r?.result?.results ?? [];
+    for (const x of res) {
+      if ((x.duration ?? 0) < 3300) continue; // descarta trailers/clips, deja solo films
+      if (/Audiodeskription|H[oö]rfassung|klare Sprache|Geb[aä]rden/i.test(x.title)) continue;
+      const hd = String(x.url_video_hd || "");
+      const mp4 = String(x.url_video || "");
+      // variantes de accesibilidad que se cuelan sin marca en el título
+      if (/audio_description|sign_language|\.ad\.|_ad_/i.test(hd + mp4)) continue;
+      films.push({
+        channel: x.channel,
+        title: x.title,
+        duration: x.duration,
+        urlHd: hd,
+        urlMp4: mp4,
+        urlLow: x.url_video_low || "",
+        urlSub: x.url_subtitle || "",
+        ts: x.timestamp || 0,
+        normTitle: normTitleKey(String(x.title).replace(/\(.*?\)/g, "").replace(/^Tatort[:\s-]+/i, "")),
+      });
+    }
+    if (res.length < 100) break;
+  }
+  mvwCache = { at: Date.now(), films };
+  return films;
+}
+
+function matchMvwFilms(films: MvwFilm[], caseTitle: string): MvwFilm[] {
+  const key = normTitleKey(caseTitle);
+  if (key.length < 3) return [];
+  const exact = films.filter((f) => f.normTitle === key);
+  if (exact.length) return dedupeFilms(exact);
+  const contains = films.filter(
+    (f) =>
+      (key.length >= 6 && f.normTitle.includes(key)) ||
+      (f.normTitle.length >= 6 && key.includes(f.normTitle)),
+  );
+  return dedupeFilms(contains);
+}
+
+function dedupeFilms(films: MvwFilm[]): MvwFilm[] {
+  const best = new Map<string, MvwFilm>();
+  for (const f of films) {
+    const k = `${f.channel}|${f.normTitle}|${Math.round(f.duration / 30)}`;
+    const cur = best.get(k);
+    if (!cur || (!cur.urlHd && f.urlHd) || (!cur.urlSub && f.urlSub)) best.set(k, f);
+  }
+  return [...best.values()].sort((a, b) => (b.urlSub ? 1 : 0) - (a.urlSub ? 1 : 0) || b.ts - a.ts);
+}
+
+const b64u = {
+  enc: (s: string) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
+  dec: (s: string) => decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/")))),
+};
+
+async function handleMediathek(subPath: string, mountBase: string, translateMount: string): Promise<Response> {
+  if (subPath === "/manifest.json") return jsonResponse(MEDIATHEK_MANIFEST);
+
+  const m = subPath.match(/^\/stream\/series\/(.+?)\.json$/);
+  if (!m) return new Response("Not found", { status: 404, headers: cors });
+
+  const [imdbId, sRaw, eRaw] = m[1].split(":");
+  if (imdbId !== TATORT_IMDB || !sRaw || !eRaw) return jsonResponse({ streams: [] });
+
+  try {
+    const meta = await fetchCinemetaMeta("series", imdbId);
+    const vid = (meta?.videos ?? []).find(
+      // deno-lint-ignore no-explicit-any
+      (v: any) => String(v.season) === sRaw && String(v.number) === eRaw,
+    );
+    const caseTitle = tatortCaseTitle(vid?.name ?? "");
+    if (!caseTitle) return jsonResponse({ streams: [] });
+
+    const films = await loadMvwTatort();
+    const matched = matchMvwFilms(films, caseTitle);
+
+    const streams = matched.slice(0, 6).map((f) => {
+      const video = f.urlHd || f.urlMp4 || f.urlLow;
+      const quality = f.urlHd ? "1080p" : f.urlMp4 ? "720p" : "360p";
+      const subs: { id: string; url: string; lang: string }[] = [];
+      if (f.urlSub) {
+        subs.push({ id: "de-oficial", url: f.urlSub, lang: "ger" });
+        subs.push({
+          id: "es-latino-ia",
+          url: `${translateMount}/x/${b64u.enc(f.urlSub)}.srt`,
+          lang: "spa",
+        });
+      }
+      return {
+        name: `Mediathek DE\n${quality}`,
+        title: `${f.channel} · ${caseTitle}\n🇩🇪 audio alemán${f.urlSub ? " · sub DE oficial + IA→ES latino" : ""} · ${Math.round(f.duration / 60)}min`,
+        url: video,
+        subtitles: subs,
+        behaviorHints: { notWebReady: /\.m3u8($|\?)/.test(video), bingeGroup: `mediathek-tatort-${imdbId}` },
+      };
+    });
+
+    return jsonResponse({ streams });
+  } catch (e) {
+    return jsonResponse({ streams: [], error: (e as Error).message }, { status: 500 });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ── /translate — subtítulo ES latino generado por IA ─────────────────────
+// Para contenido alemán (u otro) que NO tiene ningún subtítulo en español
+// pre-hecho en ninguna fuente (Tatort: OpenSubtitles.com tiene 1 en toda la
+// historia de la serie; SubDL 0). Toma la mejor pista base disponible
+// —alemán oficial de la Mediathek si es Tatort, si no alemán/inglés de
+// OpenSubtitles.com— y la traduce al español latino con IA (Gemini, fallback
+// OpenRouter), en lotes paralelos. Cachea el SRT resultante 90 días en KV.
+//
+// Se auto-limita: si ya existe algún subtítulo ES real en OpenSubtitles.com
+// para ese título, no ofrece nada (no ensucia la lista de contenido que ya
+// está bien cubierto). Solo aparece donde de verdad hace falta.
+// ════════════════════════════════════════════════════════════════════════
+
+const TRANSLATE_MANIFEST = {
+  id: "com.mejorastremio.translate",
+  version: "1.0.0",
+  name: "Traducción IA → ES latino",
+  description:
+    "Genera un subtítulo en español latino traduciendo con IA la mejor pista alemana o " +
+    "inglesa disponible. Pensado para contenido alemán sin subs ES (Tatort y similares). " +
+    "Cachea 90 días — la primera apertura de un episodio tarda ~20-40s, después es instantánea.",
+  resources: ["subtitles"],
+  types: ["movie", "series"],
+  idPrefixes: ["tt"],
+  catalogs: [],
+};
+
+const TRANSLATE_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+const TRANSLATE_BUDGET_MS = 55000;
+// Gemini free tier ≈ 15 RPM. Lotes grandes + poca concurrencia mantienen el
+// total de requests por episodio en ~5-6 (una tanda), bien por debajo del tope.
+const TRANSLATE_BATCH = 220;
+const TRANSLATE_PARALLEL = 4;
+const NL = "⏎"; // sentinel para saltos de línea internos al mandar a la IA
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+interface Cue { start: string; end: string; text: string }
+
+// Una cue "solo sonido" no se traduce (y de hecho se descarta del SRT final):
+// "(spannungsvolle Musik)", "[Tür quietscht]", ".", "♪ ... ♪", líneas todas
+// entre paréntesis. Para alguien que mira en alemán con subs ES son ruido.
+function isSoundOnly(text: string): boolean {
+  const t = String(text ?? "").trim();
+  if (!t || /^[.\-–—#♪*\s]+$/.test(t)) return true;
+  const oneLine = t.replace(/\s+/g, " ");
+  // toda la cue entre ( ), [ ] o * * (los 3 estilos de acotación sonora de la
+  // Mediathek): "(spannungsvolle Musik)", "[Tür quietscht]", "* Musik *"
+  if (/^[(\[*][^)\]]*[)\]*]$/.test(oneLine)) return true;
+  return t.split("\n").every((l) => l.trim() === "" || /^[(\[*][^)\]]*[)\]*]$/.test(l.trim()));
+}
+
+// EBU-TT-D / TTML (Mediathek alemana) -> cues
+function parseEbuTt(xml: string): Cue[] {
+  const cues: Cue[] = [];
+  const re = /<(?:tt:)?p\b([^>]*)>([\s\S]*?)<\/(?:tt:)?p>/g;
+  let mm: RegExpExecArray | null;
+  while ((mm = re.exec(xml))) {
+    const attrs = mm[1];
+    const begin = /begin="([^"]+)"/.exec(attrs)?.[1];
+    const end = /end="([^"]+)"/.exec(attrs)?.[1];
+    if (!begin || !end) continue;
+    const text = mm[2]
+      .replace(/<(?:tt:)?br\s*\/?>/g, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"')
+      .replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n")
+      .replace(/\n{2,}/g, "\n").trim();
+    if (!text) continue;
+    const s = normTtmlTime(begin), e = normTtmlTime(end);
+    const last = cues[cues.length - 1];
+    if (last && last.start === s && last.end === e) last.text += "\n" + text;
+    else cues.push({ start: s, end: e, text });
+  }
+  return cues;
+}
+
+// "00:01:02.240" | "00:01:02:12" (frames) -> "00:01:02,240"
+function normTtmlTime(t: string): string {
+  const mSec = t.match(/^(\d{2}):(\d{2}):(\d{2})[.,](\d{1,3})$/);
+  if (mSec) return `${mSec[1]}:${mSec[2]}:${mSec[3]},${mSec[4].padEnd(3, "0")}`;
+  const mFr = t.match(/^(\d{2}):(\d{2}):(\d{2}):(\d{2})$/);
+  if (mFr) {
+    const ms = Math.round((parseInt(mFr[4], 10) / 25) * 1000);
+    return `${mFr[1]}:${mFr[2]}:${mFr[3]},${String(ms).padStart(3, "0")}`;
+  }
+  return t.replace(".", ",");
+}
+
+function parseSrt(srt: string): Cue[] {
+  const cues: Cue[] = [];
+  const blocks = srt.replace(/\r/g, "").split(/\n\n+/);
+  for (const b of blocks) {
+    const mt = b.match(/(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/);
+    if (!mt) continue;
+    const text = b.split("\n").slice(b.split("\n").findIndex((l) => l.includes("-->")) + 1).join("\n").trim();
+    if (!text) continue;
+    cues.push({ start: mt[1].replace(".", ","), end: mt[2].replace(".", ","), text });
+  }
+  return cues;
+}
+
+function serializeSrt(cues: Cue[]): string {
+  return cues
+    .map((c, i) => `${i + 1}\n${c.start} --> ${c.end}\n${c.text}`)
+    .join("\n\n") + "\n";
+}
+
+const TRANSLATE_SYS =
+  "Sos traductor profesional de subtítulos. Traducí del alemán (o inglés) al ESPAÑOL " +
+  "LATINOAMERICANO NEUTRO — el registro de doblaje: nada de 'vosotros', nada de 'coger' " +
+  "por agarrar, trato 'usted'/'tú' según la formalidad, modismos neutros (ni argentino, " +
+  "ni mexicano, ni español de España). Es una serie policial alemana (Tatort). Conservá " +
+  "el tono y las malas palabras. Recibís líneas numeradas '<n>▸ <texto>'. Devolvé " +
+  "EXACTAMENTE las mismas líneas numeradas '<n>▸ <traducción>', una por línea, mismo n, " +
+  `misma cantidad, sin texto extra. El símbolo ${NL} es un salto de línea interno: dejalo donde está.`;
+
+// Parsea la respuesta numerada del modelo. Devuelve map n->texto.
+function parseNumbered(raw: string): Map<number, string> {
+  const out = new Map<number, string>();
+  const re = /(^|\n)\s*(\d+)\s*▸\s*([\s\S]*?)(?=\n\s*\d+\s*▸|\s*$)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(raw))) out.set(parseInt(m[2], 10), m[3].trim());
+  return out;
+}
+
+// Traduce un lote. Devuelve el mapa n->texto (con fallback al original en las
+// líneas que la IA no devolvió) y `ok` = si la IA cubrió ≥90% del lote (para
+// decidir si vale cachearlo). OpenRouter free quedó descartado del camino de
+// subtítulos: su router tarda >40s por request. Gemini flash-lite hace 80
+// líneas en ~5s y aguanta ráfagas paralelas sin rate-limit.
+async function translateBatch(
+  items: { n: number; text: string }[],
+  signal: AbortSignal,
+): Promise<{ map: Map<number, string>; ok: boolean }> {
+  const payload = items.map((it) => `${it.n}▸ ${it.text.replace(/\n/g, NL)}`).join("\n");
+  const prompt = `${TRANSLATE_SYS}\n\n${payload}`;
+
+  const merged = new Map<number, string>();
+  for (let attempt = 0; attempt < 3 && merged.size < items.length; attempt++) {
+    try {
+      const parsed = parseNumbered(await callGemini(prompt, GEMINI_API_KEY, signal));
+      for (const it of items) {
+        if (!merged.has(it.n) && parsed.has(it.n)) merged.set(it.n, parsed.get(it.n)!);
+      }
+    } catch (e) {
+      const msg = (e as Error).message;
+      // 429 = rate limit de Gemini: esperar y reintentar dentro del presupuesto.
+      if (/429/.test(msg) && attempt < 2) await sleep(3500 + attempt * 3000);
+      else if (attempt >= 2) console.log(`[translate] batch n0=${items[0]?.n} agotó reintentos: ${msg}`);
+    }
+  }
+
+  const map = new Map<number, string>();
+  for (const it of items) {
+    const t = merged.get(it.n);
+    map.set(it.n, t ? t.replace(new RegExp(NL, "g"), "\n") : it.text);
+  }
+  return { map, ok: merged.size >= items.length * 0.9 };
+}
+
+// Traduce solo las cues de diálogo, con cache por-lote en KV para que un
+// reintento (o el pre-warm) no rehaga lo ya hecho. cacheRef identifica la
+// pista base (url ARD o os-<fileId>).
+async function translateCues(
+  cues: Cue[],
+  cacheRef: string,
+  kv: Deno.Kv | null,
+  deadline: number,
+): Promise<{ texts: string[]; done: boolean }> {
+  const texts = cues.map((c) => c.text);
+  const dialogueIdx = cues.map((c, i) => (isSoundOnly(c.text) ? -1 : i)).filter((i) => i >= 0);
+
+  const batches: number[][] = [];
+  for (let i = 0; i < dialogueIdx.length; i += TRANSLATE_BATCH) {
+    batches.push(dialogueIdx.slice(i, i + TRANSLATE_BATCH));
+  }
+
+  // Estado por lote: pendiente hasta que quede cacheado o traducido ~entero.
+  const pending = new Set(batches.map((_, i) => i));
+
+  // Primera pasada: leer de KV lo ya hecho.
+  if (kv) {
+    await Promise.all([...pending].map(async (bi) => {
+      try {
+        const hit = await kv.get<Record<string, string>>(["tr-batch", "v7", cacheRef, bi]);
+        if (hit.value) {
+          for (const idx of batches[bi]) texts[idx] = hit.value[idx] ?? texts[idx];
+          pending.delete(bi);
+        }
+      } catch { /* queda pendiente */ }
+    }));
+  }
+
+  // Rondas de traducción: cada ronda toma hasta TRANSLATE_PARALLEL lotes
+  // pendientes en paralelo y reintenta los que fallaron, hasta agotarlos o
+  // quedarse sin presupuesto.
+  for (let round = 0; round < 5 && pending.size && Date.now() < deadline - 3000; round++) {
+    const wave = [...pending].slice(0, TRANSLATE_PARALLEL);
+    const remaining = deadline - Date.now();
+    await Promise.all(wave.map(async (bi) => {
+      const batchIdxs = batches[bi];
+      const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
+      const { map, ok } = await translateBatch(
+        items,
+        AbortSignal.timeout(Math.max(6000, Math.min(remaining, 48000))),
+      );
+      for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
+      if (ok) {
+        pending.delete(bi);
+        if (kv) {
+          const obj: Record<string, string> = {};
+          for (const idx of batchIdxs) obj[idx] = texts[idx];
+          try { await kv.set(["tr-batch", "v7", cacheRef, bi], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+        }
+      }
+    }));
+  }
+
+  return { texts, done: pending.size === 0 };
+}
+
+async function fetchBaseCues(src: { t: string; u?: string; f?: number }): Promise<Cue[]> {
+  if (src.t === "ard" && src.u) {
+    const r = await fetch(src.u, { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error(`base ARD ${r.status}`);
+    return parseEbuTt(await r.text());
+  }
+  if (src.t === "os" && src.f) {
+    const dl = await fetch(`${OPENSUBTITLES_API}/download`, {
+      method: "POST",
+      headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA, "Content-Type": "application/json" },
+      body: JSON.stringify({ file_id: src.f }),
+      signal: AbortSignal.timeout(15000),
+    }).then((x) => x.json());
+    if (!dl?.link) throw new Error("base OS sin link");
+    const r = await fetch(dl.link, { signal: AbortSignal.timeout(20000) });
+    if (!r.ok) throw new Error(`base OS dl ${r.status}`);
+    return parseSrt(await r.text());
+  }
+  throw new Error("base desconocida");
+}
+
+async function osHasSpanish(imdbId: string, season: number | null, episode: number | null): Promise<boolean> {
+  if (!OPENSUBTITLES_API_KEY) return false;
+  const p = new URLSearchParams({ languages: "es" });
+  if (season != null && episode != null) {
+    p.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
+    p.set("season_number", String(season));
+    p.set("episode_number", String(episode));
+  } else p.set("imdb_id", imdbId.replace(/^tt0*/, ""));
+  const r = await fetch(`${OPENSUBTITLES_API}/subtitles?${p}`, {
+    headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA },
+    signal: AbortSignal.timeout(10000),
+  }).then((x) => x.json()).catch(() => null);
+  return (r?.total_count ?? 0) > 0;
+}
+
+async function osBaseFileId(imdbId: string, season: number | null, episode: number | null, lang: string): Promise<number | null> {
+  if (!OPENSUBTITLES_API_KEY) return null;
+  const p = new URLSearchParams({ languages: lang, hearing_impaired: "exclude", order_by: "download_count" });
+  if (season != null && episode != null) {
+    p.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
+    p.set("season_number", String(season));
+    p.set("episode_number", String(episode));
+  } else p.set("imdb_id", imdbId.replace(/^tt0*/, ""));
+  const r = await fetch(`${OPENSUBTITLES_API}/subtitles?${p}`, {
+    headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA },
+    signal: AbortSignal.timeout(10000),
+  }).then((x) => x.json()).catch(() => null);
+  const fid = r?.data?.[0]?.attributes?.files?.[0]?.file_id;
+  return Number.isFinite(fid) ? fid : null;
+}
+
+async function handleTranslate(subPath: string, mountBase: string): Promise<Response> {
+  if (subPath === "/manifest.json") return jsonResponse(TRANSLATE_MANIFEST);
+
+  // ── listar: /subtitles/:type/:id.json ──────────────────────────────────
+  const listM = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
+  if (listM) {
+    const [, , rawId] = listM;
+    const [imdbId, sRaw, eRaw] = rawId.split(":");
+    const season = sRaw ? parseInt(sRaw, 10) : null;
+    const episode = eRaw ? parseInt(eRaw, 10) : null;
+    try {
+      if (await osHasSpanish(imdbId, season, episode)) return jsonResponse({ subtitles: [] });
+
+      const bases: { t: string; u?: string; f?: number; label: string; keyRef: string }[] = [];
+
+      if (imdbId === TATORT_IMDB && season != null && episode != null) {
+        const meta = await fetchCinemetaMeta("series", imdbId);
+        // deno-lint-ignore no-explicit-any
+        const vid = (meta?.videos ?? []).find((v: any) => v.season === season && v.number === episode);
+        const ct = tatortCaseTitle(vid?.name ?? "");
+        if (ct) {
+          const films = matchMvwFilms(await loadMvwTatort(), ct).filter((f) => f.urlSub);
+          if (films[0]) bases.push({ t: "ard", u: films[0].urlSub, label: "base DE oficial", keyRef: films[0].urlSub });
+        }
+      }
+      if (!bases.length) {
+        const de = await osBaseFileId(imdbId, season, episode, "de");
+        if (de) bases.push({ t: "os", f: de, label: "base DE", keyRef: `os-${de}` });
+        else {
+          const en = await osBaseFileId(imdbId, season, episode, "en");
+          if (en) bases.push({ t: "os", f: en, label: "base EN", keyRef: `os-${en}` });
+        }
+      }
+
+      const subtitles = bases.map((b, i) => ({
+        id: `ia-es-${i}`,
+        url: `${mountBase}/gen/${b64u.enc(JSON.stringify({ t: b.t, u: b.u, f: b.f, r: b.keyRef }))}.srt`,
+        lang: "spa",
+        name: `[IA→ES latino] ${b.label}`,
+      }));
+      return jsonResponse({ subtitles });
+    } catch (e) {
+      return jsonResponse({ subtitles: [], error: (e as Error).message }, { status: 500 });
+    }
+  }
+
+  // ── generar: /gen/<token>.srt  y  /x/<b64 url ARD>.srt ─────────────────
+  const genM = subPath.match(/^\/gen\/([^/]+?)(?:\.srt)?$/);
+  const xM = subPath.match(/^\/x\/([^/]+?)(?:\.srt)?$/);
+  if (genM || xM) {
+    let src: { t: string; u?: string; f?: number; r: string };
+    try {
+      if (xM) {
+        const u = b64u.dec(xM[1]);
+        src = { t: "ard", u, r: u };
+      } else {
+        src = JSON.parse(b64u.dec(genM![1]));
+      }
+    } catch {
+      return new Response("token inválido", { status: 400, headers: cors });
+    }
+
+    const cacheKey = ["translate-srt", "v7", src.r];
+    let kv: Deno.Kv | null = null;
+    try {
+      kv = await getKv();
+      const hit = await kv.get<string>(cacheKey);
+      if (hit.value) {
+        return new Response(hit.value, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+    } catch { kv = null; }
+
+    try {
+      const baseCues = await fetchBaseCues(src);
+      if (!baseCues.length) return new Response("subtítulo base vacío", { status: 502, headers: cors });
+
+      const { texts, done } = await translateCues(baseCues, src.r, kv, Date.now() + TRANSLATE_BUDGET_MS);
+      // El SRT final descarta las cues de puro sonido (ruido para quien mira en alemán).
+      const outCues = baseCues
+        .map((c, i) => ({ ...c, text: texts[i] }))
+        .filter((c) => !isSoundOnly(c.text));
+      const srt = serializeSrt(outCues);
+
+      // Solo se cachea el SRT ensamblado si la traducción se completó entera.
+      // Los lotes individuales sí quedan cacheados aunque se corte (resumible).
+      if (kv && done) {
+        try { await kv.set(cacheKey, srt, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+      }
+      return new Response(srt, {
+        headers: {
+          ...cors,
+          "Content-Type": "text/plain; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="es-latino.srt"',
+          "X-Translate-Complete": String(done),
+        },
+      });
+    } catch (e) {
+      return new Response("Error generando traducción: " + (e as Error).message, { status: 502, headers: cors });
+    }
+  }
+
+  return new Response("Not found", { status: 404, headers: cors });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ── /health — estado de config de las sub-funciones ──────────────────────
 // ════════════════════════════════════════════════════════════════════════
 
 function handleHealth(): Response {
@@ -1482,6 +2064,11 @@ function handleHealth(): Response {
     discover: { configured: !!TMDB_KEY },
     ufc: { configured: true },
     livetv: { configured: true },
+    mediathek: { configured: true },
+    translate: {
+      configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
+      baseSource: !!OPENSUBTITLES_API_KEY,
+    },
   });
 }
 
@@ -1512,6 +2099,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
           "/discover/manifest.json",
           "/ufc/manifest.json",
           "/livetv/manifest.json",
+          "/mediathek/manifest.json",
+          "/translate/manifest.json",
           "/health",
         ],
       });
@@ -1566,6 +2155,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
       route = "livetv";
       const subPath = path.slice("/livetv".length) || "/";
       res = await handleLivetv(subPath);
+    } else if (path.startsWith("/mediathek")) {
+      route = "mediathek";
+      const subPath = path.slice("/mediathek".length) || "/";
+      res = await handleMediathek(subPath, `${url.origin}/mediathek`, `${url.origin}/translate`);
+    } else if (path.startsWith("/translate")) {
+      route = "translate";
+      const subPath = path.slice("/translate".length) || "/";
+      res = await handleTranslate(subPath, `${url.origin}/translate`);
     } else {
       res = new Response("Not found", { status: 404, headers: cors });
     }

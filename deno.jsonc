@@ -1,8 +1,7 @@
 {
   "deploy": {
     "org": "pabloeckert",
-    "app": "mejorastremio-hub",
-    "prod": true
+    "app": "mejorastremio-hub"
   }
 }
 

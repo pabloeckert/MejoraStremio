@@ -1,0 +1,23 @@
+name: list-addons
+
+# Disparo manual, de un solo uso: vuelca la lista completa de addons instalados con su
+# transportUrl para identificar "Mediathek DE (Tatort)" y cualquier otro addon no documentado
+# en CLAUDE.md, encontrado al diagnosticar cobertura de Tatort.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Listar addons instalados
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/list-addons.mjs

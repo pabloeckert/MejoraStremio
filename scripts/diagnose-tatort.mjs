@@ -74,25 +74,41 @@ const videos = traktVideos.length > cinemetaVideos.length ? traktVideos : cineme
 console.log(`Fuente de episodios: ${traktVideos.length > cinemetaVideos.length ? 'MyTrakt Sync' : 'Cinemeta'} — ${videos.length} episodio(s) totales listados.\n`);
 if (!videos.length) die('No se pudo obtener la lista de episodios de Tatort.');
 
-const cutoffYear = new Date().getFullYear() - years;
+// Season 0 = specials/making-of/outtakes, no episodios reales — se excluyen del muestreo (no es
+// contenido que Pablo quiera ver, y siempre dan 0 streams/subs, lo que ensucia el resultado).
+// También se excluyen episodios con fecha de estreno futura (todavía no emitidos, 0 esperado).
+const now = new Date();
+const cutoffYear = now.getFullYear() - years;
 const recentByYear = new Map();
 for (const v of videos) {
+  if (v.season === 0) continue;
   const dateStr = v.released || v.firstAired || v.air_date;
   if (!dateStr) continue;
-  const year = new Date(dateStr).getFullYear();
+  const releaseDate = new Date(dateStr);
+  if (releaseDate > now) continue;
+  const year = releaseDate.getFullYear();
   if (Number.isNaN(year) || year < cutoffYear) continue;
   if (!recentByYear.has(year)) recentByYear.set(year, []);
   recentByYear.get(year).push(v);
 }
 
 const totalRecent = [...recentByYear.values()].reduce((s, arr) => s + arr.length, 0);
-console.log(`Episodios desde ${cutoffYear}: ${totalRecent} (${recentByYear.size} año(s) con datos).`);
-console.log(`Muestreando ${samplePerYear} por año (primero y último disponible de cada año) — total estimado: ~${Math.min(totalRecent, samplePerYear * recentByYear.size)} episodios a probar.\n`);
+console.log(`Episodios reales (sin specials S00, ya emitidos) desde ${cutoffYear}: ${totalRecent} (${recentByYear.size} año(s) con datos).`);
+console.log(`Muestreando ${samplePerYear} por año, espaciados uniformemente — total estimado: ~${Math.min(totalRecent, samplePerYear * recentByYear.size)} episodios a probar.\n`);
 
 const sample = [];
 for (const [year, eps] of [...recentByYear.entries()].sort((a, b) => a[0] - b[0])) {
   eps.sort((a, b) => (a.season - b.season) || (a.number - b.number));
-  const picked = samplePerYear >= eps.length ? eps : [eps[0], eps[eps.length - 1]].filter((v, i, arr) => arr.indexOf(v) === i);
+  let picked;
+  if (samplePerYear >= eps.length) {
+    picked = eps;
+  } else {
+    const indices = new Set();
+    for (let i = 0; i < samplePerYear; i++) {
+      indices.add(Math.round((i * (eps.length - 1)) / Math.max(1, samplePerYear - 1)));
+    }
+    picked = [...indices].sort((a, b) => a - b).map((i) => eps[i]);
+  }
   for (const p of picked) sample.push({ ...p, __year: year });
 }
 
@@ -118,13 +134,16 @@ for (const ep of sample) {
   if (totalReal > 0) streamHits++;
 
   let esSubs = 0, enSubs = 0;
+  const esSources = new Set();
   for (const a of subAddons) {
     const base = baseOf(a.transportUrl);
     const d = await getJson(`${base}subtitles/series/${streamId}.json`, 15000);
     for (const s of d?.subtitles || []) {
       const lang = (s.lang || '').toLowerCase();
-      if (lang.startsWith('es') || lang.startsWith('spa') || lang.includes('spanish')) esSubs++;
-      else if (lang.startsWith('en') || lang.startsWith('eng') || lang.includes('english')) enSubs++;
+      if (lang.startsWith('es') || lang.startsWith('spa') || lang.includes('spanish')) {
+        esSubs++;
+        esSources.add(a.manifest.name);
+      } else if (lang.startsWith('en') || lang.startsWith('eng') || lang.includes('english')) enSubs++;
     }
   }
   if (esSubs > 0) subHits++;
@@ -132,7 +151,7 @@ for (const ep of sample) {
 
   const flag = totalReal >= 3 ? '✅' : totalReal > 0 ? '⚠' : '✗';
   const subFlag = esSubs > 0 ? '✅ES' : enSubs > 0 ? '⚠solo-EN' : '✗sin-subs';
-  console.log(`  ${flag} ${label} — ${totalReal} streams (${perAddon.join(' ') || 'ninguno'}) | subs: ${subFlag} (es=${esSubs} en=${enSubs})`);
+  console.log(`  ${flag} ${label} — ${totalReal} streams (${perAddon.join(' ') || 'ninguno'}) | subs: ${subFlag} (es=${esSubs} en=${enSubs}, fuentes=${[...esSources].join(',') || '-'})`);
   findings.push({ label, totalReal, esSubs, enSubs });
 }
 

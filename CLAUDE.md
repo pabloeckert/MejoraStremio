@@ -3635,6 +3635,64 @@ Pablo cerró la sesión por límite y pidió **continuar con "la otra cuenta"** 
   de git y trabajo duplicado (Asia lo hicieron 2 sesiones; solotveg lo hizo una tercera). Antes de
   arrancar una nueva, confirmar con `ListAgents` + `git fetch` que no hay otra activa.
 
+## Sesión 2026-09-03 (noche) — auditoría completa + research de ecosistema
+
+Pedido de Pablo: auditoría completa, actualizarse con foros/redes/internet, informe en lenguaje
+sencillo, arreglar todo lo autónomo. Resultado: **nada roto**, un par de fixes chicos aplicados,
+varios hallazgos externos anotados (no accionables sin decisión de Pablo).
+
+**Auditoría técnica — todo verde:**
+- Las 3 cuentas (`stremioeg` 26 addons / `solotveg` 22 / `stremiojn` 23): `health-check.mjs` exit 0,
+  sin `manifest.id` duplicados, todos los manifests responden. Streams (Torrentio 111/97 cacheados,
+  Comet 20/19) y subtítulos normales.
+- Hub `mejorastremio-hub`: las 12 rutas responden 200 en <1s. Gemini quota OK. `deno deploy --prod
+  --org=pabloeckert --app=mejorastremio-hub` (local) sigue siendo el camino de deploy.
+- `validate-config` OK (166 catálogos, 120 enabled), fechas al día, orden de catálogos OK.
+- Versiones al día: AIOMetadata v2.16.5 (release 2026-09-02), Torrentio v0.0.15, Comet v2.0.0,
+  NoTorrent v2.7.0, WebStreamrMBG v0.73.2, MyTrakt v3.16.3, SubMaker v1.4.94.
+- Cache de traducción Tatort: 50 completos (era 35), self-healing con el pre-warm diario.
+
+**Fixes aplicados esta sesión:**
+1. **`/discover` (Descubrir Maestro)**: `without_genres=10763,10767` (Noticias/Talk) para
+   `type=series`. "País Alemania + Crimen" traía Tagesschau al tope; ahora arranca con Tatort/Der
+   Alte/Die Rosenheim-Cops/Dark. Deployado a producción. (Nota: el catálogo funcionaba bien, esto
+   es solo prolijidad — un primer test dio 0 resultados porque usé el id `discover-movie` en vez de
+   `discover-master`, falso positivo.)
+2. **`anti-frustration-log.json`**: sacada la entrada fantasma "Infiltrada S01E11" con id
+   `tt29780951` (ese id es **Wild Cards** en Cinemeta; TMDB tiene el mapeo roto y alguien registró
+   Infiltrada con él en la sesión 2026-08-23). Cinemeta no tiene la serie "Infiltrada" → esa
+   entrada nunca iba a resolver. 28→27 entradas.
+3. **`torbox-airlock` cron DESACTIVADO** (ya documentado arriba): fallaba en rojo a diario por
+   falta del secret + write endpoint sin probar.
+
+**Research del ecosistema (foros/GitHub/web) — hallazgos, NINGUNO accionable sin Pablo:**
+- **AIOMetadata (ElfHosted) tuvo 3+ caídas cortas la última semana** (28/08, 02/09 ×2) — todas
+  auto-recuperadas. El `keep-warm` (ping cada 20 min) + Cinemeta en idx 5 como fallback lo cubren.
+  A vigilar si escala.
+- **Torrentio**: hubo un reporte de "caído" (Cloudflare Host Error) en r/StremioAddons hace 2 días.
+  Nuestra instancia funciona bien (111 streams, 97 cacheados). Fue transitorio.
+- **TorBox**: siguen los reportes de inestabilidad (outage multi-día 19-21/08, "6 caídas en 4
+  días"). Septiembre limpio hasta ahora. Ya documentado (cambio de ToS 27/08). Sin acción nueva.
+- **Real-Debrid muy degradado** ("80% streams bloqueados", restricciones de búsqueda) — no lo
+  usamos, refuerza la elección de TorBox.
+- **Jikan/MAL API cierra el 1/10/2026** — ya lo cubrimos (motores `mal.search.*` apagados el
+  2026-08-02). Nada que hacer.
+- **OmniCatalogs v1.7.0** (`5cfe2edf73d5-omnicatalogs.baby-beamup.club`): addon de catálogos por
+  plataforma mejor mantenido que nuestro "Streaming Catalogs" (`pw.ers.netflix-catalog`). Tiene
+  **filtro por género combinable** (Netflix + Acción, etc.) que el nuestro NO tiene — probado: el
+  `nfx` de nuestro addon no expone ningún `extra`, el filtro de género es un no-op. También suma
+  cientos de "canales" de Amazon/Apple TV (Acorn TV, MGM+, PBS Masterpiece…). **Candidato real a
+  reemplazar "Streaming Catalogs"**, pero es "Built by AI", más nuevo, y requiere que Pablo
+  reconfigure sus plataformas. No se aplicó — es decisión de gusto/riesgo de Pablo.
+- **DMM Cast para TorBox** ya funciona (debridmediamanager.com/stremio-torbox) — posible fuente de
+  streams complementaria, muestra los 5 links cacheados más grandes por título. No evaluado a
+  fondo.
+- **Bugs de cliente de Stremio reportados esta semana** (r/Stremio): "continue watching" no
+  actualiza, autoplay del próximo episodio falla, botón "siguiente episodio" desaparece,
+  sobrecalentamiento en Mac. Son del cliente, no de nuestra config — si Pablo los ve, no es algo
+  del repo. Tip útil: varios arreglaron "pantalla verde" desactivando "Nvidia GPU Video
+  Processing" en ajustes de Stremio.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

@@ -106,6 +106,16 @@ const shows = new Map();
 for (const m of [...continueWatching, ...watchlist]) {
   if (m.imdb_id && !shows.has(m.imdb_id)) shows.set(m.imdb_id, m.name);
 }
+
+// Guard: si MyTrakt devuelve 0 shows es casi siempre un fallo transitorio del endpoint
+// (getJson → null → metas:[]), no que Pablo se haya quedado sin nada en progreso. Sin este
+// guard, saveState([]) borraba todo el estado y la corrida siguiente re-"notificaba" cada
+// episodio desde cero (pasó el 2026-09-02, ver CLAUDE.md sesión 2026-09-03 dev 2). Abortamos
+// sin tocar el archivo de estado.
+if (shows.size === 0) {
+  die('MyTrakt Sync devolvió 0 shows (continue_watching + watchlist vacíos) — probable fallo ' +
+      'transitorio del endpoint. No se toca data/premiere-radar-state.json.');
+}
 console.log(`${shows.size} show(s) en progreso/watchlist en MyTrakt Sync.\n`);
 
 function nextUnwatched(videos) {

@@ -97,12 +97,31 @@ async function fetchCatalog(type, id) {
 const continueWatching = await fetchCatalog('series', 'continue_watching_shows');
 const shows = new Map();
 for (const m of continueWatching) if (m.imdb_id && !shows.has(m.imdb_id)) shows.set(m.imdb_id, m.name);
+if (shows.size === 0) {
+  die('MyTrakt Sync devolvió 0 shows en Continue Watching — probable fallo transitorio del ' +
+      'endpoint, no que no haya nada en progreso. Se aborta sin marcar nada.');
+}
 console.log(`${shows.size} show(s) en Continue Watching en MyTrakt Sync.\n`);
 
+// Solo tiene sentido airlockear episodios cuya cache en TorBox sea reciente (TorBox recién los
+// bajó y los purga a los 30 días de inactividad). Un episodio estrenado hace años que Pablo
+// "mira despacio" no suele tener una descarga fresca en riesgo. Acotar además evita que el
+// dry-run recorra cientos de episodios viejos de shows largos (X-Files, etc.) probando streams
+// uno por uno — antes no terminaba nunca. Ventana: 2 años, tope 30 episodios por show.
+const AIRLOCK_MAX_AGE_MS = 2 * 365 * 24 * 60 * 60 * 1000;
+const AIRLOCK_PER_SHOW_CAP = 30;
 function unwatchedEpisodes(videos) {
+  const now = Date.now();
   return (videos || [])
     .filter((v) => v.season > 0 && v.watched !== true)
-    .sort((a, b) => a.season - b.season || a.number - b.number);
+    .filter((v) => {
+      const d = v.released || v.firstAired;
+      if (!d) return true; // sin fecha: no descartar
+      const t = new Date(d).getTime();
+      return Number.isNaN(t) || now - t <= AIRLOCK_MAX_AGE_MS;
+    })
+    .sort((a, b) => a.season - b.season || a.number - b.number)
+    .slice(-AIRLOCK_PER_SHOW_CAP);
 }
 
 async function cachedInfoHashes(imdbId, season, episode) {

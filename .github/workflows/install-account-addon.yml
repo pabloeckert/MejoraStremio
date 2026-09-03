@@ -1,0 +1,74 @@
+name: install-account-addon
+
+# Disparo manual, de un solo uso: instala un addon en stremiojn o solotveg (install-addon.mjs, con
+# backup + dry-run por defecto). Reusa el mismo patrón que check-account.yml para elegir secrets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      account:
+        description: 'Cuenta'
+        type: choice
+        options:
+          - jn
+          - teen
+        required: true
+      manifest_url:
+        description: 'URL del manifest a instalar'
+        type: string
+        required: true
+      position:
+        description: 'Posición: "at:<índice>" o "after:<manifest.id>"'
+        type: string
+        required: true
+      apply:
+        description: 'Aplicar de verdad (si no, dry-run)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolver flag de posición
+        id: pos
+        run: |
+          RAW="${{ inputs.position }}"
+          if [[ "$RAW" == at:* ]]; then
+            echo "flag=--at ${RAW#at:}" >> "$GITHUB_OUTPUT"
+          elif [[ "$RAW" == after:* ]]; then
+            echo "flag=--after ${RAW#after:}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Formato de position inválido: $RAW" >&2
+            exit 1
+          fi
+
+      - name: Instalar addon (jn)
+        if: inputs.account == 'jn'
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL_JN }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS_JN }}" \
+          node scripts/install-addon.mjs "${{ inputs.manifest_url }}" ${{ steps.pos.outputs.flag }} ${{ inputs.apply == true && '--apply' || '' }}
+
+      - name: Instalar addon (teen)
+        if: inputs.account == 'teen'
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL_TEEN }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS_TEEN }}" \
+          node scripts/install-addon.mjs "${{ inputs.manifest_url }}" ${{ steps.pos.outputs.flag }} ${{ inputs.apply == true && '--apply' || '' }}
+
+      - name: Subir backup como artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-backup-${{ github.run_id }}
+          path: .backups/
+          retention-days: 14
+          if-no-files-found: ignore

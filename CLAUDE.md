@@ -3560,9 +3560,20 @@ Dept Q…). Backup: `.backups/backup-streaming-catalogs-pre-curate-*.json`. heal
   `--apply` una vez cuando haya un candidato real y revisar la respuesta cruda.
 - test-content.mjs: con 26 addons tarda >12min; health-check (camino crítico) cubre lo importante.
 
+**6. `deploy-deno-hub.yml` estaba roto y se arregló.** El comentario decía que `"prod": true`
+estaba en `deno.jsonc` pero NO estaba → el workflow corría `deno deploy` a secas = deploy a
+PREVIEW, no producción. Intenté pasar `--prod` explícito: **el runner de GitHub Actions lo duplica
+y falla** (`Option "--prod" can only occur once`) — el bug de 2026-08-29 sigue siendo real EN CI
+(local con deno 2.9.4 no pasa, por eso confundía). Fix definitivo: `"prod": true` agregado a
+`deno.jsonc` de verdad + workflow y deploys locales usan `deno deploy` **sin ningún flag**. Local
+también: pasar `--prod` ahora rompe igual (duplica con el config). Verificado que `deno deploy` a
+secas pasa la validación de argumentos (solo frenó por el límite de 15 deploys/hora, no por
+sintaxis). Borrado `test-deno-deploy-prod.yml` (diagnóstico de un solo uso, tema cerrado).
+
 **Estado de la colección al cierre: 26 addons** (idx 0 OpenSubtitles Latino, idx 3 Traducción IA,
-idx 8 Mediathek DE, idx 22 Comedias Cortas). Sin `manifest.id` duplicados. `mejorastremio-hub`
-redeployado con `/short-series` v1.1.0.
+idx 8 Mediathek DE, idx 22 Comedias Cortas). Sin `manifest.id` duplicados. `mejorastremio-hub` en
+producción con `/short-series` v1.1.0 y `osHasSpanish` chequeando `es,sp,ea` (verificado en vivo:
+`/translate` devuelve `[]` para Matrix porque ya tiene sub `es`+`ea`).
 
 ## Reglas del repo
 

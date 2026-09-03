@@ -1909,7 +1909,10 @@ async function fetchBaseCues(src: { t: string; u?: string; f?: number }): Promis
 
 async function osHasSpanish(imdbId: string, season: number | null, episode: number | null): Promise<boolean> {
   if (!OPENSUBTITLES_API_KEY) return false;
-  const p = new URLSearchParams({ languages: "es" });
+  // es (genérico) + sp (España) + ea (Latinoamérica) — los 3 códigos de español
+  // de la API moderna (ver commit "OpenSubtitles Latino real"). Si ya hay un
+  // subtítulo ES real en cualquiera, /translate no ofrece su traducción IA.
+  const p = new URLSearchParams({ languages: "es,sp,ea" });
   if (season != null && episode != null) {
     p.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
     p.set("season_number", String(season));

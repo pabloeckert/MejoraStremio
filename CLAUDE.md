@@ -3085,25 +3085,26 @@ SDH)". Router: la ruta nueva va **antes** que `/opensubtitles` porque ese `start
 matchea `/opensubtitles-latino` (si se agregan rutas nuevas con prefijo compartido en el futuro,
 mismo cuidado).
 
-**Pendiente — bloqueado por un límite real de plataforma, no por falta de intento**: el deploy a
-Deno Deploy (`deploy-deno-hub.yml`, dispara con `DENO_DEPLOY_TOKEN` ya cargado como secret de
-GitHub) **falló con `"You have exceeded the deployment limit of 15 per hour for your plan"`** —
-**esto explica retroactivamente** por qué tantos intentos de deploy fallaron en la sesión
-2026-08-29 (12 intentos en poco más de una hora, documentados ahí como fallas de sintaxis del CLI)
-— probablemente varios de esos "fallos de flags" eran en realidad este mismo límite de cuota,
-camuflado porque cada intento con flags distintos también fallaba por otro motivo antes de llegar
-a la cuota. **No requiere intervención de Pablo** — es una ventana de 1 hora que se resetea sola.
-**Siguiente paso, apenas se pueda**: re-disparar `deploy-deno-hub.yml` (sin tocar nada más — el
-código ya está listo y committeado en `main`), y si vuelve a caer en preview en vez de producción
-(pese a `"prod": true` en `deno.jsonc`, que en la sesión 2026-08-29 tampoco garantizó ir directo a
-producción), pedirle a Pablo el mismo paso manual de esa sesión (un clic de "Promote to Production"
-en `console.deno.com`). Una vez en producción, probar `/opensubtitles-latino/subtitles/movie/
-tt0110912.json` (Matrix) contra la URL pública real para confirmar que `ea` devuelve resultados de
-verdad (el endpoint de idiomas solo confirma que el código EXISTE, no que haya subtítulos cargados
-con esa etiqueta — falta esa verificación empírica). Después, instalar el addon nuevo en la cuenta
-real (mismo patrón que el resto: `install-addon.mjs`, backup previo) e idealmente adelante de
-`/opensubtitles` genérico en el orden de subs, ya que "latino real" es más específico que "español
-genérico" para lo que pidió Pablo.
+**Actualizado 2026-09-03 (madrugada), después del límite de 15/hora**: el rate limit ya había
+liberado la ventana — `deploy-deno-hub.yml` corrió limpio, pero **volvió a quedar como preview**
+(`mejorastremio-hub-tw5vj6m789js.pabloeckert.deno.net`, build id `tw5vj6m789js`), no como
+producción, mismo patrón ya documentado en la sesión 2026-08-29 pese a `"prod": true` en
+`deno.jsonc`. **Verificación empírica ya hecha contra ese preview** (workflow de un solo uso
+`check-preview-latino.yml`): `/opensubtitles-latino/subtitles/movie/tt0110912.json` devuelve un
+resultado real — `{"lang":"spa","name":"[OpenSubtitles Latino] Pulp Fiction 1994.BDRip...lat...`
+— confirma que el código `ea` sí tiene subtítulos cargados de verdad, no solo que el código existe.
+El `/health` del preview también muestra `mediathek`/`translate`/`shortSeries` configurados (ver
+sección Tatort más abajo) — este preview es el build más nuevo, con TODAS las rutas del hub.
+
+**Bloqueado — requiere el mismo paso manual de Pablo de sesiones anteriores**: promover el build
+`tw5vj6m789js` a producción en `console.deno.com/pabloeckert/mejorastremio-hub/builds/tw5vj6m789js`
+(un clic, "Promote to Production" o equivalente). La producción actual (`mejorastremio-hub.
+pabloeckert.deno.net`) sigue en una revisión vieja — tiene `mediathek`/`translate` (promovida en
+algún punto de esta misma sesión, revision `7zhvbe4s9c0g`, ver sección Tatort) pero **todavía NO
+tiene `opensubtitlesLatino` ni `shortSeries`**, confirmado con un fetch fresco a `/health` en
+producción. Una vez promovido: instalar el addon nuevo en la cuenta real (mismo patrón de siempre,
+`install-addon.mjs` + backup), idealmente adelante de `/opensubtitles` genérico en el orden de
+subs, ya que "latino real" es más específico que "español genérico" para lo que pidió Pablo.
 
 ### 2. "Conectado por IA para los que no se encuentra" — YA funciona, confirmado con evidencia
 

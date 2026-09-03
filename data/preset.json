@@ -6594,7 +6594,8 @@
                 "with_genres": "80|9648",
                 "with_origin_country": "GB",
                 "vote_count.gte": 15,
-                "vote_average.gte": 5.5
+                "vote_average.gte": 5.5,
+                "without_companies": "2|4|5|21|25|33|174|1632"
               },
               "formState": {
                 "catalogName": "Crimen Reino Unido (Cine)",
@@ -6623,7 +6624,40 @@
                 "selectedPeople": [],
                 "peopleJoinMode": "or",
                 "withCompanies": [],
-                "withoutCompanies": [],
+                "withoutCompanies": [
+                  {
+                    "id": 2,
+                    "label": "Walt Disney Pictures"
+                  },
+                  {
+                    "id": 4,
+                    "label": "Paramount"
+                  },
+                  {
+                    "id": 5,
+                    "label": "Columbia Pictures"
+                  },
+                  {
+                    "id": 21,
+                    "label": "Metro-Goldwyn-Mayer"
+                  },
+                  {
+                    "id": 25,
+                    "label": "20th Century Studios"
+                  },
+                  {
+                    "id": 33,
+                    "label": "Universal Pictures"
+                  },
+                  {
+                    "id": 174,
+                    "label": "Warner Bros. Pictures"
+                  },
+                  {
+                    "id": 1632,
+                    "label": "Lionsgate"
+                  }
+                ],
                 "companyJoinMode": "or",
                 "withKeywords": [],
                 "withoutKeywords": [],

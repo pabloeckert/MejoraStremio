@@ -14,17 +14,17 @@
  * protocolo Stremio para streams de torrent). Se compara contra el hash de cada torrent de
  * /api/torrents/mylist para encontrar el id interno de TorBox y marcarlo airlocked.
  *
- * ⚠️ AVISO — el endpoint de escritura (marcar airlocked) no se pudo verificar contra la API real
- * de TorBox al escribir este script: esta sesión corre en un contenedor con la salida de red
- * bloqueada hacia api.torbox.app/support.torbox.app (confirmado con curl/WebFetch, ver sesión
- * 2026-08-27/28 en CLAUDE.md). Lo que SÍ está confirmado (vía búsqueda web, changelog público de
- * TorBox v9/AirLock): existe un campo booleano `airlocked` editable en las rutas de torrents, y el
- * patrón general de TorBox para editar torrents es `POST /api/torrents/controltorrent` con un
- * campo `operation` (ya usado para reannounce/delete/resume). Este script asume por analogía
- * `{ torrent_id, operation: "airlock" }`.  **Antes de confiar en --apply, correlo primero con
- * --dry-run (default) y revisá la respuesta cruda que imprime** — si TorBox rechaza el nombre de
- * la operación, el fix es de una sola línea (ver OPERATION_NAME abajo) una vez confirmado el
- * nombre real contra la documentación en vivo (https://api.torbox.app o el support center).
+ * Endpoint de escritura confirmado el 2026-09-03 (sesión previa había dejado esto sin verificar,
+ * por el mismo bloqueo de red hacia api.torbox.app/support.torbox.app de esta sesión — ver sesión
+ * 2026-08-27/28 en CLAUDE.md): NO es `controltorrent` con operation="airlock" (esa lista de
+ * operaciones es Reannounce/Delete/Resume únicamente, confirmado contra la documentación oficial
+ * del SDK — TorBox-App/torbox-sdk-js y torbox-sdk-py). El campo `airlocked` se setea con
+ * `PUT /api/torrents/edittorrent` (`{ torrent_id, airlocked: true }`), confirmado leyendo el
+ * código fuente real de un cliente TorBox de terceros open-source (jittarao/torbox-app,
+ * backend/src/api/ApiClient.js — método `setAirlock`, que arma el PUT a `edittorrent`/
+ * `editusenetdownload`/`editwebdownload` según el tipo de asset). Todavía no probado contra la
+ * cuenta real de Pablo (esta sesión sigue sin salida de red hacia TorBox) — correr primero con
+ * --dry-run y revisar la respuesta cruda antes de confiar en --apply, mismo criterio de siempre.
  *
  * Requiere: ST_EMAIL, ST_PASS, TORBOX_API_KEY
  * Uso:
@@ -37,8 +37,6 @@ import { isCachedStream } from './lib/addon-signals.mjs';
 
 const API = 'https://api.strem.io/api';
 const TORBOX_API = 'https://api.torbox.app/v1/api';
-// Nombre de la operación asumido por analogía con reannounce/delete/resume — ver aviso arriba.
-const OPERATION_NAME = 'airlock';
 
 const APPLY = process.argv.includes('--apply');
 
@@ -127,10 +125,10 @@ async function torboxMyList() {
 }
 
 async function torboxSetAirlock(torrentId) {
-  const res = await fetch(`${TORBOX_API}/torrents/controltorrent`, {
-    method: 'POST',
+  const res = await fetch(`${TORBOX_API}/torrents/edittorrent`, {
+    method: 'PUT',
     headers: { Authorization: `Bearer ${torboxKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ torrent_id: torrentId, operation: OPERATION_NAME }),
+    body: JSON.stringify({ torrent_id: torrentId, airlocked: true }),
     signal: AbortSignal.timeout(20000),
   });
   const body = await res.json().catch(() => null);
@@ -180,9 +178,9 @@ console.log(`RESUMEN: ${candidates} candidato(s) encontrados, ${alreadyLocked} y
 if (APPLY) {
   console.log(`  ${marked} marcado(s) OK, ${failed} fallido(s).`);
   if (failed > 0) {
-    console.log(`  ⚠ Si TODOS fallaron con el mismo error: probablemente OPERATION_NAME="${OPERATION_NAME}"`);
-    console.log(`    no es el nombre real que espera la API — confirmar contra la doc en vivo y corregir`);
-    console.log(`    la constante al inicio del script (una sola línea).`);
+    console.log(`  ⚠ Si TODOS fallaron con el mismo error: revisar la respuesta cruda de arriba —`);
+    console.log(`    puede que la cuenta no tenga cupo de AirLock disponible, o que el campo`);
+    console.log(`    esperado por la API haya cambiado desde que se confirmó este endpoint.`);
   }
 } else {
   console.log('  (dry-run — correr con --apply para marcar de verdad)');

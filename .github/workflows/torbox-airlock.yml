@@ -1,16 +1,20 @@
 name: torbox-airlock
 
-# 07:45 Argentina (UTC-3) — 15 min después de tatort-subs-prewarm, para no competir por el push a
-# data/. Pablo pidió correr torbox-airlock.mjs --apply "cuando haya un candidato": el script mismo
-# calcula si hay algo cacheado sin ver que valga la pena bloquear (0 candidatos = no-op seguro), así
-# que se puede automatizar a diario en vez de esperar a que alguien lo dispare a mano. Sin --apply
-# no marca nada; con --apply solo marca los candidatos reales que encuentre esa corrida — idempotente,
-# no re-marca lo que ya está airlocked. El script es stateless (no escribe ningún data/*.json), así
-# que este workflow solo registra el resultado en el log interno, no commitea ningún estado propio.
+# CRON DESACTIVADO (2026-09-03, dev 1). Dos razones:
+#   1. Falta el secret TORBOX_API_KEY en GitHub → el job fallaba en rojo TODOS los días
+#      ("Falta TORBOX_API_KEY", exit 1) sin llegar a tocar nada. Ruido de alerta puro.
+#   2. Aunque estuviera el secret: el endpoint de escritura (PUT /api/torrents/edittorrent
+#      {airlocked:true}) NUNCA se ejerció con un candidato real (ver CLAUDE.md sesión 2026-09-03,
+#      bloque D de dev 2 — solo se verificó el read /api/torrents/mylist). Auto-correr --apply a
+#      diario sobre un write no probado es riesgoso.
+# Para reactivar: (a) Pablo agrega TORBOX_API_KEY como repo secret, (b) alguien corre el script
+# con --apply UNA vez a mano cuando haya un candidato y confirma la respuesta cruda del PUT,
+# (c) descomentar el bloque `schedule` de abajo.
+# Mientras tanto queda solo con workflow_dispatch (disparo manual).
 
 on:
-  schedule:
-    - cron: '45 10 * * *'
+  # schedule:
+  #   - cron: '45 10 * * *'   # 07:45 ART, 15 min después de tatort-subs-prewarm
   workflow_dispatch:
 
 permissions:

@@ -3677,13 +3677,30 @@ varios hallazgos externos anotados (no accionables sin decisión de Pablo).
   usamos, refuerza la elección de TorBox.
 - **Jikan/MAL API cierra el 1/10/2026** — ya lo cubrimos (motores `mal.search.*` apagados el
   2026-08-02). Nada que hacer.
-- **OmniCatalogs v1.7.0** (`5cfe2edf73d5-omnicatalogs.baby-beamup.club`): addon de catálogos por
-  plataforma mejor mantenido que nuestro "Streaming Catalogs" (`pw.ers.netflix-catalog`). Tiene
-  **filtro por género combinable** (Netflix + Acción, etc.) que el nuestro NO tiene — probado: el
-  `nfx` de nuestro addon no expone ningún `extra`, el filtro de género es un no-op. También suma
-  cientos de "canales" de Amazon/Apple TV (Acorn TV, MGM+, PBS Masterpiece…). **Candidato real a
-  reemplazar "Streaming Catalogs"**, pero es "Built by AI", más nuevo, y requiere que Pablo
-  reconfigure sus plataformas. No se aplicó — es decisión de gusto/riesgo de Pablo.
+- **OmniCatalogs v1.7.0 — EVALUADO A FONDO, NO se adopta (2026-09-03 noche).** Addon de catálogos
+  por plataforma, mejor mantenido que nuestro "Streaming Catalogs" (`pw.ers.netflix-catalog` =
+  repo `rleroi/Stremio-Streaming-Catalogs-Addon`, **último commit 2026-01-10, ~8 meses sin tocar**).
+  A favor de OmniCatalogs: filtro por género combinable, nombres en español, 3 filas por plataforma
+  (Popular/Tendencias/Nuevo), canales de Amazon/Apple TV (MGM+/PBS Masterpiece/Acorn…), dev activo.
+  **Por qué NO se cambia:**
+  1. **Es de un solo país por instalación** (arquitectura: `{país}_{idioma}_{providers}` en la URL).
+     El setup actual de Pablo es cross-region a propósito (24 plataformas mezclando AR/UK/US/EU —
+     `countryCode` vacío en la config del addon actual = "sin filtro de país"). Pablo pidió
+     explícitamente (2026-07-02) "todas las plataformas de Europa occidental + América + Oceanía,
+     sin filtrar por si llega a Argentina", y el `watch-log` del 2026-09-03 confirma que el bloque
+     **UK (BritBox/Acorn/ITVX/BBC iPlayer/Channel 4) es el más usado** (Ghosts 1318 min, etc.).
+     Con OmniCatalogs habría que elegir UN país y perder el resto.
+  2. **No se puede multi-instalar** para cubrir varios países: las 3 configs (AR/GB/US) devuelven el
+     MISMO `manifest.id` (`community.omnicatalogs.stremio.addon`) → es exactamente el bug de
+     manifest.id duplicado que rompe la búsqueda global (ver "Búsqueda rota por manifest.id
+     duplicado" arriba). El hint del propio addon ("instalá para varios países") ignora ese límite
+     de Stremio.
+  3. **Su ventaja principal (filtro de género combinable) YA la tenemos** en "Descubrir Maestro"
+     (`/discover` del hub): `service=Netflix&genre=Crimen` cross-region, en español, mantenido por
+     nosotros — probado funcionando esta sesión.
+  **Contingencia**: si el addon actual (sin mantenimiento) se cae, el reemplazo es (a) OmniCatalogs
+  con `country=GB` (mantiene el bloque UK más usado + Netflix/Disney/Prime que son globales), o (b)
+  agregar filas fijas por plataforma a `/discover` (más laburo pero 100% bajo nuestro control).
 - **DMM Cast para TorBox** ya funciona (debridmediamanager.com/stremio-torbox) — posible fuente de
   streams complementaria, muestra los 5 links cacheados más grandes por título. No evaluado a
   fondo.

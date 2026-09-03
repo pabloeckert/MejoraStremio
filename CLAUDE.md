@@ -3612,16 +3612,28 @@ Pablo cerró la sesión por límite y pidió **continuar con "la otra cuenta"** 
 4. Documentar el trabajo de cada cuenta en SU propio `cuentas/*/CLAUDE.md`, no acá.
 
 **Pendientes que quedan abiertos (stremioeg, NO bloquean, requieren a Pablo o verificación):**
-- `torbox-airlock.mjs --apply`: una sesión paralela lo automatizó a diario (`torbox-airlock.yml`,
-  commit `def0a4f`). El write endpoint (PUT `edittorrent`) todavía no se ejerció con un candidato
-  real — vigilar la primera corrida con candidatos y revisar la respuesta cruda.
+- **`torbox-airlock` — cron DESACTIVADO (2026-09-03, dev 1).** La sesión paralela lo automatizó a
+  diario (`def0a4f`) pero (a) falta el secret `TORBOX_API_KEY` en GitHub → el job fallaba en rojo
+  todos los días sin tocar nada, (b) el write endpoint (PUT `edittorrent`) nunca se ejerció con un
+  candidato real. Dry-run local del 2026-09-03: **0 candidatos**, read `/api/torrents/mylist` OK
+  (256 torrents). Quedó solo `workflow_dispatch`. Reactivar: Pablo agrega el secret + alguien corre
+  `--apply` a mano una vez con un candidato real y confirma la respuesta del PUT + descomentar el
+  `schedule`.
 - Deno hub: si hay que redeployar, hacerlo LOCAL con `--prod` (ver punto 6 arriba), no por el
   workflow.
-- Episodios de Tatort "parciales" en la cache de traducción (~8, quedaron al 96% por cuota de
-  Gemini agotada esta sesión) — se completan solos con el pre-warm diario cuando resetea la cuota.
-- **Múltiples sesiones de Claude tocaron este repo en paralelo hoy** (al menos 3): hubo carreras de
-  git y trabajo duplicado (el cambio de Asia lo hicieron dos sesiones). Antes de arrancar la
-  próxima, confirmar que no hay otra sesión activa sobre el repo.
+- Episodios de Tatort "parciales" en la cache de traducción — **era 100% cuota de Gemini agotada**
+  (por el volumen de pruebas del 2026-09-03). Con cuota fresca los episodios completan en 8-15s.
+  El pre-warm diario limpia el backlog solo; 2026:15 tiene un lote puntual medio terco (~96%,
+  cacheado 2 días) que no vale perseguir.
+- **`stremiojn` (Joaquín) POSPUESTO "hasta nuevo aviso"** (Pablo, 2026-09-03 tarde). Falta: los 2
+  addons de OpenSubtitles (subs ES 40→~90, como se hizo en solotveg) + cerrar la incidencia vieja
+  "no carga nada" del 2026-08-03. NO tocar hasta que Pablo lo pida.
+- `check-account.yml` es one-off ("de un solo uso"), ya cumplió su función (decidir qué instalar en
+  solotveg). Tuvo 1 corrida en rojo (probable falta de secrets JN). `install-account-addon.yml`
+  queda como reusable para cuando se retome stremiojn.
+- **Múltiples sesiones de Claude tocaron este repo en paralelo el 2026-09-03** (al menos 4): carreras
+  de git y trabajo duplicado (Asia lo hicieron 2 sesiones; solotveg lo hizo una tercera). Antes de
+  arrancar una nueva, confirmar con `ListAgents` + `git fetch` que no hay otra activa.
 
 ## Reglas del repo
 

@@ -1795,5 +1795,62 @@
     "label": "Infiltrada (mapeada como Wild Cards por TMDB)",
     "addedAt": "2026-09-04T02:20:07.435Z",
     "lastCheckedAt": "2026-09-04T10:18:08.602Z"
+  },
+  {
+    "id": "tt38607962",
+    "type": "series",
+    "season": 1,
+    "episode": 9,
+    "name": "Ágata y Lola",
+    "genres": [],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Mediathek DE (policiales)": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 0,
+    "status": "pendiente",
+    "latino": null,
+    "label": "Ágata y Lola S01E09",
+    "addedAt": "2026-09-04T13:17:22.882Z",
+    "lastCheckedAt": "2026-09-04T13:17:22.882Z"
   }
 ]

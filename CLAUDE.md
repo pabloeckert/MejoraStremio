@@ -3951,11 +3951,16 @@ ejerza — el cron diario es lo que lo va a probar la primera vez que aparezca u
 - **Backlog de traducción de Tatort/Polizeiruf/SOKO**: 52/75, 2/18, 7/20 completos respectivamente —
   avanzando solo con el pre-warm diario, sin acción necesaria. `premiere-radar-state.json`: 17
   entradas, 1 pendiente (Los Mufas, ya conocido).
-- **`test-content.mjs` corrido completo** contra los 14 títulos curados con los 26 addons actuales,
-  como regresión final de todos los cambios del día (reorden de catálogos, redeploys del hub,
-  activación de AirLock) — ver resultado abajo si terminó antes del cierre de sesión, si no queda
-  como verificación pendiente de una futura sesión (no bloqueante, `health-check.mjs` ya cubrió lo
-  crítico varias veces durante el día).
+- **`test-content.mjs` corrido completo (14/14 con streams, 0 regresiones)** contra los 26 addons
+  actuales — cierra la verificación de todos los cambios del día (reorden de catálogos, redeploys
+  del hub, activación de AirLock). Único dato ya conocido: Höllental con 0 subs ES (hueco
+  estructural documentado desde hace meses, sin cambios).
+- **Falsa alarma propia, descartada**: al re-probar `discover-master` tras el cambio de firma de
+  `handleDiscover` (paso 2 de arriba), un primer test con el `&` de los extras percent-encoded a
+  mano (`%26`) devolvió resultados sin filtrar — pareció una regresión. Era un error de mi propio
+  curl de prueba (URLSearchParams no separa un `%26` literal como si fuera un `&` real). Repetido
+  con `&` sin encodear (como arma el cliente real de Stremio): "Alemania + Crimen" volvió a dar
+  Tatort/Der Alte/Rosenheim-Cops/Dark/Derrick — sin regresión real.
 
 ## Reglas del repo
 

@@ -3628,13 +3628,8 @@ Pablo cerró la sesión por límite y pidió **continuar con "la otra cuenta"** 
 4. Documentar el trabajo de cada cuenta en SU propio `cuentas/*/CLAUDE.md`, no acá.
 
 **Pendientes que quedan abiertos (stremioeg, NO bloquean, requieren a Pablo o verificación):**
-- **`torbox-airlock` — cron DESACTIVADO (2026-09-03, dev 1).** La sesión paralela lo automatizó a
-  diario (`def0a4f`) pero (a) falta el secret `TORBOX_API_KEY` en GitHub → el job fallaba en rojo
-  todos los días sin tocar nada, (b) el write endpoint (PUT `edittorrent`) nunca se ejerció con un
-  candidato real. Dry-run local del 2026-09-03: **0 candidatos**, read `/api/torrents/mylist` OK
-  (256 torrents). Quedó solo `workflow_dispatch`. Reactivar: Pablo agrega el secret + alguien corre
-  `--apply` a mano una vez con un candidato real y confirma la respuesta del PUT + descomentar el
-  `schedule`.
+- ~~`torbox-airlock` — cron DESACTIVADO~~ **RESUELTO 2026-09-04**: secret cargado, cron reactivado,
+  ver sesión "2026-09-04 (noche, continuación)" más abajo.
 - Deno hub: si hay que redeployar, hacerlo LOCAL con `--prod` (ver punto 6 arriba), no por el
   workflow.
 - Episodios de Tatort "parciales" en la cache de traducción — **era 100% cuota de Gemini agotada**
@@ -3926,6 +3921,41 @@ correcto.
 **Verificación final de la sesión completa (tarde + noche)**: `health-check.mjs` verde en las 3
 cuentas. `daily-catalog-refresh`/`health-monitor`/`monthly-digest` corridos a mano y en verde.
 Todo commiteado y pusheado — `git status` limpio al cierre.
+
+## Sesión 2026-09-04 (noche, continuación) — TorBox AirLock activado + segunda pasada obsesiva
+
+Pablo, consultado sobre activar o no `torbox-airlock` con el trade-off explicado, contestó
+**"revertir se puede siempre, y en definitiva es una mejora. Activemos"**.
+
+**Activación**: `TORBOX_API_KEY` cargado como secret de GitHub (`gh secret set`, valor tomado de
+`SECRETS.local.md`). Antes de reactivar el cron se corrió el script real con `--apply` (no un test
+sintético) contra la cuenta: **exit 0, sin errores** — 0 candidatos ese día (nada que marcar), pero
+confirma que el flujo completo (login, MyTrakt, streams, TorBox) corre sin fallar. Cron reactivado
+(`.github/workflows/torbox-airlock.yml`, 07:45 ART) y **disparado una vez en GitHub Actions para
+confirmar que el secret funciona ahí adentro también** (no solo local) — corrida completa en verde.
+El endpoint de escritura (`PUT /torrents/edittorrent`) todavía no tuvo un candidato real que lo
+ejerza — el cron diario es lo que lo va a probar la primera vez que aparezca uno; revisar
+`data/internal-log.jsonl` esa vez para confirmar la respuesta cruda. Reversible en cualquier momento
+(comentar `schedule` en el workflow).
+
+**Segunda pasada obsesiva, mismo pedido repetido por Pablo ("nada pendiente")**:
+- **Bug-hunt de la misma clase que el de `/discover/recent`**: grepeado todo `deno-hub.ts` en busca
+  de otro handler que reconstruya un URL falso desde `subPath` en vez de usar el `url` real del
+  request — **ninguno más**, el único uso de `searchParams` en todo el archivo es el ya corregido.
+- **QA completo (los 20 títulos, no solo el top-4) de los 5 catálogos familiares del tope del
+  Home** (Para Ver en Familia Cine/Series, Familiar en Inglés, Cartoon Network, Nickelodeon):
+  ningún título fuera de lugar, el fix de `pablo123` se sostiene en la lista completa.
+- **Docs de cuentas secundarias**: `solotveg` al día (2026-09-03). `stremiojn` sigue con su última
+  entrada del 2026-08-03 (incidencia "no carga nada" abierta, esperando datos de Joaquín) — es lo
+  esperado, Pablo pidió postergar esa cuenta "hasta nuevo aviso", no es un gap real.
+- **Backlog de traducción de Tatort/Polizeiruf/SOKO**: 52/75, 2/18, 7/20 completos respectivamente —
+  avanzando solo con el pre-warm diario, sin acción necesaria. `premiere-radar-state.json`: 17
+  entradas, 1 pendiente (Los Mufas, ya conocido).
+- **`test-content.mjs` corrido completo** contra los 14 títulos curados con los 26 addons actuales,
+  como regresión final de todos los cambios del día (reorden de catálogos, redeploys del hub,
+  activación de AirLock) — ver resultado abajo si terminó antes del cierre de sesión, si no queda
+  como verificación pendiente de una futura sesión (no bloqueante, `health-check.mjs` ya cubrió lo
+  crítico varias veces durante el día).
 
 ## Reglas del repo
 

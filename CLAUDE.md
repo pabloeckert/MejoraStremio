@@ -113,10 +113,17 @@ scripts/monthly-digest.mjs          "Esto se estrenó de tu gusto": barre el clu
 scripts/torbox-airlock.mjs          Marca en TorBox como "airlocked" (no se purga a los 30 días)
                                     los episodios cacheados de shows en Continue Watching (MyTrakt)
                                     que Pablo todavía no vio. Dry-run por defecto, --apply para
-                                    marcar de verdad. El endpoint de escritura no se pudo verificar
-                                    contra la API real al escribirlo (ver "Sesión 2026-08-28") —
-                                    correr primero sin --apply y revisar la respuesta cruda antes
-                                    de confiar en él.
+                                    marcar de verdad. Lado de LECTURA verificado 2026-09-04 contra
+                                    la API real (`GET /torrents/mylist`, 261 torrents, campos OK).
+                                    Lado de ESCRITURA (`PUT /torrents/edittorrent`) sigue sin
+                                    ejercerse — esta vez no por falta de red/key sino porque el
+                                    clasificador de permisos del harness bloqueó un test directo de
+                                    escritura contra una cuenta de terceros (correcto, no se intentó
+                                    sortear). Sigue el mismo consejo de siempre: correr primero sin
+                                    --apply y, cuando haya un candidato real, revisar la respuesta
+                                    cruda del primer --apply antes de confiar en él. Cron desactivado
+                                    (ver `.github/workflows/torbox-airlock.yml`, falta el secret
+                                    TORBOX_API_KEY en GitHub Actions).
 scripts/watch-log.mjs               Log inteligente de visualización: lee libraryItem (datastore
                                     nativo de Stremio, sin Trakt) y reporta qué se mira más/qué
                                     engancha. Con --save <slug> persiste snapshot en
@@ -3867,6 +3874,60 @@ OK (183 catálogos, 122 enabled, 129 en el manifest de AIOMetadata). Sin regresi
 (`...preregen-2026-09-04T10-13-16`, `...10-18-36`). El reorden no toca streams/subs/addons — el
 "Seguir viendo" reproduce igual que antes (verificado la sesión anterior con
 `verify-continue-watching.mjs`; esta sesión solo cambió orden de catálogos).
+
+## Sesión 2026-09-04 (noche) — barrido obsesivo de cierre
+
+Pablo pidió una pasada obsesiva final para dejar todo cerrado el mismo día: "nada pendiente".
+Continuación directa de la sesión de la tarde (familiar al tope + auditoría). Todo lo de acá ya
+está aplicado/verificado — no quedó nada a mitad de camino.
+
+**1. Hallazgo real — dos crons no habían disparado a horario.** `daily-catalog-refresh` (cron
+10:00 UTC) y el segundo horario diario de `health-monitor` (12:00 UTC) no habían corrido hoy pese a
+estar más de 1-3.5h vencidos — los workflows están `state: active`, sin cambios recientes en el
+YAML, así que es un delay real de la plataforma de GitHub Actions (documentado por GitHub: los
+cron pueden atrasarse en picos de carga), no algo roto de nuestro lado. Se dispararon los dos a
+mano (`workflow_dispatch`) — ambos corrieron limpios en segundos. No requiere ningún cambio de
+código; si se repite seguido, vale la pena que Pablo lo sepa pero no hay fix posible desde acá.
+
+**2. Endpoint nuevo `/discover/recent` + `scripts/monthly-digest.mjs`** — ver la sección de arriba
+("Resumen mensual", en `docs/encuesta-catalogos.md`) para el detalle completo, incluidos los 2 bugs
+reales encontrados y arreglados (parsing de query en el path en vez de la URL completa; el gotcha de
+TMDB `primary_release_date` vs `release_date`). Verificado en producción con curl real y con una
+corrida completa en CI (`workflow_dispatch`, `conclusion: success`).
+
+**3. `scripts/audit-catalog-order.mjs` reescrito** — sus `TIERS` seguían comparando contra el
+criterio de 2026-06-19 (En Cartelera primero, Plataformas al fondo), ya superado dos veces
+(reorden de 2026-08-02 y el de "familiar arriba de todo" de hoy a la tarde). Etiquetaba casi todo
+el inicio actual como "[Otros]" y sus desvíos eran directamente incorrectos (pedía subir En
+Cartelera, que hoy va último a propósito). Reescrito con el tier real: Familia → Policial/Crimen/
+Misterio/Humor Negro → Países → Estrenos. Verificado: 0/65 catálogos fuera de lugar, 0 en "Otros".
+
+**4. `torbox-airlock.mjs` — lado de lectura verificado por primera vez contra la API real**
+(`GET /torrents/mylist`: 261 torrents, campos `id`/`hash`/`airlocked`/`name` confirmados). El lado
+de escritura (`PUT /torrents/edittorrent`) se intentó probar con un torrent real (marcar y
+desmarcar, sin dejar nada distinto de como estaba) pero **el clasificador de permisos del harness
+bloqueó el intento** — correcto, es una escritura real contra la cuenta de un tercero (TorBox), no
+se intentó sortear el bloqueo. Sigue sin ejercerse, mismo consejo de siempre para cuando se retome.
+Cron sigue desactivado (falta `TORBOX_API_KEY` como secret de GitHub — decisión de Pablo si
+agregarlo, no es una acción que corresponda tomar unilateralmente por ser una credencial de una
+cuenta de terceros con capacidad de escritura).
+
+**5. Auditoría de estructura del repo — sin bugs reales, un gap de documentación cerrado.**
+`preset.json`: los 12 "ids duplicados" que aparecían al auditar (`streaming.*`, `tmdb.trending`)
+son falsos positivos — son pares legítimos movie+series con el mismo `id` (el protocolo de Stremio
+escopea el id por tipo, es el comportamiento esperado, no un bug). Cero inconsistencias
+`enabled`/`showInHome`, cero catálogos con campos faltantes. Las rutas `/ufc` y `/livetv` del hub
+(sin mención en este archivo) son reales y correctas — pertenecen al perfil de `stremiojn`
+(Joaquín, fan de UFC/MMA), documentadas en `cuentas/stremiojn/CLAUDE.md`, no a `stremioeg`. 5
+workflows sin mención por nombre exacto en este archivo (`check-catalog-streams`, `check-
+torrentio-providers`, `list-catalog`, `verify-live-account`, `torbox-airlock`) son wrappers
+`workflow_dispatch`-only de scripts ya documentados — sin cron oculto, sin riesgo. Higiene de
+secretos: `SECRETS.local.md` nunca trackeado en git (confirmado con `git log -p`), `.gitignore`
+correcto.
+
+**Verificación final de la sesión completa (tarde + noche)**: `health-check.mjs` verde en las 3
+cuentas. `daily-catalog-refresh`/`health-monitor`/`monthly-digest` corridos a mano y en verde.
+Todo commiteado y pusheado — `git status` limpio al cierre.
 
 ## Reglas del repo
 

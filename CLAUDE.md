@@ -112,18 +112,16 @@ scripts/monthly-digest.mjs          "Esto se estrenó de tu gusto": barre el clu
                                     .github/workflows/monthly-digest.yml — Sesión 2026-09-04.
 scripts/torbox-airlock.mjs          Marca en TorBox como "airlocked" (no se purga a los 30 días)
                                     los episodios cacheados de shows en Continue Watching (MyTrakt)
-                                    que Pablo todavía no vio. Dry-run por defecto, --apply para
-                                    marcar de verdad. Lado de LECTURA verificado 2026-09-04 contra
-                                    la API real (`GET /torrents/mylist`, 261 torrents, campos OK).
-                                    Lado de ESCRITURA (`PUT /torrents/edittorrent`) sigue sin
-                                    ejercerse — esta vez no por falta de red/key sino porque el
-                                    clasificador de permisos del harness bloqueó un test directo de
-                                    escritura contra una cuenta de terceros (correcto, no se intentó
-                                    sortear). Sigue el mismo consejo de siempre: correr primero sin
-                                    --apply y, cuando haya un candidato real, revisar la respuesta
-                                    cruda del primer --apply antes de confiar en él. Cron desactivado
-                                    (ver `.github/workflows/torbox-airlock.yml`, falta el secret
-                                    TORBOX_API_KEY en GitHub Actions).
+                                    que Pablo todavía no vio. **Cron diario activo** (07:45 ART,
+                                    reactivado 2026-09-04 a pedido explícito de Pablo — secret
+                                    TORBOX_API_KEY cargado en GitHub). Lado de lectura verificado
+                                    (`GET /torrents/mylist`, 261 torrents, campos OK) y una corrida
+                                    real con `--apply` sin errores (0 candidatos ese día — el
+                                    endpoint de escritura todavía no tuvo un caso real que lo
+                                    dispare; la primera vez que aparezca un candidato, revisar
+                                    `data/internal-log.jsonl` para confirmar la respuesta cruda del
+                                    PUT). Reversible: comentar el bloque `schedule` del workflow si
+                                    hace falta volver atrás.
 scripts/watch-log.mjs               Log inteligente de visualización: lee libraryItem (datastore
                                     nativo de Stremio, sin Trakt) y reporta qué se mira más/qué
                                     engancha. Con --save <slug> persiste snapshot en

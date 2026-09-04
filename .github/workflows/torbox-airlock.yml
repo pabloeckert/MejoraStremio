@@ -1,20 +1,19 @@
 name: torbox-airlock
 
-# CRON DESACTIVADO (2026-09-03, dev 1). Dos razones:
-#   1. Falta el secret TORBOX_API_KEY en GitHub → el job fallaba en rojo TODOS los días
-#      ("Falta TORBOX_API_KEY", exit 1) sin llegar a tocar nada. Ruido de alerta puro.
-#   2. Aunque estuviera el secret: el endpoint de escritura (PUT /api/torrents/edittorrent
-#      {airlocked:true}) NUNCA se ejerció con un candidato real (ver CLAUDE.md sesión 2026-09-03,
-#      bloque D de dev 2 — solo se verificó el read /api/torrents/mylist). Auto-correr --apply a
-#      diario sobre un write no probado es riesgoso.
-# Para reactivar: (a) Pablo agrega TORBOX_API_KEY como repo secret, (b) alguien corre el script
-# con --apply UNA vez a mano cuando haya un candidato y confirma la respuesta cruda del PUT,
-# (c) descomentar el bloque `schedule` de abajo.
-# Mientras tanto queda solo con workflow_dispatch (disparo manual).
+# CRON REACTIVADO (2026-09-04, a pedido explícito de Pablo — "revertir se puede siempre, y en
+# definitiva es una mejora"). Historial: estuvo desactivado por falta del secret TORBOX_API_KEY +
+# el endpoint de escritura (PUT /api/torrents/edittorrent {airlocked:true}) sin ejercerse con un
+# candidato real. Secret cargado el 2026-09-04; lado de lectura (GET /api/torrents/mylist, 261
+# torrents, campos OK) y el propio --apply corridos a mano ese mismo día sin errores (0 candidatos
+# ese día — el guard `shows.size === 0` de la sesión 2026-09-03 evita que un fallo silencioso de
+# MyTrakt borre el estado). El write en sí sigue sin un caso real que lo dispare todavía; el cron
+# diario es justamente lo que lo va a ejercer la primera vez que aparezca un candidato — revisar
+# data/internal-log.jsonl después de esa corrida para confirmar que la respuesta cruda del PUT es
+# la esperada. Si algo sale mal, es reversible: comentar el bloque `schedule` de vuelta.
 
 on:
-  # schedule:
-  #   - cron: '45 10 * * *'   # 07:45 ART, 15 min después de tatort-subs-prewarm
+  schedule:
+    - cron: '45 10 * * *'   # 07:45 ART, 15 min después de tatort-subs-prewarm
   workflow_dispatch:
 
 permissions:

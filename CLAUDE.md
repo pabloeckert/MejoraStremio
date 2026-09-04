@@ -102,8 +102,14 @@ scripts/premiere-radar.mjs          Calcula el próximo episodio no visto de cad
                                     data/internal-log.jsonl más abajo) — Sesión 2026-08-01/02.
 scripts/log-status.mjs              Registra el resultado de cada corrida automatizada (health-
                                     monitor, daily-catalog-refresh, anti-frustration-review,
-                                    premiere-radar) en data/internal-log.jsonl — reemplaza los
-                                    emails a Pablo (ver "Sesión 2026-08-02"). Poda a 90 días.
+                                    premiere-radar, monthly-digest) en data/internal-log.jsonl —
+                                    reemplaza los emails a Pablo (ver "Sesión 2026-08-02"). Poda a
+                                    90 días.
+scripts/monthly-digest.mjs          "Esto se estrenó de tu gusto": barre el cluster policial/
+                                    familia contra /discover/recent del hub (país+género+tipo →
+                                    estrenos de los últimos N días) y registra el resumen en el log
+                                    interno. Sin API key propia (usa la del hub). 1° de cada mes vía
+                                    .github/workflows/monthly-digest.yml — Sesión 2026-09-04.
 scripts/torbox-airlock.mjs          Marca en TorBox como "airlocked" (no se purga a los 30 días)
                                     los episodios cacheados de shows en Continue Watching (MyTrakt)
                                     que Pablo todavía no vio. Dry-run por defecto, --apply para

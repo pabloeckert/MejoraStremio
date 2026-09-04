@@ -1,0 +1,38 @@
+name: monthly-digest
+
+# 08:00 Argentina (UTC-3) el día 1 de cada mes. "Esto se estrenó de tu gusto" — barre el
+# cluster policial/familia contra el hub propio y registra el resultado en el log interno
+# (sin email, ver CLAUDE.md "Sesión 2026-08-02"). No requiere ningún secret: solo le pega
+# al hub público (mejorastremio-hub), que ya tiene la TMDB key server-side.
+on:
+  schedule:
+    - cron: '0 11 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Armar el resumen mensual
+        run: |
+          set -o pipefail
+          node scripts/monthly-digest.mjs --days 35 2>&1 | tee /tmp/digest-output.txt
+
+      - name: Registrar en el log interno
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          node scripts/log-status.mjs monthly-digest ok < /tmp/digest-output.txt
+          git add data/internal-log.jsonl
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(digest): resumen mensual de estrenos de tu gusto"
+            git pull --rebase origin main
+            git push
+          fi

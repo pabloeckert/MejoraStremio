@@ -85,6 +85,61 @@ primero y después se toca el preset.
 
 ---
 
+## Cómo usar "Descubrir Maestro" (tutorial, 2026-09-04)
+
+Es el addon `Descubrir Maestro` (en Descubrir, no en el inicio) — un catálogo único donde
+**combinás 5 filtros a la vez**, algo que ningún otro catálogo de la cuenta permite (los demás son
+un filtro fijo por fila: o país, o género, o plataforma, nunca los tres juntos).
+
+Al abrirlo en la app te aparecen 5 selectores (como los de género en cualquier catálogo, pero acá
+son cinco seguidos) — elegís lo que quieras de cada uno, el resto los dejás en "None":
+
+| Selector | Ejemplos de opciones |
+|---|---|
+| **Servicio** | Netflix, Disney+, Prime Video, HBO Max, Mubi, Acorn TV, BritBox, Crunchyroll… |
+| **Región** | Latinoamérica, Europa, Norteamérica, Asia, Oceanía |
+| **País** | Argentina, España, Alemania, Reino Unido, México… (le gana a Región si ponés los dos) |
+| **Idioma** | Español, Inglés, Alemán, Francés… (idioma original del título) |
+| **Género** | Crimen, Misterio, Familia, Comedia, Thriller… |
+
+**Ejemplos de combinaciones que sirven de verdad:**
+- Servicio=Netflix + Género=Crimen → todo lo policial que hay en Netflix, sin filtrar por país.
+- País=Alemania + Género=Crimen → el mismo filtro que ya tiene la fila fija "Crimen Alemán" del
+  inicio, pero acá lo armás vos con cualquier país que quieras, incluso los que no tienen fila
+  propia (ej. Polonia, Bélgica).
+- Región=Latinoamérica + Idioma=Español + Género=Familia → contenido familiar latinoamericano en
+  español, cruzando 3 ejes a la vez.
+
+Es la herramienta para cuando querés algo MUY específico que ninguna fila fija cubre — las filas
+del inicio (Crimen Alemán, Europe Noir, etc.) son atajos ya armados para las combinaciones que más
+usás; Descubrir Maestro es para todo lo demás.
+
+## "Resumen mensual" — mitad construida, mitad descartada (2026-09-04)
+
+Pablo pidió (encuesta, idea nueva #3): "esto se estrenó de tu gusto" + "estas filas no abriste
+nunca". Investigado a fondo:
+
+- **"Esto se estrenó de tu gusto" — SÍ, construido.** `scripts/monthly-digest.mjs` +
+  `.github/workflows/monthly-digest.yml` (1° de cada mes, sin email — mismo patrón que el resto,
+  log en `data/internal-log.jsonl`). Barre los combos país+género del cluster policial/familia
+  (Crimen Alemán/RU/España/Francia en series, Crimen/Misterio en cine, Familia cine+series) contra
+  un endpoint nuevo del hub propio, `/discover/recent` (país+género+tipo → título estrenado en los
+  últimos N días, ordenado por fecha). No necesita ninguna API key nueva — le pega al hub, que ya
+  tiene la de TMDB. Probado en vivo: 29 títulos encontrados en la ventana de 35 días de prueba.
+  **Bug real encontrado y arreglado al construirlo**: el endpoint nuevo no leía los query params
+  (Stremio codifica los "extras" de catálogo en el PATH, no en el query string — reusé por error
+  ese mismo parsing para un endpoint que sí usa query string normal) y, aparte, TMDB tiene un gotcha
+  real: el filtro de fecha para películas se llama `primary_release_date` pero el campo que
+  devuelve cada resultado es `release_date` (para series ambos coinciden en `first_air_date`) — sin
+  el fix, todas las fechas volvían `null`. Los dos bugs corregidos y verificados con curl real
+  contra producción antes de dar por cerrado.
+- **"Filas que nunca abriste" — investigado, NO ES VIABLE, cerrado.** Stremio no expone ninguna
+  telemetría de qué catálogos navega el usuario en el cliente — el único dato que la API devuelve
+  es `libraryItem` (lo que se agregó a Continuar Viendo/Biblioteca porque se empezó a ver), no
+  impresiones de scroll ni clics en una fila. No hay ningún endpoint, oficial o de terceros, que
+  registre eso. No se puede construir sin que Stremio mismo lo agregue a su protocolo — no
+  reinvestigar esto salvo que la app de Stremio sume telemetría de catálogo en el futuro.
+
 ## Registro de aplicación
 
 | Fecha | Cambio | Estado |

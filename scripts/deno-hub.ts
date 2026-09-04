@@ -1410,7 +1410,7 @@ async function resolveImdbIdTv(tmdbId: number): Promise<string | null> {
   }
 }
 
-async function handleDiscover(subPath: string): Promise<Response> {
+async function handleDiscover(subPath: string, url: URL): Promise<Response> {
   if (!TMDB_KEY) {
     return new Response(
       "TMDB_API_KEY_AISEARCH no configurada. Setear como Secret en Deno Deploy.",
@@ -1420,6 +1420,50 @@ async function handleDiscover(subPath: string): Promise<Response> {
 
   if (subPath === "/manifest.json") {
     return jsonResponse(DISCOVER_MANIFEST);
+  }
+
+  // /discover/recent — helper interno (no es un catálogo de Stremio) usado por
+  // monthly-digest.mjs: título "de tu gusto" estrenado en los últimos N días,
+  // por país/género. Reusa exactamente los mismos SERVICE_IDS/COUNTRY_IDS/
+  // GENRE_IDS que discover-master, pero ordenado por fecha desc en vez de
+  // popularidad y con la fecha de estreno en la respuesta (discover-master la
+  // recorta a propósito porque no la necesita).
+  if (subPath.startsWith("/recent")) {
+    const qs = url.searchParams;
+    const type = qs.get("type") === "series" ? "series" : "movie";
+    const country = qs.get("country");
+    const genre = qs.get("genre");
+    const days = Math.min(60, Math.max(1, parseInt(qs.get("days") ?? "35", 10)));
+    const genreMap = type === "movie" ? GENRE_IDS_MOVIE : GENRE_IDS_SERIES;
+    // Gotcha real de TMDB: el filtro de query para movies es "primary_release_date"
+    // pero el campo que trae DE VUELTA cada resultado es "release_date" (para tv
+    // ambos coinciden en "first_air_date").
+    const queryDateField = type === "movie" ? "primary_release_date" : "first_air_date";
+    const responseDateField = type === "movie" ? "release_date" : "first_air_date";
+    const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    const params: Record<string, string> = {
+      sort_by: `${queryDateField}.desc`,
+      language: "es-ES",
+      "vote_count.gte": "5",
+      [`${queryDateField}.gte`]: since,
+      [`${queryDateField}.lte`]: new Date().toISOString().slice(0, 10),
+    };
+    if (country && COUNTRY_IDS[country]) params.with_origin_country = COUNTRY_IDS[country];
+    if (genre && genreMap[genre]) params.with_genres = String(genreMap[genre]);
+    try {
+      const path = type === "movie" ? "/discover/movie" : "/discover/tv";
+      const d = await tmdbGet(path, params);
+      // deno-lint-ignore no-explicit-any
+      const results = ((d?.results ?? []) as any[]).slice(0, 10);
+      const items = results.map((r) => ({
+        name: r.title ?? r.name,
+        date: r[responseDateField] ?? null,
+        overview: (r.overview ?? "").slice(0, 160),
+      }));
+      return jsonResponse({ type, country: country ?? null, genre: genre ?? null, items });
+    } catch (e) {
+      return jsonResponse({ items: [], error: (e as Error).message }, { status: 500 });
+    }
   }
 
   const catalogMatch = subPath.match(/^\/catalog\/(movie|series)\/discover-master(?:\/([^/]+))?\.json$/);
@@ -2192,7 +2236,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     } else if (path.startsWith("/discover")) {
       route = "discover";
       const subPath = path.slice("/discover".length) || "/";
-      res = await handleDiscover(subPath);
+      res = await handleDiscover(subPath, url);
     } else if (path.startsWith("/ufc")) {
       route = "ufc";
       const subPath = path.slice("/ufc".length) || "/";

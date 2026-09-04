@@ -264,10 +264,10 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "with_genres": "10751|10762|35",
+                "with_genres": "10751|10762",
                 "vote_count.gte": 30,
                 "without_keywords": "210024,10292,221355,11001,348144,6075",
-                "without_genres": "10764,10766,10767,10763"
+                "without_genres": "10764,10766,10767,10763,80,10768"
               },
               "formState": {
                 "catalogName": "Para Ver en Familia (Series)",
@@ -283,10 +283,6 @@
                   {
                     "id": 10762,
                     "label": "Kids"
-                  },
-                  {
-                    "id": 35,
-                    "label": "Comedy"
                   }
                 ],
                 "excludeGenres": [
@@ -6687,7 +6683,7 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-09-03",
+                "primary_release_date.gte": "2026-09-04",
                 "with_runtime.gte": 45,
                 "without_keywords": "210024,10292,221355,11001,348144,6075"
               },
@@ -6751,7 +6747,7 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-09-03",
+                "primaryReleaseFrom": "2026-09-04",
                 "primaryReleaseTo": "",
                 "firstAirFrom": "",
                 "firstAirTo": "",
@@ -6779,7 +6775,7 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "first_air_date.gte": "2026-09-03",
+                "first_air_date.gte": "2026-09-04",
                 "with_runtime.gte": 15,
                 "without_keywords": "210024,10292,221355,11001,348144,6075",
                 "without_genres": "10764,10766,10767,10763"
@@ -6863,7 +6859,7 @@
                 ],
                 "primaryReleaseFrom": "",
                 "primaryReleaseTo": "",
-                "firstAirFrom": "2026-09-03",
+                "firstAirFrom": "2026-09-04",
                 "firstAirTo": "",
                 "airDateFrom": "",
                 "airDateTo": "",
@@ -6889,8 +6885,8 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-06-20",
-                "primary_release_date.lte": "2026-09-03",
+                "primary_release_date.gte": "2026-06-21",
+                "primary_release_date.lte": "2026-09-04",
                 "with_runtime.gte": 45,
                 "without_keywords": "210024,10292,221355,11001,348144,6075"
               },
@@ -6954,8 +6950,8 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-06-20",
-                "primaryReleaseTo": "2026-09-03",
+                "primaryReleaseFrom": "2026-06-21",
+                "primaryReleaseTo": "2026-09-04",
                 "firstAirFrom": "",
                 "firstAirTo": "",
                 "airDateFrom": "",
@@ -14873,7 +14869,7 @@
         }
       ]
     },
-    "instanceId": "b01b7da8-59de-4ad4-8e88-e41acec338c9"
+    "instanceId": "eea69171-823c-4578-8765-9eee6c3eb217"
   },
   "nuvioCollectionsConfig": [
     {

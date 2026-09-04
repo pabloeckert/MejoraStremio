@@ -86,7 +86,7 @@
         "real": 0,
         "unverifiable": false
       },
-      "Mediathek DE (Tatort)": {
+      "Mediathek DE (policiales)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -122,7 +122,7 @@
     "latino": null,
     "label": "Los Mufas: Suerte para la desgracia",
     "addedAt": "2026-07-02T21:47:44.909Z",
-    "lastCheckedAt": "2026-09-03T11:20:09.243Z"
+    "lastCheckedAt": "2026-09-04T10:16:36.817Z"
   },
   {
     "id": "tt5834132",
@@ -143,7 +143,7 @@
         "real": 0,
         "unverifiable": false
       },
-      "Mediathek DE (Tatort)": {
+      "Mediathek DE (policiales)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -179,7 +179,7 @@
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-09-03T11:20:25.012Z"
+    "lastCheckedAt": "2026-09-04T10:16:57.164Z"
   },
   {
     "id": "tt2380307",
@@ -1407,7 +1407,7 @@
         "real": 1,
         "unverifiable": false
       },
-      "Mediathek DE (Tatort)": {
+      "Mediathek DE (policiales)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1443,7 +1443,7 @@
     "latino": null,
     "label": "Ágata y Lola S01E02",
     "addedAt": "2026-08-23T01:52:08.797Z",
-    "lastCheckedAt": "2026-09-03T11:20:37.257Z"
+    "lastCheckedAt": "2026-09-04T10:17:10.433Z"
   },
   {
     "id": "tt38607962",
@@ -1526,7 +1526,7 @@
         "real": 0,
         "unverifiable": false
       },
-      "Mediathek DE (Tatort)": {
+      "Mediathek DE (policiales)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1562,7 +1562,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E02",
     "addedAt": "2026-08-23T02:20:37.808Z",
-    "lastCheckedAt": "2026-09-03T11:20:59.294Z"
+    "lastCheckedAt": "2026-09-04T10:17:23.366Z"
   },
   {
     "id": "tt43704317",
@@ -1583,7 +1583,7 @@
         "real": 0,
         "unverifiable": false
       },
-      "Mediathek DE (Tatort)": {
+      "Mediathek DE (policiales)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1619,7 +1619,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E03",
     "addedAt": "2026-08-23T02:20:55.820Z",
-    "lastCheckedAt": "2026-09-03T11:21:12.496Z"
+    "lastCheckedAt": "2026-09-04T10:17:34.307Z"
   },
   {
     "id": "tt23112594",
@@ -1640,7 +1640,7 @@
         "real": 0,
         "unverifiable": false
       },
-      "Mediathek DE (Tatort)": {
+      "Mediathek DE (policiales)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1676,7 +1676,7 @@
     "latino": null,
     "label": "VisionQuest S01E01",
     "addedAt": "2026-08-23T02:21:41.269Z",
-    "lastCheckedAt": "2026-09-03T11:21:31.835Z"
+    "lastCheckedAt": "2026-09-04T10:17:49.032Z"
   },
   {
     "id": "tt23112594",
@@ -1697,7 +1697,7 @@
         "real": 0,
         "unverifiable": false
       },
-      "Mediathek DE (Tatort)": {
+      "Mediathek DE (policiales)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1733,7 +1733,7 @@
     "latino": null,
     "label": "VisionQuest S01E02",
     "addedAt": "2026-08-23T02:21:58.824Z",
-    "lastCheckedAt": "2026-09-03T11:21:43.929Z"
+    "lastCheckedAt": "2026-09-04T10:17:57.566Z"
   },
   {
     "id": "tt29780951",
@@ -1758,7 +1758,7 @@
         "real": 0,
         "unverifiable": false
       },
-      "Mediathek DE (Tatort)": {
+      "Mediathek DE (policiales)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1794,6 +1794,6 @@
     "latino": null,
     "label": "Infiltrada (mapeada como Wild Cards por TMDB)",
     "addedAt": "2026-09-04T02:20:07.435Z",
-    "lastCheckedAt": "2026-09-04T02:20:07.435Z"
+    "lastCheckedAt": "2026-09-04T10:18:08.602Z"
   }
 ]

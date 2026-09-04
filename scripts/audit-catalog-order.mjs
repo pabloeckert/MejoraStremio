@@ -1,9 +1,12 @@
 #!/usr/bin/env node
-// Auditoría de orden de catálogos de AIOMetadata (T2).
+// Auditoría de orden de catálogos de AIOMetadata.
 //
 // Compara el orden ACTUAL de los catálogos visibles en la pantalla de inicio
 // (data/preset.json -> aioMetadataConfig.catalogs.standard) contra el orden
-// DESEADO por Pablo, y propone un reordenamiento.
+// DESEADO por Pablo, y propone un reordenamiento. TIERS actualizado 2026-09-04
+// tras la encuesta de gustos (ver docs/encuesta-catalogos.md) — antes de esa
+// fecha reflejaba un criterio de 2026-06-19 ya superado (En Cartelera primero,
+// Plataformas al fondo); si el criterio vuelve a cambiar, actualizar TIERS acá.
 //
 // SOLO REPORTA. No modifica preset.json ni la cuenta. Para aplicar el cambio
 // hay que reordenar el array y regenerar la instancia de AIOMetadata.
@@ -22,31 +25,37 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PRESET_PATH = join(__dirname, "..", "data", "preset.json");
 
 // Orden deseado: cada catálogo cae en un "tier". Menor índice = más arriba.
-// Aprobado por Pablo: En Cartelera > Estrenos > Tendencias > Géneros >
-// Países > Décadas/colecciones > Plataformas y Top 10 al fondo.
+// Actualizado 2026-09-04 tras la encuesta de gustos + "familiar arriba de
+// todo" (ver docs/encuesta-catalogos.md): Familia/apto-todo-público primero,
+// después Policial/Crimen/Misterio, Humor Negro, Países, Estrenos. Trending/
+// Tendencias/Top Rated/Best-of quedaron FUERA del inicio (showInHome=false,
+// Pablo no las quiere ahí) — si aparecen visibles es un desvío real, no un
+// tier legítimo, por eso no tienen tier propio y caen en "Otros".
 const TIERS = [
-  { label: "En Cartelera" },
-  { label: "Próximos Estrenos" },
-  { label: "Tendencias y novedades" },
-  { label: "Géneros" },
-  { label: "Países (a tu gusto)" },
-  { label: "Décadas y colecciones" },
-  { label: "Plataformas y Top 10 (al fondo)" },
-  { label: "Otros" },
+  { label: "Familia / apto para todo público" },
+  { label: "Policial / Crimen / Misterio / Humor Negro" },
+  { label: "Países" },
+  { label: "Estrenos (Próximos + En Cartelera)" },
+  { label: "Otros (revisar — no debería haber nada visible acá)" },
 ];
 const OTROS = TIERS.length - 1;
 
 function tierOf(cat) {
   const id = String(cat.id || "");
-  if (/now_playing/.test(id)) return 0;
-  if (/\.upcoming\./.test(id)) return 1;
-  if (/\.trending/.test(id) || /latest_(movies|shows)/.test(id) ||
-      /top_rated/.test(id) || /best_(of_2020s|tv_shows_of_the_2020s)/.test(id))
+  // Familia / apto para todo público
+  if (/family_(movies|shows)\.10751/.test(id) || /animation_(movies|shows)\.16/.test(id) ||
+      /(cartoon-network|nickelodeon|comedia-juvenil-actores-reales|family-en|para-ver-en-familia)/.test(id))
+    return 0;
+  // Policial / Crimen / Misterio / Thriller / Humor Negro
+  if (/(crime_(movies|shows)\.80|mystery_(movies|shows)\.9648|thriller_movies\.53|thriller-psicolo|classic-crime|cine-negro-cla|nordic-noir|crime-germany|crime-uk|crimen-france|crimen-espan|crimen-italiano|crimen-no-rdico|humor-negro)/.test(id))
+    return 1;
+  // Países (incluye Latinoamérica) — ids pabloNNN de 1 y 2 dígitos, o el patrón
+  // tmdb.discover.{movie,tv}.<CC>.pabloNNN de los países con código ISO.
+  if (/\.(argentina|latam|es|fr|de|it|gb|mx|us)\.pablo0?\d+$/.test(id) ||
+      /enc-(cine|series)-(suecia|noruega|dinamarca|islandia)/.test(id))
     return 2;
-  if (/\.\d+$/.test(id)) return 3; // géneros TMDB: terminan en id numérico
-  if (/\.(argentina|latam)\./.test(id) || /pablo00[1-4]$/.test(id)) return 4;
-  if (/best_(movies_of|tv_shows_of_the)_/.test(id)) return 5;
-  if (/^streaming\./.test(id) || /^flixpatrol\./.test(id)) return 6;
+  // Estrenos
+  if (/now_playing/.test(id) || /\.upcoming\./.test(id)) return 3;
   return OTROS;
 }
 
@@ -73,13 +82,8 @@ function main() {
   const proposed = [...visible].sort((a, b) => a.tier - b.tier || a.idx - b.idx);
 
   // Desvíos.
-  const firstEnCartelera = visible.findIndex((x) => x.tier === 0);
-  const firstEstrenos = visible.findIndex((x) => x.tier === 1);
-  const platformsAboveDestacados = visible.filter((x, i) => {
-    if (x.tier !== 6) return false;
-    // ¿hay En Cartelera o Estrenos por debajo de esta plataforma?
-    return visible.slice(i + 1).some((y) => y.tier <= 1);
-  }).length;
+  const firstFamilia = visible.findIndex((x) => x.tier === 0);
+  const otrosVisibles = visible.filter((x) => x.tier === OTROS);
   const outOfPlace = visible.filter((x, i) => proposed[i].idx !== x.idx).length;
 
   if (asJson) {
@@ -89,9 +93,9 @@ function main() {
       currentOrder: visible.map((x) => ({ id: x.cat.id, name: x.cat.name, type: x.cat.type, tier: TIERS[x.tier].label })),
       proposedOrder: proposed.map((x) => ({ id: x.cat.id, name: x.cat.name, type: x.cat.type, tier: TIERS[x.tier].label })),
       deviations: {
-        enCarteleraPos: firstEnCartelera < 0 ? null : firstEnCartelera + 1,
-        estrenosPos: firstEstrenos < 0 ? null : firstEstrenos + 1,
-        platformsAboveDestacados,
+        familiaPos: firstFamilia < 0 ? null : firstFamilia + 1,
+        otrosVisiblesCount: otrosVisibles.length,
+        otrosVisiblesNames: otrosVisibles.map((x) => x.cat.name),
         outOfPlace,
       },
     }, null, 2));
@@ -113,12 +117,13 @@ function main() {
   console.log(`\n⚠ DESVÍOS respecto a tu orden deseado`);
   console.log(line(60));
   const totalVisible = visible.length;
-  if (firstEnCartelera >= 0)
-    console.log(`  • "En Cartelera" está en la posición ${firstEnCartelera + 1} de ${totalVisible}; debería ser la 1ª.`);
-  if (firstEstrenos >= 0)
-    console.log(`  • "Próximos Estrenos" está en la posición ${firstEstrenos + 1}; debería estar entre las primeras.`);
-  if (platformsAboveDestacados > 0)
-    console.log(`  • ${platformsAboveDestacados} catálogos de plataformas (Netflix, Disney+, etc.) están por encima de En Cartelera/Estrenos.`);
+  if (firstFamilia !== 0)
+    console.log(`  • El bloque Familia no arranca en la posición 1 (arranca en ${firstFamilia + 1}).`);
+  if (otrosVisibles.length > 0) {
+    console.log(`  • ${otrosVisibles.length} catálogo(s) visible(s) no matchean ningún tier conocido (revisar si son`);
+    console.log(`    nuevos sin clasificar en este script, o algo que no debería estar en el inicio):`);
+    otrosVisibles.forEach((x) => console.log(`      - ${x.cat.name} (${x.cat.id})`));
+  }
   console.log(`  • En total, ${outOfPlace} de ${totalVisible} catálogos visibles cambiarían de lugar.`);
 
   console.log(`\n▼ ORDEN PROPUESTO (a tu gusto)`);
@@ -126,11 +131,9 @@ function main() {
   proposed.forEach((x, i) => console.log(fmt(x, i + 1)));
 
   console.log(`\n${line(60)}`);
-  console.log(`Nota 1: "New on MUBI" NO está en AIOMetadata (no aparece en preset.json).`);
-  console.log(`        Sale de OTRO addon de la cuenta; bajarlo requiere reordenar la`);
-  console.log(`        colección de addons, no este preset. Se audita aparte.`);
-  console.log(`Nota 2: este reporte NO modifica nada. Para aplicar el orden propuesto hay`);
-  console.log(`        que reordenar preset.json y regenerar la instancia de AIOMetadata.`);
+  console.log(`Nota: este reporte NO modifica nada. Para aplicar el orden propuesto hay que`);
+  console.log(`      reordenar preset.json (ver scripts/reorder-familia-top.mjs como ejemplo`);
+  console.log(`      del patrón) y regenerar la instancia de AIOMetadata.`);
   console.log("");
 }
 

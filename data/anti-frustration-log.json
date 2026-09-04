@@ -1734,5 +1734,66 @@
     "label": "VisionQuest S01E02",
     "addedAt": "2026-08-23T02:21:58.824Z",
     "lastCheckedAt": "2026-09-03T11:21:43.929Z"
+  },
+  {
+    "id": "tt29780951",
+    "type": "series",
+    "season": 1,
+    "episode": 11,
+    "name": "Wild Cards",
+    "genres": [
+      "Comedy",
+      "Crime",
+      "Drama"
+    ],
+    "isFamily": false,
+    "perAddon": {
+      "Torrentio TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Comet | TB": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Mediathek DE (Tatort)": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "NoTorrent": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "WebStreamrMBG": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Nuvio Streams | Elfhosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "Streailer": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
+      "MyTrakt Sync | ElfHosted": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      }
+    },
+    "totalReal": 0,
+    "status": "pendiente",
+    "latino": null,
+    "label": "Infiltrada (mapeada como Wild Cards por TMDB)",
+    "addedAt": "2026-09-04T02:20:07.435Z",
+    "lastCheckedAt": "2026-09-04T02:20:07.435Z"
   }
 ]

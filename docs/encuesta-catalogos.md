@@ -89,4 +89,18 @@ primero y después se toca el preset.
 
 | Fecha | Cambio | Estado |
 |---|---|---|
-| 2026-09-04 | Encuesta respondida, plan armado | pendiente de aplicar |
+| 2026-09-04 | Encuesta respondida, plan armado | ✓ |
+| 2026-09-04 | `scripts/apply-encuesta-catalogos.mjs` → `regenerate-aiometadata.mjs --apply --force` (instancia `ebc8f187`). Inicio 86→62 filas, 13 catálogos borrados, 30 nuevos, filtro global (lista negra), géneros generales desactivados. Audio Latino removido de la cuenta. 25 addons. | ✓ aplicado y verificado |
+| 2026-09-04 | MyTrakt adelante para "Continuar viendo" arriba → **revertido**, rompía el español de la metadata. "Continuar viendo" nativo de Stremio ya está en fila 0. | revertido |
+| — | Pendiente: extender `/mediathek` a Polizeiruf 110 (`tt0806901`) y SOKO Leipzig (`tt0274279`) — están en la Mediathek, Pablo los tiene en watchlist, pero usan season real + nombres "Episode N" mezclados con títulos de caso → necesita lógica de matching propia por show. Alto valor, pasada aparte. | pendiente |
+
+### Verificación de "Seguir viendo" (2026-09-04, `scripts/verify-continue-watching.mjs`)
+72 títulos con actividad en 30 días. **El rework de catálogos NO tocó streams/subs** — la
+disponibilidad es idéntica a antes. 39/72 con stream + sub ES; el resto son huecos PREEXISTENTES:
+- **Sin stream**: Ágata y Lola S01E09 (arg. reciente), Infiltrada S01E11 (id `tt29780951` = "Wild
+  Cards" en Cinemeta, mapeo TMDB roto — re-agregado al log antifrustración), Soko Leipzig /
+  Polizeiruf 110 (procedurales alemanes, mismo hueco que Tatort — ver pendiente `/mediathek`),
+  varias pelis infantiles muy nuevas (Tadeo Jones, Matchbox…).
+- **Sin sub ES**: mayoría contenido infantil de nicho (Karate Sheep, La Oveja Shaun, Ray Gunn…) —
+  Pablo pidió que el contenido familiar aparezca igual sin doblaje.
+Ninguno es regresión del rework.

@@ -3724,6 +3724,61 @@ que de verdad usa.
   del repo. Tip útil: varios arreglaron "pantalla verde" desactivando "Nvidia GPU Video
   Processing" en ajustes de Stremio.
 
+## Sesión 2026-09-04 — encuesta de gustos aplicada, rework del inicio de stremioeg
+
+Pablo respondió la encuesta (`docs/encuesta-catalogos.md`) en una charla y pidió aplicar todo de
+una. Ejecutado con `scripts/apply-encuesta-catalogos.mjs` (one-shot) + `regenerate-aiometadata.mjs
+--apply --force`.
+
+**Perfil ampliado:** además del crimen/misterio europeo (adultos), ahora **toda la familia comparte
+la cuenta** — Cartoon Network, Nickelodeon, contenido familiar (con o sin doblaje latino), comedia
+juvenil **con actores reales** (*The Really Loud House* / "Una verdadera casa de locos"), y **humor
+negro** (Fargo/Parásitos, NO dibujos adultos).
+
+**Inicio: 86 → 62 filas**, ordenado en 7 secciones (charla): Continuar viendo (nativo de Stremio) →
+Policial → Humor Negro → Familia → [géneros generales: NINGUNO, Pablo "no uso ese filtro"] → Países
+→ Estrenos.
+
+**Catálogos:**
+- **Borrados (13):** Asia (Japón/Corea/China/Taiwán/India ×2), "Crimen y Misterio Europeo/Británico"
+  (redundantes con Europe Noir / Crimen Reino Unido), "Soap Shows" (telenovela en lista negra).
+- **Nuevos (30):** combos policiales (Crimen Nórdico/Francés/Español/Italiano, Cine Negro Clásico =
+  film noir 1940-69 kw 9807, Thriller Psicológico kw 12565), Humor Negro (kw 373401|10123), Comedia
+  Juvenil Actores Reales (networks 13|44|294 sin animación), países nórdicos (SE/DK/NO/IS ×2), "Para
+  Ver en Familia" (cert PG, Descubrir), filas de director/actor (Ritchie 956 / Tarantino 138 /
+  Coppola 1776 con `with_crew`; DiCaprio 6193 / Gadot 90633 / Downey 3223 con `with_cast`, Descubrir).
+- **Lista negra global** (`without_keywords` en todo catálogo enabled salvo los de persona):
+  anime(210024), gore(10292), doc naturaleza(221355), religión(11001), faith-based(348144),
+  deportes(6075). + `without_genres` reality(10764)/telenovela(10766)/talk(10767)/noticias(10763)
+  en series.
+- **Géneros generales DESACTIVADOS** (Comedy/Action/Adventure/SciFi/Fantasy/War/Romance/History/
+  Music/Western + equivalentes de series): Pablo no los usa Y el manifest de AIOMetadata tiene un
+  **tope de tamaño real** — con los 30 nuevos + los géneros el `addonCollectionSet` daba
+  `Max descriptor size reached` (code 20004). Sin ellos: 129 catálogos, entra. Drama/Documental
+  quedan enabled en Descubrir. El contenido sigue por país / Descubrir Maestro / búsqueda.
+
+**Colección:** MyTrakt Sync se probó adelante de AIOMetadata (para "Continuar viendo" arriba) pero
+**rompía el español de la metadata** (verificado: gana el `meta` de MyTrakt en inglés — mismo
+efecto documentado el 2026-07-13) → revertido a después de Streailer. "Continuar viendo" nativo de
+Stremio ya es la fila 0, no hace falta. **"Audio Latino (verificado)" removido de la cuenta**
+(pedido de Pablo). 25 addons. Instancia AIOMetadata `ebc8f187-2443-4386-9988-e657a5ff139b`.
+
+**Verificación:** `health-check.mjs` verde, sin duplicados. Los 30 catálogos nuevos devuelven
+contenido real (spot-check: Humor Negro→Parásitos/Pulp Fiction, Cine Negro Clásico→Vértigo/
+Perdición, Comedia Juvenil→"Una verdadera casa de locos", etc). `scripts/verify-continue-watching.mjs`
+(nuevo): 72 títulos del "Seguir viendo" de los últimos 30 días — el rework NO tocó streams/subs, la
+disponibilidad es idéntica; 39/72 con stream+sub ES, el resto son huecos preexistentes (contenido
+arg./esp. reciente, procedurales alemanes, infantil de nicho sin sub — Pablo pidió que el familiar
+aparezca igual). Detalle en `docs/encuesta-catalogos.md`.
+
+**Pendiente (alto valor):** extender `/mediathek` a **Polizeiruf 110** (`tt0806901`) y **SOKO
+Leipzig** (`tt0274279`) — están en la Mediathek alemana y Pablo los tiene en watchlist, mismo hueco
+que Tatort tenía. Necesita lógica de matching propia (usan season real + nombres "Episode N"
+mezclados con títulos de caso, distinto de Tatort). Pasada aparte.
+
+**Scripts nuevos:** `scripts/apply-encuesta-catalogos.mjs` (one-shot), `scripts/remove-addon.mjs`
+(reusable), `scripts/verify-continue-watching.mjs` (reusable).
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

@@ -92,7 +92,7 @@ primero y después se toca el preset.
 | 2026-09-04 | Encuesta respondida, plan armado | ✓ |
 | 2026-09-04 | `scripts/apply-encuesta-catalogos.mjs` → `regenerate-aiometadata.mjs --apply --force` (instancia `ebc8f187`). Inicio 86→62 filas, 13 catálogos borrados, 30 nuevos, filtro global (lista negra), géneros generales desactivados. Audio Latino removido de la cuenta. 25 addons. | ✓ aplicado y verificado |
 | 2026-09-04 | MyTrakt adelante para "Continuar viendo" arriba → **revertido**, rompía el español de la metadata. "Continuar viendo" nativo de Stremio ya está en fila 0. | revertido |
-| — | Pendiente: extender `/mediathek` a Polizeiruf 110 (`tt0806901`) y SOKO Leipzig (`tt0274279`) — están en la Mediathek, Pablo los tiene en watchlist, pero usan season real + nombres "Episode N" mezclados con títulos de caso → necesita lógica de matching propia por show. Alto valor, pasada aparte. | pendiente |
+| 2026-09-04 | `/mediathek` + `/translate` extendidos a Polizeiruf 110 (`tt0806901`) y SOKO Leipzig (`tt0274279`) — mapa `MEDIATHEK_SHOWS`, `showCaseTitle(name, topic)`. Deployado, manifest v1.1.0 refrescado en la cuenta. Verificado en vivo (Polizeiruf S52E8, SOKO S26E14 → stream DE + sub ES latino IA). | ✓ aplicado y verificado |
 
 ### Verificación de "Seguir viendo" (2026-09-04, `scripts/verify-continue-watching.mjs`)
 72 títulos con actividad en 30 días. **El rework de catálogos NO tocó streams/subs** — la

@@ -3781,9 +3781,17 @@ minDur)` con cache por-topic. `/translate` idem. Deployado (v1.1.0, `deno deploy
 manifest refrescado en la cuenta con `update-addon-url.mjs` (mismo URL). Verificado en vivo:
 Polizeiruf 110 S52E8 "Nur Gespenster" → NDR + sub; SOKO Leipzig S26E14 "Kowalski" → ZDF + sub;
 Tatort sin regresión. Matching medido: Polizeiruf 9/10 episodios con título real, SOKO 16/16.
-**Pendiente menor:** `tatort-prewarm.mjs` sigue siendo solo-Tatort (state keyed por "S:E", chocaría
-con las otras) — la traducción igual se genera on-demand (~40s la 1ª vez); generalizar el pre-warm
-es optimización, no bloqueante.
+
+**Pre-warm generalizado a los 3 shows (mismo día).** `scripts/tatort-prewarm.mjs` pasó de
+`const IMDB` fijo a la lista `SHOWS` (mismos 3 imdb que `MEDIATHEK_SHOWS`). El state
+(`data/tatort-prewarm-state.json`) se re-keyó de `"S:E"` a `"<imdb>:S:E"` — migración automática en
+`loadState()` (prefija `tt0806910:` a cualquier clave sin prefijo `ttNNN:`). El `--max` es un tope
+TOTAL por corrida y se reparte **round-robin entre los 3 shows** para que Polizeiruf/SOKO no queden
+detrás del backlog de Tatort. Se agregó filtro `season>0 && number>0` (los "Episode N" placeholder
+de temporada 0 no matchean nada). Workflow: `--recent 10 --max 30`. Verificado: round-robin hitea
+los 3 imdb, Polizeiruf encontró base de traducción, los SOKO "Episode N" caen como `sin-base`
+(correcto). Estado real al día: ~50 Tatort completos + backlog de ~200 (Tatort viejo + Polizeiruf/
+SOKO nuevos) que el cron diario va limpiando.
 
 **Scripts nuevos:** `scripts/apply-encuesta-catalogos.mjs` (one-shot), `scripts/remove-addon.mjs`
 (reusable), `scripts/verify-continue-watching.mjs` (reusable).

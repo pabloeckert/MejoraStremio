@@ -1,9 +1,10 @@
 name: tatort-subs-prewarm
 
 # 07:30 Argentina (UTC-3) — 15 min después de premiere-radar, para no competir por el push a data/.
-# Calienta la cache de traducción IA→ES latino del hub para los Tatort que Pablo tiene más a mano
-# (Continuar viendo / Watchlist de MyTrakt + estrenos recientes), así el subtítulo carga al instante
-# cuando abre el episodio. La base de traducción es el subtítulo alemán oficial de la Mediathek, no
+# Calienta la cache de traducción IA→ES latino del hub para los procedurales alemanes que Pablo
+# tiene más a mano (Tatort, Polizeiruf 110, SOKO Leipzig — mismos shows que /mediathek): Continuar
+# viendo / Watchlist de MyTrakt + estrenos recientes, así el subtítulo carga al instante cuando abre
+# el episodio. La base de traducción es el subtítulo alemán oficial de la Mediathek, no
 # OpenSubtitles — no consume cupo de nada, se puede correr a diario.
 on:
   schedule:
@@ -19,12 +20,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Calentar subtítulos IA de Tatort
+      - name: Calentar subtítulos IA (Tatort / Polizeiruf 110 / SOKO Leipzig)
         run: |
           set -o pipefail
           ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
           ST_PASS="${{ secrets.STREMIO_PASS }}" \
-          node scripts/tatort-prewarm.mjs --recent 12 --max 24 2>&1 | tee /tmp/prewarm-output.txt
+          node scripts/tatort-prewarm.mjs --recent 10 --max 30 2>&1 | tee /tmp/prewarm-output.txt
 
       - name: Commitear el estado y registrar en el log interno
         run: |

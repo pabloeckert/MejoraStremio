@@ -3771,10 +3771,19 @@ disponibilidad es idéntica; 39/72 con stream+sub ES, el resto son huecos preexi
 arg./esp. reciente, procedurales alemanes, infantil de nicho sin sub — Pablo pidió que el familiar
 aparezca igual). Detalle en `docs/encuesta-catalogos.md`.
 
-**Pendiente (alto valor):** extender `/mediathek` a **Polizeiruf 110** (`tt0806901`) y **SOKO
-Leipzig** (`tt0274279`) — están en la Mediathek alemana y Pablo los tiene en watchlist, mismo hueco
-que Tatort tenía. Necesita lógica de matching propia (usan season real + nombres "Episode N"
-mezclados con títulos de caso, distinto de Tatort). Pasada aparte.
+**`/mediathek` extendido a Polizeiruf 110 + SOKO Leipzig (2026-09-04, mismo día).** El handler pasó
+de `TATORT_IMDB` fijo a un mapa `MEDIATHEK_SHOWS`: `{tt0806910: Tatort (89min), tt0806901:
+Polizeiruf 110 (89min), tt0274279: SOKO Leipzig (44min)}`. `tatortCaseTitle` → `showCaseTitle(name,
+topic)`: para Tatort saca el prefijo "Detective - NN - " y "Tatort:"; para las otras dos el nombre
+de Cinemeta YA es el título del caso (se saca solo el prefijo del topic); los episodios "Episode N"
+(placeholder sin título real) devuelven "" y no matchean. `loadMvwTatort` → `loadMvwShow(topic,
+minDur)` con cache por-topic. `/translate` idem. Deployado (v1.1.0, `deno deploy --prod` local),
+manifest refrescado en la cuenta con `update-addon-url.mjs` (mismo URL). Verificado en vivo:
+Polizeiruf 110 S52E8 "Nur Gespenster" → NDR + sub; SOKO Leipzig S26E14 "Kowalski" → ZDF + sub;
+Tatort sin regresión. Matching medido: Polizeiruf 9/10 episodios con título real, SOKO 16/16.
+**Pendiente menor:** `tatort-prewarm.mjs` sigue siendo solo-Tatort (state keyed por "S:E", chocaría
+con las otras) — la traducción igual se genera on-demand (~40s la 1ª vez); generalizar el pre-warm
+es optimización, no bloqueante.
 
 **Scripts nuevos:** `scripts/apply-encuesta-catalogos.mjs` (one-shot), `scripts/remove-addon.mjs`
 (reusable), `scripts/verify-continue-watching.mjs` (reusable).

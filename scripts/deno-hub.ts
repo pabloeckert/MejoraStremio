@@ -1506,17 +1506,25 @@ async function handleDiscover(subPath: string): Promise<Response> {
 // que agrega las Filmlisten de todos los canales públicos alemanes + ORF.
 // ════════════════════════════════════════════════════════════════════════
 
-const TATORT_IMDB = "tt0806910";
 const MVW_API = "https://mediathekviewweb.de/api/query";
+
+// Series policiales alemanas de antología (episodios autoconclusivos por título de
+// caso) que están en la Mediathek pública. Todas comparten el mismo esquema:
+// buscar por `topic`, matchear el título del caso contra la Filmliste.
+const MEDIATHEK_SHOWS: Record<string, { topic: string; minDur: number }> = {
+  "tt0806910": { topic: "Tatort", minDur: 3300 },          // ~89 min
+  "tt0806901": { topic: "Polizeiruf 110", minDur: 3300 },  // ~89 min
+  "tt0274279": { topic: "SOKO Leipzig", minDur: 2400 },    // ~44 min
+};
 
 const MEDIATHEK_MANIFEST = {
   id: "com.mejorastremio.mediathek",
-  version: "1.0.0",
-  name: "Mediathek DE (Tatort)",
+  version: "1.1.0",
+  name: "Mediathek DE (policiales)",
   description:
-    "Streams directos de la Mediathek pública alemana (ARD/SWR/WDR/NDR/…) para Tatort — " +
-    "audio alemán en calidad HD, sin torrents ni debrid. Cada stream ya trae adjunto el " +
-    "subtítulo alemán oficial y una traducción IA al español latino.",
+    "Streams directos de la Mediathek pública alemana (ARD/ZDF/SWR/WDR/NDR/MDR/RBB/BR…) para " +
+    "Tatort, Polizeiruf 110 y SOKO Leipzig — audio alemán HD, sin torrents ni debrid. Cada " +
+    "stream trae adjunto el subtítulo alemán oficial y una traducción IA al español latino.",
   resources: ["stream"],
   types: ["series"],
   idPrefixes: ["tt"],
@@ -1535,7 +1543,6 @@ interface MvwFilm {
   normTitle: string;
 }
 
-let mvwCache: { at: number; films: MvwFilm[] } | null = null;
 const MVW_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
 
 function normTitleKey(s: string): string {
@@ -1549,25 +1556,32 @@ function normTitleKey(s: string): string {
     .trim();
 }
 
-// "Odenthal - 81 - Der Stelzenmann" -> "Der Stelzenmann"
+// "Odenthal - 81 - Der Stelzenmann" -> "Der Stelzenmann"  (formato Tatort)
 // "Tatort: Das Haus am Ende der Straße" -> "Das Haus am Ende der Straße"
-function tatortCaseTitle(episodeName: string): string {
+// "Goldraub" -> "Goldraub"  (Polizeiruf/SOKO: el nombre ya es el título del caso)
+// "Episode 12" -> ""  (placeholder de Cinemeta sin título real → no se puede matchear)
+function showCaseTitle(episodeName: string, topic: string): string {
   let n = String(episodeName || "");
-  const dash = n.match(/^.*?-\s*\d+\s*-\s*(.+)$/);
+  if (/^episode\s+\d+$/i.test(n.trim())) return "";
+  const dash = n.match(/^.*?-\s*\d+\s*-\s*(.+)$/); // "Detective - NN - Título"
   if (dash) n = dash[1];
-  n = n.replace(/^Tatort[:\s-]+/i, "").replace(/\(.*?\)/g, "").trim();
+  n = n.replace(new RegExp(`^${topic.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[:\\s-]+`, "i"), "")
+    .replace(/\(.*?\)/g, "").trim();
   return n;
 }
 
-async function loadMvwTatort(): Promise<MvwFilm[]> {
-  if (mvwCache && Date.now() - mvwCache.at < MVW_CACHE_TTL_MS) return mvwCache.films;
+const mvwCacheByTopic = new Map<string, { at: number; films: MvwFilm[] }>();
+
+async function loadMvwShow(topic: string, minDur: number): Promise<MvwFilm[]> {
+  const cached = mvwCacheByTopic.get(topic);
+  if (cached && Date.now() - cached.at < MVW_CACHE_TTL_MS) return cached.films;
   const films: MvwFilm[] = [];
-  for (let offset = 0; offset < 2000; offset += 100) {
+  for (let offset = 0; offset < 2400; offset += 100) {
     const r = await fetch(MVW_API, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({
-        queries: [{ fields: ["topic"], query: "Tatort" }],
+        queries: [{ fields: ["topic"], query: topic }],
         sortBy: "timestamp",
         sortOrder: "desc",
         future: false,
@@ -1579,11 +1593,10 @@ async function loadMvwTatort(): Promise<MvwFilm[]> {
     // deno-lint-ignore no-explicit-any
     const res: any[] = r?.result?.results ?? [];
     for (const x of res) {
-      if ((x.duration ?? 0) < 3300) continue; // descarta trailers/clips, deja solo films
+      if ((x.duration ?? 0) < minDur) continue; // descarta trailers/clips, deja solo episodios completos
       if (/Audiodeskription|H[oö]rfassung|klare Sprache|Geb[aä]rden/i.test(x.title)) continue;
       const hd = String(x.url_video_hd || "");
       const mp4 = String(x.url_video || "");
-      // variantes de accesibilidad que se cuelan sin marca en el título
       if (/audio_description|sign_language|\.ad\.|_ad_/i.test(hd + mp4)) continue;
       films.push({
         channel: x.channel,
@@ -1594,12 +1607,12 @@ async function loadMvwTatort(): Promise<MvwFilm[]> {
         urlLow: x.url_video_low || "",
         urlSub: x.url_subtitle || "",
         ts: x.timestamp || 0,
-        normTitle: normTitleKey(String(x.title).replace(/\(.*?\)/g, "").replace(/^Tatort[:\s-]+/i, "")),
+        normTitle: normTitleKey(String(x.title).replace(/\(.*?\)/g, "").replace(new RegExp(`^${topic.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[:\\s-]+`, "i"), "")),
       });
     }
     if (res.length < 100) break;
   }
-  mvwCache = { at: Date.now(), films };
+  mvwCacheByTopic.set(topic, { at: Date.now(), films });
   return films;
 }
 
@@ -1638,7 +1651,8 @@ async function handleMediathek(subPath: string, mountBase: string, translateMoun
   if (!m) return new Response("Not found", { status: 404, headers: cors });
 
   const [imdbId, sRaw, eRaw] = m[1].split(":");
-  if (imdbId !== TATORT_IMDB || !sRaw || !eRaw) return jsonResponse({ streams: [] });
+  const show = MEDIATHEK_SHOWS[imdbId];
+  if (!show || !sRaw || !eRaw) return jsonResponse({ streams: [] });
 
   try {
     const meta = await fetchCinemetaMeta("series", imdbId);
@@ -1646,10 +1660,10 @@ async function handleMediathek(subPath: string, mountBase: string, translateMoun
       // deno-lint-ignore no-explicit-any
       (v: any) => String(v.season) === sRaw && String(v.number) === eRaw,
     );
-    const caseTitle = tatortCaseTitle(vid?.name ?? "");
+    const caseTitle = showCaseTitle(vid?.name ?? "", show.topic);
     if (!caseTitle) return jsonResponse({ streams: [] });
 
-    const films = await loadMvwTatort();
+    const films = await loadMvwShow(show.topic, show.minDur);
     const matched = matchMvwFilms(films, caseTitle);
 
     const streams = matched.slice(0, 6).map((f) => {
@@ -1669,7 +1683,7 @@ async function handleMediathek(subPath: string, mountBase: string, translateMoun
         title: `${f.channel} · ${caseTitle}\n🇩🇪 audio alemán${f.urlSub ? " · sub DE oficial + IA→ES latino" : ""} · ${Math.round(f.duration / 60)}min`,
         url: video,
         subtitles: subs,
-        behaviorHints: { notWebReady: /\.m3u8($|\?)/.test(video), bingeGroup: `mediathek-tatort-${imdbId}` },
+        behaviorHints: { notWebReady: /\.m3u8($|\?)/.test(video), bingeGroup: `mediathek-${imdbId}` },
       };
     });
 
@@ -1981,13 +1995,14 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
 
       const bases: { t: string; u?: string; f?: number; label: string; keyRef: string }[] = [];
 
-      if (imdbId === TATORT_IMDB && season != null && episode != null) {
+      const mvwShow = MEDIATHEK_SHOWS[imdbId];
+      if (mvwShow && season != null && episode != null) {
         const meta = await fetchCinemetaMeta("series", imdbId);
         // deno-lint-ignore no-explicit-any
         const vid = (meta?.videos ?? []).find((v: any) => v.season === season && v.number === episode);
-        const ct = tatortCaseTitle(vid?.name ?? "");
+        const ct = showCaseTitle(vid?.name ?? "", mvwShow.topic);
         if (ct) {
-          const films = matchMvwFilms(await loadMvwTatort(), ct).filter((f) => f.urlSub);
+          const films = matchMvwFilms(await loadMvwShow(mvwShow.topic, mvwShow.minDur), ct).filter((f) => f.urlSub);
           if (films[0]) bases.push({ t: "ard", u: films[0].urlSub, label: "base DE oficial", keyRef: films[0].urlSub });
         }
       }

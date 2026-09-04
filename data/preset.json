@@ -137,6 +137,1126 @@
     "catalogs": {
       "standard": [
         {
+          "id": "tmdb.discover.movie.enc-para-ver-en-familia-cine.pablo122",
+          "type": "movie",
+          "name": "Para Ver en Familia (Cine)",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "popularity.desc",
+                "include_adult": false,
+                "with_genres": "10751|16|35|12",
+                "certification_country": "US",
+                "certification.lte": "PG",
+                "vote_count.gte": 80,
+                "without_keywords": "210024,10292,221355,11001,348144,6075"
+              },
+              "formState": {
+                "catalogName": "Para Ver en Familia (Cine)",
+                "discoverSource": "tmdb",
+                "sortBy": "popularity.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [
+                  {
+                    "id": 10751,
+                    "label": "Family"
+                  },
+                  {
+                    "id": 16,
+                    "label": "Animation"
+                  },
+                  {
+                    "id": 35,
+                    "label": "Comedy"
+                  },
+                  {
+                    "id": 12,
+                    "label": "Adventure"
+                  }
+                ],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "",
+                "certificationCountry": "US",
+                "certificationValue": "PG",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 80,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.enc-para-ver-en-familia-series.pablo123",
+          "type": "series",
+          "name": "Para Ver en Familia (Series)",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "popularity.desc",
+                "include_adult": false,
+                "with_genres": "10751|10762|35",
+                "vote_count.gte": 30,
+                "without_keywords": "210024,10292,221355,11001,348144,6075",
+                "without_genres": "10764,10766,10767,10763"
+              },
+              "formState": {
+                "catalogName": "Para Ver en Familia (Series)",
+                "discoverSource": "tmdb",
+                "sortBy": "popularity.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [
+                  {
+                    "id": 10751,
+                    "label": "Family"
+                  },
+                  {
+                    "id": 10762,
+                    "label": "Kids"
+                  },
+                  {
+                    "id": 35,
+                    "label": "Comedy"
+                  }
+                ],
+                "excludeGenres": [
+                  {
+                    "id": 10764,
+                    "label": "10764"
+                  },
+                  {
+                    "id": 10766,
+                    "label": "10766"
+                  },
+                  {
+                    "id": 10767,
+                    "label": "10767"
+                  },
+                  {
+                    "id": 10763,
+                    "label": "10763"
+                  }
+                ],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 30,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.family_movies.10751",
+          "type": "movie",
+          "name": "Family Movies",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "include_adult": false,
+                "with_genres": "10751",
+                "watch_region": "US",
+                "with_release_type": "4|5|6",
+                "vote_average.gte": 5,
+                "vote_count.gte": 100,
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
+                "without_keywords": "210024,10292,221355,11001,348144,6075"
+              },
+              "formState": {
+                "catalogName": "Family Movies",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [
+                  {
+                    "id": 10751,
+                    "label": "Family"
+                  }
+                ],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": true,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "US",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5,
+                  10
+                ],
+                "voteCountMin": 100,
+                "runtimeRange": [
+                  60,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.family_shows.10751",
+          "type": "series",
+          "name": "Family Shows",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_genres": "10751",
+                "watch_region": "US",
+                "vote_average.gte": 5,
+                "vote_count.gte": 50,
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
+                "without_keywords": "210024,10292,221355,11001,348144,6075",
+                "without_genres": "10764,10766,10767,10763"
+              },
+              "formState": {
+                "catalogName": "Family Shows",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [
+                  {
+                    "id": 10751,
+                    "label": "Family"
+                  }
+                ],
+                "excludeGenres": [
+                  {
+                    "id": 10764,
+                    "label": "10764"
+                  },
+                  {
+                    "id": 10766,
+                    "label": "10766"
+                  },
+                  {
+                    "id": 10767,
+                    "label": "10767"
+                  },
+                  {
+                    "id": 10763,
+                    "label": "10763"
+                  }
+                ],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": true,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "US",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5,
+                  10
+                ],
+                "voteCountMin": 50,
+                "runtimeRange": [
+                  0,
+                  180
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.enc-comedia-juvenil-actores-reales.pablo113",
+          "type": "series",
+          "name": "Comedia Juvenil (Actores Reales)",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_genres": "35",
+                "without_genres": "16,10764,10766,10767,10763",
+                "with_networks": "13|44|294",
+                "vote_count.gte": 12,
+                "without_keywords": "210024,10292,221355,11001,348144,6075"
+              },
+              "formState": {
+                "catalogName": "Comedia Juvenil (Actores Reales)",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [
+                  {
+                    "id": 35,
+                    "label": "Comedy"
+                  }
+                ],
+                "excludeGenres": [
+                  {
+                    "id": 16,
+                    "label": "Animation"
+                  },
+                  {
+                    "id": 10764,
+                    "label": "10764"
+                  },
+                  {
+                    "id": 10766,
+                    "label": "10766"
+                  },
+                  {
+                    "id": 10767,
+                    "label": "10767"
+                  },
+                  {
+                    "id": 10763,
+                    "label": "10763"
+                  }
+                ],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 12,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.cartoon-network.pablo059",
+          "type": "series",
+          "name": "Cartoon Network",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_networks": "56",
+                "vote_count.gte": 20,
+                "without_keywords": "210024,10292,221355,11001,348144,6075",
+                "without_genres": "10764,10766,10767,10763"
+              },
+              "formState": {
+                "catalogName": "Cartoon Network",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [
+                  {
+                    "id": 10764,
+                    "label": "10764"
+                  },
+                  {
+                    "id": 10766,
+                    "label": "10766"
+                  },
+                  {
+                    "id": 10767,
+                    "label": "10767"
+                  },
+                  {
+                    "id": 10763,
+                    "label": "10763"
+                  }
+                ],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 20,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.nickelodeon.pablo060",
+          "type": "series",
+          "name": "Nickelodeon",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_networks": "13",
+                "vote_count.gte": 20,
+                "without_keywords": "210024,10292,221355,11001,348144,6075",
+                "without_genres": "10764,10766,10767,10763"
+              },
+              "formState": {
+                "catalogName": "Nickelodeon",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [
+                  {
+                    "id": 10764,
+                    "label": "10764"
+                  },
+                  {
+                    "id": 10766,
+                    "label": "10766"
+                  },
+                  {
+                    "id": 10767,
+                    "label": "10767"
+                  },
+                  {
+                    "id": 10763,
+                    "label": "10763"
+                  }
+                ],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 20,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.animation_movies.16",
+          "type": "movie",
+          "name": "Animation Movies",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "include_adult": false,
+                "with_genres": "16",
+                "watch_region": "US",
+                "with_release_type": "4|5|6",
+                "vote_average.gte": 5,
+                "vote_count.gte": 100,
+                "with_runtime.gte": 60,
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
+                "without_keywords": "210024,10292,221355,11001,348144,6075"
+              },
+              "formState": {
+                "catalogName": "Animation Movies",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [
+                  {
+                    "id": 16,
+                    "label": "Animation"
+                  }
+                ],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": true,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "US",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5,
+                  10
+                ],
+                "voteCountMin": 100,
+                "runtimeRange": [
+                  60,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.animation_shows.16",
+          "type": "series",
+          "name": "Animated Shows",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "with_genres": "16",
+                "watch_region": "US",
+                "vote_average.gte": 5,
+                "vote_count.gte": 50,
+                "with_type": "2",
+                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
+                "without_keywords": "210024,10292,221355,11001,348144,6075",
+                "without_genres": "10764,10766,10767,10763"
+              },
+              "formState": {
+                "catalogName": "Animated Shows",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [
+                  {
+                    "id": 16,
+                    "label": "Animation"
+                  }
+                ],
+                "excludeGenres": [
+                  {
+                    "id": 10764,
+                    "label": "10764"
+                  },
+                  {
+                    "id": 10766,
+                    "label": "10766"
+                  },
+                  {
+                    "id": 10767,
+                    "label": "10767"
+                  },
+                  {
+                    "id": 10763,
+                    "label": "10763"
+                  }
+                ],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": true,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "US",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5,
+                  10
+                ],
+                "voteCountMin": 50,
+                "runtimeRange": [
+                  10,
+                  180
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.family-en.pablo055",
+          "type": "movie",
+          "name": "Familiar en Inglés",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "include_adult": false,
+                "with_genres": "10751|16",
+                "with_original_language": "en",
+                "primary_release_date.gte": "2018-01-01",
+                "vote_count.gte": 50,
+                "with_runtime.gte": 60,
+                "without_keywords": "210024,10292,221355,11001,348144,6075"
+              },
+              "formState": {
+                "catalogName": "Familiar en Inglés",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [
+                  {
+                    "id": 10751,
+                    "label": "Family"
+                  },
+                  {
+                    "id": 16,
+                    "label": "Animation"
+                  }
+                ],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en",
+                "originCountry": "",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 50,
+                "runtimeRange": [
+                  60,
+                  400
+                ],
+                "primaryReleaseFrom": "2018-01-01",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
           "id": "tmdb.discover.movie.crime_movies.80",
           "type": "movie",
           "name": "Crime Movies",
@@ -2912,788 +4032,6 @@
                 "runtimeRange": [
                   0,
                   400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.family_movies.10751",
-          "type": "movie",
-          "name": "Family Movies",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "include_adult": false,
-                "with_genres": "10751",
-                "watch_region": "US",
-                "with_release_type": "4|5|6",
-                "vote_average.gte": 5,
-                "vote_count.gte": 100,
-                "with_runtime.gte": 60,
-                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
-                "without_keywords": "210024,10292,221355,11001,348144,6075"
-              },
-              "formState": {
-                "catalogName": "Family Movies",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [
-                  {
-                    "id": 10751,
-                    "label": "Family"
-                  }
-                ],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": true,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "US",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  5,
-                  10
-                ],
-                "voteCountMin": 100,
-                "runtimeRange": [
-                  60,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.family_shows.10751",
-          "type": "series",
-          "name": "Family Shows",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "with_genres": "10751",
-                "watch_region": "US",
-                "vote_average.gte": 5,
-                "vote_count.gte": 50,
-                "with_type": "2",
-                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
-                "without_keywords": "210024,10292,221355,11001,348144,6075",
-                "without_genres": "10764,10766,10767,10763"
-              },
-              "formState": {
-                "catalogName": "Family Shows",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [
-                  {
-                    "id": 10751,
-                    "label": "Family"
-                  }
-                ],
-                "excludeGenres": [
-                  {
-                    "id": 10764,
-                    "label": "10764"
-                  },
-                  {
-                    "id": 10766,
-                    "label": "10766"
-                  },
-                  {
-                    "id": 10767,
-                    "label": "10767"
-                  },
-                  {
-                    "id": 10763,
-                    "label": "10763"
-                  }
-                ],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": true,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "US",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  5,
-                  10
-                ],
-                "voteCountMin": 50,
-                "runtimeRange": [
-                  0,
-                  180
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.enc-comedia-juvenil-actores-reales.pablo113",
-          "type": "series",
-          "name": "Comedia Juvenil (Actores Reales)",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "with_genres": "35",
-                "without_genres": "16,10764,10766,10767,10763",
-                "with_networks": "13|44|294",
-                "vote_count.gte": 12,
-                "without_keywords": "210024,10292,221355,11001,348144,6075"
-              },
-              "formState": {
-                "catalogName": "Comedia Juvenil (Actores Reales)",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [
-                  {
-                    "id": 35,
-                    "label": "Comedy"
-                  }
-                ],
-                "excludeGenres": [
-                  {
-                    "id": 16,
-                    "label": "Animation"
-                  },
-                  {
-                    "id": 10764,
-                    "label": "10764"
-                  },
-                  {
-                    "id": 10766,
-                    "label": "10766"
-                  },
-                  {
-                    "id": 10767,
-                    "label": "10767"
-                  },
-                  {
-                    "id": 10763,
-                    "label": "10763"
-                  }
-                ],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 12,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.cartoon-network.pablo059",
-          "type": "series",
-          "name": "Cartoon Network",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "with_networks": "56",
-                "vote_count.gte": 20,
-                "without_keywords": "210024,10292,221355,11001,348144,6075",
-                "without_genres": "10764,10766,10767,10763"
-              },
-              "formState": {
-                "catalogName": "Cartoon Network",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [
-                  {
-                    "id": 10764,
-                    "label": "10764"
-                  },
-                  {
-                    "id": 10766,
-                    "label": "10766"
-                  },
-                  {
-                    "id": 10767,
-                    "label": "10767"
-                  },
-                  {
-                    "id": 10763,
-                    "label": "10763"
-                  }
-                ],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 20,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.nickelodeon.pablo060",
-          "type": "series",
-          "name": "Nickelodeon",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "with_networks": "13",
-                "vote_count.gte": 20,
-                "without_keywords": "210024,10292,221355,11001,348144,6075",
-                "without_genres": "10764,10766,10767,10763"
-              },
-              "formState": {
-                "catalogName": "Nickelodeon",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [
-                  {
-                    "id": 10764,
-                    "label": "10764"
-                  },
-                  {
-                    "id": 10766,
-                    "label": "10766"
-                  },
-                  {
-                    "id": 10767,
-                    "label": "10767"
-                  },
-                  {
-                    "id": 10763,
-                    "label": "10763"
-                  }
-                ],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 20,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.animation_movies.16",
-          "type": "movie",
-          "name": "Animation Movies",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "include_adult": false,
-                "with_genres": "16",
-                "watch_region": "US",
-                "with_release_type": "4|5|6",
-                "vote_average.gte": 5,
-                "vote_count.gte": 100,
-                "with_runtime.gte": 60,
-                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
-                "without_keywords": "210024,10292,221355,11001,348144,6075"
-              },
-              "formState": {
-                "catalogName": "Animation Movies",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [
-                  {
-                    "id": 16,
-                    "label": "Animation"
-                  }
-                ],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": true,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "US",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  5,
-                  10
-                ],
-                "voteCountMin": 100,
-                "runtimeRange": [
-                  60,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.animation_shows.16",
-          "type": "series",
-          "name": "Animated Shows",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "with_genres": "16",
-                "watch_region": "US",
-                "vote_average.gte": 5,
-                "vote_count.gte": 50,
-                "with_type": "2",
-                "with_origin_country": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
-                "without_keywords": "210024,10292,221355,11001,348144,6075",
-                "without_genres": "10764,10766,10767,10763"
-              },
-              "formState": {
-                "catalogName": "Animated Shows",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [
-                  {
-                    "id": 16,
-                    "label": "Animation"
-                  }
-                ],
-                "excludeGenres": [
-                  {
-                    "id": 10764,
-                    "label": "10764"
-                  },
-                  {
-                    "id": 10766,
-                    "label": "10766"
-                  },
-                  {
-                    "id": 10767,
-                    "label": "10767"
-                  },
-                  {
-                    "id": 10763,
-                    "label": "10763"
-                  }
-                ],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": true,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "US",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  5,
-                  10
-                ],
-                "voteCountMin": 50,
-                "runtimeRange": [
-                  10,
-                  180
                 ],
                 "primaryReleaseFrom": "",
                 "primaryReleaseTo": "",
@@ -11854,110 +12192,6 @@
           }
         },
         {
-          "id": "tmdb.discover.movie.family-en.pablo055",
-          "type": "movie",
-          "name": "Familiar en Inglés",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "include_adult": false,
-                "with_genres": "10751|16",
-                "with_original_language": "en",
-                "primary_release_date.gte": "2018-01-01",
-                "vote_count.gte": 50,
-                "with_runtime.gte": 60,
-                "without_keywords": "210024,10292,221355,11001,348144,6075"
-              },
-              "formState": {
-                "catalogName": "Familiar en Inglés",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [
-                  {
-                    "id": 10751,
-                    "label": "Family"
-                  },
-                  {
-                    "id": 16,
-                    "label": "Animation"
-                  }
-                ],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en",
-                "originCountry": "",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 50,
-                "runtimeRange": [
-                  60,
-                  400
-                ],
-                "primaryReleaseFrom": "2018-01-01",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
           "id": "tmdb.discover.movie.youtube-premium.pablo058",
           "type": "movie",
           "name": "YouTube Premium",
@@ -14040,240 +14274,6 @@
           }
         },
         {
-          "id": "tmdb.discover.movie.enc-para-ver-en-familia-cine.pablo122",
-          "type": "movie",
-          "name": "Para Ver en Familia (Cine)",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "popularity.desc",
-                "include_adult": false,
-                "with_genres": "10751|16|35|12",
-                "certification_country": "US",
-                "certification.lte": "PG",
-                "vote_count.gte": 80,
-                "without_keywords": "210024,10292,221355,11001,348144,6075"
-              },
-              "formState": {
-                "catalogName": "Para Ver en Familia (Cine)",
-                "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [
-                  {
-                    "id": 10751,
-                    "label": "Family"
-                  },
-                  {
-                    "id": 16,
-                    "label": "Animation"
-                  },
-                  {
-                    "id": 35,
-                    "label": "Comedy"
-                  },
-                  {
-                    "id": 12,
-                    "label": "Adventure"
-                  }
-                ],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "",
-                "certificationCountry": "US",
-                "certificationValue": "PG",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 80,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.enc-para-ver-en-familia-series.pablo123",
-          "type": "series",
-          "name": "Para Ver en Familia (Series)",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "popularity.desc",
-                "include_adult": false,
-                "with_genres": "10751|10762|35",
-                "vote_count.gte": 30,
-                "without_keywords": "210024,10292,221355,11001,348144,6075",
-                "without_genres": "10764,10766,10767,10763"
-              },
-              "formState": {
-                "catalogName": "Para Ver en Familia (Series)",
-                "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [
-                  {
-                    "id": 10751,
-                    "label": "Family"
-                  },
-                  {
-                    "id": 10762,
-                    "label": "Kids"
-                  },
-                  {
-                    "id": 35,
-                    "label": "Comedy"
-                  }
-                ],
-                "excludeGenres": [
-                  {
-                    "id": 10764,
-                    "label": "10764"
-                  },
-                  {
-                    "id": 10766,
-                    "label": "10766"
-                  },
-                  {
-                    "id": 10767,
-                    "label": "10767"
-                  },
-                  {
-                    "id": 10763,
-                    "label": "10763"
-                  }
-                ],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 30,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
           "id": "tmdb.discover.movie.enc-director-guy-ritchie.pablo124",
           "type": "movie",
           "name": "Director: Guy Ritchie",
@@ -14873,7 +14873,7 @@
         }
       ]
     },
-    "instanceId": "ebc8f187-2443-4386-9988-e657a5ff139b"
+    "instanceId": "b01b7da8-59de-4ad4-8e88-e41acec338c9"
   },
   "nuvioCollectionsConfig": [
     {

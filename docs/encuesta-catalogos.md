@@ -19,14 +19,14 @@ primero y después se toca el preset.
 
 ### Inicio (Home)
 - **Opción B: inicio largo**, casi todo a mano, el scroll no molesta.
-- **Orden de secciones:**
-  1. Continuar viendo / Recomendados / Watchlist (de Trakt — MyTrakt Sync)
-  2. **Policiales / crimen / misterio** (el cluster)
-  3. **Humor Negro** (+ Comedias Cortas acá)
-  4. **Familia** (Familia pelis+series → Comedia infantil actores reales → Cartoon Network →
-     Nickelodeon → Animación pelis → Animación series)
+- **Orden de secciones (actualizado 2026-09-04 tarde — Familia subió al tope):**
+  1. Continuar viendo (nativo de Stremio, fila 0)
+  2. **Familia / apto para todo público** (Para Ver en Familia Cine+Series → Familia pelis+series →
+     Comedia juvenil actores reales → Cartoon Network → Nickelodeon → Animación pelis+series →
+     Familiar en Inglés)
+  3. **Policiales / crimen / misterio** (el cluster)
+  4. **Humor Negro** (+ Comedias Cortas)
   5. **Géneros generales** → NINGUNO en el inicio, todos a Descubrir ("no uso ese filtro para nada").
-     En el inicio quedan solo Crimen/Misterio/Suspenso (sección 2) y Familia/Animación (sección 4).
   6. **Países**
   7. **Próximos Estrenos + En Cartelera** (las 4 filas)
 - **Top 10 por plataforma** (Netflix/Disney/HBO/…) → a **Descubrir**, fuera del inicio.
@@ -92,6 +92,8 @@ primero y después se toca el preset.
 | 2026-09-04 | Encuesta respondida, plan armado | ✓ |
 | 2026-09-04 | `scripts/apply-encuesta-catalogos.mjs` → `regenerate-aiometadata.mjs --apply --force` (instancia `ebc8f187`). Inicio 86→62 filas, 13 catálogos borrados, 30 nuevos, filtro global (lista negra), géneros generales desactivados. Audio Latino removido de la cuenta. 25 addons. | ✓ aplicado y verificado |
 | 2026-09-04 | MyTrakt adelante para "Continuar viendo" arriba → **revertido**, rompía el español de la metadata. "Continuar viendo" nativo de Stremio ya está en fila 0. | revertido |
+| 2026-09-04 tarde | **Familiar / apto todo público al tope** (`scripts/reorder-familia-top.mjs`). Bloque familiar de la mitad del Home al tope absoluto (filas 1-10). Subidos a Home: "Para Ver en Familia" (Cine+Series) y "Familiar en Inglés". Nuevo orden: Familia → Policial → Humor Negro → Países → Estrenos (65 filas). Instancia `eea69171`. | ✓ aplicado y verificado |
+| 2026-09-04 tarde | Fix `pablo123` "Para Ver en Familia (Series)": sacado género Comedy genérico (dejaba entrar Family Guy / The Rookie), ahora solo Family\|Kids + exclusión Crime/War. | ✓ |
 | 2026-09-04 | `/mediathek` + `/translate` extendidos a Polizeiruf 110 (`tt0806901`) y SOKO Leipzig (`tt0274279`) — mapa `MEDIATHEK_SHOWS`, `showCaseTitle(name, topic)`. Deployado, manifest v1.1.0 refrescado en la cuenta. Verificado en vivo (Polizeiruf S52E8, SOKO S26E14 → stream DE + sub ES latino IA). | ✓ aplicado y verificado |
 
 ### Verificación de "Seguir viendo" (2026-09-04, `scripts/verify-continue-watching.mjs`)

@@ -3796,6 +3796,72 @@ SOKO nuevos) que el cron diario va limpiando.
 **Scripts nuevos:** `scripts/apply-encuesta-catalogos.mjs` (one-shot), `scripts/remove-addon.mjs`
 (reusable), `scripts/verify-continue-watching.mjs` (reusable).
 
+## Sesión 2026-09-04 (tarde) — familiar al tope del Home + auditoría completa + research
+
+Pedido de Pablo, modo autónomo: subir todo lo familiar / apto para todo público arriba de todo,
+auditoría completa, actualizarse con foros/redes, informe en lenguaje sencillo, arreglar todo lo
+autónomo.
+
+**1. Familiar al tope del Home (`scripts/reorder-familia-top.mjs`, one-shot).** El bloque familiar
+pasó de la mitad del Home (posiciones 26-32) al **tope absoluto** (posiciones 1-10), arriba del
+cluster policial. Además se subieron a Home 3 catálogos que estaban solo en Descubrir: **"Para Ver
+en Familia" (Cine + Series)** y **"Familiar en Inglés"**. Nuevo orden del Home (65 filas):
+Familia/Animación (10) → Policial/Crimen/Misterio (23) → Humor Negro (2) → Países (26) → Estrenos
+(4). Aplicado y verificado en vivo — los 6 catálogos familiares del tope devuelven contenido real
+(Coyote vs Acme, Toy Story 5, Cartoon Network, Nickelodeon, Comedia Juvenil con "Una verdadera casa
+de locos", etc.). Esto reemplaza el orden de la encuesta del 2026-09-04 mañana (que tenía Policial
+primero).
+
+**2. Fix real encontrado en la auditoría — "Para Ver en Familia (Series)" (`pablo123`) dejaba entrar
+contenido no apto.** Tenía `with_genres: "10751|10762|35"` — el género Comedy (35) genérico dejaba
+pasar sitcoms adultas (Padre de familia / Family Guy) y procedurales policiales (The Rookie). Se
+sacó el 35 (queda `10751|10762` = Family|Kids) y se sumó `80,10768` (Crime, War&Politics) al
+`without_genres`. Verificado post-fix: ahora sale Teen Titans Go, Miraculous, Patrulla Canina,
+Barrio Sésamo — Family Guy y The Rookie fuera.
+
+**3. Auditoría — todo sano.** Las 3 cuentas (`stremioeg`/`solotveg`/`stremiojn`) con `health-check`
+exit 0, sin `manifest.id` duplicados. Hub `mejorastremio-hub`: las 12 rutas responden
+(`/health` OK, incluidas `mediathek`/`translate`/`opensubtitlesLatino`/`shortSeries` + dos nuevas
+`ufc`/`livetv` que aparecieron sin session log — no se tocaron). `refresh-dates` tenía 4 fechas
+vencidas (la instancia se había regenerado con la ventana del 2026-09-03) → refrescadas.
+`anti-frustration review`: 8 pendientes, **todos huecos estructurales ya conocidos** (Los Mufas /
+El Marginal / Ágata y Lola S01E02 / Pa' Seguirte Queriendo / VisionQuest / Infiltrada) — 0 nuevos,
+0 resueltos. Instancia AIOMetadata final: `eea69171-823c-4578-8765-9eee6c3eb217`.
+
+**4. Pre-warm generalizado a los 3 procedurales (viene de la sesión de la mañana).** Ya
+documentado arriba en la sesión del `/mediathek` — verificado end-to-end en CI: la corrida
+`workflow_dispatch` alternó round-robin los 3 imdb, Polizeiruf 110 S55E1/E3 y ~8 SOKO Leipzig
+quedaron "listo", los parciales son cuota de Gemini (se completan en corridas siguientes).
+
+**5. Research del ecosistema — nada accionable, todo lo instalado sano:**
+- **TorBox**: lo que se dio de baja en mayo 2026 fue el *addon hosteado* de TorBox — **NO** TorBox
+  como debrid dentro de Torrentio/Comet, que es lo que usa `stremioeg` (`torbox=<key>` en la URL).
+  Confirmado que ese uso sigue soportado y andando. El cambio de ToS del 31/07 (ya documentado en
+  la sesión 2026-08-27) sin novedades.
+- **NoTorrent / WebStreamrMBG**: varios artículos SEO 2026 los dan por "caídos/retirados" — **falso
+  para nuestro setup**. Evidencia directa de hoy: NoTorrent v2.7.0 responde con streams reales
+  (los artículos chequean el path viejo de Render, migró a `notorrent2.workers.dev` en julio);
+  WebStreamrMBG (`newman2x/WebStreamrMBG`) **no archivado, último push 2026-09-04** — fork activo,
+  distinto del WebStreamr oficial retirado.
+- **AIOMetadata**: muy activo (v2.16.5 el 2026-09-02). Cambio potencialmente útil en v2.16.4:
+  **"allow hiding unreleased shows per catalog"** — un override por-catálogo de
+  `hideUnreleasedDigital` (hoy es global, forzado a `false`). Bajo valor para el setup actual
+  (Trending ya no está en Home, "Próximos Estrenos" necesita `false`) y requeriría que el schema
+  de `preset.json` soporte el campo nuevo — no se tocó, anotado por si en el futuro molesta ver
+  algún no-estrenado colado en un catálogo.
+- **Torrentio / Comet**: activos, sin señales de riesgo. Un par de reportes de bloqueo por
+  Cloudflare desde IPs residenciales (Bélgica) — no nos afecta, TorBox resuelve server-side.
+- Reddit sigue inaccesible desde este entorno (in-app browser bloqueado, claude-in-chrome sin
+  conectar, redlib 403, `reddit.com`/`old.reddit.com` bloqueados) — research vía WebSearch + GitHub
+  API + docs de ElfHosted.
+
+**Verificación**: `health-check.mjs` verde antes y después de cada cambio. `validate-config.mjs`
+OK (183 catálogos, 122 enabled, 129 en el manifest de AIOMetadata). Sin regresión en streams
+(Matrix 156, Breaking Bad 163, Will Trent 65) ni subtítulos. Backups en `.backups/`
+(`...preregen-2026-09-04T10-13-16`, `...10-18-36`). El reorden no toca streams/subs/addons — el
+"Seguir viendo" reproduce igual que antes (verificado la sesión anterior con
+`verify-continue-watching.mjs`; esta sesión solo cambió orden de catálogos).
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

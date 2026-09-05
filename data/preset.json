@@ -151,7 +151,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "10751|16|35|12",
                 "certification_country": "US",
@@ -162,7 +162,7 @@
               "formState": {
                 "catalogName": "Para Ver en Familia (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -262,7 +262,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "10751|10762",
                 "vote_count.gte": 30,
@@ -272,7 +272,7 @@
               "formState": {
                 "catalogName": "Para Ver en Familia (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [
@@ -1811,7 +1811,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "53",
                 "with_keywords": "12565",
@@ -1821,7 +1821,7 @@
               "formState": {
                 "catalogName": "Thriller Psicológico (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -1914,7 +1914,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "9648|18",
                 "with_keywords": "12565",
@@ -1925,7 +1925,7 @@
               "formState": {
                 "catalogName": "Thriller Psicológico (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [
@@ -2251,7 +2251,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "with_origin_country": "DE|FR|IT|ES|PT|GB|IE|NL|BE|LU|CH|AT|SE|DK|NO|FI|IS|PL|CZ|SK|HU|RO|BG|HR|SI|RS|BA|MK|AL|ME|GR|EE|LV|LT|MT|CY|UA",
@@ -2262,7 +2262,7 @@
               "formState": {
                 "catalogName": "Europe Noir (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -2354,7 +2354,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "with_origin_country": "DE|FR|IT|ES|PT|GB|IE|NL|BE|LU|CH|AT|SE|DK|NO|FI|IS|PL|CZ|SK|HU|RO|BG|HR|SI|RS|BA|MK|AL|ME|GR|EE|LV|LT|MT|CY|UA",
@@ -2366,7 +2366,7 @@
               "formState": {
                 "catalogName": "Europe Noir (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [
@@ -2475,7 +2475,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "with_origin_country": "DE",
@@ -2487,7 +2487,7 @@
               "formState": {
                 "catalogName": "Crimen Alemán (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -2579,7 +2579,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "with_origin_country": "DE",
@@ -2591,7 +2591,7 @@
               "formState": {
                 "catalogName": "Crimen Alemán (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [
@@ -2700,7 +2700,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "with_origin_country": "GB",
@@ -2711,7 +2711,7 @@
               "formState": {
                 "catalogName": "Crimen Reino Unido (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -2802,7 +2802,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "with_origin_country": "GB",
@@ -2814,7 +2814,7 @@
               "formState": {
                 "catalogName": "Crimen Reino Unido (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [
@@ -2923,7 +2923,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "vote_average.gte": 5.5,
@@ -2934,7 +2934,7 @@
               "formState": {
                 "catalogName": "Crimen Francés (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -3026,7 +3026,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "vote_average.gte": 5.5,
@@ -3038,7 +3038,7 @@
               "formState": {
                 "catalogName": "Crimen Francés (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [
@@ -3147,7 +3147,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "vote_average.gte": 5.5,
@@ -3158,7 +3158,7 @@
               "formState": {
                 "catalogName": "Crimen Español (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -3250,7 +3250,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "vote_average.gte": 5.5,
@@ -3262,7 +3262,7 @@
               "formState": {
                 "catalogName": "Crimen Español (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [
@@ -3371,7 +3371,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "vote_average.gte": 5.5,
@@ -3382,7 +3382,7 @@
               "formState": {
                 "catalogName": "Crimen Italiano (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -3474,7 +3474,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "vote_average.gte": 5.5,
@@ -3486,7 +3486,7 @@
               "formState": {
                 "catalogName": "Crimen Italiano (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [
@@ -3595,7 +3595,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "vote_average.gte": 5.5,
@@ -3606,7 +3606,7 @@
               "formState": {
                 "catalogName": "Crimen Nórdico (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -3698,7 +3698,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "vote_average.gte": 5.5,
@@ -3710,7 +3710,7 @@
               "formState": {
                 "catalogName": "Crimen Nórdico (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [
@@ -3819,7 +3819,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "vote_average.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "35",
                 "with_keywords": "373401|10123",
@@ -3829,7 +3829,7 @@
               "formState": {
                 "catalogName": "Humor Negro (Cine)",
                 "discoverSource": "tmdb",
-                "sortBy": "vote_average.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -3926,7 +3926,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "vote_average.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "35",
                 "without_genres": "16,10764,10766,10767,10763",
@@ -3937,7 +3937,7 @@
               "formState": {
                 "catalogName": "Humor Negro (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "vote_average.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [
@@ -5671,7 +5671,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "SE",
                 "vote_count.gte": 10,
@@ -5680,7 +5680,7 @@
               "formState": {
                 "catalogName": "Cine Suecia",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -5763,7 +5763,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "SE",
                 "vote_count.gte": 8,
@@ -5773,7 +5773,7 @@
               "formState": {
                 "catalogName": "Series Suecia",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -5873,7 +5873,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "NO",
                 "vote_count.gte": 10,
@@ -5882,7 +5882,7 @@
               "formState": {
                 "catalogName": "Cine Noruega",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -5965,7 +5965,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "NO",
                 "vote_count.gte": 8,
@@ -5975,7 +5975,7 @@
               "formState": {
                 "catalogName": "Series Noruega",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -6075,7 +6075,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "DK",
                 "vote_count.gte": 10,
@@ -6084,7 +6084,7 @@
               "formState": {
                 "catalogName": "Cine Dinamarca",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -6167,7 +6167,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "DK",
                 "vote_count.gte": 8,
@@ -6177,7 +6177,7 @@
               "formState": {
                 "catalogName": "Series Dinamarca",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -6277,7 +6277,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_origin_country": "IS",
                 "vote_count.gte": 6,
@@ -6286,7 +6286,7 @@
               "formState": {
                 "catalogName": "Cine Islandia",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -6369,7 +6369,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_origin_country": "IS",
                 "vote_count.gte": 5,
@@ -6379,7 +6379,7 @@
               "formState": {
                 "catalogName": "Series Islandia",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -14869,7 +14869,7 @@
         }
       ]
     },
-    "instanceId": "2ae86e9e-ef5b-45dd-b47c-4faff8eb3669"
+    "instanceId": "c9ead91e-527a-44be-995e-7ec51e156415"
   },
   "nuvioCollectionsConfig": [
     {

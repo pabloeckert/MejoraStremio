@@ -80,6 +80,32 @@ const SUBDL_MANIFEST = {
   catalogs: [],
 };
 
+// Detecta BOM UTF-16/UTF-8 y decodifica con el charset correcto. Bug real encontrado
+// 2026-09-05: SubDL sirve muchos SRT en UTF-16LE (con BOM FF FE) -- confirmado bajando
+// un archivo real de HPI/ACI -- y este código forzaba TextDecoder("utf-8") sin mirar el
+// BOM, produciendo exactamente los "caracteres raros" que reportó Pablo (cada carácter
+// sale como basura porque UTF-16LE tiene un byte 0x00 intercalado entre cada letra
+// ASCII, que un decoder UTF-8 no sabe interpretar). Sin BOM se intenta UTF-8 estricto;
+// si falla (secuencia inválida) se cae a windows-1252 -- el encoding legado más común en
+// releases viejos, nunca tira error, así que siempre devuelve algo legible en vez de
+// reemplazar todo por el carácter de reemplazo (�).
+function decodeSubtitleText(buf: Uint8Array): string {
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
+    return new TextDecoder("utf-16le").decode(buf.subarray(2));
+  }
+  if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
+    return new TextDecoder("utf-16be").decode(buf.subarray(2));
+  }
+  if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+    return new TextDecoder("utf-8").decode(buf.subarray(3));
+  }
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buf);
+  } catch {
+    return new TextDecoder("windows-1252").decode(buf);
+  }
+}
+
 async function extractSrtFromZip(buf: Uint8Array): Promise<string | null> {
   const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
   let i = 0;
@@ -103,24 +129,37 @@ async function extractSrtFromZip(buf: Uint8Array): Promise<string | null> {
         const data = buf.subarray(dataStart, dataStart + cSize);
         try {
           if (method === 0) {
-            return new TextDecoder("utf-8").decode(data);
+            return decodeSubtitleText(new Uint8Array(data));
           }
+          // Bug real encontrado 2026-09-05: escribir todo el payload y esperar a que
+          // termine (await writer.close()) ANTES de empezar a leer del lado readable
+          // hace DEADLOCK si el stream de descompresión tiene buffer interno limitado
+          // y el archivo no es trivialmente chico — write() queda esperando que alguien
+          // lea, pero nadie lee todavía. Reproducido de forma aislada (colgaba para
+          // siempre, sin tirar error, con un ZIP real de SubDL) y confirmado que hacía
+          // colgar la request ENTERA del endpoint (curl con HTTP 000 tras 60s). Fix:
+          // escribir y leer EN PARALELO (Promise.all), no en secuencia.
           const ds = new DecompressionStream("deflate-raw");
-          const writer = ds.writable.getWriter();
-          await writer.write(new Uint8Array(data));
-          await writer.close();
           const chunks: Uint8Array[] = [];
-          const reader = ds.readable.getReader();
-          for (;;) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
-          }
+          const writePromise = (async () => {
+            const writer = ds.writable.getWriter();
+            await writer.write(new Uint8Array(data));
+            await writer.close();
+          })();
+          const readPromise = (async () => {
+            const reader = ds.readable.getReader();
+            for (;;) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+            }
+          })();
+          await Promise.all([writePromise, readPromise]);
           const total = chunks.reduce((n, c) => n + c.length, 0);
           const result = new Uint8Array(total);
           let off = 0;
           for (const c of chunks) { result.set(c, off); off += c.length; }
-          return new TextDecoder("utf-8").decode(result);
+          return decodeSubtitleText(result);
         } catch { /* intentar siguiente entrada */ }
       }
       i = dataStart + (cSize || 1);
@@ -138,10 +177,16 @@ async function fetchSubdlSubs(
   season: number | null,
   episode: number | null,
 ): Promise<SubdlSub[]> {
+  // Bug real encontrado 2026-09-05: los nombres de parámetro correctos de la API de
+  // SubDL son "season_number"/"episode_number" -- "season"/"episode" (los de antes)
+  // los ignora en silencio (sin error) y devuelve TODOS los episodios de TODAS las
+  // temporadas mezclados. Confirmado contra la API real: con los nombres viejos, tt14060708
+  // devolvía 20 resultados de las temporadas 1/2/3 combinadas al pedir S1E1 -- exactamente
+  // el "subtítulo de otro capítulo" que reportó Pablo como desincronización.
   let url =
     `${SUBDL_API}?api_key=${SUBDL_KEY}&imdb_id=${imdbId}&languages=ES&subs_per_page=20`;
-  if (season != null) url += `&season=${season}`;
-  if (episode != null) url += `&episode=${episode}`;
+  if (season != null) url += `&season_number=${season}`;
+  if (episode != null) url += `&episode_number=${episode}`;
 
   const r = await fetch(url, { signal: AbortSignal.timeout(12000) });
   if (!r.ok) return [];
@@ -154,6 +199,29 @@ async function fetchSubdlSubs(
       name: s.name || s.release_name || "SubDL ES",
       subdlPath: s.url as string,
     }));
+}
+
+// Descarga (sin cache — SubDL no tiene límite de cupo, a diferencia de OpenSubtitles)
+// y desempaqueta si hace falta el SRT real detrás de un path de SubDL. dlUrl siempre
+// se valida contra dl.subdl.com antes de llegar acá (guard anti-SSRF, ver más abajo).
+async function downloadSubdlSrt(subdlPath: string): Promise<string | null> {
+  const dlUrl = subdlPath.startsWith("http") ? subdlPath : `${SUBDL_DL}${subdlPath}`;
+  let dlHost: string;
+  try {
+    dlHost = new URL(dlUrl).hostname;
+  } catch {
+    return null;
+  }
+  if (dlHost !== "dl.subdl.com") return null;
+  try {
+    const r = await fetch(dlUrl, { signal: AbortSignal.timeout(20000) });
+    if (!r.ok) return null;
+    const buf = new Uint8Array(await r.arrayBuffer());
+    const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
+    return isZip ? await extractSrtFromZip(buf) : decodeSubtitleText(buf);
+  } catch {
+    return null;
+  }
 }
 
 // subPath: la ruta sin el prefijo /subdl (ej "/manifest.json", "/srt/xxx").
@@ -181,8 +249,21 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
 
     try {
       const subs = await fetchSubdlSubs(imdbId, season, episode);
-      const subtitles = subs.map((s, idx) => ({
-        id: `subdl-${idx}-${imdbId}`,
+      // SubDL no tiene límite de cupo de descarga (a diferencia de OpenSubtitles) -> se
+      // puede verificar por contenido, no solo confiar en su campo `hi` (poco confiable,
+      // ver looksLikeSDH). Tope de 5 candidatos (no todos) para mantener la respuesta
+      // rápida — el resto queda sin verificar por contenido pero SÍ en la lista (mejor
+      // mostrar una opción sin doble-chequeo que no mostrar nada).
+      const CHECK_LIMIT = 5;
+      const toCheck = subs.slice(0, CHECK_LIMIT);
+      const rest = subs.slice(CHECK_LIMIT);
+      const verdicts = await Promise.all(toCheck.map(async (s) => {
+        const text = await downloadSubdlSrt(s.subdlPath);
+        return text ? looksLikeSDH(text) : null;
+      }));
+      const checkedOk = toCheck.filter((_s, idx) => verdicts[idx] !== true);
+      const subtitles = [...checkedOk, ...rest].map((s) => ({
+        id: `subdl-${subs.indexOf(s)}-${imdbId}`,
         url: `${mountBase}/srt/${encodeURIComponent(s.subdlPath)}`,
         lang: "spa",
         name: `[SubDL] ${s.name.replace(/\.(zip|srt)$/i, "")}`,
@@ -195,46 +276,22 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
 
   const srtMatch = subPath.match(/^\/srt\/(.+)$/);
   if (srtMatch) {
+    // Guard anti-SSRF: el path viene de un valor que el cliente controla
+    // (encodeURIComponent en el manifest de subtitles, arriba). Sin el chequeo de host
+    // dentro de downloadSubdlSrt, cualquiera podría pedir /subdl/srt/http://otro-host y
+    // este endpoint actuaría de proxy HTTP abierto no autenticado hacia esa URL.
     const subdlPath = decodeURIComponent(srtMatch[1]);
-    const dlUrl = subdlPath.startsWith("http") ? subdlPath : `${SUBDL_DL}${subdlPath}`;
-
-    // Guard anti-SSRF: dlUrl viene de un path que el cliente controla (encodeURIComponent en el
-    // manifest de subtitles, arriba). Sin este chequeo, cualquiera puede pedir
-    // /subdl/srt/http://cualquier-host y este endpoint actúa de proxy HTTP abierto no
-    // autenticado hacia esa URL. Los subtítulos reales siempre vienen de dl.subdl.com — cualquier
-    // otro host se rechaza.
-    let dlHost: string;
-    try {
-      dlHost = new URL(dlUrl).hostname;
-    } catch {
-      return new Response("URL inválida", { status: 400, headers: cors });
+    const srtText = await downloadSubdlSrt(subdlPath);
+    if (!srtText) {
+      return new Response("Error descargando o host no permitido", { status: 502, headers: cors });
     }
-    if (dlHost !== "dl.subdl.com") {
-      return new Response("Host no permitido", { status: 400, headers: cors });
-    }
-
-    try {
-      const r = await fetch(dlUrl, { signal: AbortSignal.timeout(20000) });
-      if (!r.ok) {
-        return new Response("SubDL error: " + r.status, { status: 502, headers: cors });
-      }
-      const buf = new Uint8Array(await r.arrayBuffer());
-      const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
-      const srtText = isZip ? await extractSrtFromZip(buf) : new TextDecoder().decode(buf);
-
-      if (!srtText) {
-        return new Response("No se encontró SRT en el ZIP", { status: 502, headers: cors });
-      }
-      return new Response(srtText, {
-        headers: {
-          ...cors,
-          "Content-Type": "text/plain; charset=utf-8",
-          "Content-Disposition": 'attachment; filename="sub.srt"',
-        },
-      });
-    } catch (e) {
-      return new Response("Error descargando: " + (e as Error).message, { status: 502, headers: cors });
-    }
+    return new Response(srtText, {
+      headers: {
+        ...cors,
+        "Content-Type": "text/plain; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="sub.srt"',
+      },
+    });
   }
 
   return new Response("Not found", { status: 404, headers: cors });
@@ -329,6 +386,77 @@ async function fetchOpenSubtitlesSubs(
     .filter((s) => Number.isFinite(s.fileId));
 }
 
+// Descarga+cachea (90d) el SRT real de un file_id de OpenSubtitles. Extraído a función
+// propia para reusarlo tanto al servir /srt/:fileId como al clasificar SDH por
+// contenido ANTES de listar el subtítulo (ver handleOpenSubtitles más abajo) — así el
+// listado no duplica la descarga cuando el usuario después elige ese mismo subtítulo.
+async function downloadOpenSubtitlesSrt(fileId: number): Promise<string | null> {
+  const cacheKey = ["opensubtitles-srt", fileId];
+  let kv: Deno.Kv | null = null;
+  try {
+    kv = await getKv();
+    const cached = await kv.get<string>(cacheKey);
+    if (cached.value) return cached.value;
+  } catch {
+    kv = null;
+  }
+  try {
+    const dl = await fetch(`${OPENSUBTITLES_API}/download`, {
+      method: "POST",
+      headers: {
+        "Api-Key": OPENSUBTITLES_API_KEY,
+        "User-Agent": OPENSUBTITLES_UA,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ file_id: fileId }),
+      signal: AbortSignal.timeout(15000),
+    }).then((r) => r.json());
+    if (!dl?.link) return null;
+    const r = await fetch(dl.link, { signal: AbortSignal.timeout(20000) });
+    if (!r.ok) return null;
+    // decodeSubtitleText (no r.text()) por las dudas: OpenSubtitles normalmente sirve
+    // UTF-8 limpio, pero algún upload legado podría no serlo -- mismo cuidado que se
+    // aplicó a SubDL tras encontrar el bug real de encoding ahí.
+    const srtText = decodeSubtitleText(new Uint8Array(await r.arrayBuffer()));
+    if (kv) {
+      try { await kv.set(cacheKey, srtText, { expireIn: OPENSUBTITLES_SRT_CACHE_TTL_MS }); } catch { /* sin cache, no crítico */ }
+    }
+    return srtText;
+  } catch {
+    return null;
+  }
+}
+
+// Verificación por CONTENIDO de si un subtítulo es realmente SDH, para cuando el
+// campo `hearing_impaired` del proveedor miente (confirmado 2026-09-05: OpenSubtitles
+// devolvió hi:false en un archivo lleno de "(SUSPIRA)"/"(CANTURREA)"/letras de canción —
+// ver looksLikeSDH más abajo). Solo se activa con pocos candidatos (<=5): para un título
+// masivo con 50 opciones no vale la pena gastar cupo de descarga en verificar todas, el
+// usuario ya tiene de sobra para elegir. El veredicto queda cacheado para siempre (un
+// archivo no cambia) así que el costo real es una sola descarga por archivo, para
+// siempre, compartida entre todos los que usan el hub.
+async function classifySDHCached(fileId: number): Promise<boolean | null> {
+  let kv: Deno.Kv | null = null;
+  // "v2": versionado a propósito -- looksLikeSDH ya se recalibró una vez (2026-09-05,
+  // umbral viejo 6%/15% no detectaba un caso real confirmado) y un veredicto cacheado
+  // con el umbral anterior quedaría pegado 180 días si la clave no cambia con él.
+  const verdictKey = ["sdh-verdict", "os", "v2", fileId];
+  try {
+    kv = await getKv();
+    const cached = await kv.get<boolean>(verdictKey);
+    if (typeof cached.value === "boolean") return cached.value;
+  } catch {
+    kv = null;
+  }
+  const text = await downloadOpenSubtitlesSrt(fileId);
+  if (!text) return null;
+  const verdict = looksLikeSDH(text);
+  if (kv) {
+    try { await kv.set(verdictKey, verdict, { expireIn: 180 * 24 * 60 * 60 * 1000 }); } catch { /* sin cache */ }
+  }
+  return verdict;
+}
+
 async function handleOpenSubtitles(
   subPath: string,
   mountBase: string,
@@ -359,12 +487,22 @@ async function handleOpenSubtitles(
 
     try {
       const subs = await fetchOpenSubtitlesSubs(imdbId, season, episode, lang);
-      const subtitles = subs.map((s, idx) => ({
-        id: `${idTag}-${idx}-${imdbId}`,
-        url: `${mountBase}/srt/${s.fileId}`,
-        lang: "spa",
-        name: `[${nameTag}] ${s.name}`,
-      }));
+      // Verificación de contenido solo si hay pocos candidatos (ver classifySDHCached).
+      let verdicts: (boolean | null)[] = subs.map(() => null);
+      if (subs.length > 0 && subs.length <= 5) {
+        verdicts = await Promise.all(subs.map((s) => classifySDHCached(s.fileId)));
+      }
+      const subtitles = subs
+        .filter((_s, idx) => verdicts[idx] !== true) // saca los confirmados SDH por contenido
+        .map((s) => {
+          const idx = subs.indexOf(s);
+          return {
+            id: `${idTag}-${idx}-${imdbId}`,
+            url: `${mountBase}/srt/${s.fileId}`,
+            lang: "spa",
+            name: `[${nameTag}] ${s.name}`,
+          };
+        });
       return jsonResponse({ subtitles });
     } catch (e) {
       return jsonResponse({ subtitles: [], error: (e as Error).message }, { status: 500 });
@@ -374,53 +512,17 @@ async function handleOpenSubtitles(
   const srtMatch = subPath.match(/^\/srt\/(\d+)$/);
   if (srtMatch) {
     const fileId = parseInt(srtMatch[1], 10);
-    const cacheKey = ["opensubtitles-srt", fileId];
-
-    let kv: Deno.Kv | null = null;
-    try {
-      kv = await getKv();
-      const cached = await kv.get<string>(cacheKey);
-      if (cached.value) {
-        return new Response(cached.value, {
-          headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" },
-        });
-      }
-    } catch {
-      kv = null;
+    const srtText = await downloadOpenSubtitlesSrt(fileId);
+    if (srtText == null) {
+      return new Response("Error descargando el subtítulo de OpenSubtitles", { status: 502, headers: cors });
     }
-
-    try {
-      const dl = await fetch(`${OPENSUBTITLES_API}/download`, {
-        method: "POST",
-        headers: {
-          "Api-Key": OPENSUBTITLES_API_KEY,
-          "User-Agent": OPENSUBTITLES_UA,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ file_id: fileId }),
-        signal: AbortSignal.timeout(15000),
-      }).then((r) => r.json());
-
-      if (!dl?.link) {
-        return new Response("OpenSubtitles: sin link de descarga — " + JSON.stringify(dl), { status: 502, headers: cors });
-      }
-      const r = await fetch(dl.link, { signal: AbortSignal.timeout(20000) });
-      if (!r.ok) return new Response("OpenSubtitles error: " + r.status, { status: 502, headers: cors });
-      const srtText = await r.text();
-
-      if (kv) {
-        try { await kv.set(cacheKey, srtText, { expireIn: OPENSUBTITLES_SRT_CACHE_TTL_MS }); } catch { /* sin cache, no crítico */ }
-      }
-      return new Response(srtText, {
-        headers: {
-          ...cors,
-          "Content-Type": "text/plain; charset=utf-8",
-          "Content-Disposition": 'attachment; filename="sub.srt"',
-        },
-      });
-    } catch (e) {
-      return new Response("Error descargando: " + (e as Error).message, { status: 502, headers: cors });
-    }
+    return new Response(srtText, {
+      headers: {
+        ...cors,
+        "Content-Type": "text/plain; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="sub.srt"',
+      },
+    });
   }
 
   return new Response("Not found", { status: 404, headers: cors });
@@ -1787,6 +1889,33 @@ function isSoundOnly(text: string): boolean {
   // Mediathek): "(spannungsvolle Musik)", "[Tür quietscht]", "* Musik *"
   if (/^[(\[*][^)\]]*[)\]*]$/.test(oneLine)) return true;
   return t.split("\n").every((l) => l.trim() === "" || /^[(\[*][^)\]]*[)\]*]$/.test(l.trim()));
+}
+
+// Heurística de contenido para SDH real, para cuando el flag del proveedor (SubDL
+// "hi", OpenSubtitles "hearing_impaired") viene mal cargado en la fuente. Confirmado
+// 2026-09-05 con evidencia real: OpenSubtitles devolvió hi:false en un archivo de HPI/ACI
+// lleno de "(SUSPIRA)"/"(CANTURREA)"/letras de canción entre ♪; SubDL devuelve hi:false
+// para TODOS sus resultados sin excepción, incluidos archivos con "Hi" en el nombre. No
+// hay forma de confiar ciegamente en el campo — se cuenta qué fracción de las cues son
+// puramente descripción de sonido (isSoundOnly) o tienen una acotación entre paréntesis/
+// corchetes intercalada en el diálogo. Umbral conservador (mejor un falso negativo
+// ocasional que descartar un subtítulo real por error) — requiere al menos 8 cues para
+// no arriesgar un veredicto con muestra chica.
+function looksLikeSDH(srtText: string): boolean {
+  const cues = parseSrt(srtText);
+  if (cues.length < 8) return false;
+  const soundOnly = cues.filter((c) => isSoundOnly(c.text)).length;
+  const bracketed = cues.filter((c) => /[(\[][^)\]\n]{2,50}[)\]]/.test(c.text)).length;
+  // Señal fuerte y específica: una acotación TODO EN MAYÚSCULAS entre paréntesis/
+  // corchetes -- "(SUSPIRA)", "(CANTURREA)", "(SE OYE UN GOLPE)" -- el diálogo real casi
+  // nunca usa mayúsculas sostenidas, así que esto casi no da falsos positivos.
+  const capsTag = cues.filter((c) => /[(\[]\s*[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{1,35}[)\]]/.test(c.text)).length;
+  // Calibrado 2026-09-05 contra un caso real confirmado (HPI/ACI 1x01: 964 cues, 4.3%
+  // sonido puro, 5.5% con acotación entre paréntesis, ejemplos reales "(SUSPIRA)",
+  // "(CANTURREA)", "(RESOPLA)", "(Disparo)", "(Llanto)") -- el umbral viejo (6%/15%)
+  // dejaba pasar este caso de punta a punta. Bajado a un piso que sí lo detecta, sin
+  // ser tan sensible como para marcar un subtítulo limpio por 1-2 cues sueltas.
+  return soundOnly / cues.length > 0.02 || bracketed / cues.length > 0.03 || capsTag / cues.length > 0.015;
 }
 
 // EBU-TT-D / TTML (Mediathek alemana) -> cues

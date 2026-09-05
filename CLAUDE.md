@@ -3962,6 +3962,67 @@ ejerza — el cron diario es lo que lo va a probar la primera vez que aparezca u
   con `&` sin encodear (como arma el cliente real de Stremio): "Alemania + Crimen" volvió a dar
   Tatort/Der Alte/Rosenheim-Cops/Dark/Derrick — sin regresión real.
 
+## Sesión 2026-09-04/05 (madrugada) — orden por fecha real en TODO el Home + diagnóstico Mediathek
+
+Pablo reportó dos cosas después del reorden de "familiar arriba de todo": (1) SOKO/Tatort y "la
+gran mayoría de lo que hay en el inicio" abren y solo tienen el stub de MyTrakt, nada real; (2)
+"no me interesa la popularidad, quiero de más actual a más viejo, regla dura para todo".
+
+**Causa raíz confirmada con evidencia real**: 28 catálogos del cluster Policial/Familia/Nórdicos
+creados en la sesión de la encuesta quedaron en `sort_by=popularity.desc`. Medido en vivo:
+"Crimen Alemán (Series)" por popularidad tenía a Tatort (#1), Der Alte (#2), Rosenheim-Cops (#3),
+Derrick (#5), Polizeiruf 110 (#7) y SOKO Leipzig (#8) copando el tope — franquicias evergreen de
+50+ años cuya popularidad agregada es enorme pero cuyos episodios individuales casi no circulan en
+trackers gratuitos (Derrick S01E01 = 0 streams reales, confirmado). Corregidos los 28 a
+`primary_release_date.desc`/`first_air_date.desc`.
+
+**Ampliado a los 6 catálogos que habían quedado como "excepción" en la primera pasada**, porque
+Pablo pidió regla dura sin excepciones:
+- **Policial Clásico / Cine Negro Clásico**: ya tenían tope de fecha (pre-2010 / 1940-1969) → pasar
+  a fecha desc no rompe el concepto de "clásico", solo cambia cuál película vieja aparece primero.
+- **En Cartelera (movie/series)**: contenido ya estrenado → se agregó `vote_count.gte` (10/5) como
+  **piso de calidad, no como orden** (el orden sigue siendo 100% por fecha) — sin ese piso, la
+  primera posición por fecha pura era literalmente basura (títulos con 0 votos, probado con TMDB
+  directo antes de aplicar).
+- **Próximos Estrenos (movie/series)**: contenido NO estrenado → no existe ningún piso de calidad
+  posible sin usar votos/popularidad (confirmado de nuevo: `popularity.gte` no filtra nada en la
+  API de TMDB — mismo hallazgo ya documentado en 2026-08-02, `with_release_type` tampoco discrimina
+  por escala/relevancia). Aplicado tal cual lo pidió Pablo (fecha ascendente, sin ningún filtro) —
+  la fila ahora puede mostrar títulos de nicho absoluto sin estrenar en el primer lugar. Trade-off
+  visible y avisado, no escondido.
+
+**Auditoría completa de los 65 catálogos del Home contra la cuenta real**: 63/65 arrancan con
+contenido de 2025-2026; los 2 restantes son justamente los "Clásico" (correcto, están topeados).
+Instancia AIOMetadata `08b4f1a4`, 0 catálogos perdidos, health-check verde.
+
+**Diagnóstico real de Tatort/SOKO Leipzig/Polizeiruf 110 — corregida una afirmación propia
+equivocada.** En la respuesta anterior dije "si navegás a una temporada actual, ahí anda" sin
+volver a probarlo con datos frescos — **estaba mal planteado**. Repetido con evidencia real:
+- El **último episodio conocido por Cinemeta** de cada show a veces todavía no tiene título real
+  (queda como `"Episode N"` — placeholder de TheTVDB/Cinemeta, se completa solo con el tiempo). Para
+  esos episodios puntuales, `showCaseTitle()` devuelve `""` a propósito (no arriesga un match falso)
+  y el resultado es, efectivamente, **cero streams reales en cualquier addon** — solo el stub de
+  MyTrakt. Confirmado con el último episodio real de cada uno: **SOKO Leipzig S26E25 ("Episode 25")
+  → 0/8 addons**; Tatort y Polizeiruf 110 con solo 1-2 streams finitos en su último episodio.
+- **Para episodios CON título real ya cargado** (probado con SOKO S26E20 "Abschied", S26E17, S26E12):
+  Mediathek DE da **1 stream real** cada vez, y se verificó de punta a punta ahora mismo —
+  el MP4 del ZDF responde 200 OK (1.75GB, directo), y `/translate` genera el subtítulo en español
+  real (confirmado con el texto de las primeras líneas). **Esto sí funciona**, no es un bug.
+- **Conclusión honesta**: la cobertura NO es "todo roto" ni "todo perfecto" — es exactamente lo que
+  el número ya documentado de 66.8% (`tatort-coverage-after.jsonl`) dice: bastante más de la mitad
+  anda, con Mediathek como única fuente (1 stream, sin redundancia, pero real). El síntoma concreto
+  que reportó Pablo ("ni un solo capítulo") coincide con haber probado justo un episodio de los 2-3
+  más nuevos de cada show, que sistemáticamente caen en el hueco de "Cinemeta todavía no le puso
+  título" — un patrón que se repite cada vez que el show emite un capítulo nuevo (la metadata tarda
+  en llegar), no algo que se arregle una vez y quede resuelto para siempre.
+- **No aplicado, evaluado y descartado por ahora**: un fallback por posición cronológica (si
+  Cinemeta no tiene título, alinear por fecha de emisión más cercana en vez de por texto) — la
+  Mediathek reporta su propio season/episode de forma inconsistente (se vio un caso con `S22/E17`
+  donde correspondía `S26`), así que un fallback así podría generar falsos matches, justo el riesgo
+  que ya se había evitado a propósito con matching estricto en la sesión de Tatort. Necesita más
+  tiempo de prueba del que da esta sesión — queda anotado para una pasada futura, no descartado del
+  todo.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

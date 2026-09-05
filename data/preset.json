@@ -2039,7 +2039,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "vote_average.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "primary_release_date.lte": "2010-12-31",
@@ -2050,7 +2050,7 @@
               "formState": {
                 "catalogName": "Policial Clásico",
                 "discoverSource": "tmdb",
-                "sortBy": "vote_average.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -2142,7 +2142,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "vote_average.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "with_genres": "80|9648",
                 "with_keywords": "9807",
@@ -2154,7 +2154,7 @@
               "formState": {
                 "catalogName": "Cine Negro Clásico",
                 "discoverSource": "tmdb",
-                "sortBy": "vote_average.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [
@@ -6681,16 +6681,16 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.asc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-09-04",
+                "primary_release_date.gte": "2026-09-05",
                 "with_runtime.gte": 45,
                 "without_keywords": "210024,10292,221355,11001,348144,6075"
               },
               "formState": {
                 "catalogName": "Próximos Estrenos",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.asc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -6747,7 +6747,7 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-09-04",
+                "primaryReleaseFrom": "2026-09-05",
                 "primaryReleaseTo": "",
                 "firstAirFrom": "",
                 "firstAirTo": "",
@@ -6773,9 +6773,9 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.asc",
                 "include_adult": false,
-                "first_air_date.gte": "2026-09-04",
+                "first_air_date.gte": "2026-09-05",
                 "with_runtime.gte": 15,
                 "without_keywords": "210024,10292,221355,11001,348144,6075",
                 "without_genres": "10764,10766,10767,10763"
@@ -6783,7 +6783,7 @@
               "formState": {
                 "catalogName": "Próximos Estrenos (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.asc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [],
@@ -6859,7 +6859,7 @@
                 ],
                 "primaryReleaseFrom": "",
                 "primaryReleaseTo": "",
-                "firstAirFrom": "2026-09-04",
+                "firstAirFrom": "2026-09-05",
                 "firstAirTo": "",
                 "airDateFrom": "",
                 "airDateTo": "",
@@ -6883,17 +6883,18 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-06-21",
-                "primary_release_date.lte": "2026-09-04",
+                "primary_release_date.gte": "2026-06-22",
+                "primary_release_date.lte": "2026-09-05",
                 "with_runtime.gte": 45,
-                "without_keywords": "210024,10292,221355,11001,348144,6075"
+                "without_keywords": "210024,10292,221355,11001,348144,6075",
+                "vote_count.gte": 10
               },
               "formState": {
                 "catalogName": "En Cartelera",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -6950,8 +6951,8 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-06-21",
-                "primaryReleaseTo": "2026-09-04",
+                "primaryReleaseFrom": "2026-06-22",
+                "primaryReleaseTo": "2026-09-05",
                 "firstAirFrom": "",
                 "firstAirTo": "",
                 "airDateFrom": "",
@@ -6976,18 +6977,19 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "first_air_date.gte": "2026-05-18",
                 "first_air_date.lte": "2026-08-01",
                 "with_runtime.gte": 15,
                 "without_keywords": "210024,10292,221355,11001,348144,6075",
-                "without_genres": "10764,10766,10767,10763"
+                "without_genres": "10764,10766,10767,10763",
+                "vote_count.gte": 5
               },
               "formState": {
                 "catalogName": "En Cartelera (Series)",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "tv",
                 "includeGenres": [],
@@ -14869,7 +14871,7 @@
         }
       ]
     },
-    "instanceId": "c9ead91e-527a-44be-995e-7ec51e156415"
+    "instanceId": "08b4f1a4-addb-43eb-807c-a99e44b624ae"
   },
   "nuvioCollectionsConfig": [
     {

@@ -4108,6 +4108,39 @@ distinto corte, intro más larga/corta), el timing se corre. No hay fix de confi
 matching por hash real — mismo consejo de siempre: en el selector de Stremio, preferir el
 subtítulo cuyo nombre de release se parezca más al del stream elegido.
 
+### Continuación misma sesión — "mayor cantidad de opciones, siempre para poder elegir"
+
+Pablo pidió explícitamente **no** volver a excluir subtítulos, sino mostrarle el máximo de
+opciones reales que existan, tagueadas según su preferencia (limpio primero, SDH solo si no hay
+otra) — no la mínima "segura". Cambio de diseño en `/opensubtitles`, `/opensubtitles-latino` y
+`/subdl`: los confirmados SDH por contenido ya no se sacan de la lista, se marcan `⚠️SDH` en el
+nombre y se mandan al final del array. Además, `fetchOpenSubtitlesSubs` dejó de mandar
+`hearing_impaired=exclude` — medido contra la API real que el parámetro es inconsistente (para
+HPI/ACI, `exclude` mostraba 1 de 2 candidatos reales que existen, mientras `only` —que debería
+mostrar justo el que `exclude` sacó— daba 0, contradictorio) — ahora se trae el pool completo y se
+clasifica todo por contenido. Tope de verificación subido (SubDL 5→15, OpenSubtitles 5→10
+candidatos, con veredicto cacheado para siempre por archivo).
+
+**Resultado real para HPI/ACI 1x01**: pasó de mostrar 0 opciones (todas excluidas) a mostrar
+**3 opciones tagueadas `⚠️SDH`** — hallazgo honesto: las 3 únicas fuentes disponibles para ese
+episodio puntual (2 de OpenSubtitles + 1 de SubDL) son genuinamente para sordos (una hasta tiene
+`es.sdh` en el propio nombre del archivo). Mostrarlas tagueadas es más útil que devolver una lista
+vacía — Pablo puede elegir usarlas si prefiere tener algo en español aunque sea SDH, con la
+información completa en el nombre.
+
+**Investigación de fuentes nuevas — nada pasó la barra de confianza**: se buscó de cero (no solo
+releer lo de julio) por si había addons de subtítulos nuevos. `SubTranslate` (subtranslate.org)
+apareció como el más prometedor en el papel — traduce con Gemini como nuestro propio `/translate`,
+pero además rankea por **video hash**, justo lo que le faltaría a Astrid et Raphaëlle para
+resolver el desface de raíz. **No se instaló**: no tiene repositorio público (sin código para
+auditar, sin historial de commits, sin señal de comunidad) y pide credenciales de OpenSubtitles/
+Gemini vía un formulario web de un tercero desconocido — exactamente el patrón que este proyecto
+rechaza desde el principio (ver `feedback_stay_free`/higiene de credenciales, sesión 2026-07-18).
+`stremio-community-subtitles` (ya instalado) sí hace matching por hash real y de forma abierta,
+pero depende de que la comunidad ya haya subido ese hash puntual — confirmado en julio que para
+contenido de nicho la base está vacía; es un problema de datos, no de configuración, y no se
+encontró nada nuevo hoy que lo cambie.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

@@ -249,25 +249,33 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
 
     try {
       const subs = await fetchSubdlSubs(imdbId, season, episode);
-      // SubDL no tiene límite de cupo de descarga (a diferencia de OpenSubtitles) -> se
-      // puede verificar por contenido, no solo confiar en su campo `hi` (poco confiable,
-      // ver looksLikeSDH). Tope de 5 candidatos (no todos) para mantener la respuesta
-      // rápida — el resto queda sin verificar por contenido pero SÍ en la lista (mejor
-      // mostrar una opción sin doble-chequeo que no mostrar nada).
-      const CHECK_LIMIT = 5;
+      // Pedido de Pablo (2026-09-05): dejar la MAYOR cantidad de opciones verificadas
+      // posible para que elija, no la mínima "segura". Antes esto EXCLUÍA los
+      // confirmados SDH por contenido; ahora se los TAGUEA y se los manda al final —
+      // siguen apareciendo (más opciones), pero ordenados según su preferencia (limpio
+      // primero, SDH solo si no queda otra). SubDL no tiene límite de cupo de descarga
+      // -> se verifica por contenido un tope generoso de candidatos (15, no todos, para
+      // no demorar la respuesta) en vez de confiar ciegamente en su campo `hi` (poco
+      // confiable, ver looksLikeSDH).
+      const CHECK_LIMIT = 15;
       const toCheck = subs.slice(0, CHECK_LIMIT);
       const rest = subs.slice(CHECK_LIMIT);
       const verdicts = await Promise.all(toCheck.map(async (s) => {
         const text = await downloadSubdlSrt(s.subdlPath);
         return text ? looksLikeSDH(text) : null;
       }));
-      const checkedOk = toCheck.filter((_s, idx) => verdicts[idx] !== true);
-      const subtitles = [...checkedOk, ...rest].map((s) => ({
-        id: `subdl-${subs.indexOf(s)}-${imdbId}`,
-        url: `${mountBase}/srt/${encodeURIComponent(s.subdlPath)}`,
-        lang: "spa",
-        name: `[SubDL] ${s.name.replace(/\.(zip|srt)$/i, "")}`,
-      }));
+      const clean = toCheck.filter((_s, idx) => verdicts[idx] !== true);
+      const sdhTagged = toCheck.filter((_s, idx) => verdicts[idx] === true);
+      const subtitles = [...clean, ...rest, ...sdhTagged].map((s) => {
+        const idx = toCheck.indexOf(s);
+        const isSdh = idx >= 0 && verdicts[idx] === true;
+        return {
+          id: `subdl-${subs.indexOf(s)}-${imdbId}`,
+          url: `${mountBase}/srt/${encodeURIComponent(s.subdlPath)}`,
+          lang: "spa",
+          name: `[SubDL]${isSdh ? " ⚠️SDH" : ""} ${s.name.replace(/\.(zip|srt)$/i, "")}`,
+        };
+      });
       return jsonResponse({ subtitles });
     } catch (e) {
       return jsonResponse({ subtitles: [], error: (e as Error).message }, { status: 500 });
@@ -361,7 +369,14 @@ async function fetchOpenSubtitlesSubs(
   episode: number | null,
   lang: string = "es",
 ): Promise<OpenSubtitlesSub[]> {
-  const params = new URLSearchParams({ languages: lang, hearing_impaired: "exclude" });
+  // Sin hearing_impaired=exclude a propósito (bug real encontrado 2026-09-05, ver
+  // looksLikeSDH): el parámetro es inconsistente en la API real de OpenSubtitles —
+  // medido para HPI/ACI, "exclude" devolvía 1 candidato de 2 totales, pero "only"
+  // (que debería mostrar justo el que "exclude" sacó) daba 0 -- contradictorio, la
+  // metadata de la fuente no es confiable. Se trae el pool COMPLETO (más opciones
+  // reales para elegir, pedido explícito de Pablo) y se clasifica por contenido acá
+  // mismo (ver classifySDHCached más abajo), no confiando en el flag del proveedor.
+  const params = new URLSearchParams({ languages: lang });
   if (season != null && episode != null) {
     params.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
     params.set("season_number", String(season));
@@ -487,22 +502,30 @@ async function handleOpenSubtitles(
 
     try {
       const subs = await fetchOpenSubtitlesSubs(imdbId, season, episode, lang);
-      // Verificación de contenido solo si hay pocos candidatos (ver classifySDHCached).
-      let verdicts: (boolean | null)[] = subs.map(() => null);
-      if (subs.length > 0 && subs.length <= 5) {
-        verdicts = await Promise.all(subs.map((s) => classifySDHCached(s.fileId)));
-      }
-      const subtitles = subs
-        .filter((_s, idx) => verdicts[idx] !== true) // saca los confirmados SDH por contenido
-        .map((s) => {
-          const idx = subs.indexOf(s);
-          return {
-            id: `${idTag}-${idx}-${imdbId}`,
-            url: `${mountBase}/srt/${s.fileId}`,
-            lang: "spa",
-            name: `[${nameTag}] ${s.name}`,
-          };
-        });
+      // Pedido de Pablo (2026-09-05): la MAYOR cantidad de opciones verificadas
+      // posible, no la mínima "segura" -- taguear y mandar al final los confirmados
+      // SDH por contenido en vez de sacarlos de la lista. Verificación de contenido
+      // hasta 10 candidatos (gasta cupo real de OpenSubtitles, 100 descargas/día —
+      // por eso el tope, no ilimitado); más allá de eso quedan sin verificar pero
+      // igual en la lista (mejor mostrarlos sin el doble chequeo que no mostrarlos).
+      const CHECK_LIMIT = 10;
+      const toCheck = subs.slice(0, CHECK_LIMIT);
+      const rest = subs.slice(CHECK_LIMIT);
+      const verdicts = toCheck.length
+        ? await Promise.all(toCheck.map((s) => classifySDHCached(s.fileId)))
+        : [];
+      const clean = toCheck.filter((_s, idx) => verdicts[idx] !== true);
+      const sdhTagged = toCheck.filter((_s, idx) => verdicts[idx] === true);
+      const subtitles = [...clean, ...rest, ...sdhTagged].map((s) => {
+        const idx = toCheck.indexOf(s);
+        const isSdh = idx >= 0 && verdicts[idx] === true;
+        return {
+          id: `${idTag}-${subs.indexOf(s)}-${imdbId}`,
+          url: `${mountBase}/srt/${s.fileId}`,
+          lang: "spa",
+          name: `[${nameTag}]${isSdh ? " ⚠️SDH" : ""} ${s.name}`,
+        };
+      });
       return jsonResponse({ subtitles });
     } catch (e) {
       return jsonResponse({ subtitles: [], error: (e as Error).message }, { status: 500 });

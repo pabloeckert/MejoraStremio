@@ -4023,6 +4023,91 @@ volver a probarlo con datos frescos — **estaba mal planteado**. Repetido con e
   tiempo de prueba del que da esta sesión — queda anotado para una pasada futura, no descartado del
   todo.
 
+## Sesión 2026-09-05 (madrugada) — 4 bugs reales de subtítulos: encoding, episodios mezclados, deadlock, SDH mal etiquetado
+
+Pablo reportó, con ejemplos concretos: subtítulos "horribles, llenos de caracteres raros y
+referencias para sordos"; HPI (identificado como ACI: Alta Capacidad Intelectual, `tt14060708`,
+ya documentado en el repo) con **una sola opción, y esa para sordos**; Astrid et Raphaëlle
+(`tt11950864`) desincronizada. Investigado a fondo contra las APIs reales de OpenSubtitles/SubDL
+(no solo releído lo ya documentado) — **4 bugs reales, los 4 corregidos**:
+
+**1. Encoding roto (la causa de los "caracteres raros")**: `extractSrtFromZip` (usado por el
+addon SubDL) forzaba `TextDecoder("utf-8")` sin mirar el BOM del archivo. Bajado y examinado un
+ZIP real de SubDL para HPI/ACI: el `.srt` de adentro está en **UTF-16LE** (BOM `FF FE`, confirmado
+con `xxd`) — decodificarlo como UTF-8 produce basura total en cada carácter (UTF-16 intercala un
+byte `0x00` entre cada letra ASCII). Nueva `decodeSubtitleText()`: detecta BOM UTF-16LE/BE/UTF-8, y
+si no hay BOM intenta UTF-8 estricto (`fatal:true`) cayendo a `windows-1252` si falla — el encoding
+legado más común en releases viejos, nunca tira error. Aplicado también al lado de OpenSubtitles
+por consistencia (nunca se confirmó el mismo bug ahí, pero es la misma clase de riesgo).
+
+**2. Episodios de otras temporadas mezclados (probable causa real del desface de Astrid)**:
+`fetchSubdlSubs` pedía los parámetros `season`/`episode` — **los nombres reales de la API de
+SubDL son `season_number`/`episode_number`**. Con los nombres viejos, SubDL los ignora en
+silencio (sin error HTTP) y devuelve TODOS los episodios de TODAS las temporadas mezclados.
+Confirmado en vivo: pedir S1E1 de HPI/ACI con los parámetros viejos devolvía **20 resultados de
+las temporadas 1, 2 y 3 combinadas**; con los correctos, exactamente 1 (el real de S1E1). Esto
+explica de punta a punta "solo una opción rara" (el pool mostrado no era solo S1E1) y es la
+hipótesis más fuerte para el desface de Astrid — si Stremio pedía el subtítulo de un episodio y
+SubDL le servía el de OTRO, el corrimiento de tiempo no es un problema de sincronización fina, es
+directamente el diálogo de otro capítulo.
+
+**3. Deadlock real, no relacionado al reporte de Pablo pero encontrado al investigar**:
+`extractSrtFromZip` escribía todo el payload a un `DecompressionStream` y esperaba a que
+terminara (`await writer.close()`) **antes** de empezar a leer del lado `readable` — si el
+descomprimido no es trivialmente chico, esto hace deadlock real (el `write()` queda esperando que
+alguien lea, pero nadie empieza a leer hasta después). Reproducido de forma aislada con un ZIP
+real de SubDL: colgaba para siempre, sin tirar ningún error, y colgaba la **request HTTP entera**
+del endpoint `/subdl` (confirmado con `curl --max-time 60` devolviendo `HTTP 000`). Este bug es
+anterior a la sesión de hoy — no se sabe hace cuánto viene fallando en silencio para archivos
+deflate-comprimidos de cierto tamaño. Fix: escribir y leer **en paralelo** (`Promise.all`), el
+patrón correcto para cualquier `TransformStream`/`DecompressionStream` en la Streams API.
+
+**4. El campo `hi`/`hearing_impaired` de los proveedores miente**: confirmado con evidencia real
+que tanto SubDL como la API moderna de OpenSubtitles devuelven `hi:false`/`hearing_impaired:false`
+en archivos con contenido real para sordos — el mismo archivo de HPI/ACI (964 cues) tiene
+`(SUSPIRA)`, `(CANTURREA)`, `(RESOPLA)`, `(BALBUCEA)`, `(Disparo)`, `(Llanto)`, letras de canción
+entre `♪`, y **ambos proveedores lo etiquetan como "no es SDH"**. Nueva `looksLikeSDH(srtText)`:
+parsea las cues reales y mide 3 señales — fracción de cues 100% sonido (`isSoundOnly`, ya existía
+para `/translate`), fracción con una acotación entre paréntesis/corchetes en cualquier parte de la
+cue, y fracción con una acotación **TODO EN MAYÚSCULAS** (señal fuerte y específica — el diálogo
+real casi nunca usa mayúsculas sostenidas). Calibrado contra el caso real confirmado (4.3% / 5.5%
+/ 4.3% en esos 3 ejes) y contra 6 subtítulos limpios de control (Matrix ×3, Breaking Bad ×3, todos
+0% en los 3 ejes) — umbral final: `>2%` / `>3%` / `>1.5%` respectivamente, cualquiera alcanza.
+- Se activa **al listar**, no solo al servir, para que el subtítulo ni aparezca como opción si se
+  confirma SDH por contenido (la etiqueta "sin SDH" del nombre del addon deja de ser una promesa
+  vacía). Para SubDL corre siempre (sin límite de cupo de descarga). Para OpenSubtitles **solo
+  con ≤5 candidatos** — evita gastar el cupo de 100 descargas/día de la key en títulos masivos
+  (Matrix tiene 50 candidatos) que ya tienen de sobra para elegir sin necesitar esta verificación.
+- Veredicto cacheado para siempre por `fileId` en Deno KV (compartido entre todos los usuarios del
+  hub, un archivo no cambia) — con clave **versionada** (`"v2"`) a propósito: el primer despliegue
+  de esta sesión usaba un umbral más laxo (6%/15%) que NO detectaba el caso real, y sin versionar
+  la clave el veredicto viejo (`false`, incorrecto) hubiera quedado pegado 180 días pese al fix del
+  umbral — encontrado y corregido en la misma sesión al verificar el resultado en vivo.
+
+**Verificado en producción, no solo localmente**: HPI/ACI 1x01 en SubDL y OpenSubtitles ahora
+devuelven **0 resultados** (el único candidato real de cada fuente, confirmado SDH por contenido,
+correctamente excluido) en vez de 1 falso "sin SDH". Matrix (50 candidatos) y Breaking Bad (6-26
+según fuente) sin regresión — ninguno de los controles limpios se marcó como falso positivo.
+`health-check.mjs` verde. `test-content.mjs` corrido como regresión final de los 14 títulos
+curados.
+
+**Trade-off honesto, no escondido**: para HPI/ACI, el resultado neto es que Pablo ve **menos**
+opciones "sin SDH" etiquetadas (0 en vez de 1) — pero la razón es que esa única opción anterior
+era una mentira (decía "sin SDH" y tenía contenido para sordos). Los otros addons de subs
+(SubSense, SubMaker, OpenSubtitles v3, Community Subtitles) siguen sin filtro de SDH — Pablo
+puede seguir viendo 1-2 opciones de esas fuentes para HPI/ACI, simplemente sin la promesa (falsa)
+de que están filtradas.
+
+**Astrid et Raphaëlle — desface, diagnóstico honesto sin fix nuevo**: el bug #2 (episodios
+mezclados) no aplicaba a Astrid en SubDL (esa fuente ya daba 0 resultados ahí antes del fix). Sus
+únicas fuentes con contenido (OpenSubtitles ES, SubSense, OpenSubtitles v3) matchean por
+`imdb+season+episode`, no por hash del archivo de video — el mismo límite estructural ya
+documentado extensamente en "Subtítulos desincronizados" (sesión 2026-07-27): si el release del
+stream que abre Pablo no es el mismo release al que se sincronizó el subtítulo (distinta fuente,
+distinto corte, intro más larga/corta), el timing se corre. No hay fix de config para esto sin
+matching por hash real — mismo consejo de siempre: en el selector de Stremio, preferir el
+subtítulo cuyo nombre de release se parezca más al del stream elegido.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

@@ -48,18 +48,37 @@ const subAddons = addons.filter((a) => hasRes(a.manifest, 'subtitles'));
 
 console.log(`\n${subAddons.length} addon(s) de subtítulos instalados, en este orden:\n`);
 
-const streamId = type === 'series' ? `${imdbId}:${season}:${episode}` : imdbId;
+const idPlain = type === 'series' ? `${imdbId}:${season}:${episode}` : imdbId;
+// Formato REAL que manda el cliente de Stremio durante la reproducción: ":" percent-
+// codeado + un segmento extra con los datos del archivo de video. NUESTRO hub tenía un
+// bug (2026-09-06) que devolvía [] con este formato pero OK con ":" literal — por eso
+// nunca lo detectó el tooling. Se prueban los DOS y se marca si difieren.
+const idReal = type === 'series'
+  ? `${imdbId}%3A${season}%3A${episode}/videoHash=0000000000000000&videoSize=1&filename=${imdbId}.mkv`
+  : `${imdbId}/videoHash=0000000000000000&videoSize=1&filename=${imdbId}.mkv`;
 
+let mismatch = 0;
 for (let i = 0; i < subAddons.length; i++) {
   const a = subAddons[i];
   const base = baseOf(a.transportUrl);
-  const d = await getJson(`${base}subtitles/${type}/${streamId}.json`, 18000);
-  const subs = d?.subtitles || [];
-  console.log(`[${i}] ${a.manifest.name} (${a.manifest.id}) — ${subs.length} resultado(s)`);
-  for (const s of subs.slice(0, 10)) {
-    console.log(`      lang="${s.lang}" id="${s.id}"`);
+  const [dp, dr] = await Promise.all([
+    getJson(`${base}subtitles/${type}/${idPlain}.json`, 18000),
+    getJson(`${base}subtitles/${type}/${idReal}.json`, 18000),
+  ]);
+  const np = (dp?.subtitles || []).length;
+  const nr = (dr?.subtitles || []).length;
+  const flag = np !== nr ? '  ⚠ DIFIERE plain/real' : '';
+  if (np !== nr) mismatch++;
+  console.log(`[${i}] ${a.manifest.name} (${a.manifest.id}) — plain:${np} real:${nr}${flag}`);
+  for (const s of (dr?.subtitles || dp?.subtitles || []).slice(0, 10)) {
+    console.log(`      lang="${s.lang}" label="${s.label || s.name || ''}" id="${s.id}"`);
   }
-  if (d?.__error) console.log(`      ✗ error: ${d.__error}`);
+  if (dp?.__error) console.log(`      ✗ error (plain): ${dp.__error}`);
+  if (dr?.__error) console.log(`      ✗ error (real): ${dr.__error}`);
+}
+if (mismatch) {
+  console.log(`\n⚠ ${mismatch} addon(s) devuelven distinto con el formato real de Stremio vs ":" literal.`);
+  console.log('  Si es un addon NUESTRO, es un bug de parsing del id (ver "Sesión 2026-09-06").');
 }
 
 console.log('\n' + '═'.repeat(70));

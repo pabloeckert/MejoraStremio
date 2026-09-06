@@ -59,6 +59,25 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   });
 }
 
+// Parsea el id que Stremio pone en las requests de subtítulos/streams. BUG REAL
+// encontrado 2026-09-06: el cliente REAL de Stremio (no mi curl de prueba) manda el id
+// así: "tt123%3A1%3A1/videoHash=x&videoSize=y&filename=z.mkv" — o sea (a) los ":" van
+// percent-codeados como %3A, y (b) hay un segmento extra "/…=…" pegado con los datos del
+// archivo de video. El código viejo hacía `rawId.split(":")` directo -> con %3A no hay
+// ningún ":" literal, así que quedaba TODO en imdbId y season/episode = null -> nuestros
+// addons devolvían [] para CUALQUIER serie en el cliente real, y por eso Pablo nunca veía
+// nuestros subtítulos en la app (solo funcionaban con mi curl, que usa ":" literal).
+function parseStremioSubId(rawId: string): { imdbId: string; season: number | null; episode: number | null } {
+  let core = rawId.split("/")[0];
+  try { core = decodeURIComponent(core); } catch { /* dejar como está si no decodifica */ }
+  const [imdbId, s, e] = core.split(":");
+  return {
+    imdbId,
+    season: s ? parseInt(s, 10) : null,
+    episode: e ? parseInt(e, 10) : null,
+  };
+}
+
 // ════════════════════════════════════════════════════════════════════════
 // ── /subdl — SubDL ES (sin SDH), subtítulos ───────────────────────────────
 // Lógica idéntica a deno-subdl-addon.ts.
@@ -90,20 +109,43 @@ const SUBDL_MANIFEST = {
 // releases viejos, nunca tira error, así que siempre devuelve algo legible en vez de
 // reemplazar todo por el carácter de reemplazo (�).
 function decodeSubtitleText(buf: Uint8Array): string {
+  let raw: string;
   if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
-    return new TextDecoder("utf-16le").decode(buf.subarray(2));
+    raw = new TextDecoder("utf-16le").decode(buf.subarray(2));
+  } else if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
+    raw = new TextDecoder("utf-16be").decode(buf.subarray(2));
+  } else if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+    raw = new TextDecoder("utf-8").decode(buf.subarray(3));
+  } else {
+    try {
+      raw = new TextDecoder("utf-8", { fatal: true }).decode(buf);
+    } catch {
+      raw = new TextDecoder("windows-1252").decode(buf);
+    }
   }
-  if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
-    return new TextDecoder("utf-16be").decode(buf.subarray(2));
-  }
-  if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
-    return new TextDecoder("utf-8").decode(buf.subarray(3));
-  }
-  try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(buf);
-  } catch {
-    return new TextDecoder("windows-1252").decode(buf);
-  }
+  return sanitizeSubtitleArtifacts(raw);
+}
+
+// Limpia artefactos que aparecen en SRT reales de OpenSubtitles/SubDL, aún después de
+// decodificar bien el charset. Encontrado 2026-09-05 en un archivo real de Wild Cards:
+// el sub tenía la secuencia LITERAL de dos caracteres "\r" (barra + r, no un carriage
+// return real) al principio de líneas — herramienta de conversión rota del uploader.
+// En un reproductor eso sale como texto basura ("\r (puerta abierta)"). También:
+// normaliza CRLF/CR reales a LF, saca el carácter de reemplazo Unicode suelto, y colapsa
+// más de 2 líneas en blanco seguidas.
+function sanitizeSubtitleArtifacts(text: string): string {
+  return text
+    .replace(/﻿/g, "")            // BOM suelto en medio del texto
+    .replace(/\r\n?/g, "\n")       // CRLF/CR reales -> LF
+    .replace(/\\[rn]/g, " ")       // "\r" / "\n" LITERALES (2 chars, artefacto de conversión rota) -> espacio
+    .replace(/[ \t]{2,}/g, " ")    // espacios múltiples que puedan quedar
+    .replace(/^[ \t]+|[ \t]+$/gm, "") // espacios al borde de cada línea
+    .replace(/�/g, "")            // carácter de reemplazo Unicode suelto
+    // línea en blanco que quedó justo entre el timestamp y el texto de la cue (por
+    // haber sacado un "\r" literal que estaba solo en su renglón)
+    .replace(/(-->[^\n]*)\n[ \t]*\n(?=\S)/g, "$1\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim() + "\n";
 }
 
 async function extractSrtFromZip(buf: Uint8Array): Promise<string | null> {
@@ -242,10 +284,10 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
   const subMatch = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
   if (subMatch) {
     const [, type, rawId] = subMatch;
-    const parts = rawId.split(":");
-    const imdbId = parts[0];
-    const season = type === "series" && parts[1] ? parseInt(parts[1], 10) : null;
-    const episode = type === "series" && parts[2] ? parseInt(parts[2], 10) : null;
+    const parsed = parseStremioSubId(rawId);
+    const imdbId = parsed.imdbId;
+    const season = type === "series" ? parsed.season : null;
+    const episode = type === "series" ? parsed.episode : null;
 
     try {
       const subs = await fetchSubdlSubs(imdbId, season, episode);
@@ -270,9 +312,19 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
         const idx = toCheck.indexOf(s);
         const isSdh = idx >= 0 && verdicts[idx] === true;
         return {
-          id: `subdl-${subs.indexOf(s)}-${imdbId}`,
+          // Prefijo propio (no "subdl-") a propósito: Stremio agrupa/dedupe los
+          // subtítulos por el prefijo del id, y si dos addons distintos usan el
+          // mismo prefijo (ej. este y el addon "SubDL Subtitles" de terceros, o
+          // SubSense que también tira de OpenSubtitles), el player se queda con
+          // UNO solo — y puede ser el roto. Ver "Sesión 2026-09-06".
+          id: `mshub-subdl-${subs.indexOf(s)}-${imdbId}`,
           url: `${mountBase}/srt/${encodeURIComponent(s.subdlPath)}`,
           lang: "spa",
+          // `label` es el campo que stremio-core lee para el nombre visible
+          // (confirmado 2026-09-06 leyendo el struct Subtitles del core — el campo
+          // `name` que usábamos antes lo IGNORA en silencio, así que el tag ⚠️SDH
+          // nunca se veía). Se manda también `name` por si algún cliente viejo lo usa.
+          label: `[SubDL]${isSdh ? " ⚠️SDH" : ""} ${s.name.replace(/\.(zip|srt)$/i, "")}`,
           name: `[SubDL]${isSdh ? " ⚠️SDH" : ""} ${s.name.replace(/\.(zip|srt)$/i, "")}`,
         };
       });
@@ -478,7 +530,7 @@ async function handleOpenSubtitles(
   // deno-lint-ignore no-explicit-any
   manifest: any = OPENSUBTITLES_MANIFEST,
   lang: string = "es",
-  idTag: string = "opensubtitles",
+  idTag: string = "mshub-os",
   nameTag: string = "OpenSubtitles",
 ): Promise<Response> {
   if (!OPENSUBTITLES_API_KEY) {
@@ -495,10 +547,7 @@ async function handleOpenSubtitles(
   const subMatch = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
   if (subMatch) {
     const [, , rawId] = subMatch;
-    const parts = rawId.split(":");
-    const imdbId = parts[0];
-    const season = parts[1] ? parseInt(parts[1], 10) : null;
-    const episode = parts[2] ? parseInt(parts[2], 10) : null;
+    const { imdbId, season, episode } = parseStremioSubId(rawId);
 
     try {
       const subs = await fetchOpenSubtitlesSubs(imdbId, season, episode, lang);
@@ -519,11 +568,13 @@ async function handleOpenSubtitles(
       const subtitles = [...clean, ...rest, ...sdhTagged].map((s) => {
         const idx = toCheck.indexOf(s);
         const isSdh = idx >= 0 && verdicts[idx] === true;
+        const disp = `[${nameTag}]${isSdh ? " ⚠️SDH" : ""} ${s.name}`;
         return {
           id: `${idTag}-${subs.indexOf(s)}-${imdbId}`,
           url: `${mountBase}/srt/${s.fileId}`,
           lang: "spa",
-          name: `[${nameTag}]${isSdh ? " ⚠️SDH" : ""} ${s.name}`,
+          label: disp, // campo real que stremio-core lee (ver nota en handleSubdl)
+          name: disp,
         };
       });
       return jsonResponse({ subtitles });
@@ -1018,7 +1069,7 @@ async function handleSynopsis(subPath: string): Promise<Response> {
   const metaMatch = subPath.match(/^\/meta\/(movie|series)\/(.+)\.json$/);
   if (metaMatch) {
     const [, type, rawId] = metaMatch;
-    const imdbId = rawId.split(":")[0];
+    const imdbId = parseStremioSubId(rawId).imdbId;
 
     // deno-lint-ignore no-explicit-any
     let meta: any;
@@ -1816,10 +1867,12 @@ const b64u = {
 async function handleMediathek(subPath: string, mountBase: string, translateMount: string): Promise<Response> {
   if (subPath === "/manifest.json") return jsonResponse(MEDIATHEK_MANIFEST);
 
-  const m = subPath.match(/^\/stream\/series\/(.+?)\.json$/);
+  const m = subPath.match(/^\/stream\/series\/(.+)\.json$/);
   if (!m) return new Response("Not found", { status: 404, headers: cors });
 
-  const [imdbId, sRaw, eRaw] = m[1].split(":");
+  const { imdbId, season: sNum, episode: eNum } = parseStremioSubId(m[1]);
+  const sRaw = sNum != null ? String(sNum) : "";
+  const eRaw = eNum != null ? String(eNum) : "";
   const show = MEDIATHEK_SHOWS[imdbId];
   if (!show || !sRaw || !eRaw) return jsonResponse({ streams: [] });
 
@@ -2137,7 +2190,9 @@ async function fetchBaseCues(src: { t: string; u?: string; f?: number }): Promis
     if (!dl?.link) throw new Error("base OS sin link");
     const r = await fetch(dl.link, { signal: AbortSignal.timeout(20000) });
     if (!r.ok) throw new Error(`base OS dl ${r.status}`);
-    return parseSrt(await r.text());
+    // decodeSubtitleText (no r.text()) — mismo cuidado de charset/artefactos que las
+    // rutas de servido directo, así la traducción no arranca de un texto ya corrupto.
+    return parseSrt(decodeSubtitleText(new Uint8Array(await r.arrayBuffer())));
   }
   throw new Error("base desconocida");
 }
@@ -2183,9 +2238,7 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
   const listM = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
   if (listM) {
     const [, , rawId] = listM;
-    const [imdbId, sRaw, eRaw] = rawId.split(":");
-    const season = sRaw ? parseInt(sRaw, 10) : null;
-    const episode = eRaw ? parseInt(eRaw, 10) : null;
+    const { imdbId, season, episode } = parseStremioSubId(rawId);
     try {
       if (await osHasSpanish(imdbId, season, episode)) return jsonResponse({ subtitles: [] });
 
@@ -2215,6 +2268,7 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         id: `ia-es-${i}`,
         url: `${mountBase}/gen/${b64u.enc(JSON.stringify({ t: b.t, u: b.u, f: b.f, r: b.keyRef }))}.srt`,
         lang: "spa",
+        label: `[IA→ES latino] ${b.label}`,
         name: `[IA→ES latino] ${b.label}`,
       }));
       return jsonResponse({ subtitles });
@@ -2362,7 +2416,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         `${url.origin}/opensubtitles-latino`,
         OPENSUBTITLES_LATINO_MANIFEST,
         "ea",
-        "opensubtitles-latino",
+        "mshub-oslat",
         "OpenSubtitles Latino",
       );
     } else if (path.startsWith("/opensubtitles")) {

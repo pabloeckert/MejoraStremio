@@ -4141,6 +4141,75 @@ pero depende de que la comunidad ya haya subido ese hash puntual — confirmado 
 contenido de nicho la base está vacía; es un problema de datos, no de configuración, y no se
 encontró nada nuevo hoy que lo cambie.
 
+## Sesión 2026-09-06 — EL bug: nuestros subtítulos nunca aparecían en la app real de Stremio
+
+Pablo pidió abrir "Wild Cards" en la app y confirmar. Al hacerlo (web.stremio.com logueado con la
+cuenta real) + mirar los logs del hub (`deno deploy logs`), se encontró **la causa de fondo de
+todo el problema de subtítulos**, que ninguna sesión anterior había visto porque el tooling y los
+`curl` de prueba usan un formato de id que el cliente real de Stremio NO usa.
+
+### El bug (root cause)
+
+El cliente REAL de Stremio manda las requests de subtítulos durante la reproducción así:
+
+```
+/opensubtitles/subtitles/series/tt29780951%3A1%3A1/videoHash=...&videoSize=...&filename=Wild.Cards.S01E01.1080p...mkv.json
+```
+
+— o sea (a) los `:` van **percent-codeados como `%3A`** (`url.pathname` en Deno NO los decodea), y
+(b) hay un **segmento extra `/…=…`** con los datos del archivo de video. El código hacía
+`rawId.split(":")` directo → con `%3A` no hay ningún `:` literal → **todo quedaba en `imdbId`** y
+`season`/`episode` = `null` → `fetchOpenSubtitlesSubs` recibía un `imdb_id` basura → la API
+devolvía `[]` → **los 4 addons de subtítulos del hub (`/opensubtitles`, `/opensubtitles-latino`,
+`/subdl`, `/translate`) devolvían `[]` para CUALQUIER serie en la app real.** Solo funcionaban con
+`curl` (que usa `:` literal). Por eso Pablo nunca vio nuestros subtítulos — solo los de
+SubSense/SubMaker (que sí parsean bien).
+
+**Fix**: `parseStremioSubId()` — toma el primer segmento (antes del `/`), lo percent-decodea, y
+recién ahí parte en `:`. Aplicado en los 4 handlers de subtítulos + `/mediathek` (streams) +
+`/synopsis` (meta). Verificado en la app real: el subtítulo de nuestro `/opensubtitles` ahora
+aparece como variante "Español" seleccionable, carga sin el error "Failed to load external
+subtitles", y renderiza texto en español limpio.
+
+### Dos bugs más, misma pasada
+
+- **`label`, no `name`**: leyendo el struct `Subtitles` de `stremio-core`
+  (`src/types/resource/subtitles.rs`), los campos son `id`/`lang`/`url`/**`label`**/`fonts` — el
+  `name` que usábamos para el nombre visible (y el tag `⚠️SDH`) **lo ignora en silencio**. Ahora se
+  manda en `label` (+ `name` por si algún cliente viejo lo usa). Confirmado en vivo: el tag `⚠️SDH`
+  ahora se ve en el selector.
+- **`sanitizeSubtitleArtifacts()`**: un SRT real de Wild Cards traía la secuencia **LITERAL de 2
+  caracteres `\r`** (barra + r, no un carriage return) al principio de renglones — herramienta de
+  conversión rota del uploader; en el player salía `\r (puerta abierta)` como texto basura (otra
+  fuente de "caracteres raros", además del UTF-16 ya arreglado el 2026-09-05). Se limpia junto con
+  CRLF/CR reales, BOM suelto y el carácter de reemplazo Unicode (`�`). Corre dentro de
+  `decodeSubtitleText` (SubDL + OpenSubtitles servido) y en la base de `/translate`.
+- **ids con prefijo `mshub-`** (no `opensubtitles-`/`subdl-`): defensivo, para que el player no
+  agrupe/dedupe nuestros subtítulos con los de addons de terceros que también tiran de OpenSubtitles.
+
+### Hallazgos de contexto (no accionados)
+
+- **`stremio-core` NO deduplica subtítulos** (confirmado leyendo `models/player.rs`): acumula todo
+  lo que devuelven todos los addons. La consolidación/agrupación "1 variante por idioma" que se veía
+  es del **UI de stremio-web**, no del core. Con el `label` distinto y el id namespaced, ahora
+  nuestros subtítulos aparecen como variante separada.
+- **SubSense sirve `.ass`/SSA desde `dl.opensubtitles.org`** (host legacy sin CORS) → el error
+  "Failed to load external subtitles" del web player es de SUBSENSE, no nuestro. En la app nativa
+  de Android TV puede comportarse distinto. Nuestro `/opensubtitles` sirve el MISMO subtítulo como
+  SRT limpio con CORS OK.
+- **OpenSubtitles v3** (idx 7, tercero) devuelve resultados en TODOS los idiomas para títulos de
+  nicho (pob/heb/hun/nld/…), ignorando el filtro de idioma — data suelta de ese addon, no nuestra.
+- **Mojibake ocasional en el `label`** de OpenSubtitles (`EspaÃ±ol`): viene ya corrupto en el campo
+  `release` de la API de OpenSubtitles (no en el contenido del subtítulo). Cosmético, 1 de 26, no
+  se tocó.
+
+### Protección de regresión
+
+`check-subtitles.mjs` ahora consulta cada addon con los **dos** formatos de id (`:` literal y el
+real de Stremio con `%3A` + extra) y marca `⚠ DIFIERE` si no coinciden — así este tipo de bug no
+vuelve a pasar desapercibido. Verificado post-fix: 0 mismatches en Wild Cards / HPI-ACI / Astrid /
+Breaking Bad.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

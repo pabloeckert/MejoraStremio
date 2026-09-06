@@ -72,7 +72,7 @@
   {
     "id": "tt27763549",
     "type": "movie",
-    "name": "Los Mufas",
+    "name": "A Man Like Maximilian",
     "genres": [],
     "isFamily": false,
     "perAddon": {
@@ -122,7 +122,7 @@
     "latino": null,
     "label": "Los Mufas: Suerte para la desgracia",
     "addedAt": "2026-07-02T21:47:44.909Z",
-    "lastCheckedAt": "2026-09-04T10:16:36.817Z"
+    "lastCheckedAt": "2026-09-06T17:23:09.029Z"
   },
   {
     "id": "tt5834132",
@@ -179,7 +179,7 @@
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-09-04T10:16:57.164Z"
+    "lastCheckedAt": "2026-09-06T17:23:28.157Z"
   },
   {
     "id": "tt2380307",
@@ -1443,7 +1443,7 @@
     "latino": null,
     "label": "Ágata y Lola S01E02",
     "addedAt": "2026-08-23T01:52:08.797Z",
-    "lastCheckedAt": "2026-09-04T10:17:10.433Z"
+    "lastCheckedAt": "2026-09-06T17:23:36.470Z"
   },
   {
     "id": "tt38607962",
@@ -1562,7 +1562,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E02",
     "addedAt": "2026-08-23T02:20:37.808Z",
-    "lastCheckedAt": "2026-09-04T10:17:23.366Z"
+    "lastCheckedAt": "2026-09-06T17:23:49.295Z"
   },
   {
     "id": "tt43704317",
@@ -1619,7 +1619,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E03",
     "addedAt": "2026-08-23T02:20:55.820Z",
-    "lastCheckedAt": "2026-09-04T10:17:34.307Z"
+    "lastCheckedAt": "2026-09-06T17:24:05.370Z"
   },
   {
     "id": "tt23112594",
@@ -1676,7 +1676,7 @@
     "latino": null,
     "label": "VisionQuest S01E01",
     "addedAt": "2026-08-23T02:21:41.269Z",
-    "lastCheckedAt": "2026-09-04T10:17:49.032Z"
+    "lastCheckedAt": "2026-09-06T17:24:22.162Z"
   },
   {
     "id": "tt23112594",
@@ -1733,7 +1733,7 @@
     "latino": null,
     "label": "VisionQuest S01E02",
     "addedAt": "2026-08-23T02:21:58.824Z",
-    "lastCheckedAt": "2026-09-04T10:17:57.566Z"
+    "lastCheckedAt": "2026-09-06T17:24:31.619Z"
   },
   {
     "id": "tt29780951",
@@ -1794,7 +1794,7 @@
     "latino": null,
     "label": "Infiltrada (mapeada como Wild Cards por TMDB)",
     "addedAt": "2026-09-04T02:20:07.435Z",
-    "lastCheckedAt": "2026-09-04T10:18:08.602Z"
+    "lastCheckedAt": "2026-09-06T17:24:48.844Z"
   },
   {
     "id": "tt38607962",
@@ -1851,6 +1851,6 @@
     "latino": null,
     "label": "Ágata y Lola S01E09",
     "addedAt": "2026-09-04T13:17:22.882Z",
-    "lastCheckedAt": "2026-09-04T13:17:22.882Z"
+    "lastCheckedAt": "2026-09-06T17:25:05.144Z"
   }
 ]

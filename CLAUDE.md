@@ -4332,18 +4332,19 @@ lo regenera 2×/semana (lun/jue). Primera corrida: 798 canales vivos, **capados 
 cada catálogo: **alfabético** — la TV en vivo no tiene fecha de estreno, excepción explícita a la
 ley dura.
 
-**PENDIENTE (bloqueado por el límite de 15 deploys/hora de Deno Deploy — se agotó la ventana esta
-sesión):**
-1. `deno deploy --prod --org=pabloeckert --app=mejorastremio-hub --token=$DENO_DEPLOY_TOKEN`
-   (LOCAL, no el workflow) — lleva a producción: `/iptv`, el sort por fecha de `/discover`, el
-   sentinel `"Todos"`, y el warm-up… no, el warm-up es del `.mjs`. Solo cambios de `deno-hub.ts`.
-2. Instalar `/iptv` en stremioeg: `ST_EMAIL=... ST_PASS=... node scripts/install-addon.mjs
-   https://mejorastremio-hub.pabloeckert.deno.net/iptv/manifest.json --after com.mejorastremio.livetv`
-   (o `--at <idx>` cerca del final, junto a los otros catálogos de descubrimiento). Backup + health-check después.
-3. Verificar en la app: `/iptv` aparece, un canal AR abre (ej. C5N / A24 / TN).
-Todo lo demás de esta sesión YA está aplicado y verificado en vivo (ley dura en preset → instancia
-`6e01ca24`, 105 catálogos sin popularidad; `/translate` SDH-aware deployado; los 7 workflows con el
-helper anti-carrera).
+**APLICADO al final de la sesión** (tras esperar a que se liberara el rate limit de Deno):
+- Hub redeployado a producción (`deno deploy --prod` local, revisión con `/iptv` + `/discover`
+  por fecha + `"Todos"`). Verificado en vivo: `/iptv/catalog/tv/iptv-ar.json` → 100 canales,
+  filtro por género OK, `/discover` Alemania+Crimen → 2026→2024→… .
+- `/iptv` instalado en stremioeg en **índice 23** (`--after com.mejorastremio.short-series`),
+  26 addons. Backup `.backups/backup-stremioeg-pre-install-com.mejorastremio.iptv-2026-09-07T13-51-14.json`.
+  `health-check.mjs` verde post-instalación.
+- Instancia AIOMetadata final: `5bb47417` (105 catálogos, sin popularidad, Próximos Estrenos en
+  `.asc`). preset == cuenta == vivo, verificado.
+- **Pendiente menor, no bloqueante**: confirmar en la app de la TV que un canal IPTV abre de verdad
+  (ej. C5N / A24 / TN) — los 432 canales se verificaron con un GET real al armar la lista, pero
+  el reproductor de la caja Android TV puede comportarse distinto con HLS en vivo. Si varios no
+  abren, subir la cadencia de `iptv-refresh.yml` (hoy 2×/semana) o revisar `notWebReady`/proxyHeaders.
 
 **8. Research — forks / skins / alternativas a Stremio (pedido de Pablo).**
 - **Todos los "Stremio mejorado" son solo-desktop, ninguno corre en Android TV** (la caja de Pablo,

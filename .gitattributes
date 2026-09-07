@@ -1,5 +1,11 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Repo cross-plataforma (scripts Node/Deno, JSON, YAML, MD) que corre en runners Linux.
+# eol=lf en todo: nunca CRLF en el árbol de trabajo, ni siquiera en Windows con
+# core.autocrlf=true — evita el ruido de "LF will be replaced by CRLF" en cada commit
+# y que un CRLF se cuele al repo y rompa un script en CI.
+* text=auto eol=lf
 
-# Los scripts de shell corren en runners Linux (GitHub Actions) — siempre LF, nunca CRLF.
-*.sh text eol=lf
+# Binarios: sin normalización de fin de línea.
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary

@@ -890,7 +890,10 @@ const IPTV_MANIFEST = {
     type: "tv",
     id,
     name: IPTV_CATALOG_NAMES[id],
-    extra: [{ name: "genre", options: IPTV_GENRES, isRequired: false }, { name: "skip", isRequired: false }],
+    extra: [
+      { name: "genre", options: ["Todos", ...IPTV_GENRES], isRequired: false },
+      { name: "skip", isRequired: false },
+    ],
   })),
 };
 
@@ -927,7 +930,7 @@ async function handleIptv(subPath: string): Promise<Response> {
     const skip = parseInt(extra.get("skip") ?? "0", 10) || 0;
     const all = await loadIptvChannels();
     let list = all.filter((c) => c.catalog === catalogId);
-    if (genre && genre !== "None") list = list.filter((c) => c.genre === genre);
+    if (genre && genre !== "Todos") list = list.filter((c) => c.genre === genre);
     const metas = list.slice(skip, skip + 100).map((c) => ({
       id: `mshub-iptv:${c.id}`,
       type: "tv",
@@ -1284,7 +1287,7 @@ const MINISERIES_MANIFEST = {
         // se ve en los catálogos de AIOMetadata, ver CLAUDE.md "Metadata en español").
         // Deben calzar exacto con detail.genres[].name para que el filtro matchee.
         options: [
-          "None",
+          "Todos",
           "Action & Adventure",
           "Animación",
           "Comedia",
@@ -1432,7 +1435,7 @@ async function handleMiniseries(subPath: string): Promise<Response> {
       if (extraStr) {
         const extra = new URLSearchParams(extraStr);
         const genre = extra.get("genre");
-        if (genre && genre !== "None") metas = metas.filter((m) => m.genres.includes(genre));
+        if (genre && genre !== "Todos") metas = metas.filter((m) => m.genres.includes(genre));
         const skip = parseInt(extra.get("skip") ?? "0", 10);
         if (skip > 0) metas = metas.slice(skip);
       }
@@ -1686,11 +1689,11 @@ const GENRE_IDS_SERIES: Record<string, number> = {
 
 function discoverExtra(genreMap: Record<string, number>) {
   return [
-    { name: "service", options: ["None", ...Object.keys(SERVICE_IDS)], isRequired: false },
-    { name: "region", options: ["None", ...Object.keys(REGION_IDS)], isRequired: false },
-    { name: "country", options: ["None", ...Object.keys(COUNTRY_IDS)], isRequired: false },
-    { name: "language", options: ["None", ...Object.keys(LANGUAGE_IDS)], isRequired: false },
-    { name: "genre", options: ["None", ...Object.keys(genreMap)], isRequired: false },
+    { name: "service", options: ["Todos", ...Object.keys(SERVICE_IDS)], isRequired: false },
+    { name: "region", options: ["Todos", ...Object.keys(REGION_IDS)], isRequired: false },
+    { name: "country", options: ["Todos", ...Object.keys(COUNTRY_IDS)], isRequired: false },
+    { name: "language", options: ["Todos", ...Object.keys(LANGUAGE_IDS)], isRequired: false },
+    { name: "genre", options: ["Todos", ...Object.keys(genreMap)], isRequired: false },
     { name: "skip" },
   ];
 }
@@ -1825,21 +1828,21 @@ async function handleDiscover(subPath: string, url: URL): Promise<Response> {
   // Series: sacar telediarios y talk shows — se cuelan con with_origin_country
   // por país (ej. "Alemania + Crimen" traía Tagesschau) y nunca son lo buscado.
   if (type === "series") params.without_genres = "10763,10767";
-  if (service && service !== "None" && SERVICE_IDS[service]) {
+  if (service && service !== "Todos" && SERVICE_IDS[service]) {
     params.with_watch_providers = String(SERVICE_IDS[service]);
     params.watch_region = DISCOVER_WATCH_REGION;
   }
   // país puntual gana sobre región si ambos vienen seteados (evita una
   // combinación contradictoria silenciosa).
-  if (country && country !== "None" && COUNTRY_IDS[country]) {
+  if (country && country !== "Todos" && COUNTRY_IDS[country]) {
     params.with_origin_country = COUNTRY_IDS[country];
-  } else if (region && region !== "None" && REGION_IDS[region]) {
+  } else if (region && region !== "Todos" && REGION_IDS[region]) {
     params.with_origin_country = REGION_IDS[region];
   }
-  if (language && language !== "None" && LANGUAGE_IDS[language]) {
+  if (language && language !== "Todos" && LANGUAGE_IDS[language]) {
     params.with_original_language = LANGUAGE_IDS[language];
   }
-  if (genre && genre !== "None" && genreMap[genre]) {
+  if (genre && genre !== "Todos" && genreMap[genre]) {
     params.with_genres = String(genreMap[genre]);
   }
 

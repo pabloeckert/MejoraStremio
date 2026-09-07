@@ -4302,6 +4302,13 @@ catálogo/filtro de popularidad o ranking, borrar. Aplicado:
 - **"Capitalizar los 3 niveles de filtros"**: los nombres de catálogo ya estaban en Title Case; lo
   que se arregló fue el sentinel `"None"` (inglés) de los filtros de `/discover` (servicio/región/
   país/idioma/género) + miniseries/short-series/iptv → ahora `"Todos"`.
+- **Búsqueda y Biblioteca — límite real, no accionable**. La ley dura pide fecha desc también en
+  Búsqueda y Biblioteca. **Búsqueda**: AIOMetadata usa el ranking de relevancia nativo de cada
+  proveedor (`tmdb.search`/`tvdb.search`/…); ninguno acepta `sort_by` (el endpoint `/search` de
+  TMDB no lo soporta, solo `/discover`) — no hay knob para forzar orden por fecha, y tampoco
+  conviene (buscar "matrix" debe traer The Matrix primero, no lo más nuevo llamado así). **Biblioteca**:
+  el orden es 100% del cliente (app de Stremio → Biblioteca → ordenar por) — no lo tocan los
+  addons. Ambos quedan como están; documentado como límite, no como pendiente.
 
 **6. `regenerate-aiometadata.mjs` — warm-up de TODOS los catálogos, no solo `now_playing`.** El
 health-check de `daily-catalog-refresh` muestrea ~10 catálogos al azar segundos después de crear la

@@ -125,8 +125,23 @@ const out = [];
 let checked = 0;
 const CONCURRENCY = 24;
 
+// Cap por catálogo: LatAm da >500 candidatos vivos (muchísimo canal local minúsculo). Se
+// prioriza tener categoría real (≠ solo "General") y logo, después alfabético. 150 alcanza de
+// sobra y la lista queda navegable; el filtro por género hace el resto.
+const CAP_PER_CATALOG = 150;
+const capScore = (c) => (c.genre !== 'General' ? 2 : 0) + (c.logo ? 1 : 0);
+const applyCap = (arr) => {
+  const kept = [];
+  for (const cid of Object.keys(CATALOGS)) {
+    kept.push(...arr.filter((c) => c.catalog === cid)
+      .sort((a, b) => capScore(b) - capScore(a) || a.name.localeCompare(b.name, 'es'))
+      .slice(0, CAP_PER_CATALOG));
+  }
+  return kept;
+};
+
 const flush = () => {
-  const sorted = [...out].sort((a, b) => a.catalog.localeCompare(b.catalog) || a.name.localeCompare(b.name, 'es'));
+  const sorted = applyCap(out).sort((a, b) => a.catalog.localeCompare(b.catalog) || a.name.localeCompare(b.name, 'es'));
   const byCatalog = {};
   for (const c of sorted) byCatalog[c.catalog] = (byCatalog[c.catalog] || 0) + 1;
   writeFileSync(OUT, JSON.stringify({

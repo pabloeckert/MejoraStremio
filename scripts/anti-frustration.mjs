@@ -98,6 +98,18 @@ async function checkTitle({ id, type, season, episode }) {
   const genres = meta?.meta?.genre || [];
   const isFamily = genres.some((g) => FAMILY_GENRES.has(g));
 
+  // Para series: ¿el episodio pedido existe realmente en la metadata? Un episodio inexistente
+  // (o un id de IMDb que Cinemeta resuelve a OTRO título por un mapeo roto de TMDB) genera una
+  // entrada que nunca puede resolver — como pasó con "Infiltrada S01E11" mapeada al id de Wild
+  // Cards (2026-09-03/06). null = no se pudo determinar (Cinemeta caído o sin lista de videos).
+  let episodeExists = null;
+  if (type === 'series' && season && episode) {
+    const videos = meta?.meta?.videos;
+    if (Array.isArray(videos) && videos.length) {
+      episodeExists = videos.some((v) => v.season === season && v.episode === episode);
+    }
+  }
+
   const perAddon = {};
   let allStreams = [];
   for (const a of streamAddons) {
@@ -118,14 +130,15 @@ async function checkTitle({ id, type, season, episode }) {
     latino = { checked: true, found: found.length > 0, samples: found.slice(0, 3) };
   }
 
-  return { id, type, season, episode, name, genres, isFamily, perAddon, totalReal, status, latino };
+  return { id, type, season, episode, name, genres, isFamily, perAddon, totalReal, status, latino, episodeExists };
 }
 
 const [, , cmd, ...rest] = process.argv;
 
 if (cmd === 'add') {
-  const [id, type = 'movie', season, episode, ...titleParts] = rest;
-  if (!id) die('Uso: anti-frustration.mjs add <imdbId> [movie|series] [season] [episode] ["título"]');
+  const force = rest.includes('--force');
+  const [id, type = 'movie', season, episode, ...titleParts] = rest.filter((a) => a !== '--force');
+  if (!id) die('Uso: anti-frustration.mjs add <imdbId> [movie|series] [season] [episode] ["título"] [--force]');
   const result = await checkTitle({
     id,
     type,
@@ -134,14 +147,21 @@ if (cmd === 'add') {
   });
   const label = titleParts.join(' ') || result.name;
 
+  if (result.episodeExists === false && !force) {
+    die(`El episodio S${season}E${episode} NO existe en la metadata de "${result.name}" (${id}).\n` +
+        `  Probablemente un id de IMDb equivocado o un mapeo roto de TMDB → una entrada así nunca\n` +
+        `  va a poder resolver. Si igual querés registrarlo, agregá --force.`);
+  }
+
   const log = loadLog();
   const key = `${result.id}:${result.season || ''}:${result.episode || ''}`;
   const now = new Date().toISOString();
   const existingIdx = log.findIndex(
     (e) => `${e.id}:${e.season || ''}:${e.episode || ''}` === key
   );
+  const { episodeExists: _drop, ...resultForLog } = result;
   const entry = {
-    ...result,
+    ...resultForLog,
     label,
     addedAt: existingIdx >= 0 ? log[existingIdx].addedAt : now,
     lastCheckedAt: now,
@@ -170,7 +190,7 @@ if (cmd === 'add') {
   console.log(`Re-chequeando ${pending.length} título(s) pendientes...\n`);
   let fixed = 0, stillStuck = 0;
   for (const e of pending) {
-    const result = await checkTitle({ id: e.id, type: e.type, season: e.season, episode: e.episode });
+    const { episodeExists: _drop, ...result } = await checkTitle({ id: e.id, type: e.type, season: e.season, episode: e.episode });
     const idx = log.findIndex((x) => x === e);
     log[idx] = { ...e, ...result, lastCheckedAt: new Date().toISOString() };
     if (result.status === 'resuelto') {

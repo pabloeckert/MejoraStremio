@@ -98,8 +98,13 @@ const continueWatching = await fetchCatalog('series', 'continue_watching_shows')
 const shows = new Map();
 for (const m of continueWatching) if (m.imdb_id && !shows.has(m.imdb_id)) shows.set(m.imdb_id, m.name);
 if (shows.size === 0) {
-  die('MyTrakt Sync devolvió 0 shows en Continue Watching — probable fallo transitorio del ' +
-      'endpoint, no que no haya nada en progreso. Se aborta sin marcar nada.');
+  // MyTrakt devolvió 0 shows: casi seguro un fallo transitorio del endpoint (Pablo siempre tiene
+  // algo en progreso). A diferencia de premiere-radar.mjs, este script NO persiste estado — no hay
+  // nada que un fallo silencioso pueda corromper. Salir limpio (exit 0) en vez de marcar el job en
+  // rojo por un hipo de un servicio de terceros: la corrida de mañana reintenta sola.
+  console.log('⚠ MyTrakt Sync devolvió 0 shows en Continue Watching — probable fallo transitorio ' +
+              'del endpoint. No hay nada que airlockear en esta corrida; se reintenta mañana.');
+  process.exit(0);
 }
 console.log(`${shows.size} show(s) en Continue Watching en MyTrakt Sync.\n`);
 

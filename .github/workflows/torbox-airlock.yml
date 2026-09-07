@@ -35,12 +35,6 @@ jobs:
 
       - name: Registrar en el log interno
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          node scripts/log-status.mjs torbox-airlock ok < /tmp/airlock-output.txt
-          git add data/internal-log.jsonl
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(log): torbox-airlock $(date -u +%Y-%m-%dT%H:%MZ)"
-            git pull --rebase origin main
-            git push
-          fi
+          bash scripts/lib/ci-commit-push.sh \
+            "chore(log): torbox-airlock $(date -u +%Y-%m-%dT%H:%MZ)" \
+            torbox-airlock ok /tmp/airlock-output.txt

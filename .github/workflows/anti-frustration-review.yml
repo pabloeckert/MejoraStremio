@@ -66,12 +66,7 @@ jobs:
 
       - name: Commitear el log y registrar en el log interno
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          node scripts/log-status.mjs anti-frustration-review ok < /tmp/review-output.txt
-          git add data/anti-frustration-log.json data/internal-log.jsonl
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(anti-frustration): actualizar log semanal"
-            git pull --rebase origin main
-            git push
-          fi
+          bash scripts/lib/ci-commit-push.sh \
+            "chore(anti-frustration): actualizar log semanal" \
+            anti-frustration-review ok /tmp/review-output.txt \
+            data/anti-frustration-log.json

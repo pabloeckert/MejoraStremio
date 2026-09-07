@@ -29,12 +29,7 @@ jobs:
 
       - name: Commitear el estado y registrar en el log interno
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          node scripts/log-status.mjs premiere-radar ok < /tmp/radar-output.txt
-          git add data/premiere-radar-state.json data/internal-log.jsonl
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(premiere-radar): actualizar estado diario"
-            git pull --rebase origin main
-            git push
-          fi
+          bash scripts/lib/ci-commit-push.sh \
+            "chore(premiere-radar): actualizar estado diario" \
+            premiere-radar ok /tmp/radar-output.txt \
+            data/premiere-radar-state.json

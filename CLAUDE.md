@@ -105,6 +105,10 @@ scripts/log-status.mjs              Registra el resultado de cada corrida automa
                                     premiere-radar, monthly-digest) en data/internal-log.jsonl —
                                     reemplaza los emails a Pablo (ver "Sesión 2026-08-02"). Poda a
                                     90 días.
+scripts/lib/ci-commit-push.sh       Helper de CI: commit + push del log interno (+ archivos de
+                                    estado) resistente a carreras entre workflows. Reintenta
+                                    re-appendeando la línea sobre el origin/main más fresco. Lo usan
+                                    los 7 workflows que escriben a data/ (ver "Sesión 2026-09-07").
 scripts/monthly-digest.mjs          "Esto se estrenó de tu gusto": barre el cluster policial/
                                     familia contra /discover/recent del hub (país+género+tipo →
                                     estrenos de los últimos N días) y registra el resumen en el log
@@ -4209,6 +4213,52 @@ subtitles", y renderiza texto en español limpio.
 real de Stremio con `%3A` + extra) y marca `⚠ DIFIERE` si no coinciden — así este tipo de bug no
 vuelve a pasar desapercibido. Verificado post-fix: 0 mismatches en Wild Cards / HPI-ACI / Astrid /
 Breaking Bad.
+
+## Sesión 2026-09-07 — helper anti-carrera de CI + /translate consciente de SDH
+
+Pedido de Pablo: "continua con el sistema de mejoras". Auditoría + fixes de lo que apareció. Las 3
+cuentas verdes al arrancar, hub con las 12 rutas OK.
+
+**1. `scripts/lib/ci-commit-push.sh` — fin del bug de carrera del log interno (3ra vez).** El
+patrón `commit → git pull --rebase → push` de los 7 workflows automatizados choca cuando dos
+corridas cercanas appendean una línea a `data/internal-log.jsonl`: git ve dos "add" en la misma
+posición del final del archivo y el rebase falla con CONFLICT, tirando el job y perdiendo esa
+línea. Pasó el 2026-08-28, 2026-09-03 y **2026-09-06** (`torbox-airlock` vs `tatort-subs-prewarm`/
+`daily-catalog-refresh`). El helper nuevo reintenta hasta 5 veces: trae el `origin/main` más
+fresco, `reset --hard`, restaura los archivos de estado que el script generó (snapshot previo),
+**re-appendea** la línea de log sobre el `internal-log.jsonl` recién traído (nunca dos appends
+compitiendo) y pushea. Nunca falla el job (`::warning::` + exit 0). Aplicado a health-monitor,
+premiere-radar, tatort-subs-prewarm, anti-frustration-review, monthly-digest, torbox-airlock y el
+paso de log de daily-catalog-refresh (su commit de `preset.json` queda igual — único escritor).
+**Verificado en CI**: `torbox-airlock` y `tatort-subs-prewarm` disparados a mano post-fix, ambos
+verdes, `ci-commit-push: pusheado en el intento 1` en los dos (el segundo con archivo de estado +
+log line). `.gitattributes` ganó `*.sh text eol=lf` para blindar el helper contra CRLF.
+
+**2. `torbox-airlock.mjs` — 0 shows de MyTrakt = no-op limpio.** El guard `shows.size === 0`
+(agregado el 2026-09-03 para que un fallo silencioso de MyTrakt no borre estado) marcaba el job en
+rojo cada vez que MyTrakt tiene un hipo transitorio. Pero este script **no persiste estado** (a
+diferencia de `premiere-radar.mjs`), así que no hay nada que proteger — ahora sale `exit 0` con un
+mensaje claro y la corrida de mañana reintenta sola. El guard sigue en `premiere-radar.mjs` (ahí sí
+protege `premiere-radar-state.json`).
+
+**3. `anti-frustration.mjs` — guard contra episodios inexistentes + entrada fantasma sacada.**
+"Infiltrada S01E11" estaba registrada con el id `tt29780951` (que Cinemeta resuelve a "Wild Cards",
+cuya S01 no llega al ep. 11) por un mapeo roto de TMDB → una entrada que nunca podía resolver y
+ensuciaba la lista de pendientes. Ya se había sacado el 2026-09-03 y volvió el 2026-09-04 (sesiones
+en paralelo). El comando `add` ahora chequea contra `meta.videos` de Cinemeta que el episodio
+pedido exista y aborta con mensaje claro si no (`--force` para saltearlo). Pendientes reales del
+log: 8, todos huecos estructurales conocidos (Los Mufas, El Marginal, Ágata y Lola, Pa' Seguirte
+Queriendo, VisionQuest).
+
+**4. `/translate` consciente de SDH.** `osHasSpanish` (el chequeo que hace que `/translate` se
+calle si ya hay subtítulo en español) contaba cualquier resultado `es`/`sp`/`ea`, incluidos los
+SDH. Con la preferencia dura de Pablo ("SDH me molesta muchísimo"), si lo único en español para un
+título es para sordos, la traducción IA limpia sí vale la pena. Ahora descarta primero los SDH por
+nombre/flag y, para los pocos candidatos que quedan, reusa el veredicto por contenido ya cacheado
+(`classifySDHCached` — cache hit gratis; si alguno no está clasificado, la primera vez cuesta una
+descarga). Solo si **todos** los ES resultan SDH, `/translate` ofrece su traducción. Verificado en
+producción: HPI/ACI S01E01 (2 subs ES, ambos SDH) ahora ofrece `[IA→ES latino] base EN`; Matrix
+(tiene ES limpio) sigue en silencio. Hub redeployado (`deno deploy --prod` local).
 
 ## Reglas del repo
 

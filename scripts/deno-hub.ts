@@ -885,7 +885,7 @@ const IPTV_MANIFEST = {
     "en vivo antes de listarlo. Filtrable por género.",
   resources: ["catalog", "meta", "stream"],
   types: ["tv"],
-  idPrefixes: ["mshub-iptv:"],
+  idPrefixes: ["mshub-iptv-"],
   catalogs: IPTV_CATALOG_IDS.map((id) => ({
     type: "tv",
     id,
@@ -932,7 +932,7 @@ async function handleIptv(subPath: string): Promise<Response> {
     let list = all.filter((c) => c.catalog === catalogId);
     if (genre && genre !== "Todos") list = list.filter((c) => c.genre === genre);
     const metas = list.slice(skip, skip + 100).map((c) => ({
-      id: `mshub-iptv:${c.id}`,
+      id: `mshub-iptv-${c.id}`,
       type: "tv",
       name: c.name,
       poster: c.logo,
@@ -943,14 +943,17 @@ async function handleIptv(subPath: string): Promise<Response> {
     return jsonResponse({ metas });
   }
 
-  const metaM = subPath.match(/^\/meta\/tv\/mshub-iptv:(.+)\.json$/);
+  // meta / stream — id `mshub-iptv-<channel-id>`. Sin ":" a propósito: el cliente real de Stremio
+  // percent-codea ":" a "%3A" en el path (ver "Sesión 2026-09-06"), con "-" el id atraviesa la
+  // URL intacto. Igual se decodifica y se saca el prefijo por las dudas.
+  const metaM = subPath.match(/^\/meta\/tv\/(.+)\.json$/);
   if (metaM) {
-    const chId = decodeURIComponent(metaM[1]);
+    const chId = decodeURIComponent(metaM[1]).replace(/^mshub-iptv-/, "");
     const ch = (await loadIptvChannels()).find((c) => c.id === chId);
     if (!ch) return new Response("Not found", { status: 404, headers: cors });
     return jsonResponse({
       meta: {
-        id: `mshub-iptv:${ch.id}`,
+        id: `mshub-iptv-${ch.id}`,
         type: "tv",
         name: ch.name,
         poster: ch.logo,
@@ -963,9 +966,9 @@ async function handleIptv(subPath: string): Promise<Response> {
     });
   }
 
-  const streamM = subPath.match(/^\/stream\/tv\/mshub-iptv:(.+)\.json$/);
+  const streamM = subPath.match(/^\/stream\/tv\/(.+)\.json$/);
   if (streamM) {
-    const chId = decodeURIComponent(streamM[1]);
+    const chId = decodeURIComponent(streamM[1]).replace(/^mshub-iptv-/, "");
     const ch = (await loadIptvChannels()).find((c) => c.id === chId);
     if (!ch) return jsonResponse({ streams: [] });
     const reqHeaders: Record<string, string> = {};

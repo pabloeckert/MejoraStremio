@@ -1175,6 +1175,8 @@ interface MiniseriesMeta {
   poster: string | null;
   description: string;
   genres: string[];
+  releaseInfo?: string;
+  _d?: string;
 }
 
 let miniseriesCache: { at: number; metas: MiniseriesMeta[]; partial: boolean } | null = null;
@@ -1199,10 +1201,11 @@ async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[]; part
     if (Date.now() > deadline) return { metas: [], partial: true };
     try {
       const d = await tmdbGet("/discover/tv", {
-        sort_by: "popularity.desc",
+        sort_by: "first_air_date.desc", // fecha desc siempre (ley dura 2026-09-07), nunca popularidad
         with_status: "3",
         with_type: "2", // Miniseries (clasificación propia de TMDB) — ver comentario arriba
-        "vote_count.gte": "20",
+        "vote_count.gte": "10",
+        "first_air_date.lte": new Date().toISOString().slice(0, 10), // sin no-estrenadas al tope
         language: "es-ES",
         page: String(page),
       });
@@ -1238,6 +1241,8 @@ async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[]; part
           description: detail.overview ?? "",
           // deno-lint-ignore no-explicit-any
           genres: ((detail.genres ?? []) as any[]).map((g) => g.name),
+          releaseInfo: (detail.first_air_date ?? "").slice(0, 4) || undefined,
+          _d: detail.first_air_date ?? "",
         });
       }
     } catch {
@@ -1245,6 +1250,8 @@ async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[]; part
     }
   }
 
+  metas.sort((a, b) => (b._d ?? "").localeCompare(a._d ?? "")); // fecha desc siempre
+  for (const m of metas) delete m._d;
   return { metas, partial };
 }
 
@@ -1336,6 +1343,8 @@ interface ShortSeriesMeta {
   description: string;
   genres: string[];
   runtime: number;
+  releaseInfo?: string;
+  _d?: string;
 }
 
 let shortSeriesCache: { at: number; metas: ShortSeriesMeta[]; partial: boolean } | null = null;
@@ -1352,20 +1361,20 @@ async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMeta[]; pa
     if (Date.now() > deadline) return { metas: [], partial: true };
     try {
       const d = await tmdbGet("/discover/tv", {
-        sort_by: "popularity.desc",
+        sort_by: "first_air_date.desc", // fecha desc siempre (ley dura 2026-09-07), nunca popularidad
         // with_runtime SÍ funciona en /discover/tv (la doc de la sesión
         // 2026-08-28 estaba equivocada) — pre-filtra a formato corto. Es un
         // filtro laxo (incluye shows sin dato de runtime), por eso abajo se
-        // confirma con episode_run_time del detalle. vote_count alto para
-        // sacar el ruido (soaps regionales, telediarios).
+        // confirma con episode_run_time del detalle.
         "with_runtime.lte": "30",
-        "vote_count.gte": "150",
-        // Comedia + sin animación/kids/noticias/talk: "series ≤30min por
-        // popularidad" a secas es 90% anime y dibujos (es lo que domina el
-        // formato corto a nivel mundial). Acotarlo a comedia live-action lo
-        // vuelve el catálogo útil para la cuenta — sitcoms para "algo cortito".
+        "vote_count.gte": "40", // piso de calidad; el ruido lo saca without_genres, no popularidad
+        "first_air_date.lte": new Date().toISOString().slice(0, 10),
+        // Comedia + sin animación/kids/noticias/talk/soap: "series ≤30min" a
+        // secas es 90% anime y dibujos (es lo que domina el formato corto a
+        // nivel mundial). Acotarlo a comedia live-action lo vuelve el catálogo
+        // útil para la cuenta — sitcoms para "algo cortito".
         with_genres: "35",
-        without_genres: "16,10762,10763,10767",
+        without_genres: "16,10762,10763,10766,10767",
         language: "es-ES",
         page: String(page),
       });
@@ -1404,11 +1413,15 @@ async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMeta[]; pa
           // deno-lint-ignore no-explicit-any
           genres: ((detail.genres ?? []) as any[]).map((g) => g.name),
           runtime: maxRuntime,
+          releaseInfo: (detail.first_air_date ?? "").slice(0, 4) || undefined,
+          _d: detail.first_air_date ?? "",
         });
       }
     }
   }
 
+  metas.sort((a, b) => (b._d ?? "").localeCompare(a._d ?? "")); // fecha desc siempre
+  for (const m of metas) delete m._d;
   return { metas, partial };
 }
 
@@ -1658,8 +1671,12 @@ async function handleDiscover(subPath: string, url: URL): Promise<Response> {
   const skip = parseInt(extra.get("skip") ?? "0", 10);
   const page = Math.floor(skip / 20) + 1;
 
+  // Orden por fecha de estreno/emisión desc — SIEMPRE, sin popularidad (ley dura
+  // de Pablo, 2026-09-07). vote_count.gte se mantiene como piso de calidad (no es
+  // popularidad, es confianza en el dato — dogma feedback_quality_over_quantity).
+  const dateField = type === "movie" ? "primary_release_date" : "first_air_date";
   const params: Record<string, string> = {
-    sort_by: "popularity.desc",
+    sort_by: `${dateField}.desc`,
     language: "es-ES",
     page: String(page),
     "vote_count.gte": "20",
@@ -1696,16 +1713,24 @@ async function handleDiscover(subPath: string, url: URL): Promise<Response> {
         ? await resolveImdbId(r.id)
         : await resolveImdbIdTv(r.id);
       if (!imdbId) return null;
+      const d0 = (r.release_date ?? r.first_air_date ?? "") as string;
       return {
         id: imdbId,
         type,
         name: r.title ?? r.name,
         poster: r.poster_path ? `https://image.tmdb.org/t/p/w500${r.poster_path}` : null,
         description: r.overview ?? "",
+        releaseInfo: d0 ? d0.slice(0, 4) : undefined,
+        _d: d0,
       };
     }));
 
-    return jsonResponse({ metas: resolved.filter((m) => m !== null) });
+    const metas = resolved
+      .filter((m) => m !== null)
+      .sort((a, b) => (b!._d).localeCompare(a!._d))  // fecha desc, garantía extra sobre el orden de TMDB
+      // deno-lint-ignore no-explicit-any
+      .map(({ _d, ...m }: any) => m);
+    return jsonResponse({ metas });
   } catch (e) {
     return jsonResponse({ metas: [], error: (e as Error).message }, { status: 500 });
   }

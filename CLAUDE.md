@@ -4365,6 +4365,40 @@ ley dura.
   realista. Lo que sí mejora la UX ahí es lo ya documentado (reproductor externo Nova) o probar
   Nuvio con cautela — ninguno urge ni justifica migrar el setup entero.
 
+### Sesión 2026-09-07 (noche) — ronda 2 de mejoras autónomas
+
+**9. Bug de correctness en `/iptv` — id de canal con `:`.** Los ids eran `mshub-iptv:<canal>`.
+El cliente REAL de Stremio percent-codea `:` a `%3A` en el path (mismo bug que ocultaba los
+subtítulos, Sesión 2026-09-06) — la regex de `meta`/`stream` con `:` literal no matcheaba → el
+canal no abría en la app (solo con `curl`). Cambiado a `mshub-iptv-<canal>`, sin `:` en ningún
+lado. `idPrefixes` actualizado, addon refrescado en la cuenta (`update-addon-url.mjs`). Probado
+con ids de todas las formas (A24.ar, NHKWorldJapan.jp, 247CanaldeNoticias.ar). Deployado.
+
+**10. Análisis del log interno → `health-check.mjs` KNOWN_FLAKY ampliado.** `daily-catalog-refresh`
+tenía 15% de error (8/53 en 5 semanas); varios eran blips de manifest de SubSense / Community
+Subtitles (ElfHosted, cold-start esporádico). Son fuentes SECUNDARIAS — hay 8 addons de subtítulos
+y los 3 primarios (hub keyless) son confiables. Agregados SubSense / SubMaker / Community
+Subtitles / Nuvio Streams a `KNOWN_FLAKY` — un blip de manifest de un secundario ya no marca el
+job en rojo. El otro error recurrente (`pablo005` cold-start) ya lo tapó el fix #6 (warm-up de
+todos los catálogos).
+
+**11. `.gitattributes` — `eol=lf` en todo el repo.** Cada commit warneaba "LF will be replaced by
+CRLF" (Windows con `core.autocrlf=true`). Ahora `* text=auto eol=lf` fuerza LF también en el
+árbol de trabajo — corta el ruido y evita que un CRLF se cuele y rompa un script en CI. Los
+archivos ya estaban LF en el repo (`git add --renormalize` no tocó nada más).
+
+**Evaluado y descartado esta ronda** (no meter features a medias):
+- **Catálogo `/listo` ("Listo para Ver")**: idea de una fila navegable con los shows cuyo próximo
+  episodio ya tiene cache+subs (versión pasiva del radar). Se construyó y probó, pero la fuente
+  (`premiere-radar-state.json` / Continue Watching de MyTrakt) tiene mucho ruido — Trakt de Pablo
+  tiene un solo episodio scrobbleado en muchos shows (X-Files S1E1, Slow Horses S1E1…), así que el
+  radar dice "S1E2 listo" para cosas que Pablo vio hace años. Filtrarlo con heurísticas
+  (`season>1 || episode>2`) dejaba el catálogo casi vacío. Se revirtió. Reconsiderar si algún día
+  se le suma una fuente basada en `libraryItem` (el datastore nativo de Stremio, progreso real por
+  episodio — lo lee `watch-log.mjs`) en vez de los scrobbles de Trakt.
+- **EPG para IPTV** ("qué están dando ahora"): las fuentes libres son XMLTV por-sitio (frágil,
+  cobertura pobre de AR/ES) o APIs de terceros con signup. No vale la fragilidad para una v1.
+
 ## Reglas del repo
 
 - Commits en formato conventional, mensajes en español, cuerpo con líneas ≤ 100 caracteres.

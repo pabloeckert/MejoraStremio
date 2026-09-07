@@ -843,6 +843,147 @@ async function handleLivetv(subPath: string): Promise<Response> {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// ── /iptv — TV en Vivo (IPTV), sección general de stremioeg ───────────────
+// Fuente: data/iptv-channels.json, generado por scripts/build-iptv-catalog.mjs
+// (iptv-org, canales públicos legítimos, cada stream VERIFICADO vivo con un GET
+// real antes de incluirlo — 2×/semana vía iptv-refresh.yml). El hub lee ese
+// archivo de raw.githubusercontent (cache 6h), mismo patrón que /synopsis con
+// preset.json. Catálogos: Argentina / España / Latinoamérica (castellano) +
+// Internacional (idioma original). Filtro por género (Noticias/Películas/Series/
+// Documentales/Cultura/Infantil/Música/Entretenimiento/General).
+// Orden: alfabético — la TV en vivo no tiene fecha de estreno, así que la "ley
+// dura" de fecha desc no aplica acá (excepción explícita).
+// ════════════════════════════════════════════════════════════════════════
+
+const IPTV_CHANNELS_URL =
+  "https://raw.githubusercontent.com/pabloeckert/MejoraStremio/main/data/iptv-channels.json";
+const IPTV_CATALOG_IDS = ["iptv-ar", "iptv-es", "iptv-latam", "iptv-intl"] as const;
+const IPTV_CATALOG_NAMES: Record<string, string> = {
+  "iptv-ar": "TV en Vivo — Argentina",
+  "iptv-es": "TV en Vivo — España",
+  "iptv-latam": "TV en Vivo — Latinoamérica",
+  "iptv-intl": "TV en Vivo — Internacional",
+};
+const IPTV_GENRES = [
+  "Noticias", "Películas", "Series", "Documentales", "Cultura",
+  "Infantil", "Música", "Entretenimiento", "General",
+];
+
+interface IptvChannel {
+  id: string; name: string; catalog: string; country: string; genre: string;
+  logo: string | null; url: string; quality: string | null;
+  userAgent: string | null; referrer: string | null;
+}
+
+const IPTV_MANIFEST = {
+  id: "com.mejorastremio.iptv",
+  version: "1.0.0",
+  name: "TV en Vivo (IPTV)",
+  description:
+    "Canales de TV en vivo — Argentina, España, Latinoamérica (castellano) e Internacional " +
+    "(idioma original). Fuente iptv-org (señales públicas legítimas); cada canal verificado " +
+    "en vivo antes de listarlo. Filtrable por género.",
+  resources: ["catalog", "meta", "stream"],
+  types: ["tv"],
+  idPrefixes: ["mshub-iptv:"],
+  catalogs: IPTV_CATALOG_IDS.map((id) => ({
+    type: "tv",
+    id,
+    name: IPTV_CATALOG_NAMES[id],
+    extra: [{ name: "genre", options: IPTV_GENRES, isRequired: false }, { name: "skip", isRequired: false }],
+  })),
+};
+
+let iptvCache: { at: number; channels: IptvChannel[] } | null = null;
+const IPTV_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+async function loadIptvChannels(): Promise<IptvChannel[]> {
+  if (iptvCache && Date.now() - iptvCache.at < IPTV_CACHE_TTL_MS) return iptvCache.channels;
+  try {
+    const r = await fetch(IPTV_CHANNELS_URL, { signal: AbortSignal.timeout(12000) });
+    if (!r.ok) throw new Error(`iptv-channels.json → ${r.status}`);
+    const j = await r.json();
+    const channels: IptvChannel[] = Array.isArray(j?.channels) ? j.channels : [];
+    iptvCache = { at: Date.now(), channels };
+    return channels;
+  } catch (e) {
+    if (iptvCache) return iptvCache.channels; // stale-while-error
+    throw e;
+  }
+}
+
+async function handleIptv(subPath: string): Promise<Response> {
+  if (subPath === "/manifest.json") return jsonResponse(IPTV_MANIFEST);
+
+  // /catalog/tv/<catalogId>.json  ó  /catalog/tv/<catalogId>/genre=Noticias.json
+  const catM = subPath.match(/^\/catalog\/tv\/(iptv-[a-z]+)(?:\/(.+?))?\.json$/);
+  if (catM) {
+    const [, catalogId, extraStr] = catM;
+    if (!IPTV_CATALOG_IDS.includes(catalogId as typeof IPTV_CATALOG_IDS[number])) {
+      return jsonResponse({ metas: [] });
+    }
+    const extra = new URLSearchParams(extraStr ?? "");
+    const genre = extra.get("genre");
+    const skip = parseInt(extra.get("skip") ?? "0", 10) || 0;
+    const all = await loadIptvChannels();
+    let list = all.filter((c) => c.catalog === catalogId);
+    if (genre && genre !== "None") list = list.filter((c) => c.genre === genre);
+    const metas = list.slice(skip, skip + 100).map((c) => ({
+      id: `mshub-iptv:${c.id}`,
+      type: "tv",
+      name: c.name,
+      poster: c.logo,
+      posterShape: "square",
+      logo: c.logo ?? undefined,
+      genres: [c.genre],
+    }));
+    return jsonResponse({ metas });
+  }
+
+  const metaM = subPath.match(/^\/meta\/tv\/mshub-iptv:(.+)\.json$/);
+  if (metaM) {
+    const chId = decodeURIComponent(metaM[1]);
+    const ch = (await loadIptvChannels()).find((c) => c.id === chId);
+    if (!ch) return new Response("Not found", { status: 404, headers: cors });
+    return jsonResponse({
+      meta: {
+        id: `mshub-iptv:${ch.id}`,
+        type: "tv",
+        name: ch.name,
+        poster: ch.logo,
+        posterShape: "square",
+        logo: ch.logo ?? undefined,
+        background: ch.logo ?? undefined,
+        genres: [ch.genre],
+        description: `Canal en vivo · ${ch.genre}${ch.quality ? " · " + ch.quality : ""}`,
+      },
+    });
+  }
+
+  const streamM = subPath.match(/^\/stream\/tv\/mshub-iptv:(.+)\.json$/);
+  if (streamM) {
+    const chId = decodeURIComponent(streamM[1]);
+    const ch = (await loadIptvChannels()).find((c) => c.id === chId);
+    if (!ch) return jsonResponse({ streams: [] });
+    const reqHeaders: Record<string, string> = {};
+    if (ch.userAgent) reqHeaders["User-Agent"] = ch.userAgent;
+    if (ch.referrer) reqHeaders["Referer"] = ch.referrer;
+    // deno-lint-ignore no-explicit-any
+    const stream: any = {
+      url: ch.url,
+      title: `${ch.name} · EN VIVO${ch.quality ? " · " + ch.quality : ""}`,
+      behaviorHints: { notWebReady: true },
+    };
+    if (Object.keys(reqHeaders).length) {
+      stream.behaviorHints.proxyHeaders = { request: reqHeaders };
+    }
+    return jsonResponse({ streams: [stream] });
+  }
+
+  return new Response("Not found", { status: 404, headers: cors });
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // ── /synopsis — MejoraStremio Synopsis IA, proxy de meta ──────────────────
 // Lógica idéntica a deno-synopsis-enricher.ts.
 // ════════════════════════════════════════════════════════════════════════
@@ -2419,6 +2560,7 @@ function handleHealth(): Response {
     discover: { configured: !!TMDB_KEY },
     ufc: { configured: true },
     livetv: { configured: true },
+    iptv: { configured: true },
     mediathek: { configured: true },
     translate: {
       configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
@@ -2454,6 +2596,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           "/discover/manifest.json",
           "/ufc/manifest.json",
           "/livetv/manifest.json",
+          "/iptv/manifest.json",
           "/mediathek/manifest.json",
           "/translate/manifest.json",
           "/health",
@@ -2510,6 +2653,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       route = "livetv";
       const subPath = path.slice("/livetv".length) || "/";
       res = await handleLivetv(subPath);
+    } else if (path.startsWith("/iptv")) {
+      route = "iptv";
+      const subPath = path.slice("/iptv".length) || "/";
+      res = await handleIptv(subPath);
     } else if (path.startsWith("/mediathek")) {
       route = "mediathek";
       const subPath = path.slice("/mediathek".length) || "/";

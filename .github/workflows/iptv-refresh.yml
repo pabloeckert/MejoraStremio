@@ -1,0 +1,34 @@
+name: iptv-refresh
+
+# Regenera data/iptv-channels.json para la sección "TV en Vivo (IPTV)" de stremioeg: baja la data
+# pública de iptv-org, filtra (país castellano + internacional, sin NSFW/religioso/deportes/shop) y
+# VERIFICA cada stream con un GET real antes de incluirlo — así el /iptv del hub sirve solo canales
+# que abren. El hub lee el archivo de raw.githubusercontent (cache 6h), no hace falta redeployar.
+# 2×/semana (lunes y jueves, 06:00 ART) — los streams de iptv-org rotan seguido.
+on:
+  schedule:
+    - cron: '0 9 * * 1,4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Regenerar data/iptv-channels.json
+        run: |
+          set -o pipefail
+          node scripts/build-iptv-catalog.mjs 2>&1 | tee /tmp/iptv-output.txt
+
+      - name: Commitear canales + registrar en el log interno
+        run: |
+          bash scripts/lib/ci-commit-push.sh \
+            "chore(iptv): refrescar lista de canales verificados" \
+            iptv-refresh ok /tmp/iptv-output.txt \
+            data/iptv-channels.json

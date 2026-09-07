@@ -4283,10 +4283,12 @@ catálogo/filtro de popularidad o ranking, borrar. Aplicado:
 - `preset.json` (`scripts/apply-orden-estreno.mjs`, one-shot): **24 catálogos deshabilitados**
   — Trending Movies/Shows, los 18 Top 10 de FlixPatrol, Top Rated Movies/Shows, Best Movies/Shows
   of the 2020s (todos sin `sort_by` re-ordenable, ninguno estaba en Home). Re-ordenados a fecha
-  desc: "30 Minutos o Menos", "YouTube Premium", "Próximos Estrenos" (movie+series, venían `.asc`
-  → ahora `.desc` — **la única excepción discutible**: para una lista de estrenos futuros `.desc`
-  pone el más lejano en el futuro primero; se aplicó igual por "siempre", si molesta es volver a
-  `.asc` en esos 2). 122 → 98 enabled; el manifest de AIOMetadata bajó de 129 a **105 catálogos**.
+  desc: "30 Minutos o Menos", "YouTube Premium". **"Próximos Estrenos" (movie+series) se probó con
+  `.desc` y se revirtió a `.asc`**: es una lista de contenido FUTURO, y `.desc` traía basura
+  (títulos placeholder de TMDB fechados 2043/2047 al tope). `.asc` = "lo que se estrena antes
+  primero" = el orden cronológico que tiene sentido para una lista de "próximamente"; no es
+  popularidad, no viola la ley dura. 122 → 98 enabled; el manifest de AIOMetadata bajó de 129 a
+  **105 catálogos**.
   Verificado en vivo: instancia `76bfbe8a`, sin Trending/Top10/TopRated, "Crimen Alemán (Series)"
   y "En Cartelera" arrancan con 2026 → 2024 → … .
 - `deno-hub.ts`: `/discover` (Descubrir Maestro) pasó de `sort_by: popularity.desc` a

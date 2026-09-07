@@ -6681,7 +6681,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "primary_release_date.desc",
+                "sort_by": "primary_release_date.asc",
                 "include_adult": false,
                 "primary_release_date.gte": "2026-09-07",
                 "with_runtime.gte": 45,
@@ -6773,7 +6773,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "first_air_date.desc",
+                "sort_by": "first_air_date.asc",
                 "include_adult": false,
                 "first_air_date.gte": "2026-09-07",
                 "with_runtime.gte": 15,

@@ -53,6 +53,12 @@ for (const c of cats) {
   const params = c?.metadata?.discover?.params;
   if (!params || !params.sort_by) continue;
 
+  // "Próximos Estrenos" (movie/series) queda en *_date.asc a propósito: es una lista de contenido
+  // FUTURO, y .asc = "lo que se estrena antes primero" = el orden cronológico que tiene sentido.
+  // .desc ahí trae basura (títulos placeholder de TMDB fechados 2043/2047 al tope). No es
+  // popularidad, así que no viola la ley dura.
+  if (/upcoming\.pablo00[56]/.test(id)) continue;
+
   const sb = params.sort_by;
   if (/^popularity\./.test(sb) || /\.asc$/.test(sb)) {
     const target = `${dateFieldFor(c)}.desc`;

@@ -2197,11 +2197,17 @@ async function fetchBaseCues(src: { t: string; u?: string; f?: number }): Promis
   throw new Error("base desconocida");
 }
 
+// Marcadores de SDH a nivel nombre de archivo / release — barato, sin descargar nada.
+const SDH_NAME_RE = /\b(sdh|hearing[\s._-]*impaired|for the deaf|\[cc\]|\bcc\b|forced\s*sdh)\b/i;
+
 async function osHasSpanish(imdbId: string, season: number | null, episode: number | null): Promise<boolean> {
   if (!OPENSUBTITLES_API_KEY) return false;
   // es (genérico) + sp (España) + ea (Latinoamérica) — los 3 códigos de español
-  // de la API moderna (ver commit "OpenSubtitles Latino real"). Si ya hay un
-  // subtítulo ES real en cualquiera, /translate no ofrece su traducción IA.
+  // de la API moderna (ver commit "OpenSubtitles Latino real"). /translate solo se
+  // calla si ya hay un subtítulo ES **LIMPIO** (no SDH): si lo único disponible en
+  // español es para sordos, la traducción IA sí vale la pena (preferencia dura de
+  // Pablo — "SDH me molesta muchísimo"). El chequeo es a nivel metadata (flag
+  // hearing_impaired + regex sobre release/filename), sin gastar cupo de descarga.
   const p = new URLSearchParams({ languages: "es,sp,ea" });
   if (season != null && episode != null) {
     p.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
@@ -2212,7 +2218,35 @@ async function osHasSpanish(imdbId: string, season: number | null, episode: numb
     headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA },
     signal: AbortSignal.timeout(10000),
   }).then((x) => x.json()).catch(() => null);
-  return (r?.total_count ?? 0) > 0;
+  const data = Array.isArray(r?.data) ? r.data : [];
+  if (!data.length) return false;
+
+  // Nivel 1 (barato): descartar los que se declaran/nombran SDH.
+  // deno-lint-ignore no-explicit-any
+  const survivors = data.filter((d: any) => {
+    const a = d?.attributes ?? {};
+    if (a.hearing_impaired === true) return false;
+    const hay = `${a.release ?? ""} ${a.files?.[0]?.file_name ?? ""}`;
+    return !SDH_NAME_RE.test(hay);
+  });
+  if (!survivors.length) return false;
+  // Título mainstream con muchas opciones en español: no vale la pena verificar por
+  // contenido, seguro hay alguna limpia — /translate se calla.
+  if (survivors.length > 3) return true;
+
+  // Nivel 2: el flag hearing_impaired de OpenSubtitles miente (2026-09-05). Para los
+  // pocos candidatos que quedan, usar el veredicto por CONTENIDO ya cacheado por el
+  // handler de /opensubtitles (cache hit = gratis; si alguno no está clasificado, la
+  // primera vez cuesta una descarga, después queda para siempre). Si al menos uno es
+  // limpio de verdad, /translate se calla; si todos son SDH, ofrece su traducción.
+  for (const d of survivors) {
+    // deno-lint-ignore no-explicit-any
+    const fid = (d as any)?.attributes?.files?.[0]?.file_id;
+    if (!Number.isFinite(fid)) return true; // sin file_id no se puede verificar → conservador
+    const verdict = await classifySDHCached(Number(fid));
+    if (verdict !== true) return true; // limpio o indeterminado → hay español usable
+  }
+  return false; // todos los candidatos en español resultaron SDH por contenido
 }
 
 async function osBaseFileId(imdbId: string, season: number | null, episode: number | null, lang: string): Promise<number | null> {

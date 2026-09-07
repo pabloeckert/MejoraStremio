@@ -4325,10 +4325,23 @@ legítimas. `scripts/build-iptv-catalog.mjs` baja la data, filtra (sin NSFW/reli
 shop; internacional por allowlist de ids, no por país) y **verifica cada stream con un GET real
 antes de incluirlo** (mismo criterio anti-frustración). Estado en `data/iptv-channels.json`
 (committeado), el hub lo lee de raw.githubusercontent (cache 6h). `.github/workflows/iptv-refresh.yml`
-lo regenera 2×/semana (lun/jue). Primera corrida: **798 canales vivos** (AR 118, ES 147, LatAm 516,
-Intl 17). Orden dentro de cada catálogo: **alfabético** — la TV en vivo no tiene fecha de estreno,
-excepción explícita a la ley dura. **Pendiente: instalar el addon en stremioeg** (bloqueado por el
-límite de 15 deploys/hora de Deno; el hub con `/iptv` está committeado, falta deployar + instalar).
+lo regenera 2×/semana (lun/jue). Primera corrida: 798 canales vivos, **capados a 150/catálogo** →
+432 (AR 118, ES 147, LatAm 150, Intl 17; el cap prioriza categoría real + logo). Orden dentro de
+cada catálogo: **alfabético** — la TV en vivo no tiene fecha de estreno, excepción explícita a la
+ley dura.
+
+**PENDIENTE (bloqueado por el límite de 15 deploys/hora de Deno Deploy — se agotó la ventana esta
+sesión):**
+1. `deno deploy --prod --org=pabloeckert --app=mejorastremio-hub --token=$DENO_DEPLOY_TOKEN`
+   (LOCAL, no el workflow) — lleva a producción: `/iptv`, el sort por fecha de `/discover`, el
+   sentinel `"Todos"`, y el warm-up… no, el warm-up es del `.mjs`. Solo cambios de `deno-hub.ts`.
+2. Instalar `/iptv` en stremioeg: `ST_EMAIL=... ST_PASS=... node scripts/install-addon.mjs
+   https://mejorastremio-hub.pabloeckert.deno.net/iptv/manifest.json --after com.mejorastremio.livetv`
+   (o `--at <idx>` cerca del final, junto a los otros catálogos de descubrimiento). Backup + health-check después.
+3. Verificar en la app: `/iptv` aparece, un canal AR abre (ej. C5N / A24 / TN).
+Todo lo demás de esta sesión YA está aplicado y verificado en vivo (ley dura en preset → instancia
+`6e01ca24`, 105 catálogos sin popularidad; `/translate` SDH-aware deployado; los 7 workflows con el
+helper anti-carrera).
 
 **8. Research — forks / skins / alternativas a Stremio (pedido de Pablo).**
 - **Todos los "Stremio mejorado" son solo-desktop, ninguno corre en Android TV** (la caja de Pablo,

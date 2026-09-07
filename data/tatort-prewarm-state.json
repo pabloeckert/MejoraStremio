@@ -7,7 +7,7 @@
     "tt0806910:2026:15": {
       "complete": false,
       "reason": "status=200 c=false",
-      "at": "2026-09-06T13:45:15.805Z"
+      "at": "2026-09-07T12:52:05.394Z"
     },
     "tt0806910:2026:14": {
       "complete": true,
@@ -161,7 +161,7 @@
     "tt0806910:2025:18": {
       "complete": false,
       "reason": "status=502 c=",
-      "at": "2026-09-06T13:45:27.220Z"
+      "at": "2026-09-07T12:53:01.430Z"
     },
     "tt0806910:2025:17": {
       "complete": true,
@@ -258,7 +258,7 @@
     "tt0806910:2024:27": {
       "complete": false,
       "reason": "status=200 c=false",
-      "at": "2026-09-06T13:46:09.620Z"
+      "at": "2026-09-07T12:54:48.346Z"
     },
     "tt0806910:0:82": {
       "complete": false,
@@ -403,9 +403,8 @@
       "at": "2026-09-04T14:32:58.023Z"
     },
     "tt0274279:26:13": {
-      "complete": false,
-      "reason": "status=200 c=",
-      "at": "2026-09-06T13:47:07.499Z"
+      "complete": true,
+      "at": "2026-09-07T12:52:58.877Z"
     },
     "tt0806901:53:6": {
       "complete": false,
@@ -417,9 +416,8 @@
       "at": "2026-09-06T13:48:00.391Z"
     },
     "tt0806901:53:5": {
-      "complete": false,
-      "reason": "status=200 c=false",
-      "at": "2026-09-06T13:47:05.035Z"
+      "complete": true,
+      "at": "2026-09-07T12:52:45.531Z"
     },
     "tt0274279:26:11": {
       "complete": true,
@@ -442,26 +440,23 @@
     "tt0806901:53:3": {
       "complete": false,
       "reason": "status=200 c=false",
-      "at": "2026-09-06T13:47:57.419Z"
+      "at": "2026-09-07T12:53:48.655Z"
     },
     "tt0274279:26:9": {
-      "complete": false,
-      "reason": "status=200 c=",
-      "at": "2026-09-06T13:48:15.628Z"
+      "complete": true,
+      "at": "2026-09-07T12:54:01.022Z"
     },
     "tt0806910:2024:18": {
       "complete": true,
       "at": "2026-09-06T13:48:46.206Z"
     },
     "tt0806901:53:2": {
-      "complete": false,
-      "reason": "status=200 c=",
-      "at": "2026-09-06T13:48:05.474Z"
+      "complete": true,
+      "at": "2026-09-07T12:55:01.167Z"
     },
     "tt0274279:26:8": {
-      "complete": false,
-      "reason": "status=200 c=",
-      "at": "2026-09-06T13:48:23.188Z"
+      "complete": true,
+      "at": "2026-09-07T12:55:15.032Z"
     },
     "tt0806910:2024:17": {
       "complete": true,
@@ -476,9 +471,8 @@
       "at": "2026-09-06T13:48:50.246Z"
     },
     "tt0806910:2024:16": {
-      "complete": false,
-      "reason": "status=200 c=",
-      "at": "2026-09-06T13:48:59.425Z"
+      "complete": true,
+      "at": "2026-09-07T12:56:02.786Z"
     },
     "tt0806901:52:8": {
       "complete": true,
@@ -506,6 +500,98 @@
     "tt0274279:26:5": {
       "complete": true,
       "at": "2026-09-06T13:49:03.397Z"
+    },
+    "tt0806901:52:4": {
+      "complete": false,
+      "reason": "sin-base",
+      "at": "2026-09-07T12:56:05.802Z"
+    },
+    "tt0274279:26:4": {
+      "complete": true,
+      "at": "2026-09-07T12:56:16.969Z"
+    },
+    "tt0806910:2024:15": {
+      "complete": false,
+      "reason": "status=200 c=false",
+      "at": "2026-09-07T12:57:14.599Z"
+    },
+    "tt0806901:52:3": {
+      "complete": false,
+      "reason": "sin-base",
+      "at": "2026-09-07T12:57:17.586Z"
+    },
+    "tt0274279:26:3": {
+      "complete": true,
+      "at": "2026-09-07T12:57:30.270Z"
+    },
+    "tt0806910:2024:14": {
+      "complete": true,
+      "at": "2026-09-07T12:57:43.294Z"
+    },
+    "tt0806901:52:2": {
+      "complete": false,
+      "reason": "sin-base",
+      "at": "2026-09-07T12:57:46.295Z"
+    },
+    "tt0274279:26:1": {
+      "complete": true,
+      "at": "2026-09-07T12:57:58.739Z"
+    },
+    "tt0806910:2024:13": {
+      "complete": false,
+      "reason": "sin-base",
+      "at": "2026-09-07T12:58:01.788Z"
+    },
+    "tt0806901:52:1": {
+      "complete": false,
+      "reason": "sin-base",
+      "at": "2026-09-07T12:58:03.500Z"
+    },
+    "tt0274279:26:2": {
+      "complete": true,
+      "at": "2026-09-07T12:58:14.532Z"
+    },
+    "tt0806910:2024:12": {
+      "complete": false,
+      "reason": "status=200 c=false",
+      "at": "2026-09-07T12:59:12.630Z"
+    },
+    "tt0806901:51:7": {
+      "complete": false,
+      "reason": "sin-base",
+      "at": "2026-09-07T12:59:15.601Z"
+    },
+    "tt0274279:25:25": {
+      "complete": false,
+      "reason": "sin-base",
+      "at": "2026-09-07T12:59:17.276Z"
+    },
+    "tt0806910:2024:11": {
+      "complete": true,
+      "at": "2026-09-07T12:59:41.852Z"
+    },
+    "tt0806901:51:6": {
+      "complete": false,
+      "reason": "sin-base",
+      "at": "2026-09-07T12:59:44.950Z"
+    },
+    "tt0274279:25:24": {
+      "complete": false,
+      "reason": "sin-base",
+      "at": "2026-09-07T12:59:46.413Z"
+    },
+    "tt0806910:2024:10": {
+      "complete": true,
+      "at": "2026-09-07T13:00:05.283Z"
+    },
+    "tt0274279:25:23": {
+      "complete": false,
+      "reason": "sin-base",
+      "at": "2026-09-07T13:00:08.399Z"
+    },
+    "tt0806910:2024:9": {
+      "complete": true,
+      "at": "2026-09-07T13:00:31.581Z"
     }
   }
 }

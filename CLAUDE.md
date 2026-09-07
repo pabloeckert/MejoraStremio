@@ -130,6 +130,14 @@ scripts/torbox-airlock.mjs          Marca en TorBox como "airlocked" (no se purg
                                     `data/internal-log.jsonl` para confirmar la respuesta cruda del
                                     PUT). Reversible: comentar el bloque `schedule` del workflow si
                                     hace falta volver atrás.
+scripts/build-iptv-catalog.mjs     Genera data/iptv-channels.json: baja iptv-org, filtra
+                                    (castellano AR/ES/LatAm + internacional por allowlist, sin
+                                    NSFW/religioso/deportes/shop) y verifica cada stream con un GET
+                                    real. Lo corre iptv-refresh.yml 2×/semana. Ver "Sesión
+                                    2026-09-07 (tarde)".
+scripts/apply-orden-estreno.mjs    One-shot 2026-09-07: aplicó la "ley dura" de orden por fecha
+                                    desc a preset.json (deshabilitó Trending/Top10/TopRated/Best
+                                    2020s, re-ordenó los que quedaban en popularity/asc).
 scripts/watch-log.mjs               Log inteligente de visualización: lee libraryItem (datastore
                                     nativo de Stremio, sin Trakt) y reporta qué se mira más/qué
                                     engancha. Con --save <slug> persiste snapshot en
@@ -639,6 +647,8 @@ depende de que Windows esté prendido.
 | Radar de estrenos | Detecta cuando el próximo episodio no visto de un show ya tiene stream cacheado + sub ES, registra en el log interno | GitHub Actions (`.github/workflows/premiere-radar.yml`) |
 | daily-catalog-refresh | Refresca fechas + regenera/aplica AIOMetadata a diario si preset.json cambió | GitHub Actions (`.github/workflows/daily-catalog-refresh.yml`) — ver detalle abajo |
 | tatort-subs-prewarm | Calienta la cache de traducción IA→ES latino de Tatort (Continuar viendo/Watchlist + estrenos recientes) | GitHub Actions (`.github/workflows/tatort-subs-prewarm.yml`), 07:30 ART — ver "Sesión 2026-09-03" |
+| iptv-refresh | Regenera `data/iptv-channels.json` (canales de TV en vivo verificados uno por uno) para la sección `/iptv` | GitHub Actions (`.github/workflows/iptv-refresh.yml`), lun+jue 06:00 ART — ver "Sesión 2026-09-07 (tarde)" |
+| TV en Vivo (IPTV) | Canales de TV en vivo AR/ES/LatAm/Internacional (iptv-org, verificados) | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/iptv`) |
 | Mediathek DE (Tatort) | Streams directos de la Mediathek pública alemana para Tatort (audio DE + sub DE oficial) | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/mediathek`) |
 | Traducción IA → ES latino | Subtítulo ES latino generado con IA desde la pista alemana; cache 90d en KV | Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net/translate`) |
 

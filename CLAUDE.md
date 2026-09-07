@@ -41,6 +41,10 @@ data/premiere-radar-state.json      Estado del radar de estrenos (próximo episo
 data/internal-log.jsonl             Log interno (NO se manda por mail) de las corridas automáticas
                                     diarias — para que Claude lo lea entre sesiones y siga el pulso
                                     de la cuenta + los gustos/uso de Pablo. Ver "Sesión 2026-08-02".
+data/iptv-channels.json             Lista de canales de TV en vivo verificados (iptv-org, cada
+                                    stream probado con un GET real). La sirve /iptv del hub. La
+                                    regenera scripts/build-iptv-catalog.mjs 2×/semana. Ver "Sesión
+                                    2026-09-07 (tarde)".
 data/test-siesta-titles.json        Lista reusable de los 22 títulos identificados/testeados en la
                                     sesión "siesta" 2026-07-11 (mismo formato que test-content.json).
 docs/encuesta-catalogos.md          Encuesta de gustos para curar los catálogos de stremioeg — el
@@ -4214,10 +4218,11 @@ real de Stremio con `%3A` + extra) y marca `⚠ DIFIERE` si no coinciden — as�
 vuelve a pasar desapercibido. Verificado post-fix: 0 mismatches en Wild Cards / HPI-ACI / Astrid /
 Breaking Bad.
 
-## Sesión 2026-09-07 — helper anti-carrera de CI + /translate consciente de SDH
+## Sesión 2026-09-07 — helper anti-carrera de CI, /translate SDH, ley dura de orden, sección IPTV
 
 Pedido de Pablo: "continua con el sistema de mejoras". Auditoría + fixes de lo que apareció. Las 3
-cuentas verdes al arrancar, hub con las 12 rutas OK.
+cuentas verdes al arrancar, hub con las 12 rutas OK. Después, un segundo pedido grande: sección
+IPTV, orden por fecha desc en todos lados (ley dura), y research de forks/skins/alternativas.
 
 **1. `scripts/lib/ci-commit-push.sh` — fin del bug de carrera del log interno (3ra vez).** El
 patrón `commit → git pull --rebase → push` de los 7 workflows automatizados choca cuando dos
@@ -4259,6 +4264,73 @@ nombre/flag y, para los pocos candidatos que quedan, reusa el veredicto por cont
 descarga). Solo si **todos** los ES resultan SDH, `/translate` ofrece su traducción. Verificado en
 producción: HPI/ACI S01E01 (2 subs ES, ambos SDH) ahora ofrece `[IA→ES latino] base EN`; Matrix
 (tiene ES limpio) sigue en silencio. Hub redeployado (`deno deploy --prod` local).
+
+### Sesión 2026-09-07 (tarde) — ley dura de orden por fecha + sección IPTV + research
+
+**5. Orden por fecha de estreno/emisión desc SIEMPRE, sin popularidad — "ley dura".** Pablo:
+en Descubrir/Buscar/Home/Biblioteca todo por fecha de más reciente a más antiguo; cualquier
+catálogo/filtro de popularidad o ranking, borrar. Aplicado:
+- `preset.json` (`scripts/apply-orden-estreno.mjs`, one-shot): **24 catálogos deshabilitados**
+  — Trending Movies/Shows, los 18 Top 10 de FlixPatrol, Top Rated Movies/Shows, Best Movies/Shows
+  of the 2020s (todos sin `sort_by` re-ordenable, ninguno estaba en Home). Re-ordenados a fecha
+  desc: "30 Minutos o Menos", "YouTube Premium", "Próximos Estrenos" (movie+series, venían `.asc`
+  → ahora `.desc` — **la única excepción discutible**: para una lista de estrenos futuros `.desc`
+  pone el más lejano en el futuro primero; se aplicó igual por "siempre", si molesta es volver a
+  `.asc` en esos 2). 122 → 98 enabled; el manifest de AIOMetadata bajó de 129 a **105 catálogos**.
+  Verificado en vivo: instancia `76bfbe8a`, sin Trending/Top10/TopRated, "Crimen Alemán (Series)"
+  y "En Cartelera" arrancan con 2026 → 2024 → … .
+- `deno-hub.ts`: `/discover` (Descubrir Maestro) pasó de `sort_by: popularity.desc` a
+  `<fecha>.desc` según tipo + sort explícito de los metas por fecha + `releaseInfo` (año visible).
+  `/miniseries` y `/short-series`: candidate pool `popularity.desc` → `first_air_date.desc` +
+  `first_air_date.lte` hoy + sort final por fecha; short-series además excluye Soap (10766) y baja
+  el piso de votos (era 150) ahora que el ruido lo saca `without_genres`.
+- **Trampa de git encontrada**: la primera corrida de `daily-catalog-refresh` regeneró AIOMetadata
+  ANTES de que el commit de la ley dura estuviera pusheado (`gh workflow run` justo después del
+  `git commit`, sin `git push` en el medio) → regeneró del preset viejo, los 24 catálogos siguieron
+  expuestos. Re-dispatch tras pushear lo arregló. **Lección: pushear SIEMPRE antes de disparar un
+  workflow que lee del repo.**
+- **"Capitalizar los 3 niveles de filtros"**: los nombres de catálogo ya estaban en Title Case; lo
+  que se arregló fue el sentinel `"None"` (inglés) de los filtros de `/discover` (servicio/región/
+  país/idioma/género) + miniseries/short-series/iptv → ahora `"Todos"`.
+
+**6. `regenerate-aiometadata.mjs` — warm-up de TODOS los catálogos, no solo `now_playing`.** El
+health-check de `daily-catalog-refresh` muestrea ~10 catálogos al azar segundos después de crear la
+instancia; el warm-up viejo solo tocaba `now_playing` → cold-start en cualquier otro daba falso `✗`
+(2026-09-07 falló en `pablo005`/"Próximos Estrenos"). Ahora calienta los ~105 en paralelo acotado
+(20) con 1 reintento.
+
+**7. Sección "TV en Vivo (IPTV)" — nueva, para stremioeg.** Ruta `/iptv` en `deno-hub.ts`, 4
+catálogos: **Argentina / España / Latinoamérica** (castellano) + **Internacional** (idioma
+original — BBC News, DW, Euronews, Al Jazeera, RAI, NHK World, PBS Kids, KBS World, CGTN, TRT
+World…). Filtrable por género (Noticias/Películas/Series/Documentales/Cultura/Infantil/Música/
+Entretenimiento/General). Fuente: **iptv-org** (`iptv-org.github.io/api`), señales públicas
+legítimas. `scripts/build-iptv-catalog.mjs` baja la data, filtra (sin NSFW/religioso/deportes/
+shop; internacional por allowlist de ids, no por país) y **verifica cada stream con un GET real
+antes de incluirlo** (mismo criterio anti-frustración). Estado en `data/iptv-channels.json`
+(committeado), el hub lo lee de raw.githubusercontent (cache 6h). `.github/workflows/iptv-refresh.yml`
+lo regenera 2×/semana (lun/jue). Primera corrida: **798 canales vivos** (AR 118, ES 147, LatAm 516,
+Intl 17). Orden dentro de cada catálogo: **alfabético** — la TV en vivo no tiene fecha de estreno,
+excepción explícita a la ley dura. **Pendiente: instalar el addon en stremioeg** (bloqueado por el
+límite de 15 deploys/hora de Deno; el hub con `/iptv` está committeado, falta deployar + instalar).
+
+**8. Research — forks / skins / alternativas a Stremio (pedido de Pablo).**
+- **Todos los "Stremio mejorado" son solo-desktop, ninguno corre en Android TV** (la caja de Pablo,
+  ZTE B866v2): *Stremio-Kai* (Windows — MPV, skip intro/outro, selector inteligente de audio/subs,
+  metadata rica, tema OLED), *Stremio Enhanced* (Win/Mac/Linux, Electron — temas + plugins tipo
+  AniSkip/Discord RPC), *stremio-community-v5* (`Zaarrg`, Windows — MPV nativo, UI web v5 más nueva
+  que la app oficial, upscaling, PiP, Chromecast). Skins/temas para Stremio solo existen vía esos
+  shells de escritorio — **no hay skinning para la app de Android TV**.
+- **Stremio oficial** sigue en desarrollo activo (v5 beta: web beta.39, app beta.35 — HDR, media
+  keys, mejoras de player). Android TV recibe el mismo core; la UI va atrás de la web.
+- **Alternativas a Stremio**: *Nuvio* es la más cercana — lee los mismos manifests de addons de
+  Stremio, corre en Android TV / Google TV / Fire TV, tiene home por perfil, calendario de
+  estrenos, Trakt. **Pero**: promoción muy SEO/afiliados, está derivando a su propio ecosistema de
+  cuentas/plugins, menos auditable — vale una mirada con cuidado, no un cambio a ciegas. *Kodi*
+  (maduro, todas las plataformas, setup más pesado), *Jellyfin* (modelo servidor propio, otro caso
+  de uso), *CloudStream* (Android, repos de plugins comunitarios — otro modelo).
+- **Conclusión honesta**: para la caja Android TV de Pablo, Stremio oficial sigue siendo la opción
+  realista. Lo que sí mejora la UX ahí es lo ya documentado (reproductor externo Nova) o probar
+  Nuvio con cautela — ninguno urge ni justifica migrar el setup entero.
 
 ## Reglas del repo
 

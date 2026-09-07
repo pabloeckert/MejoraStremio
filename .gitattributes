@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Los scripts de shell corren en runners Linux (GitHub Actions) — siempre LF, nunca CRLF.
+*.sh text eol=lf

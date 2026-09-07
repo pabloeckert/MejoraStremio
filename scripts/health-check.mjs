@@ -167,7 +167,15 @@ const manifestResults = await Promise.all(manifestTargets.map((t) => getJsonWith
 // Los 3 de mejorastremio-hub estuvieron acá 2026-07-28/30 por USAGE_EXCEEDED en Deno Deploy
 // (org gratuita suspendida). Sacados el 2026-07-30 al confirmarse el redeploy con el hub ya
 // respondiendo 200 en los 4 manifests — si vuelve a pasar, reagregar los que corresponda.
-const KNOWN_FLAKY = ['WebStreamrMBG', 'Mubi Catalog'];
+// SubSense / SubMaker / Community Subtitles / Nuvio: hosteados en ElfHosted, cold-starts
+// esporádicos en el manifest (blip cada ~1-2 semanas en el log interno, 2026-08/09). Son
+// fuentes SECUNDARIAS — hay 8 addons de subtítulos y los 3 primarios (OpenSubtitles/SubDL/
+// OpenSubtitles Latino, servidos por el hub keyless) son confiables. Un blip de manifest de un
+// secundario no debe marcar el job en rojo; una caída real de streams/catálogos/cuenta sí.
+const KNOWN_FLAKY = [
+  'WebStreamrMBG', 'Mubi Catalog',
+  'SubSense', 'SubMaker | ElfHosted', 'Stremio Community Subtitles', 'Nuvio Streams | Elfhosted',
+];
 manifestResults.forEach(({ data: m, retried }, i) => {
   const t = manifestTargets[i];
   if (m?.name && !retried) {

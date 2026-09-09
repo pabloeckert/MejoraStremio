@@ -67,15 +67,54 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
 // ningún ":" literal, así que quedaba TODO en imdbId y season/episode = null -> nuestros
 // addons devolvían [] para CUALQUIER serie en el cliente real, y por eso Pablo nunca veía
 // nuestros subtítulos en la app (solo funcionaban con mi curl, que usa ":" literal).
-function parseStremioSubId(rawId: string): { imdbId: string; season: number | null; episode: number | null } {
-  let core = rawId.split("/")[0];
+function parseStremioSubId(rawId: string): { imdbId: string; season: number | null; episode: number | null; filename: string | null } {
+  const segs = rawId.split("/");
+  let core = segs[0];
   try { core = decodeURIComponent(core); } catch { /* dejar como está si no decodifica */ }
   const [imdbId, s, e] = core.split(":");
+  // Segundo segmento ("videoHash=...&videoSize=...&filename=....mkv") trae el nombre
+  // real del archivo que Stremio está reproduciendo — se usa para elegir, entre varios
+  // candidatos de subtítulo, el que corresponda al MISMO release (ver releaseSimilarity).
+  let filename: string | null = null;
+  if (segs[1]) {
+    try {
+      const qs = new URLSearchParams(decodeURIComponent(segs[1]));
+      filename = qs.get("filename");
+    } catch {
+      const m = segs[1].match(/filename=([^&]+)/);
+      if (m) { try { filename = decodeURIComponent(m[1]); } catch { filename = m[1]; } }
+    }
+  }
   return {
     imdbId,
     season: s ? parseInt(s, 10) : null,
     episode: e ? parseInt(e, 10) : null,
+    filename,
   };
+}
+
+// Similitud de release entre el filename REAL del video y el release/nombre de un
+// candidato de subtítulo — tokens en común / tokens totales (Jaccard simple). Usado
+// para elegir la base de /translate cuando hay más de un release circulando (ver
+// "desface de El Gran Héroe Americano", 2026-09-09): sin esto, /translate siempre
+// tomaba el candidato más descargado en OpenSubtitles, sin importar si correspondía
+// al mismo corte/timing que el stream que el usuario está reproduciendo.
+function releaseTokens(s: string): Set<string> {
+  return new Set(
+    (s || "")
+      .toLowerCase()
+      .replace(/\.(mkv|mp4|avi|srt)$/, "")
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length > 1 && !/^(the|a|an|of|and|to|s\d+e\d+)$/.test(t)),
+  );
+}
+function releaseSimilarity(filename: string, release: string): number {
+  const a = releaseTokens(filename);
+  const b = releaseTokens(release);
+  if (!a.size || !b.size) return 0;
+  let hits = 0;
+  for (const t of a) if (b.has(t)) hits++;
+  return hits / Math.max(a.size, b.size);
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -2421,7 +2460,13 @@ async function osHasSpanish(imdbId: string, season: number | null, episode: numb
   return false; // todos los candidatos en español resultaron SDH por contenido
 }
 
-async function osBaseFileId(imdbId: string, season: number | null, episode: number | null, lang: string): Promise<number | null> {
+async function osBaseFileId(
+  imdbId: string,
+  season: number | null,
+  episode: number | null,
+  lang: string,
+  videoFilename?: string | null,
+): Promise<number | null> {
   if (!OPENSUBTITLES_API_KEY) return null;
   const p = new URLSearchParams({ languages: lang, hearing_impaired: "exclude", order_by: "download_count" });
   if (season != null && episode != null) {
@@ -2433,7 +2478,28 @@ async function osBaseFileId(imdbId: string, season: number | null, episode: numb
     headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA },
     signal: AbortSignal.timeout(10000),
   }).then((x) => x.json()).catch(() => null);
-  const fid = r?.data?.[0]?.attributes?.files?.[0]?.file_id;
+  // deno-lint-ignore no-explicit-any
+  const data: any[] = Array.isArray(r?.data) ? r.data : [];
+  if (!data.length) return null;
+
+  // Con el filename real del video: elegir el candidato cuyo release/nombre de
+  // archivo matchee mejor (mismo corte/fuente = mismo timing), no ciegamente el más
+  // descargado. Umbral bajo (>0) porque cualquier señal real de match (ej. "AMZN",
+  // "WEBRip", el nombre del grupo de release) vale más que popularidad a ciegas.
+  if (videoFilename) {
+    let best: { fid: number; score: number } | null = null;
+    for (const d of data) {
+      const a = d?.attributes ?? {};
+      const fid = a?.files?.[0]?.file_id;
+      if (!Number.isFinite(fid)) continue;
+      const hay = `${a.release ?? ""} ${a.files?.[0]?.file_name ?? ""}`;
+      const score = releaseSimilarity(videoFilename, hay);
+      if (!best || score > best.score) best = { fid, score };
+    }
+    if (best && best.score > 0) return best.fid;
+  }
+
+  const fid = data[0]?.attributes?.files?.[0]?.file_id;
   return Number.isFinite(fid) ? fid : null;
 }
 
@@ -2444,7 +2510,7 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
   const listM = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
   if (listM) {
     const [, , rawId] = listM;
-    const { imdbId, season, episode } = parseStremioSubId(rawId);
+    const { imdbId, season, episode, filename } = parseStremioSubId(rawId);
     try {
       if (await osHasSpanish(imdbId, season, episode)) return jsonResponse({ subtitles: [] });
 
@@ -2462,10 +2528,14 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         }
       }
       if (!bases.length) {
-        const de = await osBaseFileId(imdbId, season, episode, "de");
+        // El filename real (cuando Stremio lo manda) elige, entre varios candidatos,
+        // el que corresponda al MISMO release que se está reproduciendo — evita el
+        // desface por comparar contra un release distinto (ver "El Gran Héroe
+        // Americano", 2026-09-09).
+        const de = await osBaseFileId(imdbId, season, episode, "de", filename);
         if (de) bases.push({ t: "os", f: de, label: "base DE", keyRef: `os-${de}` });
         else {
-          const en = await osBaseFileId(imdbId, season, episode, "en");
+          const en = await osBaseFileId(imdbId, season, episode, "en", filename);
           if (en) bases.push({ t: "os", f: en, label: "base EN", keyRef: `os-${en}` });
         }
       }

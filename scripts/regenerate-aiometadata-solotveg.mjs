@@ -29,9 +29,9 @@
  * Node >= 20, sin dependencias.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { apiPost } from "./lib/stremio-api.mjs";
 
 const AIO_BASE = "https://aiometadata.elfhosted.com";
-const API = "https://api.strem.io/api";
 const PRESET_PATH = "data/preset.json";
 const INSTANCE_PATH = "cuentas/solotveg/aiometadata-instance.json";
 const APPLY = process.argv.includes("--apply");
@@ -172,7 +172,6 @@ if (!APPLY) {
   process.exit(0);
 }
 
-const apiPost = (path, body) => fetch(`${API}/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(25000) }).then((r) => r.json());
 const login = await apiPost("login", { authKey: null, email, password: pass });
 const authKey = login?.result?.authKey;
 if (!authKey) die("Login fallido: " + JSON.stringify(login?.error || login));

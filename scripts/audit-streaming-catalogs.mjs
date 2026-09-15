@@ -9,15 +9,9 @@
  * Requiere: ST_EMAIL, ST_PASS
  * Uso: node scripts/audit-streaming-catalogs.mjs
  */
-const API = 'https://api.strem.io/api';
+import { apiPost } from './lib/stremio-api.mjs';
+
 const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
-const apiPost = (path, body) =>
-  fetch(`${API}/${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(25000),
-  }).then((r) => r.json());
 const getJson = (url, t = 20000) =>
   fetch(url, { signal: AbortSignal.timeout(t) })
     .then((r) => (r.ok ? r.json() : { __httpError: r.status }))

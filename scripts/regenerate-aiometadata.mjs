@@ -23,6 +23,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { apiPost } from "./lib/stremio-api.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -30,19 +31,11 @@ const PRESET_PATH = join(ROOT, "data", "preset.json");
 const BACKUPS = join(ROOT, ".backups");
 
 const AIO_BASE = "https://aiometadata.elfhosted.com";
-const API = "https://api.strem.io/api";
 
 const APPLY = process.argv.includes("--apply");
 const FORCE = process.argv.includes("--force");
 
 const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
-const apiPost = (path, body) =>
-  fetch(`${API}/${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(25000),
-  }).then((r) => r.json());
 const getJson = (url, t = 20000) =>
   fetch(url, { signal: AbortSignal.timeout(t) }).then((r) => r.json());
 const uuidOf = (url) => (String(url).match(/\/([0-9a-f-]{36})\//) || [])[1];

@@ -25,20 +25,13 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { isCachedStream, isSpanishLang } from './lib/addon-signals.mjs';
+import { apiPost } from './lib/stremio-api.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const STATE_PATH = join(ROOT, 'data', 'premiere-radar-state.json');
-const API = 'https://api.strem.io/api';
 
 const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
-const apiPost = (path, body) =>
-  fetch(`${API}/${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(25000),
-  }).then((r) => r.json());
 const getJson = (url, t = 20000) =>
   fetch(url, { signal: AbortSignal.timeout(t) })
     .then((r) => (r.ok ? r.json() : null))

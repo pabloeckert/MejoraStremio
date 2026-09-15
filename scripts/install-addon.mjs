@@ -14,8 +14,8 @@
  *
  * Guarda backup antes de aplicar. Sin --apply solo reporta (dry-run).
  */
+import { apiPost as _apiPost } from './lib/stremio-api.mjs';
 
-const API = 'https://api.strem.io/api';
 const EMAIL = process.env.ST_EMAIL || 'stremioeg@gmail.com';
 const PASS  = process.env.ST_PASS  || '';
 
@@ -41,13 +41,7 @@ if (!PASS) {
   process.exit(1);
 }
 
-const apiPost = (path, body) =>
-  fetch(`${API}/${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(15000),
-  }).then((r) => r.json());
+const apiPost = (path, body) => _apiPost(path, body, { timeout: 15000 });
 
 const manifestUrlOf = (url) =>
   /manifest\.json$/.test(url) ? url : url.replace(/\/?$/, '/') + 'manifest.json';

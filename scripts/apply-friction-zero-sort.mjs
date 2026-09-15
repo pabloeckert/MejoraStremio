@@ -33,22 +33,15 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
+import { apiPost } from './lib/stremio-api.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const BACKUPS = join(ROOT, '.backups');
 
-const API = 'https://api.strem.io/api';
 const APPLY = process.argv.includes('--apply');
 
 const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
-const apiPost = (path, body) =>
-  fetch(`${API}/${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(25000),
-  }).then((r) => r.json());
 
 const email = process.env.ST_EMAIL || 'stremioeg@gmail.com';
 const pass = process.env.ST_PASS || '';

@@ -20,8 +20,7 @@
  *
  * Exit codes: 0 = todo OK, 1 = algo caído.
  */
-
-const API = 'https://api.strem.io/api';
+import { apiPost as _apiPost } from './lib/stremio-api.mjs';
 
 // Títulos de prueba: una peli popular, una serie popular, y contenido de nicho
 // (Will Trent / Wild Cards históricamente con pocas seeds) para no dar falsos OK.
@@ -30,13 +29,7 @@ const TEST_SERIES = { label: 'Breaking Bad S01E01', type: 'series', id: 'tt09037
 const TEST_NICHE  = { label: 'Will Trent S01E01',  type: 'series', id: 'tt14681924:1:1' };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const apiPost = (path, body) =>
-  fetch(`${API}/${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(15000),
-  }).then((r) => r.json());
+const apiPost = (path, body) => _apiPost(path, body, { timeout: 15000 });
 
 const getJson = (url, timeout = 12000) =>
   fetch(url, { signal: AbortSignal.timeout(timeout) })

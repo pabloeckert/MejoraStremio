@@ -27,12 +27,12 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { isUtilityStream, isRealStream } from './lib/addon-signals.mjs';
+import { apiPost } from './lib/stremio-api.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const LOG_PATH = join(ROOT, 'data', 'anti-frustration-log.json');
 const CINEMETA = 'https://v3-cinemeta.strem.io';
-const API = 'https://api.strem.io/api';
 
 const RESOLVED_THRESHOLD = 3; // streams "reales" mínimos para considerar resuelto
 const LATINO_RE = /latino|🇲🇽|🇦🇷|🇨🇴/i;
@@ -44,13 +44,6 @@ const FAMILY_GENRES = new Set(['Animation', 'Family']);
 const UNVERIFIABLE_ADDONS = new Set(['Meteor']);
 
 const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
-const apiPost = (path, body) =>
-  fetch(`${API}/${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(25000),
-  }).then((r) => r.json());
 const getJson = (url, t = 20000) =>
   fetch(url, { signal: AbortSignal.timeout(t) })
     .then((r) => (r.ok ? r.json() : null))

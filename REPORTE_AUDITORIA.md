@@ -8,7 +8,7 @@ Repo sano. Sin secretos trackeados, sin hardcodeos de credenciales, workflows de
 
 ## Hallazgos por severidad
 
-- **Media**: el helper `apiPost` (login a la API de Stremio) está duplicado literalmente en 21 scripts, nunca extraído a `scripts/lib/` — a diferencia de `collection-guard.mjs` y `addon-signals.mjs`, que sí se refactorizaron a módulos compartidos. Archivos afectados:
+- **Media — ✅ RESUELTO 2026-09-16** (commit `ce2efeb`, ver `CLAUDE.md` → "Sesión 2026-09-16"): el helper `apiPost` (login a la API de Stremio) está duplicado literalmente en 21 scripts, nunca extraído a `scripts/lib/` — a diferencia de `collection-guard.mjs` y `addon-signals.mjs`, que sí se refactorizaron a módulos compartidos. Archivos afectados:
   - scripts/anti-frustration.mjs
   - scripts/apply-cgnat-profile.mjs
   - scripts/apply-friction-zero-sort.mjs
@@ -31,7 +31,7 @@ Repo sano. Sin secretos trackeados, sin hardcodeos de credenciales, workflows de
   - scripts/update-addon-url.mjs
   - scripts/verify-live-account.mjs
 
-  No se refactorizó — es un cambio que toca 21 archivos, riesgo medio, requiere decisión humana antes de ejecutarse.
+  Refactorizado a `scripts/lib/stremio-api.mjs` (`STREMIO_API`, `apiPost` con timeout configurable, `stremioLogin`). Los 21 scripts importan `apiPost` (17 con el timeout default 25000ms, 4 con un wrapper local que preserva su timeout original de 15000ms — `health-check.mjs`, `install-addon.mjs`, `reorder-addons.mjs`, `update-addon-url.mjs`). Verificado con `node --check` en los 22 archivos tocados; `deno check`/`deno lint` no se pudieron correr en esta sesión por falta de `deno` instalado en la máquina — pendiente correrlos en una sesión con `deno` disponible o vía CI. Detalle completo en `CLAUDE.md` → "Sesión 2026-09-16".
 
 - **Baja**: `scripts/deno-subdl-addon.ts` tiene 1 error de tipos (`deno check`). Es un script legacy, no deployado — el que está en producción (`deno-hub.ts`) compila limpio.
 - **Baja**: `deno lint` reporta 15 hallazgos cosméticos (variables sin usar, `let` que podría ser `const`, bloques vacíos) — nada funcional.
@@ -52,6 +52,6 @@ Repo sano. Sin secretos trackeados, sin hardcodeos de credenciales, workflows de
 
 ## Pendientes que requieren decisión humana
 
-1. Refactorizar `apiPost` a un módulo compartido en `scripts/lib/` (afecta 21 archivos).
+1. ✅ **RESUELTO 2026-09-16** — Refactorizar `apiPost` a un módulo compartido en `scripts/lib/` (afectaba 21 archivos). Ver `CLAUDE.md` → "Sesión 2026-09-16", commit `ce2efeb`.
 2. Decidir si arreglar o borrar `scripts/deno-subdl-addon.ts` (legacy, con error de tipos, no deployado).
 3. Actualizar `docs/encuesta-catalogos.md` o marcarlo explícitamente como snapshot histórico desactualizado.

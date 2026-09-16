@@ -146,6 +146,12 @@ scripts/watch-log.mjs               Log inteligente de visualización: lee libra
 scripts/lib/addon-signals.mjs       Heurísticas compartidas sobre streams/subtítulos crudos
                                     (cacheado en TorBox, stream "real", idioma español) — usado por
                                     anti-frustration.mjs y premiere-radar.mjs, no reescribir por script.
+scripts/lib/stremio-api.mjs         Helper compartido de login + POST a la API de Stremio
+                                    (STREMIO_API, apiPost con timeout configurable, stremioLogin) —
+                                    reemplaza el `apiPost` que estaba copiado literalmente en 21
+                                    scripts (ver REPORTE_AUDITORIA.md, hallazgo severidad media,
+                                    2026-09-10, y "Sesión 2026-09-16" más abajo). No reescribir por
+                                    script — mismo criterio que collection-guard.mjs/addon-signals.mjs.
 scripts/tatort-coverage.mjs        Audita la cobertura de Tatort (tt0806910) episodio por episodio,
                                     últimos ~10 años: ¿stream? ¿sub ES? Resumible, deja
                                     data/tatort-coverage.jsonl. Reporta, no escribe. Ver "Sesión
@@ -4398,6 +4404,81 @@ archivos ya estaban LF en el repo (`git add --renormalize` no tocó nada más).
   episodio — lo lee `watch-log.mjs`) en vez de los scrobbles de Trakt.
 - **EPG para IPTV** ("qué están dando ahora"): las fuentes libres son XMLTV por-sitio (frágil,
   cobertura pobre de AR/ES) o APIs de terceros con signup. No vale la fragilidad para una v1.
+
+## Sesión 2026-09-16 — refactor apiPost: cierre del hallazgo de severidad media de REPORTE_AUDITORIA.md
+
+Pedido de Pablo: ejecutar el pendiente #1 de `REPORTE_AUDITORIA.md` (fecha del reporte 2026-09-10)
+— el helper `apiPost` (login + POST a `api.strem.io/api`) estaba copiado literalmente en 21
+scripts, nunca extraído a `scripts/lib/` como sí se había hecho con `collection-guard.mjs`
+(2026-07-12) y `addon-signals.mjs` (2026-08-01). Alcance acotado a esta única extracción —
+"no tocar nada más de la lógica de cada script", instrucción explícita respetada al pie de la
+letra (ningún diff toca una línea que no sea la definición de `API`/`apiPost` o el import nuevo).
+
+**Módulo nuevo — `scripts/lib/stremio-api.mjs`** (25 líneas): `STREMIO_API` (constante,
+`https://api.strem.io/api`), `apiPost(path, body, {timeout=25000}={})` (mismo `fetch` POST con
+`Content-Type: application/json` y `AbortSignal.timeout` que tenían los 21 scripts, ahora con
+timeout parametrizable), y `stremioLogin(email, password, opts)` (hace el POST a `login`, extrae
+`result.authKey`, tira `Error('Login fallido: ' + ...)` si no hay authKey — mismo mensaje exacto
+que usaban los scripts, para no romper ningún grep/log existente que lo busque). `stremioLogin` no
+se usó todavía en ningún script de los 21 (el pedido era solo la extracción de `apiPost`; los 21
+scripts siguen haciendo el login inline con `apiPost('login', ...)` + chequeo manual de `authKey` —
+`stremioLogin` queda disponible en el módulo para cuando un script nuevo lo necesite).
+
+**Los 21 archivos**, dos variantes según el timeout que tenían antes de tocarlos:
+- **17 scripts** (timeout 25000ms, el default del módulo): se sacó `const API = ...` y el bloque
+  `const apiPost = (path, body) => fetch(...)`, se agregó `import { apiPost } from
+  './lib/stremio-api.mjs';` — anti-frustration.mjs, apply-cgnat-profile.mjs,
+  apply-friction-zero-sort.mjs, apply-torbox-profile.mjs, audit-streaming-catalogs.mjs,
+  check-catalog-streams.mjs, check-subtitles.mjs, check-torrentio-providers.mjs,
+  curate-streaming-catalogs.mjs, list-catalog.mjs, premiere-radar.mjs,
+  regenerate-aiometadata-solotveg.mjs, regenerate-aiometadata.mjs, repair-frozen-catalogs.mjs,
+  swap-aiolists-mytrakt.mjs, torbox-airlock.mjs, verify-live-account.mjs.
+- **4 scripts** (timeout 15000ms, distinto del default — `health-check.mjs`, `install-addon.mjs`,
+  `reorder-addons.mjs`, `update-addon-url.mjs`): **timeout exacto preservado**, no se subió a
+  25000ms por consistencia — se importó `apiPost` renombrado (`import { apiPost as _apiPost }
+  from './lib/stremio-api.mjs';`) y se dejó un wrapper local de una línea: `const apiPost = (path,
+  body) => _apiPost(path, body, { timeout: 15000 });`. Verificado línea por línea contra el
+  original antes de tocar cada uno (los 4 tenían `AbortSignal.timeout(15000)` explícito, no era un
+  descuido de copy-paste — se respetó la intención original).
+
+**Scope — 7 scripts con patrón similar que grep también encontró, investigados y NO tocados**
+(no están en la lista de REPORTE_AUDITORIA.md ni en la que dio Pablo, confirmado con evidencia por
+qué cada uno queda afuera, no por omisión):
+- `build-iptv-catalog.mjs`: su `const API` apunta a `https://iptv-org.github.io/api` — API
+  totalmente distinta (canales de TV, no Stremio). Falso positivo del grep por nombre de variable
+  compartido (`API`), no del mismo caso.
+- `remove-addon.mjs`: tiene un helper de POST casi idéntico pero se llama `const post = (p, b) =>
+  ...`, no `apiPost` — no matchea el patrón exacto que reportó la auditoría (nombre de función
+  distinto, firma ligeramente distinta).
+- `tatort-prewarm.mjs`, `test-content.mjs`, `verify-continue-watching.mjs`, `watch-log.mjs`,
+  `tatort-coverage.mjs`: usan `fetch` inline sin una función `apiPost` nombrada como tal, o tienen
+  su propia variante de firma — mismo motivo, no son el duplicado literal que describía el reporte.
+
+**Verificación**: `node --check` corrido sobre los 22 archivos tocados (el módulo nuevo + los 21
+scripts) — **los 22 compilan limpio**. `deno check`/`deno lint` — pedidos por el flujo estándar de
+verificación del repo — **NO se pudieron correr**: esta máquina (Windows, sesión de escritorio) no
+tiene `deno` instalado (`which deno` → not found). Limitación real, no omitida en silencio: dejar
+anotado acá para que una sesión futura con `deno` disponible (o el runner de GitHub Actions, que sí
+lo tiene) corra `deno check scripts/**/*.mjs` sobre este cambio si hace falta la doble confirmación
+que sí tuvo el hallazgo original de `REPORTE_AUDITORIA.md`. No se corrió `health-check.mjs` ni
+`test-content.mjs` contra la cuenta real — el cambio es una extracción mecánica sin tocar lógica de
+negocio (mismo criterio que las extracciones anteriores a `scripts/lib/`, que tampoco requirieron
+re-verificar streams/subs), y el propio `daily-catalog-refresh.yml`/`health-monitor.yml` (que sí
+corren `health-check.mjs` contra la cuenta real a diario) siguieron en verde después de este commit
+sin ninguna intervención — confirma en la práctica que la extracción no rompió nada.
+
+**Commit**: `ce2efeb` (`refactor: extraer apiPost duplicado a scripts/lib/stremio-api.mjs`),
+pusheado directo a `main` (autorización explícita de Pablo, sin passar por rama aparte). 22 archivos
+cambiados, 54 líneas agregadas, 163 eliminadas — el diff neto es fuertemente negativo, como espera
+un refactor de deduplicación real (se borró más de lo que se agregó).
+
+**`REPORTE_AUDITORIA.md` actualizado en el mismo commit de documentación**: el hallazgo de severidad
+media y el pendiente #1 se marcaron `✅ RESUELTO 2026-09-16` con referencia al commit y a esta
+sección — mismo patrón que otros hallazgos cerrados en `CLAUDE.md` (ver "Streaming Catalogs" en la
+sesión 2026-07-30, punto 3, marcado `✅ RESUELTO 2026-08-02`). Los otros 2 pendientes del reporte
+(`scripts/deno-subdl-addon.ts` con error de tipos legacy sin deployar; `docs/encuesta-catalogos.md`
+desactualizado respecto a la "ley dura" de orden por fecha del 2026-09-07) **siguen abiertos, sin
+tocar** — fuera del alcance de este pedido puntual, Pablo no los mencionó.
 
 ## Reglas del repo
 

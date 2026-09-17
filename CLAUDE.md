@@ -38,6 +38,8 @@ data/anti-frustration-log.json      Registro de títulos que "no abren" (streams
                                     y su estado; ver scripts/anti-frustration.mjs abajo.
 data/premiere-radar-state.json      Estado del radar de estrenos (próximo episodio no visto por
                                     show + si ya se avisó) — ver scripts/premiere-radar.mjs abajo.
+data/community-radar-state.json     Estado del radar de add-ons comunitarios (última versión /
+                                    release / commit visto por add-on) — ver scripts/community-radar.mjs.
 data/internal-log.jsonl             Log interno (NO se manda por mail) de las corridas automáticas
                                     diarias — para que Claude lo lea entre sesiones y siga el pulso
                                     de la cuenta + los gustos/uso de Pablo. Ver "Sesión 2026-08-02".
@@ -100,10 +102,14 @@ scripts/install-addon.mjs           Instala un addon NUEVO (manifest.id que no e
                                     update-addon-url.mjs, que solo tocan addons ya presentes.
                                     Guard + backup antes de aplicar.
 scripts/premiere-radar.mjs          Calcula el próximo episodio no visto de cada show en progreso/
-                                    watchlist en MyTrakt Sync y detecta la primera vez que ese
-                                    episodio tiene stream cacheado en TorBox + subtítulo ES real.
-                                    Estado en data/premiere-radar-state.json. Sin email (ver
-                                    data/internal-log.jsonl más abajo) — Sesión 2026-08-01/02.
+                                     watchlist en MyTrakt Sync y detecta la primera vez que ese
+                                     episodio tiene stream cacheado en TorBox + subtítulo ES real.
+                                     Estado en data/premiere-radar-state.json. Sin email (ver
+                                     data/internal-log.jsonl más abajo) — Sesión 2026-08-01/02.
+scripts/community-radar.mjs         Consulta periódicamente releases/tags/commits en GitHub de
+                                    los principales add-ons de Stremio (Streams, Metadatos, Subs,
+                                    Ecosistema) y versiones de manifests en vivo. Estado en
+                                    data/community-radar-state.json. Corren en CI vía community-radar.yml.
 scripts/log-status.mjs              Registra el resultado de cada corrida automatizada (health-
                                     monitor, daily-catalog-refresh, anti-frustration-review,
                                     premiere-radar, monthly-digest) en data/internal-log.jsonl —

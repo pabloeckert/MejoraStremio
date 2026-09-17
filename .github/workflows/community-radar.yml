@@ -1,0 +1,34 @@
+name: community-radar
+
+# 11:00 Argentina (UTC-3) — horario valle para evitar competencia de commits
+# con los refrescos matutinos (07:00-07:45 ART) y el health-check (09:00 ART).
+on:
+  schedule:
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 necesario para rebase limpio en ci-commit-push.sh
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Chequear versiones de add-ons comunitarios
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/community-radar.mjs 2>&1 | tee /tmp/radar-output.txt
+
+      - name: Commitear el estado y registrar en el log interno
+        run: |
+          bash scripts/lib/ci-commit-push.sh \
+            "chore(community-radar): actualizar versiones de addons comunitarios" \
+            community-radar ok /tmp/radar-output.txt \
+            data/community-radar-state.json

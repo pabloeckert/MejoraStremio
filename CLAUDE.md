@@ -19,13 +19,13 @@ Vite, deploy a GitHub Pages, etc.): Pablo gestiona el setup por terminal, no usa
 sitio `pabloeckert.github.io/MejoraStremio` se despublicó. El historial de git conserva la versión
 SPA si alguna vez hiciera falta.
 
-**Cuentas gestionadas por este repo**: además de la principal (`stremioeg@gmail.com`, documentada en
-todo este archivo), desde el 2026-08-02 también se gestiona una segunda cuenta —
+**Cuentas gestionadas por este repo**: la principal (`stremioeg@gmail.com`, documentada en
+todo este archivo y con especificación formal para TV Box en `cuentas/stremioeg/CLAUDE.md` y
+`profile.json`), desde el 2026-08-02 también se gestiona una segunda cuenta —
 `stremiojn@gmail.com` ("Joaquín") — con su propio historial y documentación en
 `cuentas/stremiojn/CLAUDE.md`. Desde el 2026-08-13 se gestiona además una tercera —
 `solotveg@gmail.com`, perfil juvenil/adolescente (hasta 17 años) — documentada en
-`cuentas/solotveg/CLAUDE.md`. Ambos archivos son complementarios a este, no lo duplican. Cualquier
-trabajo sobre una cuenta puntual va documentado en su propio archivo, no acá.
+`cuentas/solotveg/CLAUDE.md`. Los archivos por cuenta son complementarios a este, no lo duplican.
 
 ## Estructura
 
@@ -107,9 +107,14 @@ scripts/premiere-radar.mjs          Calcula el próximo episodio no visto de cad
                                      Estado en data/premiere-radar-state.json. Sin email (ver
                                      data/internal-log.jsonl más abajo) — Sesión 2026-08-01/02.
 scripts/community-radar.mjs         Consulta periódicamente releases/tags/commits en GitHub de
-                                    los principales add-ons de Stremio (Streams, Metadatos, Subs,
-                                    Ecosistema) y versiones de manifests en vivo. Estado en
-                                    data/community-radar-state.json. Corren en CI vía community-radar.yml.
+                                     los principales add-ons de Stremio (Streams, Metadatos, Subs,
+                                     Ecosistema) y versiones de manifests en vivo. Estado en
+                                     data/community-radar-state.json. Corren en CI vía community-radar.yml.
+scripts/apply-stremioeg-profile.mjs  Aplica y valida el perfil estricto de stremioeg para TV Box
+                                     (subtítulos sin SDH, audio latino/original prioritario y
+                                     sincronización diaria de estrenos). Guard + backup en .backups/.
+scripts/test-stremioeg-tvbox.mjs     Triple testeo exhaustivo de punta a punta (estructura, simulación
+                                     de filtros y conectividad de endpoints) para garantizar la TV Box.
 scripts/log-status.mjs              Registra el resultado de cada corrida automatizada (health-
                                     monitor, daily-catalog-refresh, anti-frustration-review,
                                     premiere-radar, monthly-digest) en data/internal-log.jsonl —

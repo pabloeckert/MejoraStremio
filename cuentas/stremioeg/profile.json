@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "account": "stremioeg@gmail.com",
+  "alias": "Pablo (Principal)",
+  "deviceTarget": "TV Box / Android TV (Leanback UI)",
+  "version": "1.0.0",
+  "updatedAt": "2026-09-17T20:25:00Z",
+  "rules": {
+    "subtitles": {
+      "mode": "strict_no_sdh",
+      "preferredLanguages": [
+        { "code": "ea", "iso": "es-419", "name": "Spanish (Latin America)", "priority": 1 },
+        { "code": "es", "iso": "spa", "name": "Spanish (Standard, Clean)", "priority": 2 }
+      ],
+      "deprioritizedLanguages": [
+        { "code": "sp", "iso": "es-ES", "name": "Spanish (Spain / Castellano)", "priority": 99 }
+      ],
+      "discardMarkers": [
+        "[SDH]",
+        "(SDH)",
+        "[CC]",
+        "(CC)",
+        "SDH",
+        "CC",
+        "hi=true",
+        "hearing impaired",
+        "para sordos",
+        "sordos"
+      ],
+      "requiredAddons": [
+        {
+          "id": "com.mejorastremio.opensubtitles-latino",
+          "name": "OpenSubtitles Latino (sin SDH)",
+          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/opensubtitles-latino/manifest.json",
+          "filterHearingImpaired": true,
+          "priority": 1
+        },
+        {
+          "id": "com.mejorastremio.subdl",
+          "name": "SubDL ES (sin SDH)",
+          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/subdl/manifest.json",
+          "filterHearingImpaired": true,
+          "priority": 2
+        },
+        {
+          "id": "com.mejorastremio.opensubtitles",
+          "name": "OpenSubtitles ES (sin SDH)",
+          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/opensubtitles/manifest.json",
+          "filterHearingImpaired": true,
+          "priority": 3
+        }
+      ]
+    },
+    "audio": {
+      "priorityHierarchy": [
+        "latino",
+        "original"
+      ],
+      "lastResort": "castellano",
+      "torrentio": {
+        "language": "latino",
+        "description": "Filtra/ordena con prioridad audio latino (flag 'latino')"
+      },
+      "comet": {
+        "languages": {
+          "preferred": ["la", "en"]
+        },
+        "sortCachedUncachedTogether": false,
+        "description": "Prefiere audio latino ('la') y original ('en'), cacheados en TorBox primero"
+      },
+      "streamAddonOrder": [
+        "com.stremio.torrentio.addon",
+        "stremio.comet.fast",
+        "com.notorrent.addon",
+        "webstreamr-mbg",
+        "org.nuvio.streams",
+        "community.meteor"
+      ]
+    },
+    "catalogs": {
+      "dailySync": true,
+      "workflow": ".github/workflows/daily-catalog-refresh.yml",
+      "cronUtc": "0 10 * * *",
+      "cronArt": "07:00 ART",
+      "orderLaw": "release_date_desc",
+      "timeSensitive": [
+        "now_playing",
+        "upcoming"
+      ]
+    }
+  }
+}

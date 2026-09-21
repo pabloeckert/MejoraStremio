@@ -6683,7 +6683,7 @@
               "params": {
                 "sort_by": "primary_release_date.asc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-09-20",
+                "primary_release_date.gte": "2026-09-21",
                 "with_runtime.gte": 45,
                 "without_keywords": "210024,10292,221355,11001,348144,6075"
               },
@@ -6747,7 +6747,7 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-09-20",
+                "primaryReleaseFrom": "2026-09-21",
                 "primaryReleaseTo": "",
                 "firstAirFrom": "",
                 "firstAirTo": "",
@@ -6775,7 +6775,7 @@
               "params": {
                 "sort_by": "first_air_date.asc",
                 "include_adult": false,
-                "first_air_date.gte": "2026-09-20",
+                "first_air_date.gte": "2026-09-21",
                 "with_runtime.gte": 15,
                 "without_keywords": "210024,10292,221355,11001,348144,6075",
                 "without_genres": "10764,10766,10767,10763"
@@ -6859,7 +6859,7 @@
                 ],
                 "primaryReleaseFrom": "",
                 "primaryReleaseTo": "",
-                "firstAirFrom": "2026-09-20",
+                "firstAirFrom": "2026-09-21",
                 "firstAirTo": "",
                 "airDateFrom": "",
                 "airDateTo": "",
@@ -6885,8 +6885,8 @@
               "params": {
                 "sort_by": "primary_release_date.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-07-07",
-                "primary_release_date.lte": "2026-09-20",
+                "primary_release_date.gte": "2026-07-08",
+                "primary_release_date.lte": "2026-09-21",
                 "with_runtime.gte": 45,
                 "without_keywords": "210024,10292,221355,11001,348144,6075",
                 "vote_count.gte": 10
@@ -6951,8 +6951,8 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-07-07",
-                "primaryReleaseTo": "2026-09-20",
+                "primaryReleaseFrom": "2026-07-08",
+                "primaryReleaseTo": "2026-09-21",
                 "firstAirFrom": "",
                 "firstAirTo": "",
                 "airDateFrom": "",
@@ -14871,7 +14871,7 @@
         }
       ]
     },
-    "instanceId": "9b670782-8ace-46dc-a196-7e5520a952d0"
+    "instanceId": "41c7932b-4ee9-498f-9ad0-edebf1bf394a"
   },
   "nuvioCollectionsConfig": [
     {

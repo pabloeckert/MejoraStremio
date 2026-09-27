@@ -72,7 +72,7 @@
   {
     "id": "tt27763549",
     "type": "movie",
-    "name": "A Man Like Maximilian",
+    "name": "Los Mufas",
     "genres": [],
     "isFamily": false,
     "perAddon": {
@@ -102,8 +102,8 @@
         "unverifiable": false
       },
       "Nuvio Streams | Elfhosted": {
-        "total": 0,
-        "real": 0,
+        "total": 4,
+        "real": 4,
         "unverifiable": false
       },
       "Streailer": {
@@ -122,12 +122,12 @@
         "unverifiable": false
       }
     },
-    "totalReal": 0,
-    "status": "pendiente",
+    "totalReal": 4,
+    "status": "resuelto",
     "latino": null,
     "label": "Los Mufas: Suerte para la desgracia",
     "addedAt": "2026-07-02T21:47:44.909Z",
-    "lastCheckedAt": "2026-09-20T17:45:30.070Z"
+    "lastCheckedAt": "2026-09-27T18:42:54.406Z"
   },
   {
     "id": "tt5834132",
@@ -189,7 +189,7 @@
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-09-20T17:45:45.746Z"
+    "lastCheckedAt": "2026-09-27T18:43:14.341Z"
   },
   {
     "id": "tt2380307",
@@ -1433,8 +1433,8 @@
         "unverifiable": false
       },
       "Nuvio Streams | Elfhosted": {
-        "total": 0,
-        "real": 0,
+        "total": 3,
+        "real": 3,
         "unverifiable": false
       },
       "Streailer": {
@@ -1453,12 +1453,12 @@
         "unverifiable": false
       }
     },
-    "totalReal": 2,
-    "status": "pendiente",
+    "totalReal": 5,
+    "status": "resuelto",
     "latino": null,
     "label": "Ágata y Lola S01E02",
     "addedAt": "2026-08-23T01:52:08.797Z",
-    "lastCheckedAt": "2026-09-20T17:46:03.817Z"
+    "lastCheckedAt": "2026-09-27T18:43:31.156Z"
   },
   {
     "id": "tt38607962",
@@ -1557,8 +1557,8 @@
         "unverifiable": false
       },
       "Nuvio Streams | Elfhosted": {
-        "total": 0,
-        "real": 0,
+        "total": 3,
+        "real": 3,
         "unverifiable": false
       },
       "Streailer": {
@@ -1577,12 +1577,12 @@
         "unverifiable": false
       }
     },
-    "totalReal": 0,
-    "status": "pendiente",
+    "totalReal": 3,
+    "status": "resuelto",
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E02",
     "addedAt": "2026-08-23T02:20:37.808Z",
-    "lastCheckedAt": "2026-09-20T17:46:32.115Z"
+    "lastCheckedAt": "2026-09-27T18:43:46.632Z"
   },
   {
     "id": "tt43704317",
@@ -1644,7 +1644,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E03",
     "addedAt": "2026-08-23T02:20:55.820Z",
-    "lastCheckedAt": "2026-09-20T17:46:52.586Z"
+    "lastCheckedAt": "2026-09-27T18:43:53.685Z"
   },
   {
     "id": "tt23112594",
@@ -1681,8 +1681,8 @@
         "unverifiable": false
       },
       "Nuvio Streams | Elfhosted": {
-        "total": 0,
-        "real": 0,
+        "total": 4,
+        "real": 4,
         "unverifiable": false
       },
       "Streailer": {
@@ -1701,12 +1701,12 @@
         "unverifiable": false
       }
     },
-    "totalReal": 1,
-    "status": "pendiente",
+    "totalReal": 5,
+    "status": "resuelto",
     "latino": null,
     "label": "VisionQuest S01E01",
     "addedAt": "2026-08-23T02:21:41.269Z",
-    "lastCheckedAt": "2026-09-20T17:47:03.089Z"
+    "lastCheckedAt": "2026-09-27T18:44:04.652Z"
   },
   {
     "id": "tt23112594",
@@ -1743,8 +1743,8 @@
         "unverifiable": false
       },
       "Nuvio Streams | Elfhosted": {
-        "total": 0,
-        "real": 0,
+        "total": 3,
+        "real": 3,
         "unverifiable": false
       },
       "Streailer": {
@@ -1763,12 +1763,12 @@
         "unverifiable": false
       }
     },
-    "totalReal": 0,
-    "status": "pendiente",
+    "totalReal": 3,
+    "status": "resuelto",
     "latino": null,
     "label": "VisionQuest S01E02",
     "addedAt": "2026-08-23T02:21:58.824Z",
-    "lastCheckedAt": "2026-09-20T17:47:19.574Z"
+    "lastCheckedAt": "2026-09-27T18:44:15.697Z"
   },
   {
     "id": "tt38607962",
@@ -1830,6 +1830,6 @@
     "latino": null,
     "label": "Ágata y Lola S01E09",
     "addedAt": "2026-09-04T13:17:22.882Z",
-    "lastCheckedAt": "2026-09-20T17:47:35.057Z"
+    "lastCheckedAt": "2026-09-27T18:44:34.883Z"
   }
 ]

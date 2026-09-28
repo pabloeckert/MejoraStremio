@@ -5,6 +5,7 @@
 .DS_Store
 .idea
 *.local
+MejoraStremio.code-workspace
 
 # Secretos locales (API keys) — *.local no matchea *.local.md, entrada explícita
 SECRETS.local.md

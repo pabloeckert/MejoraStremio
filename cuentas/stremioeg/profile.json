@@ -3,8 +3,8 @@
   "account": "stremioeg@gmail.com",
   "alias": "Pablo (Principal)",
   "deviceTarget": "TV Box / Android TV (Leanback UI)",
-  "version": "1.0.0",
-  "updatedAt": "2026-09-17T20:25:00Z",
+  "version": "1.0.1",
+  "updatedAt": "2026-09-28T22:45:00Z",
   "rules": {
     "subtitles": {
       "mode": "strict_no_sdh",

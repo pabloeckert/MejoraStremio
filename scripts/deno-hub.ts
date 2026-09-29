@@ -1,4 +1,4 @@
-﻿/**
+/**
  * deno-hub.ts â€” Hub Ãºnico de Deno Deploy que consolida las 3 apps que antes
  * vivÃ­an separadas (mejorastremio, mejorastremio-latino) mÃ¡s el enriquecedor
  * de sinopsis que nunca se habÃ­a deployado. Un solo Deno.serve que despacha
@@ -71,7 +71,13 @@ function parseStremioSubId(rawId: string): { imdbId: string; season: number | nu
   const segs = rawId.split("/");
   let core = segs[0];
   try { core = decodeURIComponent(core); } catch { /* dejar como estÃ¡ si no decodifica */ }
-  const [imdbId, s, e] = core.split(":");
+  let [imdbId, s, e] = core.split(":");
+  if (imdbId === "tt13854128") {
+    imdbId = "tt14060708"; // Alias canónico para HPI: Haut Potentiel Intellectuel
+  }
+  if (imdbId === "tt0081871" || core.toLowerCase().includes("heroe-americano")) {
+    imdbId = "tt0081871"; // "El gran héroe americano" / "The Greatest American Hero" (1981)
+  }
   // Segundo segmento ("videoHash=...&videoSize=...&filename=....mkv") trae el nombre
   // real del archivo que Stremio estÃ¡ reproduciendo â€” se usa para elegir, entre varios
   // candidatos de subtÃ­tulo, el que corresponda al MISMO release (ver releaseSimilarity).
@@ -185,6 +191,80 @@ function sanitizeSubtitleArtifacts(text: string): string {
     .replace(/(-->[^\n]*)\n[ \t]*\n(?=\S)/g, "$1\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim() + "\n";
+}
+
+function srtTimeToMs(t: string): number {
+  const m = t.trim().match(/^(\d{2}):(\d{2}):(\d{2})[,.](\d{3})$/);
+  if (!m) return 0;
+  const [, hh, mm, ss, ms] = m;
+  return parseInt(hh, 10) * 3600000 + parseInt(mm, 10) * 60000 + parseInt(ss, 10) * 1000 + parseInt(ms, 10);
+}
+
+function msToSrtTime(msTotal: number): string {
+  if (msTotal < 0) msTotal = 0;
+  const ms = Math.floor(msTotal % 1000);
+  const totalSec = Math.floor(msTotal / 1000);
+  const ss = totalSec % 60;
+  const totalMin = Math.floor(totalSec / 60);
+  const mm = totalMin % 60;
+  const hh = Math.floor(totalMin / 60);
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")},${String(ms).padStart(3, "0")}`;
+}
+
+function rescaleSrtFramerate(srtText: string, fromFps: number, toFps: number): string {
+  if (!fromFps || !toFps || fromFps === toFps) return srtText;
+  const ratio = fromFps / toFps;
+  return srtText.replace(
+    /(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})/g,
+    (_match, startStr, endStr) => {
+      const startMs = Math.round(srtTimeToMs(startStr) * ratio);
+      const endMs = Math.round(srtTimeToMs(endStr) * ratio);
+      return `${msToSrtTime(startMs)} --> ${msToSrtTime(endMs)}`;
+    }
+  );
+}
+
+function cleanSrt(srtContent: string): string {
+  if (!srtContent) return "";
+  const blocks = srtContent.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split(/\n\s*\n/);
+  const cleanedBlocks: string[] = [];
+
+  for (const block of blocks) {
+    const lines = block.trim().split("\n");
+    if (lines.length < 2) continue;
+    const timeIdx = lines.findIndex((l) => l.includes("-->"));
+    if (timeIdx === -1) continue;
+
+    const timeLine = lines[timeIdx];
+    const textLines = lines.slice(timeIdx + 1);
+
+    const filteredLines = textLines
+      .map((line) => {
+        let l = line;
+        // Purga corchetes [...] y paréntesis (...) típicos de acotaciones sonoras
+        l = l.replace(/\[.*?\]/g, "");
+        l = l.replace(/\(.*?\)/g, "");
+        // Purga prefijos de personajes (ej: "MORGANE:", "KARADEC :", "HOMBRE:")
+        l = l.replace(/^[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/, "");
+        // Purga notas musicales y caracteres de sonido
+        l = l.replace(/[♪♫#*]+/g, "");
+        // Purga tags html restantes tipo <font...>, <i>, etc
+        l = l.replace(/<[^>]+>/g, "");
+        // Purga acotaciones sonoras en español y francés
+        const soundCuesRegex = /^(?:m[uú]sica|musique|sonido|son|audio|disparos?|tirs?|gritos?|cris?|aplausos?|applaudissements|risas?|rires?|suspiros?|soupirs?|suspira|soupire|llanto|pleurs?|silbidos?|sifflements?|pasos|pas|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|motor|moteur|timbre|sonnerie|teléfono|téléphone|golpes?|coups?|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|chatarra|alarma|alarme|resopla|souffle|explosión|silencio|silence|jadea|bosteza|bâille)\b/i;
+        if (soundCuesRegex.test(l.trim())) {
+          l = "";
+        }
+        return l.trim();
+      })
+      .filter((line) => line.length > 0);
+
+    if (filteredLines.length > 0) {
+      cleanedBlocks.push(`${cleanedBlocks.length + 1}\n${timeLine}\n${filteredLines.join("\n")}`);
+    }
+  }
+
+  return cleanedBlocks.join("\n\n") + "\n";
 }
 
 async function extractSrtFromZip(buf: Uint8Array): Promise<string | null> {
@@ -308,7 +388,7 @@ async function downloadSubdlSrt(subdlPath: string): Promise<string | null> {
 // subPath: la ruta sin el prefijo /subdl (ej "/manifest.json", "/srt/xxx").
 // mountBase: origin + "/subdl" â€” para que los links generados (srt) vuelvan a
 // pasar por el router del hub.
-async function handleSubdl(subPath: string, mountBase: string): Promise<Response> {
+async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Promise<Response> {
   if (!SUBDL_KEY) {
     return new Response(
       "SUBDL_KEY no configurada. Setear como Secret en Deno Deploy.",
@@ -347,26 +427,57 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
       }));
       const clean = toCheck.filter((_s, idx) => verdicts[idx] !== true);
       const sdhTagged = toCheck.filter((_s, idx) => verdicts[idx] === true);
-      const subtitles = [...clean, ...rest, ...sdhTagged].map((s) => {
+      const restClean = rest.filter((s) => !isSdhName(s.name));
+      const restSdh = rest.filter((s) => isSdhName(s.name));
+
+      // Jerarquía invariable: Español Latinoamericano primero; España al fondo; matching por release
+      const sortRegionalPriority = (list: SubdlSub[]) => {
+        return [...list].sort((a, b) => {
+          const score = (name: string) => {
+            const n = name.toLowerCase();
+            let pts = 0;
+            if (n.includes("latino") || n.includes("latin") || n.includes("mexico") || n.includes("argentina")) pts += 100;
+            else if (n.includes("castellano") || n.includes("españa") || n.includes("spain") || n.includes("peninsular")) pts += 10;
+            else pts += 50;
+
+            if (parsed.filename) {
+              pts += Math.round(releaseSimilarity(parsed.filename, name) * 60);
+            }
+            return pts;
+          };
+          return score(b.name) - score(a.name);
+        });
+      };
+
+      const sortedClean = sortRegionalPriority([...clean, ...restClean]);
+      const allSdh = [...sdhTagged, ...restSdh];
+      // deno-lint-ignore no-explicit-any
+      const subtitles: any[] = [];
+      for (const s of [...sortedClean, ...allSdh]) {
         const idx = toCheck.indexOf(s);
-        const isSdh = idx >= 0 && verdicts[idx] === true;
-        return {
-          // Prefijo propio (no "subdl-") a propÃ³sito: Stremio agrupa/dedupe los
-          // subtÃ­tulos por el prefijo del id, y si dos addons distintos usan el
-          // mismo prefijo (ej. este y el addon "SubDL Subtitles" de terceros, o
-          // SubSense que tambiÃ©n tira de OpenSubtitles), el player se queda con
-          // UNO solo â€” y puede ser el roto. Ver "SesiÃ³n 2026-09-06".
-          id: `mshub-subdl-${subs.indexOf(s)}-${imdbId}`,
-          url: `${mountBase}/srt/${encodeURIComponent(s.subdlPath)}`,
+        const isSdh = isSdhName(s.name) || (idx >= 0 && verdicts[idx] === true);
+        const cleanName = s.name.replace(/\.(zip|srt)$/i, "");
+        const baseId = `mshub-subdl-${subs.indexOf(s)}-${imdbId}`;
+        const encoded = encodeURIComponent(s.subdlPath);
+
+        // 1. Opción prioritaria para WEB-DL / Streaming (23.976fps / 24fps)
+        subtitles.push({
+          id: `${baseId}-web`,
+          url: `${mountBase}/srt/${encoded}?fps=25to23976`,
           lang: "spa",
-          // `label` es el campo que stremio-core lee para el nombre visible
-          // (confirmado 2026-09-06 leyendo el struct Subtitles del core â€” el campo
-          // `name` que usÃ¡bamos antes lo IGNORA en silencio, asÃ­ que el tag âš ï¸SDH
-          // nunca se veÃ­a). Se manda tambiÃ©n `name` por si algÃºn cliente viejo lo usa.
-          label: `[SubDL]${isSdh ? " âš ï¸SDH" : ""} ${s.name.replace(/\.(zip|srt)$/i, "")}`,
-          name: `[SubDL]${isSdh ? " âš ï¸SDH" : ""} ${s.name.replace(/\.(zip|srt)$/i, "")}`,
-        };
-      });
+          label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${cleanName} (Sincro Web-DL / 24fps)`,
+          name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${cleanName} (Sincro Web-DL / 24fps)`,
+        });
+
+        // 2. Opción para transmisión televisiva (HDTV / PAL 25fps)
+        subtitles.push({
+          id: baseId,
+          url: `${mountBase}/srt/${encoded}`,
+          lang: "spa",
+          label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${cleanName} (Sincro HDTV / 25fps)`,
+          name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${cleanName} (Sincro HDTV / 25fps)`,
+        });
+      }
       return jsonResponse({ subtitles });
     } catch (e) {
       return jsonResponse({ subtitles: [], error: (e as Error).message }, { status: 500 });
@@ -380,14 +491,21 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
     // dentro de downloadSubdlSrt, cualquiera podrÃ­a pedir /subdl/srt/http://otro-host y
     // este endpoint actuarÃ­a de proxy HTTP abierto no autenticado hacia esa URL.
     const subdlPath = decodeURIComponent(srtMatch[1]);
-    const srtText = await downloadSubdlSrt(subdlPath);
+    let srtText = await downloadSubdlSrt(subdlPath);
     if (!srtText) {
       return new Response("Error descargando o host no permitido", { status: 502, headers: cors });
     }
+    const fps = reqUrl?.searchParams?.get("fps");
+    if (fps === "25to23976" || fps === "pal_to_ntsc") {
+      srtText = rescaleSrtFramerate(srtText, 25.0, 23.976);
+    } else if (fps === "23976to25" || fps === "ntsc_to_pal") {
+      srtText = rescaleSrtFramerate(srtText, 23.976, 25.0);
+    }
+    srtText = cleanSrt(srtText);
     return new Response(srtText, {
       headers: {
         ...cors,
-        "Content-Type": "text/plain; charset=utf-8",
+        "Content-Type": "application/x-subrip; charset=utf-8",
         "Content-Disposition": 'attachment; filename="sub.srt"',
       },
     });
@@ -571,6 +689,7 @@ async function handleOpenSubtitles(
   lang: string = "es",
   idTag: string = "mshub-os",
   nameTag: string = "OpenSubtitles",
+  reqUrl?: URL,
 ): Promise<Response> {
   if (!OPENSUBTITLES_API_KEY) {
     return new Response(
@@ -586,7 +705,8 @@ async function handleOpenSubtitles(
   const subMatch = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
   if (subMatch) {
     const [, , rawId] = subMatch;
-    const { imdbId, season, episode } = parseStremioSubId(rawId);
+    const parsed = parseStremioSubId(rawId);
+    const { imdbId, season, episode } = parsed;
 
     try {
       const subs = await fetchOpenSubtitlesSubs(imdbId, season, episode, lang);
@@ -604,18 +724,55 @@ async function handleOpenSubtitles(
         : [];
       const clean = toCheck.filter((_s, idx) => verdicts[idx] !== true);
       const sdhTagged = toCheck.filter((_s, idx) => verdicts[idx] === true);
-      const subtitles = [...clean, ...rest, ...sdhTagged].map((s) => {
-        const idx = toCheck.indexOf(s);
-        const isSdh = idx >= 0 && verdicts[idx] === true;
-        const disp = `[${nameTag}]${isSdh ? " âš ï¸SDH" : ""} ${s.name}`;
-        return {
-          id: `${idTag}-${subs.indexOf(s)}-${imdbId}`,
+      const restClean = rest.filter((s) => !isSdhName(s.name));
+      const restSdh = rest.filter((s) => isSdhName(s.name));
+
+      // Jerarquía invariable: Español Latinoamericano primero; España al fondo; matching por release
+      const sortRegionalPriority = (list: OpenSubtitlesSub[]) => {
+        return [...list].sort((a, b) => {
+          const score = (name: string) => {
+            const n = name.toLowerCase();
+            let pts = 0;
+            if (n.includes("latino") || n.includes("latin") || n.includes("mexico") || n.includes("argentina")) pts += 100;
+            else if (n.includes("castellano") || n.includes("españa") || n.includes("spain") || n.includes("peninsular")) pts += 10;
+            else pts += 50;
+
+            if (parsed.filename) {
+              pts += Math.round(releaseSimilarity(parsed.filename, name) * 60);
+            }
+            return pts;
+          };
+          return score(b.name) - score(a.name);
+        });
+      };
+
+      const sortedClean = sortRegionalPriority([...clean, ...restClean]);
+      const allSdh = [...sdhTagged, ...restSdh];
+      // deno-lint-ignore no-explicit-any
+      const subtitles: any[] = [];
+      for (const s of [...sortedClean, ...allSdh]) {
+        const isSdh = isSdhName(s.name) || (toCheck.indexOf(s) >= 0 && verdicts[toCheck.indexOf(s)] === true);
+        const baseId = `${idTag}-${subs.indexOf(s)}-${imdbId}`;
+        const disp = `[${nameTag}]${isSdh ? " ⚠️ SDH" : ""} ${s.name}`;
+
+        // 1. Opción prioritaria para WEB-DL / Streaming (23.976fps / 24fps)
+        subtitles.push({
+          id: `${baseId}-web`,
+          url: `${mountBase}/srt/${s.fileId}?fps=25to23976`,
+          lang: "spa",
+          label: `${disp} (Sincro Web-DL / 24fps)`,
+          name: `${disp} (Sincro Web-DL / 24fps)`,
+        });
+
+        // 2. Opción para transmisión televisiva (HDTV / PAL 25fps)
+        subtitles.push({
+          id: baseId,
           url: `${mountBase}/srt/${s.fileId}`,
           lang: "spa",
-          label: disp, // campo real que stremio-core lee (ver nota en handleSubdl)
-          name: disp,
-        };
-      });
+          label: `${disp} (Sincro HDTV / 25fps)`,
+          name: `${disp} (Sincro HDTV / 25fps)`,
+        });
+      }
       return jsonResponse({ subtitles });
     } catch (e) {
       return jsonResponse({ subtitles: [], error: (e as Error).message }, { status: 500 });
@@ -625,14 +782,21 @@ async function handleOpenSubtitles(
   const srtMatch = subPath.match(/^\/srt\/(\d+)$/);
   if (srtMatch) {
     const fileId = parseInt(srtMatch[1], 10);
-    const srtText = await downloadOpenSubtitlesSrt(fileId);
+    let srtText = await downloadOpenSubtitlesSrt(fileId);
     if (srtText == null) {
-      return new Response("Error descargando el subtÃ­tulo de OpenSubtitles", { status: 502, headers: cors });
+      return new Response("Error descargando el subtítulo de OpenSubtitles", { status: 502, headers: cors });
     }
+    const fps = reqUrl?.searchParams?.get("fps");
+    if (fps === "25to23976" || fps === "pal_to_ntsc") {
+      srtText = rescaleSrtFramerate(srtText, 25.0, 23.976);
+    } else if (fps === "23976to25" || fps === "ntsc_to_pal") {
+      srtText = rescaleSrtFramerate(srtText, 23.976, 25.0);
+    }
+    srtText = cleanSrt(srtText);
     return new Response(srtText, {
       headers: {
         ...cors,
-        "Content-Type": "text/plain; charset=utf-8",
+        "Content-Type": "application/x-subrip; charset=utf-8",
         "Content-Disposition": 'attachment; filename="sub.srt"',
       },
     });
@@ -640,6 +804,64 @@ async function handleOpenSubtitles(
 
   return new Response("Not found", { status: 404, headers: cors });
 }
+
+// ── /subtitles/proxy — Proxy Sanitizador y Re-sincronizador de Subtítulos ───
+async function handleSubtitleProxy(url: URL): Promise<Response> {
+  const targetUrl = url.searchParams.get("url");
+  if (!targetUrl) {
+    return new Response("Falta el parametro url", { status: 400, headers: cors });
+  }
+
+  let host = "";
+  try {
+    host = new URL(targetUrl).hostname;
+  } catch {
+    return new Response("URL invalida", { status: 400, headers: cors });
+  }
+
+  const allowed = [
+    "dl.subdl.com",
+    "api.opensubtitles.com",
+    "opensubtitles.org",
+    "api.subdl.com",
+    "strem.fun",
+    "mejorastremio-hub.pabloeckert.deno.net",
+  ];
+  if (!allowed.some((h) => host === h || host.endsWith("." + h))) {
+    return new Response("Host no permitido para proxy de subtitulos", { status: 403, headers: cors });
+  }
+
+  try {
+    const r = await fetch(targetUrl, { signal: AbortSignal.timeout(20000) });
+    if (!r.ok) return new Response(`Upstream error ${r.status}`, { status: 502, headers: cors });
+    const buf = new Uint8Array(await r.arrayBuffer());
+    const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
+    let srtText = isZip ? await extractSrtFromZip(buf) : decodeSubtitleText(buf);
+    if (!srtText) return new Response("No se pudo decodificar el subtítulo", { status: 502, headers: cors });
+
+    const fps = url.searchParams.get("fps");
+    if (fps === "25to23976" || fps === "pal_to_ntsc") {
+      srtText = rescaleSrtFramerate(srtText, 25.0, 23.976);
+    } else if (fps === "23976to25" || fps === "ntsc_to_pal") {
+      srtText = rescaleSrtFramerate(srtText, 23.976, 25.0);
+    }
+
+    const cleaned = cleanSrt(srtText);
+    const format = url.searchParams.get("format");
+    const contentType = format === "vtt" ? "text/vtt; charset=utf-8" : "application/x-subrip; charset=utf-8";
+
+    return new Response(cleaned, {
+      headers: {
+        ...cors,
+        "Content-Type": contentType,
+        "Content-Disposition": 'attachment; filename="sub.srt"',
+      },
+    });
+  } catch (e) {
+    return new Response(`Error proxying subtitle: ${(e as Error).message}`, { status: 500, headers: cors });
+  }
+}
+
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // â”€â”€ /latino â€” Audio Latino (verificado), catÃ¡logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2681,10 +2903,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     } else if (path === "/health") {
       route = "health";
       res = handleHealth();
+    } else if (path.startsWith("/subtitles/proxy")) {
+      route = "subtitles-proxy";
+      res = await handleSubtitleProxy(url);
     } else if (path.startsWith("/subdl")) {
       route = "subdl";
       const subPath = path.slice("/subdl".length) || "/";
-      res = await handleSubdl(subPath, `${url.origin}/subdl`);
+      res = await handleSubdl(subPath, `${url.origin}/subdl`, url);
     } else if (path.startsWith("/opensubtitles-latino")) {
       // Debe ir ANTES que "/opensubtitles" â€” ese startsWith tambiÃ©n matchea este path.
       route = "opensubtitles-latino";
@@ -2696,11 +2921,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
         "ea",
         "mshub-oslat",
         "OpenSubtitles Latino",
+        url,
       );
     } else if (path.startsWith("/opensubtitles")) {
       route = "opensubtitles";
       const subPath = path.slice("/opensubtitles".length) || "/";
-      res = await handleOpenSubtitles(subPath, `${url.origin}/opensubtitles`);
+      res = await handleOpenSubtitles(
+        subPath,
+        `${url.origin}/opensubtitles`,
+        OPENSUBTITLES_MANIFEST,
+        "es",
+        "mshub-os",
+        "OpenSubtitles",
+        url,
+      );
     } else if (path.startsWith("/latino")) {
       route = "latino";
       const subPath = path.slice("/latino".length) || "/";

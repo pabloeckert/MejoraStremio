@@ -18,6 +18,7 @@
 
 import http from 'node:http';
 import { inflateRawSync } from 'node:zlib';
+import { isSdhSubtitle, sanitizeSubtitleText } from './lib/addon-signals.mjs';
 
 const KEY  = process.env.SUBDL_KEY || '';
 const PORT = 11337;
@@ -84,11 +85,20 @@ async function fetchSubdlSubs(imdbId, season, episode) {
   const d = await r.json();
 
   return (d?.subtitles || [])
-    .filter((s) => (s.language || '').toUpperCase() === 'ES' && s.hi === false)
+    .filter((s) => (s.language || '').toUpperCase() === 'ES' && s.hi === false && !isSdhSubtitle({ label: s.name || s.release_name || '' }))
     .map((s) => ({
       name: s.name || s.release_name || 'SubDL ES',
       subdlPath: s.url, // relative path, ej: /subtitle/xxx.zip?api_key=...
-    }));
+    }))
+    .sort((a, b) => {
+      const score = (name) => {
+        const n = (name || '').toLowerCase();
+        if (n.includes('latino') || n.includes('latin') || n.includes('mexico') || n.includes('argentina')) return 100;
+        if (n.includes('castellano') || n.includes('españa') || n.includes('spain') || n.includes('peninsular')) return 10;
+        return 50;
+      };
+      return score(b.name) - score(a.name);
+    });
 }
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
@@ -149,9 +159,11 @@ const server = http.createServer(async (req, res) => {
 
       // Si es ZIP, extraer el SRT
       const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
-      const srtText = isZip ? extractSrtFromZip(buf) : buf.toString('utf8');
+      const rawSrtText = isZip ? extractSrtFromZip(buf) : buf.toString('utf8');
 
-      if (!srtText) { res.writeHead(502); return res.end('No se encontró SRT en el ZIP'); }
+      if (!rawSrtText) { res.writeHead(502); return res.end('No se encontró SRT en el ZIP'); }
+
+      const srtText = sanitizeSubtitleText(rawSrtText);
 
       res.writeHead(200, {
         'Content-Type': 'text/plain; charset=utf-8',

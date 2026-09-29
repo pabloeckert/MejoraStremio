@@ -58,3 +58,42 @@ La cuenta de Pablo en su TV Box (Android TV / Leanback) está configurada bajo t
   ST_EMAIL=stremioeg@gmail.com ST_PASS=... node scripts/apply-stremioeg-profile.mjs --apply
   ```
 * **Especificación formal**: `cuentas/stremioeg/profile.json`.
+
+---
+
+## Calibración y Caso de Referencia: Producciones Europeas / No Inglesas (HPI)
+
+Como prueba de referencia para producciones en idioma original no inglés, se auditó y calibró la serie francesa **"HPI: Haut Potentiel Intellectuel"** (IMDb ID alternativo: `tt13854128`, canónico: `tt14060708`).
+
+### 1. Resolución de Alias y Cobertura de Streams
+* **Alias canónico**: `deno-hub.ts` mapea de forma transparente `tt13854128` a `tt14060708` en `parseStremioSubId`, asegurando acceso inmediato a los catálogos de metadatos, subtítulos y streams.
+* **Streams en TorBox / Torrentio**: Disponibilidad de múltiples releases 1080p en idioma original (Francés) con bitrate óptimo (tanto transmisiones HDTV francesas como releases WEB-DL de plataformas internacionales).
+
+### 2. Diagnóstico y Corrección de Desincronización (PAL 25fps vs WEB 23.976fps)
+* **Causa raíz del desfasaje**: La emisión original de televisión europea (TF1) corre a **25.000 fps (PAL)** con duración de episodio de `00:53:18,521`. Los releases digitales de streaming dominantes en TorBox/Torrentio (ej. `HPI.S01.FRENCH.1080p.WEB.H264-FW` y `DSNP.WEB-DL`) corren a **23.976 fps (NTSC/Film)** con duración de `00:55:35,128`. Esto generaba una deriva temporal progresiva de **+34.77s al minuto 13** y **+136.61 segundos (~2.28 minutos)** al final del episodio.
+* **Solución de Sincronización Dual**: El Hub en Deno (`scripts/deno-hub.ts`) y la librería de señales (`scripts/lib/addon-signals.mjs`) incorporan `rescaleSrtFramerate(srt, 25.0, 23.976)` y ofrecen en la UI dos opciones limpias, colocando como **primera opción** la que calza con el stream prioritario de TorBox:
+  1. `[SubDL] Español Latino (Sincro Web-DL / 24fps)` (Opción 1 prioritaria, ajustada al stream dominante)
+  2. `[SubDL] Español Latino (Sincro HDTV / 25fps)` (Opción 2, sincronía nativa para transmisiones de TV)
+
+### 3. Sanitización Anti-SDH Rigurosa y Multilingüe (`cleanSrt`)
+* **Filtrado de acotaciones**: En el sample auditado de HPI S01E01, se detectaron y purgaron:
+  - 53 acotaciones entre paréntesis `(...)` como `(SUSPIRA)`, `(CANTURREA)`, `("Heavy cross", Gossip)`.
+  - Acotaciones ambientales en español y francés (música, musique, soupirs, rires, pas, cris, etc.).
+  - 24 marcadores de notas musicales (`♪`, `♫`, `#`, `*`).
+  - Prefijos de hablante en mayúsculas con caracteres acentuados (`MORGANE:`, `KARADEC:`).
+  - 43 bloques de subtítulo que contenían exclusivamente efectos de sonido fueron eliminados en su totalidad, renumerando los índices sin dejar pantallas negras o parpadeos en blanco.
+* **Proxy Sanitizador Universal**: El endpoint `/subtitles/proxy` procesa y re-sincroniza en tiempo real cualquier URL de subtítulo externa asegurando entrega estéril de SDH.
+
+## Calibración Especial: "El gran héroe americano" / "The Greatest American Hero" (1981, IMDb tt0081871)
+
+* **Disponibilidad de Streams**: 55 episodios en 3 temporadas catalogados en Cinemeta. Disponibilidad de streams en Torrentio (releases 1080p x264 AC3 y WEBRip).
+* **Ausencia de Subtítulos Upstream y Activación del Fallback IA**:
+  - Ni OpenSubtitles ni SubDL cuentan con subtítulos en español para esta serie clásica de 1981 (solo existen fuentes en inglés `eng` y portugués `pob`).
+  - El add-on exclusivo del Hub **Traducción IA → ES latino** (`com.mejorastremio.translate`) detecta automáticamente la ausencia de subtítulos en español y genera dinámicamente subtítulos en **Español Latinoamericano Neutro sin SDH** a partir del archivo base en inglés (`.DVDRip.NonHI.en.CINEDIGM.srt`).
+* **Sincronización de Timing por Release Similarity**:
+  - Se utiliza el algoritmo de `releaseSimilarity(videoFilename, releaseName)` en `scripts/deno-hub.ts` para enlazar el stream reproducido con el subtítulo base exacto, evitando el desfasaje temporal histórico de esta serie.
+* **Mapeo Canónico en el Hub**:
+  - `scripts/deno-hub.ts` incluye resolución explícita en `parseStremioSubId` para garantizar que peticiones con `tt0081871` o slugs localizados (`heroe-americano`) se resuelvan de inmediato.
+
+
+

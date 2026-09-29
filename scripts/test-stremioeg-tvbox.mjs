@@ -13,7 +13,13 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { filterAndRankSubtitles, rankAudioStreams, isSdhOrCcSubtitle } from './apply-stremioeg-profile.mjs';
+import {
+  filterAndRankSubtitles,
+  rankAudioStreams,
+  isSdhOrCcSubtitle,
+  filterCompetingSubtitleAddons,
+  ensureHubSubtitleAddons,
+} from './apply-stremioeg-profile.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -79,16 +85,25 @@ try {
   record(report.test1_structure, 'Integridad de data/preset.json', false, e.message);
 }
 
-// 1.5 Fechas de estrenos al día
+// 1.5 Fechas de estrenos al día (Películas y Series)
 if (preset) {
   const std = preset.aioMetadataConfig?.catalogs?.standard || [];
-  const enCartelera = std.find((c) => /now_playing/.test(String(c.id || '')));
-  const proximos = std.find((c) => /upcoming/.test(String(c.id || '')));
+  const enCarteleraMovie = std.find((c) => /\.movie\.now_playing\./.test(String(c.id || '')) || /now_playing/.test(String(c.id || '')));
+  const enCarteleraSeries = std.find((c) => /\.tv\.now_playing\./.test(String(c.id || '')));
+  const proximosMovie = std.find((c) => /\.movie\.upcoming\./.test(String(c.id || '')) || /upcoming/.test(String(c.id || '')));
+  const proximosSeries = std.find((c) => /\.tv\.upcoming\./.test(String(c.id || '')));
+
   const todayStr = new Date().toISOString().slice(0, 10);
-  const carteleraTo = enCartelera?.metadata?.discover?.params?.['primary_release_date.lte'];
-  const proximosFrom = proximos?.metadata?.discover?.params?.['primary_release_date.gte'];
-  const datesFresh = carteleraTo === todayStr && proximosFrom === todayStr;
-  record(report.test1_structure, 'Fechas de "En Cartelera" y "Próximos Estrenos" sincronizadas a hoy', datesFresh, `Fecha: ${todayStr}`);
+  const movieTo = enCarteleraMovie?.metadata?.discover?.params?.['primary_release_date.lte'];
+  const seriesTo = enCarteleraSeries?.metadata?.discover?.params?.['first_air_date.lte'];
+  const movieFrom = proximosMovie?.metadata?.discover?.params?.['primary_release_date.gte'];
+  const seriesFrom = proximosSeries?.metadata?.discover?.params?.['first_air_date.gte'];
+
+  const movieFresh = movieTo === todayStr && movieFrom === todayStr;
+  const seriesFresh = seriesTo === todayStr && seriesFrom === todayStr;
+
+  record(report.test1_structure, 'Fechas de "En Cartelera" y "Próximos Estrenos" (Películas) sincronizadas a hoy', movieFresh, `Fecha: ${todayStr}`);
+  record(report.test1_structure, 'Fechas de "En Cartelera" y "Próximos Estrenos" (Series) sincronizadas a hoy', seriesFresh, `first_air_date.lte: ${seriesTo}`);
 }
 
 // 1.6 Workflow de refresco diario
@@ -152,6 +167,21 @@ const latinoRank = rankedStreams.findIndex((s) => s.title.includes('[Latino]'));
 const castellanoRank = rankedStreams.findIndex((s) => s.title.includes('[Castellano]'));
 record(report.test2_filters, 'Latino supera holgadamente a Castellano en posición relativa', latinoRank < castellanoRank, `Posiciones: Latino #${latinoRank + 1} vs Castellano #${castellanoRank + 1}`);
 
+// 2.3 Neutralización de Add-ons de Subtítulos Competidores y Monopolio del Hub
+const dummyCollection = [
+  { manifest: { id: 'com.linvo.cinemeta' } },
+  { manifest: { id: 'org.stremio.opensubtitlesv3' } },
+  { manifest: { id: 'com.subsense.nepiraw' } },
+  { manifest: { id: 'com.stremio.torrentio.addon' } },
+];
+const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(dummyCollection);
+record(report.test2_filters, 'Neutralización de add-ons de subtítulos competidores (OpenSubtitles v3, SubSense)', removedAddons.length === 2 && !cleanedAddons.some((a) => a.manifest.id.includes('opensubtitlesv3')));
+
+const guaranteedHub = ensureHubSubtitleAddons(cleanedAddons);
+const hasHubLatino = guaranteedHub.some((a) => a.manifest.id === 'com.mejorastremio.opensubtitles-latino');
+const hasHubSubdl = guaranteedHub.some((a) => a.manifest.id === 'com.mejorastremio.subdl');
+record(report.test2_filters, 'Garantía de monopolio de entrega para los add-ons del Hub', hasHubLatino && hasHubSubdl);
+
 // ── TEST 3: VERIFICACIÓN DE INTEGRACIÓN Y ENDPOINTS EN VIVO ──────────────────
 console.log('\n' + '═'.repeat(70));
 console.log(' [TEST 3/3] Verificación de Integración de Cuenta y Endpoints');
@@ -191,6 +221,19 @@ for (const ep of streamEndpoints) {
 // 3.3 Verificación de flags de compatibilidad TV Box
 const leanbackSafe = profile?.deviceTarget?.toLowerCase().includes('tv');
 record(report.test3_integration, 'Perfil certificado para experiencia Leanback / TV Box', leanbackSafe, profile?.deviceTarget);
+
+// 3.4 Casos Testigo Forenses (Verificación de Metadatos y Catálogo)
+const witnessTitles = [
+  { id: 'tt15571732', name: 'Agatha All Along (Marvel / Disney+)' },
+  { id: 'tt38607962', name: 'Ágata y Lola (Estreno 2026)' },
+  { id: 'tt32604054', name: 'Regular Show: Lost Tapes (Estreno 2026)' },
+];
+
+for (const wt of witnessTitles) {
+  const meta = await getJson(`https://v3-cinemeta.strem.io/meta/series/${wt.id}.json`);
+  const ok = meta?.meta?.id === wt.id;
+  record(report.test3_integration, `Caso Testigo: ${wt.name}`, ok, ok ? `Cinemeta OK (${meta.meta.videos?.length || 0} episodios)` : 'Sin metadatos');
+}
 
 // ── RESUMEN FINAL ────────────────────────────────────────────────────────────
 console.log('\n' + '═'.repeat(70));

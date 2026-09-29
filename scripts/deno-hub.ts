@@ -226,19 +226,45 @@ function rescaleSrtFramerate(srtText: string, fromFps: number, toFps: number): s
 
 function cleanSrt(srtContent: string): string {
   if (!srtContent) return "";
+  const timestampRegex = /^(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/;
+  const urlPattern = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9_-]+\.(?:com|org|net|io|me|tv|es|lat)\b/i;
+  const sitePattern = /\b(?:subdivx|opensubtitles|tusubtitulo|subdl|addic7ed|argenteam|yify|yts|cuevana|gnula|cinetorrent|invision)\b/i;
+  const creditPattern = /^(?:subt[ií]tulos?(?:\s+(?:por|de))?|traducci[oó]n(?:\s+(?:por|de))?|sincronizaci[oó]n(?:\s+(?:por|de))?|sincro|corregido\s+por|revisi[oó]n|supervisi[oó]n(?:\s+creativa)?|descargado\s+de|subt[ií]tulo\s+ofrecido\s+por|ajustes?\s+de\s+subt[ií]tulos?|adaptaci[oó]n|resync|ripped\s+by|encoded\s+by|synced\s+by|translated\s+by)\b(?:\s*[:\-–—]|\s+[A-ZÁÉÍÓÚÑa-záéíóúñ])/i;
+  const soundCuesRegex = /^(?:m[uú]sica|musique|sonido|son|audio|disparos?|tirs?|gritos?|cris?|aplausos?|applaudissements|risas?|rires?|suspiros?|soupirs?|suspira|soupire|llanto|pleurs?|silbidos?|sifflements?|pasos|pas|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|motor|moteur|timbre|sonnerie|teléfono|téléphone|golpes?|coups?|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|chatarra|alarma|alarme|resopla|souffle|explosión|silencio|silence|jadea|bosteza|bâille)\b/i;
+
   const blocks = srtContent.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split(/\n\s*\n/);
   const cleanedBlocks: string[] = [];
+  let lastStartMs = -1;
 
   for (const block of blocks) {
     const lines = block.trim().split("\n");
     if (lines.length < 2) continue;
-    const timeIdx = lines.findIndex((l) => l.includes("-->"));
+    const timeIdx = lines.findIndex((l) => timestampRegex.test(l.trim()));
     if (timeIdx === -1) continue;
 
-    const timeLine = lines[timeIdx];
-    const textLines = lines.slice(timeIdx + 1);
+    const timeLine = lines[timeIdx].trim();
+    const match = timeLine.match(timestampRegex);
+    if (!match) continue;
 
-    const filteredLines = textLines
+    const startMs = srtTimeToMs(match[1]);
+    const endMs = srtTimeToMs(match[2]);
+
+    // Sanidad temporal: no aceptar duraciones nulas o negativas
+    if (endMs <= startMs) continue;
+
+    // Sanidad temporal: si el tiempo retrocede (salto atrás mayor a 2s), es un cue corrupto / watermark desplazado
+    if (lastStartMs >= 0 && startMs < lastStartMs - 2000) continue;
+
+    const rawTextLines = lines.slice(timeIdx + 1);
+
+    // Descartar bloque entero si alguna línea es una marca de agua, URL o crédito de uploader
+    const isCreditOrWatermarkCue = rawTextLines.some((l) => {
+      const cleanLine = l.replace(/^[•\s\-_=~*|]+|[•\s\-_=~*|]+$/g, "").trim();
+      return urlPattern.test(cleanLine) || sitePattern.test(cleanLine) || creditPattern.test(cleanLine);
+    });
+    if (isCreditOrWatermarkCue) continue;
+
+    const filteredLines = rawTextLines
       .map((line) => {
         let l = line;
         // Purga corchetes [...] y paréntesis (...) típicos de acotaciones sonoras
@@ -250,8 +276,9 @@ function cleanSrt(srtContent: string): string {
         l = l.replace(/[♪♫#*]+/g, "");
         // Purga tags html restantes tipo <font...>, <i>, etc
         l = l.replace(/<[^>]+>/g, "");
+        // Purga bullets y símbolos decorativos en bordes
+        l = l.replace(/^[•\s\-_=~*|]+|[•\s\-_=~*|]+$/g, "");
         // Purga acotaciones sonoras en español y francés
-        const soundCuesRegex = /^(?:m[uú]sica|musique|sonido|son|audio|disparos?|tirs?|gritos?|cris?|aplausos?|applaudissements|risas?|rires?|suspiros?|soupirs?|suspira|soupire|llanto|pleurs?|silbidos?|sifflements?|pasos|pas|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|motor|moteur|timbre|sonnerie|teléfono|téléphone|golpes?|coups?|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|chatarra|alarma|alarme|resopla|souffle|explosión|silencio|silence|jadea|bosteza|bâille)\b/i;
         if (soundCuesRegex.test(l.trim())) {
           l = "";
         }
@@ -260,6 +287,7 @@ function cleanSrt(srtContent: string): string {
       .filter((line) => line.length > 0);
 
     if (filteredLines.length > 0) {
+      lastStartMs = startMs;
       cleanedBlocks.push(`${cleanedBlocks.length + 1}\n${timeLine}\n${filteredLines.join("\n")}`);
     }
   }

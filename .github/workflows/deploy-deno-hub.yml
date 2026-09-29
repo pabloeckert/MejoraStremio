@@ -26,23 +26,32 @@ jobs:
         env:
           DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
         run: |
+          if [ -z "$DENO_DEPLOY_TOKEN" ]; then
+            echo "::error::DENO_DEPLOY_TOKEN no configurado en Secrets."
+            exit 1
+          fi
           deno --version
           echo "DENO_DEPLOY_TOKEN length: ${#DENO_DEPLOY_TOKEN}"
-          # OJO: en el runner de GitHub Actions este comando deploya a PREVIEW, no a
-          # producción — hay que promover a mano en console.deno.com. Cualquier flag
-          # (--prod/--json) el runner lo duplica y falla; "prod": true en deno.jsonc
-          # tampoco alcanza acá (reconfirmado 2026-09-03). Para un deploy a prod real
-          # y directo, correr LOCAL: deno deploy --prod --org=pabloeckert --app=mejorastremio-hub
+          # En runner de GitHub Actions este comando deploya a PREVIEW si no se promueve a prod.
+          # Para deploy a prod directo: deno deploy --prod --org=pabloeckert --app=mejorastremio-hub
           deno deploy
 
-      - name: Verificar /short-series y /miniseries en vivo
+      - name: Verificar endpoints de producción en vivo (Zero Trust)
         run: |
+          echo "Esperando 5s para estabilización del deploy..."
           sleep 5
           echo "--- /health ---"
-          curl -sS https://mejorastremio-hub.pabloeckert.deno.net/health || true
+          curl -fsS --retry 3 --retry-delay 3 https://mejorastremio-hub.pabloeckert.deno.net/health
           echo
+          echo "--- /opensubtitles-latino/manifest.json ---"
+          curl -fsS --retry 3 --retry-delay 3 https://mejorastremio-hub.pabloeckert.deno.net/opensubtitles-latino/manifest.json > /dev/null
+          echo "✓ OpenSubtitles Latino OK"
+          echo "--- /subdl/manifest.json ---"
+          curl -fsS --retry 3 --retry-delay 3 https://mejorastremio-hub.pabloeckert.deno.net/subdl/manifest.json > /dev/null
+          echo "✓ SubDL OK"
           echo "--- /short-series/manifest.json ---"
-          curl -sS https://mejorastremio-hub.pabloeckert.deno.net/short-series/manifest.json || true
-          echo
+          curl -fsS --retry 3 --retry-delay 3 https://mejorastremio-hub.pabloeckert.deno.net/short-series/manifest.json > /dev/null
+          echo "✓ Short Series OK"
           echo "--- /miniseries/manifest.json ---"
-          curl -sS https://mejorastremio-hub.pabloeckert.deno.net/miniseries/manifest.json || true
+          curl -fsS --retry 3 --retry-delay 3 https://mejorastremio-hub.pabloeckert.deno.net/miniseries/manifest.json > /dev/null
+          echo "✓ Miniseries OK"

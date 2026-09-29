@@ -6984,7 +6984,7 @@
                 "with_runtime.gte": 15,
                 "without_keywords": "210024,10292,221355,11001,348144,6075",
                 "without_genres": "10764,10766,10767,10763",
-                "vote_count.gte": 5
+                "vote_count.gte": 1
               },
               "formState": {
                 "catalogName": "En Cartelera (Series)",
@@ -7058,7 +7058,7 @@
                   0,
                   10
                 ],
-                "voteCountMin": 0,
+                "voteCountMin": 1,
                 "runtimeRange": [
                   15,
                   400

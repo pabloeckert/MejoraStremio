@@ -85,10 +85,16 @@ export function rescaleSrtFramerate(srtText, fromFps, toFps) {
 
 export function cleanSrt(text) {
   if (!text) return '';
-  const timestampRegex = /^\d{2}:\d{2}:\d{2}[.,]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[.,]\d{3}/;
+  const timestampRegex = /^(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/;
+  const urlPattern = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9_-]+\.(?:com|org|net|io|me|tv|es|lat)\b/i;
+  const sitePattern = /\b(?:subdivx|opensubtitles|tusubtitulo|subdl|addic7ed|argenteam|yify|yts|cuevana|gnula|cinetorrent|invision)\b/i;
+  const creditPattern = /^(?:subt[ií]tulos?(?:\s+(?:por|de))?|traducci[oó]n(?:\s+(?:por|de))?|sincronizaci[oó]n(?:\s+(?:por|de))?|sincro|corregido\s+por|revisi[oó]n|supervisi[oó]n(?:\s+creativa)?|descargado\s+de|subt[ií]tulo\s+ofrecido\s+por|ajustes?\s+de\s+subt[ií]tulos?|adaptaci[oó]n|resync|ripped\s+by|encoded\s+by|synced\s+by|translated\s+by)\b(?:\s*[:\-–—]|\s+[A-ZÁÉÍÓÚÑa-záéíóúñ])/i;
+  const soundCuesRegex = /^(?:m[uú]sica|musique|sonido|son|audio|disparos?|tirs?|gritos?|cris?|aplausos?|applaudissements|risas?|rires?|suspiros?|soupirs?|suspira|soupire|llanto|pleurs?|silbidos?|sifflements?|pasos|pas|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|motor|moteur|timbre|sonnerie|teléfono|téléphone|golpes?|coups?|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|chatarra|alarma|alarme|resopla|souffle|explosión|silencio|silence|jadea|bosteza|bâille)\b/i;
+
   const normalized = text.replace(/\uFEFF/g, '').replace(/\r\n?/g, '\n').replace(/\\[rn]/g, ' ');
   const blocks = normalized.split(/\n\s*\n/);
   const finalBlocks = [];
+  let lastStartMs = -1;
   let cueCounter = 1;
 
   for (const block of blocks) {
@@ -96,7 +102,28 @@ export function cleanSrt(text) {
     const timeIdx = lines.findIndex((l) => timestampRegex.test(l));
     if (timeIdx === -1) continue;
     const timeLine = lines[timeIdx];
-    const textLines = lines.slice(timeIdx + 1)
+    const match = timeLine.match(timestampRegex);
+    if (!match) continue;
+
+    const startMs = srtTimeToMs(match[1]);
+    const endMs = srtTimeToMs(match[2]);
+
+    // Sanidad temporal: no aceptar duraciones nulas o negativas
+    if (endMs <= startMs) continue;
+
+    // Sanidad temporal: si el tiempo retrocede (salto atrás mayor a 2s), es un cue corrupto / watermark desplazado
+    if (lastStartMs >= 0 && startMs < lastStartMs - 2000) continue;
+
+    const rawTextLines = lines.slice(timeIdx + 1);
+
+    // Descartar bloque entero si alguna línea es una marca de agua, URL o crédito de uploader
+    const isCreditOrWatermarkCue = rawTextLines.some((l) => {
+      const cleanLine = l.replace(/^[•\s\-_=~*|]+|[•\s\-_=~*|]+$/g, '').trim();
+      return urlPattern.test(cleanLine) || sitePattern.test(cleanLine) || creditPattern.test(cleanLine);
+    });
+    if (isCreditOrWatermarkCue) continue;
+
+    const textLines = rawTextLines
       .map((l) => {
         let s = l
           // 1. Eliminar corchetes completos y su contenido
@@ -109,12 +136,13 @@ export function cleanSrt(text) {
           .replace(/[♪♫#*]+/g, '')
           // 5. Eliminar tags html tipo <i>, </i>, <font...>, etc.
           .replace(/<[^>]+>/g, '')
-          // 6. Normalizar espacios
+          // 6. Eliminar bullets y símbolos decorativos en bordes
+          .replace(/^[•\s\-_=~*|]+|[•\s\-_=~*|]+$/g, '')
+          // 7. Normalizar espacios
           .replace(/[ \t]{2,}/g, ' ')
           .trim();
 
-        // 7. Descartar acotaciones sonoras típicas tanto en español como en francés
-        const soundCuesRegex = /^(?:m[uú]sica|musique|sonido|son|audio|disparos?|tirs?|gritos?|cris?|aplausos?|applaudissements|risas?|rires?|suspiros?|soupirs?|suspira|soupire|llanto|pleurs?|silbidos?|sifflements?|pasos|pas|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|motor|moteur|timbre|sonnerie|teléfono|téléphone|golpes?|coups?|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|chatarra|alarma|alarme|resopla|souffle|explosión|silencio|silence|jadea|bosteza|bâille)\b/i;
+        // 8. Descartar acotaciones sonoras típicas tanto en español como en francés
         if (soundCuesRegex.test(s)) {
           s = '';
         }
@@ -124,6 +152,7 @@ export function cleanSrt(text) {
 
     if (textLines.length === 0) continue;
 
+    lastStartMs = startMs;
     finalBlocks.push(`${cueCounter++}\n${timeLine}\n${textLines.join('\n')}`);
   }
 

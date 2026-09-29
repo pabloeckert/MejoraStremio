@@ -110,7 +110,8 @@ jobs:
           HEALTH_CHECK_SEARCH_PROBE="cars" \
           node scripts/health-check.mjs 2>&1 | tee -a /tmp/summary.txt
 
-      - name: Commitear preset.json / instancia solotveg si cambiaron
+      - name: Commitear preset.json / instancia solotveg si cambiaron (Solo si regeneración fue exitosa)
+        if: (steps.regen.outcome == 'success' || steps.regen.outcome == 'skipped') && (steps.regen_teen.outcome == 'success' || steps.regen_teen.outcome == 'skipped')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

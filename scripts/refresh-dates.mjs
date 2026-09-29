@@ -64,6 +64,10 @@ if (enCarteleraSeries) {
   const span = spanDays(p["first_air_date.gte"], p["first_air_date.lte"]);
   setParam(enCarteleraSeries, "first_air_date.gte", minusDays(span), "firstAirFrom");
   setParam(enCarteleraSeries, "first_air_date.lte", TODAY, "firstAirTo");
+  // Cero confianza: no bloquear estrenos frescos de la semana exigiendo votos excesivos en TMDB
+  if (Number(p["vote_count.gte"]) > 1) {
+    setParam(enCarteleraSeries, "vote_count.gte", 1, "voteCountMin");
+  }
 }
 
 // Próximos Estrenos (movie): desde hoy hacia adelante.

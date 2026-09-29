@@ -1,49 +1,49 @@
-/**
- * deno-hub.ts — Hub único de Deno Deploy que consolida las 3 apps que antes
- * vivían separadas (mejorastremio, mejorastremio-latino) más el enriquecedor
- * de sinopsis que nunca se había deployado. Un solo Deno.serve que despacha
- * por prefijo de ruta a la lógica de cada uno — la lógica de negocio de cada
+﻿/**
+ * deno-hub.ts â€” Hub Ãºnico de Deno Deploy que consolida las 3 apps que antes
+ * vivÃ­an separadas (mejorastremio, mejorastremio-latino) mÃ¡s el enriquecedor
+ * de sinopsis que nunca se habÃ­a deployado. Un solo Deno.serve que despacha
+ * por prefijo de ruta a la lÃ³gica de cada uno â€” la lÃ³gica de negocio de cada
  * addon es la misma que en su script original (deno-subdl-addon.ts,
  * deno-latino-catalog-addon.ts, deno-synopsis-enricher.ts), solo cambia el
  * envoltorio de routing.
  *
  * Rutas:
- *   /subdl/manifest.json      → SubDL ES (sin SDH), subtítulos
- *   /opensubtitles/manifest.json → OpenSubtitles ES (sin SDH), subtítulos (API moderna,
- *                                catálogo grande, filtro real de hearing_impaired — ver
- *                                CLAUDE.md "Sesión 2026-08-16")
- *   /opensubtitles-latino/manifest.json → OpenSubtitles Latino (sin SDH), subtítulos — mismo
- *                                mecanismo que /opensubtitles pero con languages="ea" (código
+ *   /subdl/manifest.json      â†’ SubDL ES (sin SDH), subtÃ­tulos
+ *   /opensubtitles/manifest.json â†’ OpenSubtitles ES (sin SDH), subtÃ­tulos (API moderna,
+ *                                catÃ¡logo grande, filtro real de hearing_impaired â€” ver
+ *                                GEMINI.md "SesiÃ³n 2026-08-16")
+ *   /opensubtitles-latino/manifest.json â†’ OpenSubtitles Latino (sin SDH), subtÃ­tulos â€” mismo
+ *                                mecanismo que /opensubtitles pero con languages="ea" (cÃ³digo
  *                                real de "Spanish (LA)" en la API moderna, distinto de "es"/"sp"
- *                                — confirmado 2026-09-02, ver CLAUDE.md)
- *   /latino/manifest.json     → Audio Latino (verificado), catálogo
- *   /synopsis/manifest.json   → MejoraStremio Synopsis IA, proxy de meta
- *   /mediathek/manifest.json  → Mediathek DE (Tatort), streams directos ARD/ZDF/ORF
- *   /translate/manifest.json  → Traducción IA → ES latino, subtítulos generados
- *   /miniseries/manifest.json → Miniseries (1 temporada, ≤10 episodios, finalizada), catálogo
- *   /discover/manifest.json   → Descubrir Maestro (Paso B) — servicio+región+país+idioma+género
- *                                combinables en una sola pantalla, catálogo
- *   /ufc/manifest.json        → MMA / UFC (curado) — catálogo fijo para perfil fan de UFC
- *                                (cuenta stremiojn, ver cuentas/stremiojn/CLAUDE.md), catálogo
- *   /livetv/manifest.json     → TV en Vivo — canales de combate/deportes + noticias AR (cuenta
+ *                                â€” confirmado 2026-09-02, ver GEMINI.md)
+ *   /latino/manifest.json     â†’ Audio Latino (verificado), catÃ¡logo
+ *   /synopsis/manifest.json   â†’ MejoraStremio Synopsis IA, proxy de meta
+ *   /mediathek/manifest.json  â†’ Mediathek DE (Tatort), streams directos ARD/ZDF/ORF
+ *   /translate/manifest.json  â†’ TraducciÃ³n IA â†’ ES latino, subtÃ­tulos generados
+ *   /miniseries/manifest.json â†’ Miniseries (1 temporada, â‰¤10 episodios, finalizada), catÃ¡logo
+ *   /discover/manifest.json   â†’ Descubrir Maestro (Paso B) â€” servicio+regiÃ³n+paÃ­s+idioma+gÃ©nero
+ *                                combinables en una sola pantalla, catÃ¡logo
+ *   /ufc/manifest.json        â†’ MMA / UFC (curado) â€” catÃ¡logo fijo para perfil fan de UFC
+ *                                (cuenta stremiojn, ver cuentas/stremiojn/GEMINI.md), catÃ¡logo
+ *   /livetv/manifest.json     â†’ TV en Vivo â€” canales de combate/deportes + noticias AR (cuenta
  *                                stremiojn), fuente iptv-org (streams resueltos en vivo, cache 10
- *                                min — la URL es volátil, no se hardcodea), catálogo+meta+stream
- *   /health                   → estado de las 7 sub-funciones (config presente)
+ *                                min â€” la URL es volÃ¡til, no se hardcodea), catÃ¡logo+meta+stream
+ *   /health                   â†’ estado de las 7 sub-funciones (config presente)
  *
- * Deploy: deno.com/deploy → conectar repo pabloeckert/MejoraStremio →
+ * Deploy: deno.com/deploy â†’ conectar repo pabloeckert/MejoraStremio â†’
  *   entry point: scripts/deno-hub.ts
  *   env vars (Secret): SUBDL_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY, TMDB_API_KEY_AISEARCH
  *   opcionales: GEMINI_MODEL, OPENROUTER_MODEL
  *
- * Instalar en Stremio (por función):
+ * Instalar en Stremio (por funciÃ³n):
  *   https://<proyecto>.deno.dev/subdl/manifest.json
  *   https://<proyecto>.deno.dev/latino/manifest.json
  *   https://<proyecto>.deno.dev/synopsis/manifest.json
  *   https://<proyecto>.deno.dev/miniseries/manifest.json
  *
- * Los 3 `manifest.id` se mantienen idénticos a los de los scripts originales
+ * Los 3 `manifest.id` se mantienen idÃ©nticos a los de los scripts originales
  * (com.mejorastremio.subdl / com.mejorastremio.latino-catalog /
- * com.mejorastremio.synopsis-proxy) — así, al migrar los addons ya instalados,
+ * com.mejorastremio.synopsis-proxy) â€” asÃ­, al migrar los addons ya instalados,
  * update-addon-url.mjs solo cambia el transportUrl, sin duplicar la entrada.
  */
 
@@ -59,22 +59,22 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   });
 }
 
-// Parsea el id que Stremio pone en las requests de subtítulos/streams. BUG REAL
+// Parsea el id que Stremio pone en las requests de subtÃ­tulos/streams. BUG REAL
 // encontrado 2026-09-06: el cliente REAL de Stremio (no mi curl de prueba) manda el id
-// así: "tt123%3A1%3A1/videoHash=x&videoSize=y&filename=z.mkv" — o sea (a) los ":" van
-// percent-codeados como %3A, y (b) hay un segmento extra "/…=…" pegado con los datos del
-// archivo de video. El código viejo hacía `rawId.split(":")` directo -> con %3A no hay
-// ningún ":" literal, así que quedaba TODO en imdbId y season/episode = null -> nuestros
-// addons devolvían [] para CUALQUIER serie en el cliente real, y por eso Pablo nunca veía
-// nuestros subtítulos en la app (solo funcionaban con mi curl, que usa ":" literal).
+// asÃ­: "tt123%3A1%3A1/videoHash=x&videoSize=y&filename=z.mkv" â€” o sea (a) los ":" van
+// percent-codeados como %3A, y (b) hay un segmento extra "/â€¦=â€¦" pegado con los datos del
+// archivo de video. El cÃ³digo viejo hacÃ­a `rawId.split(":")` directo -> con %3A no hay
+// ningÃºn ":" literal, asÃ­ que quedaba TODO en imdbId y season/episode = null -> nuestros
+// addons devolvÃ­an [] para CUALQUIER serie en el cliente real, y por eso Pablo nunca veÃ­a
+// nuestros subtÃ­tulos en la app (solo funcionaban con mi curl, que usa ":" literal).
 function parseStremioSubId(rawId: string): { imdbId: string; season: number | null; episode: number | null; filename: string | null } {
   const segs = rawId.split("/");
   let core = segs[0];
-  try { core = decodeURIComponent(core); } catch { /* dejar como está si no decodifica */ }
+  try { core = decodeURIComponent(core); } catch { /* dejar como estÃ¡ si no decodifica */ }
   const [imdbId, s, e] = core.split(":");
   // Segundo segmento ("videoHash=...&videoSize=...&filename=....mkv") trae el nombre
-  // real del archivo que Stremio está reproduciendo — se usa para elegir, entre varios
-  // candidatos de subtítulo, el que corresponda al MISMO release (ver releaseSimilarity).
+  // real del archivo que Stremio estÃ¡ reproduciendo â€” se usa para elegir, entre varios
+  // candidatos de subtÃ­tulo, el que corresponda al MISMO release (ver releaseSimilarity).
   let filename: string | null = null;
   if (segs[1]) {
     try {
@@ -94,11 +94,11 @@ function parseStremioSubId(rawId: string): { imdbId: string; season: number | nu
 }
 
 // Similitud de release entre el filename REAL del video y el release/nombre de un
-// candidato de subtítulo — tokens en común / tokens totales (Jaccard simple). Usado
-// para elegir la base de /translate cuando hay más de un release circulando (ver
-// "desface de El Gran Héroe Americano", 2026-09-09): sin esto, /translate siempre
-// tomaba el candidato más descargado en OpenSubtitles, sin importar si correspondía
-// al mismo corte/timing que el stream que el usuario está reproduciendo.
+// candidato de subtÃ­tulo â€” tokens en comÃºn / tokens totales (Jaccard simple). Usado
+// para elegir la base de /translate cuando hay mÃ¡s de un release circulando (ver
+// "desface de El Gran HÃ©roe Americano", 2026-09-09): sin esto, /translate siempre
+// tomaba el candidato mÃ¡s descargado en OpenSubtitles, sin importar si correspondÃ­a
+// al mismo corte/timing que el stream que el usuario estÃ¡ reproduciendo.
 function releaseTokens(s: string): Set<string> {
   return new Set(
     (s || "")
@@ -117,10 +117,10 @@ function releaseSimilarity(filename: string, release: string): number {
   return hits / Math.max(a.size, b.size);
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /subdl — SubDL ES (sin SDH), subtítulos ───────────────────────────────
-// Lógica idéntica a deno-subdl-addon.ts.
-// ════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /subdl â€” SubDL ES (sin SDH), subtÃ­tulos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// LÃ³gica idÃ©ntica a deno-subdl-addon.ts.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const SUBDL_KEY = Deno.env.get("SUBDL_KEY") ?? "";
 const SUBDL_API = "https://api.subdl.com/api/v1/subtitles";
@@ -131,7 +131,7 @@ const SUBDL_MANIFEST = {
   version: "1.0.0",
   name: "SubDL ES (sin SDH)",
   description:
-    "Subtítulos en español de SubDL. Filtra hearing-impaired (SDH) automáticamente.",
+    "SubtÃ­tulos en espaÃ±ol de SubDL. Filtra hearing-impaired (SDH) automÃ¡ticamente.",
   resources: ["subtitles"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
@@ -140,13 +140,13 @@ const SUBDL_MANIFEST = {
 
 // Detecta BOM UTF-16/UTF-8 y decodifica con el charset correcto. Bug real encontrado
 // 2026-09-05: SubDL sirve muchos SRT en UTF-16LE (con BOM FF FE) -- confirmado bajando
-// un archivo real de HPI/ACI -- y este código forzaba TextDecoder("utf-8") sin mirar el
-// BOM, produciendo exactamente los "caracteres raros" que reportó Pablo (cada carácter
+// un archivo real de HPI/ACI -- y este cÃ³digo forzaba TextDecoder("utf-8") sin mirar el
+// BOM, produciendo exactamente los "caracteres raros" que reportÃ³ Pablo (cada carÃ¡cter
 // sale como basura porque UTF-16LE tiene un byte 0x00 intercalado entre cada letra
 // ASCII, que un decoder UTF-8 no sabe interpretar). Sin BOM se intenta UTF-8 estricto;
-// si falla (secuencia inválida) se cae a windows-1252 -- el encoding legado más común en
-// releases viejos, nunca tira error, así que siempre devuelve algo legible en vez de
-// reemplazar todo por el carácter de reemplazo (�).
+// si falla (secuencia invÃ¡lida) se cae a windows-1252 -- el encoding legado mÃ¡s comÃºn en
+// releases viejos, nunca tira error, asÃ­ que siempre devuelve algo legible en vez de
+// reemplazar todo por el carÃ¡cter de reemplazo (ï¿½).
 function decodeSubtitleText(buf: Uint8Array): string {
   let raw: string;
   if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
@@ -165,23 +165,23 @@ function decodeSubtitleText(buf: Uint8Array): string {
   return sanitizeSubtitleArtifacts(raw);
 }
 
-// Limpia artefactos que aparecen en SRT reales de OpenSubtitles/SubDL, aún después de
+// Limpia artefactos que aparecen en SRT reales de OpenSubtitles/SubDL, aÃºn despuÃ©s de
 // decodificar bien el charset. Encontrado 2026-09-05 en un archivo real de Wild Cards:
-// el sub tenía la secuencia LITERAL de dos caracteres "\r" (barra + r, no un carriage
-// return real) al principio de líneas — herramienta de conversión rota del uploader.
-// En un reproductor eso sale como texto basura ("\r (puerta abierta)"). También:
-// normaliza CRLF/CR reales a LF, saca el carácter de reemplazo Unicode suelto, y colapsa
-// más de 2 líneas en blanco seguidas.
+// el sub tenÃ­a la secuencia LITERAL de dos caracteres "\r" (barra + r, no un carriage
+// return real) al principio de lÃ­neas â€” herramienta de conversiÃ³n rota del uploader.
+// En un reproductor eso sale como texto basura ("\r (puerta abierta)"). TambiÃ©n:
+// normaliza CRLF/CR reales a LF, saca el carÃ¡cter de reemplazo Unicode suelto, y colapsa
+// mÃ¡s de 2 lÃ­neas en blanco seguidas.
 function sanitizeSubtitleArtifacts(text: string): string {
   return text
-    .replace(/﻿/g, "")            // BOM suelto en medio del texto
+    .replace(/ï»¿/g, "")            // BOM suelto en medio del texto
     .replace(/\r\n?/g, "\n")       // CRLF/CR reales -> LF
-    .replace(/\\[rn]/g, " ")       // "\r" / "\n" LITERALES (2 chars, artefacto de conversión rota) -> espacio
-    .replace(/[ \t]{2,}/g, " ")    // espacios múltiples que puedan quedar
-    .replace(/^[ \t]+|[ \t]+$/gm, "") // espacios al borde de cada línea
-    .replace(/�/g, "")            // carácter de reemplazo Unicode suelto
-    // línea en blanco que quedó justo entre el timestamp y el texto de la cue (por
-    // haber sacado un "\r" literal que estaba solo en su renglón)
+    .replace(/\\[rn]/g, " ")       // "\r" / "\n" LITERALES (2 chars, artefacto de conversiÃ³n rota) -> espacio
+    .replace(/[ \t]{2,}/g, " ")    // espacios mÃºltiples que puedan quedar
+    .replace(/^[ \t]+|[ \t]+$/gm, "") // espacios al borde de cada lÃ­nea
+    .replace(/ï¿½/g, "")            // carÃ¡cter de reemplazo Unicode suelto
+    // lÃ­nea en blanco que quedÃ³ justo entre el timestamp y el texto de la cue (por
+    // haber sacado un "\r" literal que estaba solo en su renglÃ³n)
     .replace(/(-->[^\n]*)\n[ \t]*\n(?=\S)/g, "$1\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim() + "\n";
@@ -214,10 +214,10 @@ async function extractSrtFromZip(buf: Uint8Array): Promise<string | null> {
           }
           // Bug real encontrado 2026-09-05: escribir todo el payload y esperar a que
           // termine (await writer.close()) ANTES de empezar a leer del lado readable
-          // hace DEADLOCK si el stream de descompresión tiene buffer interno limitado
-          // y el archivo no es trivialmente chico — write() queda esperando que alguien
-          // lea, pero nadie lee todavía. Reproducido de forma aislada (colgaba para
-          // siempre, sin tirar error, con un ZIP real de SubDL) y confirmado que hacía
+          // hace DEADLOCK si el stream de descompresiÃ³n tiene buffer interno limitado
+          // y el archivo no es trivialmente chico â€” write() queda esperando que alguien
+          // lea, pero nadie lee todavÃ­a. Reproducido de forma aislada (colgaba para
+          // siempre, sin tirar error, con un ZIP real de SubDL) y confirmado que hacÃ­a
           // colgar la request ENTERA del endpoint (curl con HTTP 000 tras 60s). Fix:
           // escribir y leer EN PARALELO (Promise.all), no en secuencia.
           const ds = new DecompressionStream("deflate-raw");
@@ -258,12 +258,12 @@ async function fetchSubdlSubs(
   season: number | null,
   episode: number | null,
 ): Promise<SubdlSub[]> {
-  // Bug real encontrado 2026-09-05: los nombres de parámetro correctos de la API de
+  // Bug real encontrado 2026-09-05: los nombres de parÃ¡metro correctos de la API de
   // SubDL son "season_number"/"episode_number" -- "season"/"episode" (los de antes)
   // los ignora en silencio (sin error) y devuelve TODOS los episodios de TODAS las
   // temporadas mezclados. Confirmado contra la API real: con los nombres viejos, tt14060708
-  // devolvía 20 resultados de las temporadas 1/2/3 combinadas al pedir S1E1 -- exactamente
-  // el "subtítulo de otro capítulo" que reportó Pablo como desincronización.
+  // devolvÃ­a 20 resultados de las temporadas 1/2/3 combinadas al pedir S1E1 -- exactamente
+  // el "subtÃ­tulo de otro capÃ­tulo" que reportÃ³ Pablo como desincronizaciÃ³n.
   let url =
     `${SUBDL_API}?api_key=${SUBDL_KEY}&imdb_id=${imdbId}&languages=ES&subs_per_page=20`;
   if (season != null) url += `&season_number=${season}`;
@@ -282,9 +282,9 @@ async function fetchSubdlSubs(
     }));
 }
 
-// Descarga (sin cache — SubDL no tiene límite de cupo, a diferencia de OpenSubtitles)
-// y desempaqueta si hace falta el SRT real detrás de un path de SubDL. dlUrl siempre
-// se valida contra dl.subdl.com antes de llegar acá (guard anti-SSRF, ver más abajo).
+// Descarga (sin cache â€” SubDL no tiene lÃ­mite de cupo, a diferencia de OpenSubtitles)
+// y desempaqueta si hace falta el SRT real detrÃ¡s de un path de SubDL. dlUrl siempre
+// se valida contra dl.subdl.com antes de llegar acÃ¡ (guard anti-SSRF, ver mÃ¡s abajo).
 async function downloadSubdlSrt(subdlPath: string): Promise<string | null> {
   const dlUrl = subdlPath.startsWith("http") ? subdlPath : `${SUBDL_DL}${subdlPath}`;
   let dlHost: string;
@@ -306,7 +306,7 @@ async function downloadSubdlSrt(subdlPath: string): Promise<string | null> {
 }
 
 // subPath: la ruta sin el prefijo /subdl (ej "/manifest.json", "/srt/xxx").
-// mountBase: origin + "/subdl" — para que los links generados (srt) vuelvan a
+// mountBase: origin + "/subdl" â€” para que los links generados (srt) vuelvan a
 // pasar por el router del hub.
 async function handleSubdl(subPath: string, mountBase: string): Promise<Response> {
   if (!SUBDL_KEY) {
@@ -331,10 +331,10 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
     try {
       const subs = await fetchSubdlSubs(imdbId, season, episode);
       // Pedido de Pablo (2026-09-05): dejar la MAYOR cantidad de opciones verificadas
-      // posible para que elija, no la mínima "segura". Antes esto EXCLUÍA los
-      // confirmados SDH por contenido; ahora se los TAGUEA y se los manda al final —
-      // siguen apareciendo (más opciones), pero ordenados según su preferencia (limpio
-      // primero, SDH solo si no queda otra). SubDL no tiene límite de cupo de descarga
+      // posible para que elija, no la mÃ­nima "segura". Antes esto EXCLUÃA los
+      // confirmados SDH por contenido; ahora se los TAGUEA y se los manda al final â€”
+      // siguen apareciendo (mÃ¡s opciones), pero ordenados segÃºn su preferencia (limpio
+      // primero, SDH solo si no queda otra). SubDL no tiene lÃ­mite de cupo de descarga
       // -> se verifica por contenido un tope generoso de candidatos (15, no todos, para
       // no demorar la respuesta) en vez de confiar ciegamente en su campo `hi` (poco
       // confiable, ver looksLikeSDH).
@@ -351,20 +351,20 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
         const idx = toCheck.indexOf(s);
         const isSdh = idx >= 0 && verdicts[idx] === true;
         return {
-          // Prefijo propio (no "subdl-") a propósito: Stremio agrupa/dedupe los
-          // subtítulos por el prefijo del id, y si dos addons distintos usan el
+          // Prefijo propio (no "subdl-") a propÃ³sito: Stremio agrupa/dedupe los
+          // subtÃ­tulos por el prefijo del id, y si dos addons distintos usan el
           // mismo prefijo (ej. este y el addon "SubDL Subtitles" de terceros, o
-          // SubSense que también tira de OpenSubtitles), el player se queda con
-          // UNO solo — y puede ser el roto. Ver "Sesión 2026-09-06".
+          // SubSense que tambiÃ©n tira de OpenSubtitles), el player se queda con
+          // UNO solo â€” y puede ser el roto. Ver "SesiÃ³n 2026-09-06".
           id: `mshub-subdl-${subs.indexOf(s)}-${imdbId}`,
           url: `${mountBase}/srt/${encodeURIComponent(s.subdlPath)}`,
           lang: "spa",
           // `label` es el campo que stremio-core lee para el nombre visible
-          // (confirmado 2026-09-06 leyendo el struct Subtitles del core — el campo
-          // `name` que usábamos antes lo IGNORA en silencio, así que el tag ⚠️SDH
-          // nunca se veía). Se manda también `name` por si algún cliente viejo lo usa.
-          label: `[SubDL]${isSdh ? " ⚠️SDH" : ""} ${s.name.replace(/\.(zip|srt)$/i, "")}`,
-          name: `[SubDL]${isSdh ? " ⚠️SDH" : ""} ${s.name.replace(/\.(zip|srt)$/i, "")}`,
+          // (confirmado 2026-09-06 leyendo el struct Subtitles del core â€” el campo
+          // `name` que usÃ¡bamos antes lo IGNORA en silencio, asÃ­ que el tag âš ï¸SDH
+          // nunca se veÃ­a). Se manda tambiÃ©n `name` por si algÃºn cliente viejo lo usa.
+          label: `[SubDL]${isSdh ? " âš ï¸SDH" : ""} ${s.name.replace(/\.(zip|srt)$/i, "")}`,
+          name: `[SubDL]${isSdh ? " âš ï¸SDH" : ""} ${s.name.replace(/\.(zip|srt)$/i, "")}`,
         };
       });
       return jsonResponse({ subtitles });
@@ -377,8 +377,8 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
   if (srtMatch) {
     // Guard anti-SSRF: el path viene de un valor que el cliente controla
     // (encodeURIComponent en el manifest de subtitles, arriba). Sin el chequeo de host
-    // dentro de downloadSubdlSrt, cualquiera podría pedir /subdl/srt/http://otro-host y
-    // este endpoint actuaría de proxy HTTP abierto no autenticado hacia esa URL.
+    // dentro de downloadSubdlSrt, cualquiera podrÃ­a pedir /subdl/srt/http://otro-host y
+    // este endpoint actuarÃ­a de proxy HTTP abierto no autenticado hacia esa URL.
     const subdlPath = decodeURIComponent(srtMatch[1]);
     const srtText = await downloadSubdlSrt(subdlPath);
     if (!srtText) {
@@ -396,35 +396,35 @@ async function handleSubdl(subPath: string, mountBase: string): Promise<Response
   return new Response("Not found", { status: 404, headers: cors });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /opensubtitles — OpenSubtitles ES (sin SDH), subtítulos ───────────────
-// A diferencia de SubDL (catálogo chico pero 100% confiable), esta es la
-// base de datos grande de OpenSubtitles vía su API REST moderna
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /opensubtitles â€” OpenSubtitles ES (sin SDH), subtÃ­tulos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// A diferencia de SubDL (catÃ¡logo chico pero 100% confiable), esta es la
+// base de datos grande de OpenSubtitles vÃ­a su API REST moderna
 // (api.opensubtitles.com, NO la vieja XML-RPC que usan SubSense/OpenSubtitles
-// v3/SubMaker) — esa API sí trae un campo estructurado `hearing_impaired`
-// por archivo (confirmado contra la API real, no documentación), a
-// diferencia de la base vieja que no tiene ningún dato SDH filtrable (ver
-// CLAUDE.md, "Sesión 2026-08-16"). Se busca con `hearing_impaired=exclude`
-// server-side, antes de que Stremio vea la lista — igual de infalible que
-// SubDL, pero con mucha más cobertura (62 subs ES para Matrix vs 3 de SubDL).
+// v3/SubMaker) â€” esa API sÃ­ trae un campo estructurado `hearing_impaired`
+// por archivo (confirmado contra la API real, no documentaciÃ³n), a
+// diferencia de la base vieja que no tiene ningÃºn dato SDH filtrable (ver
+// GEMINI.md, "SesiÃ³n 2026-08-16"). Se busca con `hearing_impaired=exclude`
+// server-side, antes de que Stremio vea la lista â€” igual de infalible que
+// SubDL, pero con mucha mÃ¡s cobertura (62 subs ES para Matrix vs 3 de SubDL).
 //
-// Cupo de la API key: 100 descargas/día (no de búsquedas), se resetea a las
-// 23:59:59 UTC. Por eso la descarga es perezosa (solo al abrir el subtítulo
-// elegido, no al listar) Y cacheada en KV — sin cache, cada apertura repetida
-// del mismo subtítulo gastaría cupo de nuevo.
-// ════════════════════════════════════════════════════════════════════════
+// Cupo de la API key: 100 descargas/dÃ­a (no de bÃºsquedas), se resetea a las
+// 23:59:59 UTC. Por eso la descarga es perezosa (solo al abrir el subtÃ­tulo
+// elegido, no al listar) Y cacheada en KV â€” sin cache, cada apertura repetida
+// del mismo subtÃ­tulo gastarÃ­a cupo de nuevo.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const OPENSUBTITLES_API_KEY = Deno.env.get("OPENSUBTITLES_API_KEY") ?? "";
 const OPENSUBTITLES_API = "https://api.opensubtitles.com/api/v1";
 const OPENSUBTITLES_UA = "MejoraStremio v1";
-const OPENSUBTITLES_SRT_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 días — un srt ya subido no cambia
+const OPENSUBTITLES_SRT_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 dÃ­as â€” un srt ya subido no cambia
 
 const OPENSUBTITLES_MANIFEST = {
   id: "com.mejorastremio.opensubtitles",
   version: "1.0.0",
   name: "OpenSubtitles ES (sin SDH)",
   description:
-    "Subtítulos en español de OpenSubtitles (API moderna). Filtra hearing-impaired " +
+    "SubtÃ­tulos en espaÃ±ol de OpenSubtitles (API moderna). Filtra hearing-impaired " +
     "(SDH) server-side con el campo real de la API, no por nombre de archivo.",
   resources: ["subtitles"],
   types: ["movie", "series"],
@@ -432,19 +432,19 @@ const OPENSUBTITLES_MANIFEST = {
   catalogs: [],
 };
 
-// "ea" = Spanish (LA), código separado de "es" (genérico) y "sp" (Spanish EU) — confirmado
+// "ea" = Spanish (LA), cÃ³digo separado de "es" (genÃ©rico) y "sp" (Spanish EU) â€” confirmado
 // contra GET /api/v1/infos/languages de la API real el 2026-09-02 (nunca antes verificado; las
 // pruebas viejas con es-419/es-MX/es-AR/lat contra SubSense no aplicaban a esta API). Primera
-// fuente de subtítulos del proyecto que puede filtrar la variante latina de verdad, en vez de
-// depender de que el uploader la haya mencionado en el nombre del archivo (ver CLAUDE.md,
-// "Subtítulos, variante latino vs. España").
+// fuente de subtÃ­tulos del proyecto que puede filtrar la variante latina de verdad, en vez de
+// depender de que el uploader la haya mencionado en el nombre del archivo (ver GEMINI.md,
+// "SubtÃ­tulos, variante latino vs. EspaÃ±a").
 const OPENSUBTITLES_LATINO_MANIFEST = {
   id: "com.mejorastremio.opensubtitles-latino",
   version: "1.0.0",
   name: "OpenSubtitles Latino (sin SDH)",
   description:
-    "Subtítulos en español LATINOAMERICANO real de OpenSubtitles (API moderna, código de " +
-    "idioma \"ea\" — distinto del español genérico/España). Filtra hearing-impaired (SDH) " +
+    "SubtÃ­tulos en espaÃ±ol LATINOAMERICANO real de OpenSubtitles (API moderna, cÃ³digo de " +
+    "idioma \"ea\" â€” distinto del espaÃ±ol genÃ©rico/EspaÃ±a). Filtra hearing-impaired (SDH) " +
     "server-side con el campo real de la API, no por nombre de archivo.",
   resources: ["subtitles"],
   types: ["movie", "series"],
@@ -460,13 +460,13 @@ async function fetchOpenSubtitlesSubs(
   episode: number | null,
   lang: string = "es",
 ): Promise<OpenSubtitlesSub[]> {
-  // Sin hearing_impaired=exclude a propósito (bug real encontrado 2026-09-05, ver
-  // looksLikeSDH): el parámetro es inconsistente en la API real de OpenSubtitles —
-  // medido para HPI/ACI, "exclude" devolvía 1 candidato de 2 totales, pero "only"
-  // (que debería mostrar justo el que "exclude" sacó) daba 0 -- contradictorio, la
-  // metadata de la fuente no es confiable. Se trae el pool COMPLETO (más opciones
-  // reales para elegir, pedido explícito de Pablo) y se clasifica por contenido acá
-  // mismo (ver classifySDHCached más abajo), no confiando en el flag del proveedor.
+  // Sin hearing_impaired=exclude a propÃ³sito (bug real encontrado 2026-09-05, ver
+  // looksLikeSDH): el parÃ¡metro es inconsistente en la API real de OpenSubtitles â€”
+  // medido para HPI/ACI, "exclude" devolvÃ­a 1 candidato de 2 totales, pero "only"
+  // (que deberÃ­a mostrar justo el que "exclude" sacÃ³) daba 0 -- contradictorio, la
+  // metadata de la fuente no es confiable. Se trae el pool COMPLETO (mÃ¡s opciones
+  // reales para elegir, pedido explÃ­cito de Pablo) y se clasifica por contenido acÃ¡
+  // mismo (ver classifySDHCached mÃ¡s abajo), no confiando en el flag del proveedor.
   const params = new URLSearchParams({ languages: lang });
   if (season != null && episode != null) {
     params.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
@@ -492,10 +492,10 @@ async function fetchOpenSubtitlesSubs(
     .filter((s) => Number.isFinite(s.fileId));
 }
 
-// Descarga+cachea (90d) el SRT real de un file_id de OpenSubtitles. Extraído a función
+// Descarga+cachea (90d) el SRT real de un file_id de OpenSubtitles. ExtraÃ­do a funciÃ³n
 // propia para reusarlo tanto al servir /srt/:fileId como al clasificar SDH por
-// contenido ANTES de listar el subtítulo (ver handleOpenSubtitles más abajo) — así el
-// listado no duplica la descarga cuando el usuario después elige ese mismo subtítulo.
+// contenido ANTES de listar el subtÃ­tulo (ver handleOpenSubtitles mÃ¡s abajo) â€” asÃ­ el
+// listado no duplica la descarga cuando el usuario despuÃ©s elige ese mismo subtÃ­tulo.
 async function downloadOpenSubtitlesSrt(fileId: number): Promise<string | null> {
   const cacheKey = ["opensubtitles-srt", fileId];
   let kv: Deno.Kv | null = null;
@@ -521,11 +521,11 @@ async function downloadOpenSubtitlesSrt(fileId: number): Promise<string | null> 
     const r = await fetch(dl.link, { signal: AbortSignal.timeout(20000) });
     if (!r.ok) return null;
     // decodeSubtitleText (no r.text()) por las dudas: OpenSubtitles normalmente sirve
-    // UTF-8 limpio, pero algún upload legado podría no serlo -- mismo cuidado que se
-    // aplicó a SubDL tras encontrar el bug real de encoding ahí.
+    // UTF-8 limpio, pero algÃºn upload legado podrÃ­a no serlo -- mismo cuidado que se
+    // aplicÃ³ a SubDL tras encontrar el bug real de encoding ahÃ­.
     const srtText = decodeSubtitleText(new Uint8Array(await r.arrayBuffer()));
     if (kv) {
-      try { await kv.set(cacheKey, srtText, { expireIn: OPENSUBTITLES_SRT_CACHE_TTL_MS }); } catch { /* sin cache, no crítico */ }
+      try { await kv.set(cacheKey, srtText, { expireIn: OPENSUBTITLES_SRT_CACHE_TTL_MS }); } catch { /* sin cache, no crÃ­tico */ }
     }
     return srtText;
   } catch {
@@ -533,19 +533,19 @@ async function downloadOpenSubtitlesSrt(fileId: number): Promise<string | null> 
   }
 }
 
-// Verificación por CONTENIDO de si un subtítulo es realmente SDH, para cuando el
+// VerificaciÃ³n por CONTENIDO de si un subtÃ­tulo es realmente SDH, para cuando el
 // campo `hearing_impaired` del proveedor miente (confirmado 2026-09-05: OpenSubtitles
-// devolvió hi:false en un archivo lleno de "(SUSPIRA)"/"(CANTURREA)"/letras de canción —
-// ver looksLikeSDH más abajo). Solo se activa con pocos candidatos (<=5): para un título
+// devolviÃ³ hi:false en un archivo lleno de "(SUSPIRA)"/"(CANTURREA)"/letras de canciÃ³n â€”
+// ver looksLikeSDH mÃ¡s abajo). Solo se activa con pocos candidatos (<=5): para un tÃ­tulo
 // masivo con 50 opciones no vale la pena gastar cupo de descarga en verificar todas, el
 // usuario ya tiene de sobra para elegir. El veredicto queda cacheado para siempre (un
-// archivo no cambia) así que el costo real es una sola descarga por archivo, para
+// archivo no cambia) asÃ­ que el costo real es una sola descarga por archivo, para
 // siempre, compartida entre todos los que usan el hub.
 async function classifySDHCached(fileId: number): Promise<boolean | null> {
   let kv: Deno.Kv | null = null;
-  // "v2": versionado a propósito -- looksLikeSDH ya se recalibró una vez (2026-09-05,
+  // "v2": versionado a propÃ³sito -- looksLikeSDH ya se recalibrÃ³ una vez (2026-09-05,
   // umbral viejo 6%/15% no detectaba un caso real confirmado) y un veredicto cacheado
-  // con el umbral anterior quedaría pegado 180 días si la clave no cambia con él.
+  // con el umbral anterior quedarÃ­a pegado 180 dÃ­as si la clave no cambia con Ã©l.
   const verdictKey = ["sdh-verdict", "os", "v2", fileId];
   try {
     kv = await getKv();
@@ -591,10 +591,10 @@ async function handleOpenSubtitles(
     try {
       const subs = await fetchOpenSubtitlesSubs(imdbId, season, episode, lang);
       // Pedido de Pablo (2026-09-05): la MAYOR cantidad de opciones verificadas
-      // posible, no la mínima "segura" -- taguear y mandar al final los confirmados
-      // SDH por contenido en vez de sacarlos de la lista. Verificación de contenido
-      // hasta 10 candidatos (gasta cupo real de OpenSubtitles, 100 descargas/día —
-      // por eso el tope, no ilimitado); más allá de eso quedan sin verificar pero
+      // posible, no la mÃ­nima "segura" -- taguear y mandar al final los confirmados
+      // SDH por contenido en vez de sacarlos de la lista. VerificaciÃ³n de contenido
+      // hasta 10 candidatos (gasta cupo real de OpenSubtitles, 100 descargas/dÃ­a â€”
+      // por eso el tope, no ilimitado); mÃ¡s allÃ¡ de eso quedan sin verificar pero
       // igual en la lista (mejor mostrarlos sin el doble chequeo que no mostrarlos).
       const CHECK_LIMIT = 10;
       const toCheck = subs.slice(0, CHECK_LIMIT);
@@ -607,7 +607,7 @@ async function handleOpenSubtitles(
       const subtitles = [...clean, ...rest, ...sdhTagged].map((s) => {
         const idx = toCheck.indexOf(s);
         const isSdh = idx >= 0 && verdicts[idx] === true;
-        const disp = `[${nameTag}]${isSdh ? " ⚠️SDH" : ""} ${s.name}`;
+        const disp = `[${nameTag}]${isSdh ? " âš ï¸SDH" : ""} ${s.name}`;
         return {
           id: `${idTag}-${subs.indexOf(s)}-${imdbId}`,
           url: `${mountBase}/srt/${s.fileId}`,
@@ -627,7 +627,7 @@ async function handleOpenSubtitles(
     const fileId = parseInt(srtMatch[1], 10);
     const srtText = await downloadOpenSubtitlesSrt(fileId);
     if (srtText == null) {
-      return new Response("Error descargando el subtítulo de OpenSubtitles", { status: 502, headers: cors });
+      return new Response("Error descargando el subtÃ­tulo de OpenSubtitles", { status: 502, headers: cors });
     }
     return new Response(srtText, {
       headers: {
@@ -641,10 +641,10 @@ async function handleOpenSubtitles(
   return new Response("Not found", { status: 404, headers: cors });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /latino — Audio Latino (verificado), catálogo ─────────────────────────
-// Lógica idéntica a deno-latino-catalog-addon.ts.
-// ════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /latino â€” Audio Latino (verificado), catÃ¡logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// LÃ³gica idÃ©ntica a deno-latino-catalog-addon.ts.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const LATINO_LOG_URL =
   "https://raw.githubusercontent.com/pabloeckert/MejoraStremio/main/data/anti-frustration-log.json";
@@ -655,8 +655,8 @@ const LATINO_MANIFEST = {
   version: "1.0.0",
   name: "Audio Latino (verificado)",
   description:
-    "Catálogo de contenido familiar/infantil con audio latino confirmado " +
-    "por scripts/anti-frustration.mjs — solo títulos con streams reales.",
+    "CatÃ¡logo de contenido familiar/infantil con audio latino confirmado " +
+    "por scripts/anti-frustration.mjs â€” solo tÃ­tulos con streams reales.",
   resources: ["catalog"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
@@ -717,22 +717,22 @@ async function handleLatino(subPath: string): Promise<Response> {
   return new Response("Not found", { status: 404, headers: cors });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /ufc — MMA / UFC (curado), catálogo ────────────────────────────────
-// Lista fija (no depende de ningún archivo de datos) — perfil fan de UFC/MMA:
-// realities de captación de talento UFC, drama de gimnasio de MMA y wrestling.
-// IDs de IMDb verificados vía TMDB/búsqueda real, no adivinados (ver
-// cuentas/stremiojn/CLAUDE.md para el detalle de la curación).
-// ════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /ufc â€” MMA / UFC (curado), catÃ¡logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Lista fija (no depende de ningÃºn archivo de datos) â€” perfil fan de UFC/MMA:
+// realities de captaciÃ³n de talento UFC, drama de gimnasio de MMA y wrestling.
+// IDs de IMDb verificados vÃ­a TMDB/bÃºsqueda real, no adivinados (ver
+// cuentas/stremiojn/GEMINI.md para el detalle de la curaciÃ³n).
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const UFC_MANIFEST = {
   id: "com.mejorastremio.ufc-catalog",
   version: "1.0.0",
   name: "MMA / UFC (curado)",
   description:
-    "Catálogo curado para perfil fan de UFC: realities de captación de talento MMA " +
+    "CatÃ¡logo curado para perfil fan de UFC: realities de captaciÃ³n de talento MMA " +
     "(Dana White's Contender Series, The Ultimate Fighter), drama de gimnasio de MMA " +
-    "(Kingdom, Cobra Kai), reality de aptitud física (Physical: 100) y wrestling (WWE Raw/SmackDown).",
+    "(Kingdom, Cobra Kai), reality de aptitud fÃ­sica (Physical: 100) y wrestling (WWE Raw/SmackDown).",
   resources: ["catalog"],
   types: ["series"],
   idPrefixes: ["tt"],
@@ -769,17 +769,17 @@ async function handleUfc(subPath: string): Promise<Response> {
   return new Response("Not found", { status: 404, headers: cors });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /livetv — TV en Vivo (curado), catálogo + meta + stream ───────────────
-// Fuente: iptv-org (github.com/iptv-org/iptv), datos públicos de canales de
-// aire/cable legítimos con streams m3u8. Lista de canales ALLOWLIST fija
-// (11 ids, verificados con fetch real antes de sumarlos — descartados los
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /livetv â€” TV en Vivo (curado), catÃ¡logo + meta + stream â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Fuente: iptv-org (github.com/iptv-org/iptv), datos pÃºblicos de canales de
+// aire/cable legÃ­timos con streams m3u8. Lista de canales ALLOWLIST fija
+// (11 ids, verificados con fetch real antes de sumarlos â€” descartados los
 // que dieron 403/404/timeout o vienen marcados "Geo-blocked"/"Not 24/7" en
 // la propia data de iptv-org), pero la URL de stream se resuelve EN VIVO
-// contra la API pública (cache 10 min) en cada consulta — a diferencia de
-// /ufc, acá la URL es volátil (es un endpoint de streaming real, no un id
-// estable de IMDb) y hardcodearla se pudriría rápido.
-// ════════════════════════════════════════════════════════════════════════
+// contra la API pÃºblica (cache 10 min) en cada consulta â€” a diferencia de
+// /ufc, acÃ¡ la URL es volÃ¡til (es un endpoint de streaming real, no un id
+// estable de IMDb) y hardcodearla se pudrirÃ­a rÃ¡pido.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const IPTV_STREAMS_URL = "https://iptv-org.github.io/api/streams.json";
 const IPTV_LOGOS_URL = "https://iptv-org.github.io/api/logos.json";
@@ -789,12 +789,12 @@ const LIVETV_MANIFEST = {
   version: "1.1.0",
   name: "TV en Vivo",
   description:
-    "Catálogo curado de canales en vivo de UFC/MMA/combate y wrestling, fuente iptv-org, cada " +
+    "CatÃ¡logo curado de canales en vivo de UFC/MMA/combate y wrestling, fuente iptv-org, cada " +
     "canal verificado con un fetch real antes de sumarlo. Perfil fan de UFC.",
   resources: ["catalog", "meta", "stream"],
   types: ["tv"],
   idPrefixes: ["iptv-"],
-  catalogs: [{ type: "tv", id: "livetv-combate", name: "TV en Vivo — UFC / MMA / Combate" }],
+  catalogs: [{ type: "tv", id: "livetv-combate", name: "TV en Vivo â€” UFC / MMA / Combate" }],
 };
 
 type LivetvCatalogId = "livetv-combate";
@@ -871,7 +871,7 @@ async function handleLivetv(subPath: string): Promise<Response> {
     if (s.user_agent) headers["User-Agent"] = s.user_agent;
     if (s.referrer) headers["Referer"] = s.referrer;
     // deno-lint-ignore no-explicit-any
-    const stream: any = { url: s.url, title: `${ch.name} (en vivo)${s.quality ? " · " + s.quality : ""}` };
+    const stream: any = { url: s.url, title: `${ch.name} (en vivo)${s.quality ? " Â· " + s.quality : ""}` };
     if (Object.keys(headers).length) {
       stream.behaviorHints = { notWebReady: false, proxyHeaders: { request: headers } };
     }
@@ -881,31 +881,31 @@ async function handleLivetv(subPath: string): Promise<Response> {
   return new Response("Not found", { status: 404, headers: cors });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /iptv — TV en Vivo (IPTV), sección general de stremioeg ───────────────
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /iptv â€” TV en Vivo (IPTV), secciÃ³n general de stremioeg â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Fuente: data/iptv-channels.json, generado por scripts/build-iptv-catalog.mjs
-// (iptv-org, canales públicos legítimos, cada stream VERIFICADO vivo con un GET
-// real antes de incluirlo — 2×/semana vía iptv-refresh.yml). El hub lee ese
-// archivo de raw.githubusercontent (cache 6h), mismo patrón que /synopsis con
-// preset.json. Catálogos: Argentina / España / Latinoamérica (castellano) +
-// Internacional (idioma original). Filtro por género (Noticias/Películas/Series/
-// Documentales/Cultura/Infantil/Música/Entretenimiento/General).
-// Orden: alfabético — la TV en vivo no tiene fecha de estreno, así que la "ley
-// dura" de fecha desc no aplica acá (excepción explícita).
-// ════════════════════════════════════════════════════════════════════════
+// (iptv-org, canales pÃºblicos legÃ­timos, cada stream VERIFICADO vivo con un GET
+// real antes de incluirlo â€” 2Ã—/semana vÃ­a iptv-refresh.yml). El hub lee ese
+// archivo de raw.githubusercontent (cache 6h), mismo patrÃ³n que /synopsis con
+// preset.json. CatÃ¡logos: Argentina / EspaÃ±a / LatinoamÃ©rica (castellano) +
+// Internacional (idioma original). Filtro por gÃ©nero (Noticias/PelÃ­culas/Series/
+// Documentales/Cultura/Infantil/MÃºsica/Entretenimiento/General).
+// Orden: alfabÃ©tico â€” la TV en vivo no tiene fecha de estreno, asÃ­ que la "ley
+// dura" de fecha desc no aplica acÃ¡ (excepciÃ³n explÃ­cita).
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const IPTV_CHANNELS_URL =
   "https://raw.githubusercontent.com/pabloeckert/MejoraStremio/main/data/iptv-channels.json";
 const IPTV_CATALOG_IDS = ["iptv-ar", "iptv-es", "iptv-latam", "iptv-intl"] as const;
 const IPTV_CATALOG_NAMES: Record<string, string> = {
-  "iptv-ar": "TV en Vivo — Argentina",
-  "iptv-es": "TV en Vivo — España",
-  "iptv-latam": "TV en Vivo — Latinoamérica",
-  "iptv-intl": "TV en Vivo — Internacional",
+  "iptv-ar": "TV en Vivo â€” Argentina",
+  "iptv-es": "TV en Vivo â€” EspaÃ±a",
+  "iptv-latam": "TV en Vivo â€” LatinoamÃ©rica",
+  "iptv-intl": "TV en Vivo â€” Internacional",
 };
 const IPTV_GENRES = [
-  "Noticias", "Películas", "Series", "Documentales", "Cultura",
-  "Infantil", "Música", "Entretenimiento", "General",
+  "Noticias", "PelÃ­culas", "Series", "Documentales", "Cultura",
+  "Infantil", "MÃºsica", "Entretenimiento", "General",
 ];
 
 interface IptvChannel {
@@ -919,9 +919,9 @@ const IPTV_MANIFEST = {
   version: "1.0.0",
   name: "TV en Vivo (IPTV)",
   description:
-    "Canales de TV en vivo — Argentina, España, Latinoamérica (castellano) e Internacional " +
-    "(idioma original). Fuente iptv-org (señales públicas legítimas); cada canal verificado " +
-    "en vivo antes de listarlo. Filtrable por género.",
+    "Canales de TV en vivo â€” Argentina, EspaÃ±a, LatinoamÃ©rica (castellano) e Internacional " +
+    "(idioma original). Fuente iptv-org (seÃ±ales pÃºblicas legÃ­timas); cada canal verificado " +
+    "en vivo antes de listarlo. Filtrable por gÃ©nero.",
   resources: ["catalog", "meta", "stream"],
   types: ["tv"],
   idPrefixes: ["mshub-iptv-"],
@@ -943,7 +943,7 @@ async function loadIptvChannels(): Promise<IptvChannel[]> {
   if (iptvCache && Date.now() - iptvCache.at < IPTV_CACHE_TTL_MS) return iptvCache.channels;
   try {
     const r = await fetch(IPTV_CHANNELS_URL, { signal: AbortSignal.timeout(12000) });
-    if (!r.ok) throw new Error(`iptv-channels.json → ${r.status}`);
+    if (!r.ok) throw new Error(`iptv-channels.json â†’ ${r.status}`);
     const j = await r.json();
     const channels: IptvChannel[] = Array.isArray(j?.channels) ? j.channels : [];
     iptvCache = { at: Date.now(), channels };
@@ -957,7 +957,7 @@ async function loadIptvChannels(): Promise<IptvChannel[]> {
 async function handleIptv(subPath: string): Promise<Response> {
   if (subPath === "/manifest.json") return jsonResponse(IPTV_MANIFEST);
 
-  // /catalog/tv/<catalogId>.json  ó  /catalog/tv/<catalogId>/genre=Noticias.json
+  // /catalog/tv/<catalogId>.json  Ã³  /catalog/tv/<catalogId>/genre=Noticias.json
   const catM = subPath.match(/^\/catalog\/tv\/(iptv-[a-z]+)(?:\/(.+?))?\.json$/);
   if (catM) {
     const [, catalogId, extraStr] = catM;
@@ -982,8 +982,8 @@ async function handleIptv(subPath: string): Promise<Response> {
     return jsonResponse({ metas });
   }
 
-  // meta / stream — id `mshub-iptv-<channel-id>`. Sin ":" a propósito: el cliente real de Stremio
-  // percent-codea ":" a "%3A" en el path (ver "Sesión 2026-09-06"), con "-" el id atraviesa la
+  // meta / stream â€” id `mshub-iptv-<channel-id>`. Sin ":" a propÃ³sito: el cliente real de Stremio
+  // percent-codea ":" a "%3A" en el path (ver "SesiÃ³n 2026-09-06"), con "-" el id atraviesa la
   // URL intacto. Igual se decodifica y se saca el prefijo por las dudas.
   const metaM = subPath.match(/^\/meta\/tv\/(.+)\.json$/);
   if (metaM) {
@@ -1000,7 +1000,7 @@ async function handleIptv(subPath: string): Promise<Response> {
         logo: ch.logo ?? undefined,
         background: ch.logo ?? undefined,
         genres: [ch.genre],
-        description: `Canal en vivo · ${ch.genre}${ch.quality ? " · " + ch.quality : ""}`,
+        description: `Canal en vivo Â· ${ch.genre}${ch.quality ? " Â· " + ch.quality : ""}`,
       },
     });
   }
@@ -1016,7 +1016,7 @@ async function handleIptv(subPath: string): Promise<Response> {
     // deno-lint-ignore no-explicit-any
     const stream: any = {
       url: ch.url,
-      title: `${ch.name} · EN VIVO${ch.quality ? " · " + ch.quality : ""}`,
+      title: `${ch.name} Â· EN VIVO${ch.quality ? " Â· " + ch.quality : ""}`,
       behaviorHints: { notWebReady: true },
     };
     if (Object.keys(reqHeaders).length) {
@@ -1028,10 +1028,10 @@ async function handleIptv(subPath: string): Promise<Response> {
   return new Response("Not found", { status: 404, headers: cors });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /synopsis — MejoraStremio Synopsis IA, proxy de meta ──────────────────
-// Lógica idéntica a deno-synopsis-enricher.ts.
-// ════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /synopsis â€” MejoraStremio Synopsis IA, proxy de meta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// LÃ³gica idÃ©ntica a deno-synopsis-enricher.ts.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-flash-lite-latest";
 const OPENROUTER_MODEL = Deno.env.get("OPENROUTER_MODEL") ?? "openrouter/free";
@@ -1044,7 +1044,7 @@ const PRESET_URL =
   "https://raw.githubusercontent.com/pabloeckert/MejoraStremio/main/data/preset.json";
 
 const AI_BUDGET_MS = 4000;
-const SYNOPSIS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 días
+const SYNOPSIS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 dÃ­as
 
 const SYNOPSIS_MANIFEST = {
   id: "com.mejorastremio.synopsis-proxy",
@@ -1052,7 +1052,7 @@ const SYNOPSIS_MANIFEST = {
   name: "MejoraStremio Synopsis IA",
   description:
     "Proxy de metadata: pasa AIOMetadata intacto y solo reescribe la sinopsis " +
-    "cuando está corta o en inglés (Gemini, fallback OpenRouter). Cae a " +
+    "cuando estÃ¡ corta o en inglÃ©s (Gemini, fallback OpenRouter). Cae a " +
     "Cinemeta si AIOMetadata no responde.",
   resources: ["meta"],
   types: ["movie", "series"],
@@ -1084,7 +1084,7 @@ async function fetchAioMeta(type: string, rawId: string): Promise<any> {
   const instanceId = await getInstanceId();
   const url = `${AIOMETADATA_BASE}/stremio/${instanceId}/meta/${type}/${rawId}.json`;
   const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
-  if (!r.ok) throw new Error(`AIOMetadata respondió ${r.status}`);
+  if (!r.ok) throw new Error(`AIOMetadata respondiÃ³ ${r.status}`);
   const d = await r.json();
   if (!d?.meta) throw new Error("AIOMetadata: respuesta sin meta");
   return d.meta;
@@ -1137,13 +1137,13 @@ function buildPrompt(meta: any, description: string): string {
   const year = meta.year ?? meta.releaseInfo ?? "";
   const genres = Array.isArray(meta.genres) ? meta.genres.join(", ") : "";
   return (
-    "Reescribí esta sinopsis en español latino, más rica y detallada que el " +
-    "original. No inventes giros de trama ni eventos específicos que no estén " +
-    "ya insinuados en el texto original — solo expandí tono, ambientación, " +
-    "contexto y premisa. Devolvé solo la sinopsis reescrita, sin comentarios " +
+    "ReescribÃ­ esta sinopsis en espaÃ±ol latino, mÃ¡s rica y detallada que el " +
+    "original. No inventes giros de trama ni eventos especÃ­ficos que no estÃ©n " +
+    "ya insinuados en el texto original â€” solo expandÃ­ tono, ambientaciÃ³n, " +
+    "contexto y premisa. DevolvÃ© solo la sinopsis reescrita, sin comentarios " +
     "ni encabezados.\n\n" +
-    `Título: ${title}${year ? ` (${year})` : ""}\n` +
-    `Género: ${genres || "desconocido"}\n` +
+    `TÃ­tulo: ${title}${year ? ` (${year})` : ""}\n` +
+    `GÃ©nero: ${genres || "desconocido"}\n` +
     `Sinopsis actual: ${description}`
   );
 }
@@ -1162,14 +1162,14 @@ async function callGemini(prompt: string, apiKey: string, signal: AbortSignal): 
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      // Tatort es contenido policial (violencia, crimen) — sin esto Gemini
-      // bloquea lotes con descripciones de escenas y la traducción sale a medias.
+      // Tatort es contenido policial (violencia, crimen) â€” sin esto Gemini
+      // bloquea lotes con descripciones de escenas y la traducciÃ³n sale a medias.
       safetySettings: GEMINI_SAFETY_OFF,
       generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
     }),
     signal,
   });
-  if (!r.ok) throw new Error(`Gemini respondió ${r.status}`);
+  if (!r.ok) throw new Error(`Gemini respondiÃ³ ${r.status}`);
   const d = await r.json();
   const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error("Gemini: sin texto (" + (d?.candidates?.[0]?.finishReason || JSON.stringify(d).slice(0, 120)) + ")");
@@ -1183,7 +1183,7 @@ async function callOpenRouter(prompt: string, apiKey: string, signal: AbortSigna
     body: JSON.stringify({ model: OPENROUTER_MODEL, messages: [{ role: "user", content: prompt }] }),
     signal,
   });
-  if (!r.ok) throw new Error(`OpenRouter respondió ${r.status}`);
+  if (!r.ok) throw new Error(`OpenRouter respondiÃ³ ${r.status}`);
   const d = await r.json();
   const text = d?.choices?.[0]?.message?.content;
   if (!text) throw new Error("OpenRouter: sin texto en la respuesta");
@@ -1198,7 +1198,7 @@ async function enrichSynopsis(
   description: string,
 ): Promise<string | null> {
   const key = ["synopsis", imdbId, type];
-  // KV es solo cache (90 días) — si no está disponible (ej. no hay database
+  // KV es solo cache (90 dÃ­as) â€” si no estÃ¡ disponible (ej. no hay database
   // asignada a la app), el enriquecimiento debe seguir funcionando igual,
   // solo sin cachear entre requests.
   let kv: Deno.Kv | null = null;
@@ -1241,7 +1241,7 @@ async function enrichSynopsis(
     try {
       await kv.set(key, text, { expireIn: SYNOPSIS_CACHE_TTL_MS });
     } catch {
-      // sin cache, no es crítico
+      // sin cache, no es crÃ­tico
     }
   }
   return text;
@@ -1284,24 +1284,24 @@ async function handleSynopsis(subPath: string): Promise<Response> {
   return new Response("Not found", { status: 404, headers: cors });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /miniseries — 1 temporada, ≤10 episodios, finalizada (catálogo) ───────
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /miniseries â€” 1 temporada, â‰¤10 episodios, finalizada (catÃ¡logo) â”€â”€â”€â”€â”€â”€â”€
 // TMDB Discover TV no soporta filtrar por temporadas/episodios (confirmado
-// contra su doc oficial) — pero SÍ soporta `with_type=2` (Miniseries, según
-// la clasificación propia de TMDB), sumado el 2026-08-28 tras confirmar el
-// parámetro contra la doc oficial de Discover TV — antes el candidate pool
+// contra su doc oficial) â€” pero SÃ soporta `with_type=2` (Miniseries, segÃºn
+// la clasificaciÃ³n propia de TMDB), sumado el 2026-08-28 tras confirmar el
+// parÃ¡metro contra la doc oficial de Discover TV â€” antes el candidate pool
 // era "cualquier show Ended por popularidad", con muy poco acierto real al
-// filtrar después por temporadas/episodios (de ahí la cobertura floja ya
-// documentada, ~2 títulos). Con with_type=2 el pool ya viene pre-filtrado
-// por la propia clasificación de TMDB, así que la tasa de acierto del
-// filtro de detalle debería subir mucho — se mantiene igual como red de
-// seguridad, porque "Miniseries" en TMDB no garantiza ≤10 episodios exactos.
+// filtrar despuÃ©s por temporadas/episodios (de ahÃ­ la cobertura floja ya
+// documentada, ~2 tÃ­tulos). Con with_type=2 el pool ya viene pre-filtrado
+// por la propia clasificaciÃ³n de TMDB, asÃ­ que la tasa de acierto del
+// filtro de detalle deberÃ­a subir mucho â€” se mantiene igual como red de
+// seguridad, porque "Miniseries" en TMDB no garantiza â‰¤10 episodios exactos.
 // Se arma en dos pasos: Discover trae candidatos por tipo+popularidad+
-// status=Ended, y un fetch de detalle por título filtra por
+// status=Ended, y un fetch de detalle por tÃ­tulo filtra por
 // number_of_seasons/number_of_episodes. Requiere bastantes llamadas a TMDB
 // por refresh, por eso se cachea agresivo (12h) y se acota el trabajo por
-// request con un presupuesto de tiempo (deja lo que ya juntó si se pasa).
-// ════════════════════════════════════════════════════════════════════════
+// request con un presupuesto de tiempo (deja lo que ya juntÃ³ si se pasa).
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const TMDB_KEY = Deno.env.get("TMDB_API_KEY_AISEARCH") ?? "";
 const TMDB_API = "https://api.themoviedb.org/3";
@@ -1311,8 +1311,8 @@ const MINISERIES_MANIFEST = {
   version: "1.0.0",
   name: "Miniseries",
   description:
-    "Series de 1 sola temporada, 10 episodios o menos, finalizadas — armado " +
-    "vía TMDB Discover (with_type=Miniseries) + filtro de detalle por " +
+    "Series de 1 sola temporada, 10 episodios o menos, finalizadas â€” armado " +
+    "vÃ­a TMDB Discover (with_type=Miniseries) + filtro de detalle por " +
     "temporadas/episodios, que Discover no soporta de forma directa.",
   resources: ["catalog"],
   types: ["series"],
@@ -1324,14 +1324,14 @@ const MINISERIES_MANIFEST = {
     extra: [
       {
         name: "genre",
-        // Nombres tal cual los devuelve TMDB (genre/tv/list?language=es-ES) — mezcla
-        // inglés/español real de TMDB, no una traducción nuestra (mismo mix que ya
-        // se ve en los catálogos de AIOMetadata, ver CLAUDE.md "Metadata en español").
+        // Nombres tal cual los devuelve TMDB (genre/tv/list?language=es-ES) â€” mezcla
+        // inglÃ©s/espaÃ±ol real de TMDB, no una traducciÃ³n nuestra (mismo mix que ya
+        // se ve en los catÃ¡logos de AIOMetadata, ver GEMINI.md "Metadata en espaÃ±ol").
         // Deben calzar exacto con detail.genres[].name para que el filtro matchee.
         options: [
           "Todos",
           "Action & Adventure",
-          "Animación",
+          "AnimaciÃ³n",
           "Comedia",
           "Crimen",
           "Documental",
@@ -1366,8 +1366,8 @@ interface MiniseriesMeta {
 }
 
 let miniseriesCache: { at: number; metas: MiniseriesMeta[]; partial: boolean } | null = null;
-const MINISERIES_FULL_TTL_MS = 12 * 60 * 60 * 1000; // 12h si el barrido terminó completo
-const MINISERIES_PARTIAL_TTL_MS = 60 * 60 * 1000; // 1h si se cortó por presupuesto
+const MINISERIES_FULL_TTL_MS = 12 * 60 * 60 * 1000; // 12h si el barrido terminÃ³ completo
+const MINISERIES_PARTIAL_TTL_MS = 60 * 60 * 1000; // 1h si se cortÃ³ por presupuesto
 const MINISERIES_BUDGET_MS = 20000;
 const MINISERIES_DISCOVER_PAGES = 2;
 
@@ -1375,7 +1375,7 @@ const MINISERIES_DISCOVER_PAGES = 2;
 async function tmdbGet(path: string, params: Record<string, string>): Promise<any> {
   const qs = new URLSearchParams({ api_key: TMDB_KEY, ...params });
   const r = await fetch(`${TMDB_API}${path}?${qs}`, { signal: AbortSignal.timeout(6000) });
-  if (!r.ok) throw new Error(`TMDB ${path} respondió ${r.status}`);
+  if (!r.ok) throw new Error(`TMDB ${path} respondiÃ³ ${r.status}`);
   return await r.json();
 }
 
@@ -1389,7 +1389,7 @@ async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[]; part
       const d = await tmdbGet("/discover/tv", {
         sort_by: "first_air_date.desc", // fecha desc siempre (ley dura 2026-09-07), nunca popularidad
         with_status: "3",
-        with_type: "2", // Miniseries (clasificación propia de TMDB) — ver comentario arriba
+        with_type: "2", // Miniseries (clasificaciÃ³n propia de TMDB) â€” ver comentario arriba
         "vote_count.gte": "10",
         "first_air_date.lte": new Date().toISOString().slice(0, 10), // sin no-estrenadas al tope
         language: "es-ES",
@@ -1398,7 +1398,7 @@ async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[]; part
       // deno-lint-ignore no-explicit-any
       for (const s of (d?.results ?? []) as any[]) candidates.push(s.id);
     } catch {
-      break; // se sigue con lo que ya se juntó
+      break; // se sigue con lo que ya se juntÃ³
     }
   }
 
@@ -1448,7 +1448,7 @@ async function getMiniseriesCatalog(): Promise<MiniseriesMeta[]> {
   const stale = miniseriesCache?.metas ?? [];
   try {
     const { metas, partial } = await buildMiniseriesCatalog();
-    // si el barrido no encontró nada útil, mejor devolver lo viejo que una lista vacía
+    // si el barrido no encontrÃ³ nada Ãºtil, mejor devolver lo viejo que una lista vacÃ­a
     if (metas.length === 0 && stale.length > 0) return stale;
     miniseriesCache = { at: Date.now(), metas, partial };
     return metas;
@@ -1490,18 +1490,18 @@ async function handleMiniseries(subPath: string): Promise<Response> {
   return new Response("Not found", { status: 404, headers: cors });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /short-series — series con episodios de 30 minutos o menos (catálogo) ─
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /short-series â€” series con episodios de 30 minutos o menos (catÃ¡logo) â”€
 // Mismo problema que Miniseries: TMDB Discover TV no soporta filtrar por
-// duración de episodio, así que se arma en dos pasos (candidate pool por
-// popularidad + fetch de detalle por título chequeando episode_run_time).
-// A diferencia de Miniseries, acá NO se filtra por with_status — el
-// formato "episodio corto" incluye tanto sitcoms en emisión como shows ya
+// duraciÃ³n de episodio, asÃ­ que se arma en dos pasos (candidate pool por
+// popularidad + fetch de detalle por tÃ­tulo chequeando episode_run_time).
+// A diferencia de Miniseries, acÃ¡ NO se filtra por with_status â€” el
+// formato "episodio corto" incluye tanto sitcoms en emisiÃ³n como shows ya
 // terminados, no tiene sentido excluir contenido activo. Pedido de Pablo,
-// sesión 2026-08-28 (noche), junto con el catálogo de películas cortas
-// (tmdb.discover.movie.short-form.pablo065, ese sí resuelto directo en
-// preset.json porque Discover Movie SÍ soporta with_runtime).
-// ════════════════════════════════════════════════════════════════════════
+// sesiÃ³n 2026-08-28 (noche), junto con el catÃ¡logo de pelÃ­culas cortas
+// (tmdb.discover.movie.short-form.pablo065, ese sÃ­ resuelto directo en
+// preset.json porque Discover Movie SÃ soporta with_runtime).
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const SHORT_SERIES_MANIFEST = {
   id: "com.mejorastremio.short-series",
@@ -1509,14 +1509,14 @@ const SHORT_SERIES_MANIFEST = {
   name: "Comedias Cortas (30 min o menos)",
   description:
     "Sitcoms y comedias live-action cuyos episodios duran 30 minutos o menos. " +
-    "TMDB Discover (comedia, sin animación) + confirmación por episode_run_time.",
+    "TMDB Discover (comedia, sin animaciÃ³n) + confirmaciÃ³n por episode_run_time.",
   resources: ["catalog"],
   types: ["series"],
   idPrefixes: ["tt"],
   catalogs: [{
     type: "series",
     id: "short-series",
-    name: "Comedias Cortas (≤30 min)",
+    name: "Comedias Cortas (â‰¤30 min)",
     extra: [{ name: "skip" }],
   }],
 };
@@ -1548,17 +1548,17 @@ async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMeta[]; pa
     try {
       const d = await tmdbGet("/discover/tv", {
         sort_by: "first_air_date.desc", // fecha desc siempre (ley dura 2026-09-07), nunca popularidad
-        // with_runtime SÍ funciona en /discover/tv (la doc de la sesión
-        // 2026-08-28 estaba equivocada) — pre-filtra a formato corto. Es un
+        // with_runtime SÃ funciona en /discover/tv (la doc de la sesiÃ³n
+        // 2026-08-28 estaba equivocada) â€” pre-filtra a formato corto. Es un
         // filtro laxo (incluye shows sin dato de runtime), por eso abajo se
         // confirma con episode_run_time del detalle.
         "with_runtime.lte": "30",
         "vote_count.gte": "40", // piso de calidad; el ruido lo saca without_genres, no popularidad
         "first_air_date.lte": new Date().toISOString().slice(0, 10),
-        // Comedia + sin animación/kids/noticias/talk/soap: "series ≤30min" a
+        // Comedia + sin animaciÃ³n/kids/noticias/talk/soap: "series â‰¤30min" a
         // secas es 90% anime y dibujos (es lo que domina el formato corto a
-        // nivel mundial). Acotarlo a comedia live-action lo vuelve el catálogo
-        // útil para la cuenta — sitcoms para "algo cortito".
+        // nivel mundial). Acotarlo a comedia live-action lo vuelve el catÃ¡logo
+        // Ãºtil para la cuenta â€” sitcoms para "algo cortito".
         with_genres: "35",
         without_genres: "16,10762,10763,10766,10767",
         language: "es-ES",
@@ -1575,8 +1575,8 @@ async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMeta[]; pa
   const seen = new Set<string>();
   let partial = false;
 
-  // Confirmación de detalle en paralelo (de a 8) — el fetch por título era el
-  // cuello de botella y dejaba el catálogo en ~7 resultados.
+  // ConfirmaciÃ³n de detalle en paralelo (de a 8) â€” el fetch por tÃ­tulo era el
+  // cuello de botella y dejaba el catÃ¡logo en ~7 resultados.
   for (let i = 0; i < candidates.length; i += 8) {
     if (Date.now() > deadline) { partial = true; break; }
     const batch = candidates.slice(i, i + 8);
@@ -1657,20 +1657,20 @@ async function handleShortSeries(subPath: string): Promise<Response> {
   return new Response("Not found", { status: 404, headers: cors });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /discover — Descubrir Maestro (Paso B): servicio+región+país+idioma+
-// género combinables como filtros simultáneos de un solo catálogo. TMDB
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /discover â€” Descubrir Maestro (Paso B): servicio+regiÃ³n+paÃ­s+idioma+
+// gÃ©nero combinables como filtros simultÃ¡neos de un solo catÃ¡logo. TMDB
 // Discover soporta los 4 ejes en una sola query (with_watch_providers+
 // watch_region, with_origin_country, with_original_language, with_genres);
-// el protocolo de Stremio no permite esto en un catálogo nativo de
-// AIOMetadata (cada catálogo ahí es un preset fijo) — acá cada eje es un
-// "extra" del manifest con sus opciones, así que el cliente de Stremio
-// dibuja un dropdown por eje y los combina en la request al catálogo.
-// ════════════════════════════════════════════════════════════════════════
+// el protocolo de Stremio no permite esto en un catÃ¡logo nativo de
+// AIOMetadata (cada catÃ¡logo ahÃ­ es un preset fijo) â€” acÃ¡ cada eje es un
+// "extra" del manifest con sus opciones, asÃ­ que el cliente de Stremio
+// dibuja un dropdown por eje y los combina en la request al catÃ¡logo.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 // provider_id reales de TMDB (verificados contra /watch/providers/movie en
-// vivo, no adivinados — algunos ids cambian con el tiempo si el servicio se
-// relanza, ej. HBO Max → Max en 2023 mantuvo el id 1899).
+// vivo, no adivinados â€” algunos ids cambian con el tiempo si el servicio se
+// relanza, ej. HBO Max â†’ Max en 2023 mantuvo el id 1899).
 const SERVICE_IDS: Record<string, number> = {
   "Netflix": 8,
   "Disney+": 337,
@@ -1688,45 +1688,45 @@ const SERVICE_IDS: Record<string, number> = {
   "BritBox": 151,
   "Crunchyroll": 283,
 };
-const DISCOVER_WATCH_REGION = "AR"; // disponibilidad real para Pablo, no "world"/US genérico
+const DISCOVER_WATCH_REGION = "AR"; // disponibilidad real para Pablo, no "world"/US genÃ©rico
 
 const COUNTRY_IDS: Record<string, string> = {
-  "Argentina": "AR", "España": "ES", "Francia": "FR", "Alemania": "DE",
-  "Italia": "IT", "Reino Unido": "GB", "Portugal": "PT", "México": "MX",
-  "Colombia": "CO", "Chile": "CL", "Brasil": "BR", "Perú": "PE",
-  "Estados Unidos": "US", "Canadá": "CA", "Australia": "AU", "Nueva Zelanda": "NZ",
-  "Japón": "JP", "Corea": "KR", "China": "CN", "Taiwán": "TW",
+  "Argentina": "AR", "EspaÃ±a": "ES", "Francia": "FR", "Alemania": "DE",
+  "Italia": "IT", "Reino Unido": "GB", "Portugal": "PT", "MÃ©xico": "MX",
+  "Colombia": "CO", "Chile": "CL", "Brasil": "BR", "PerÃº": "PE",
+  "Estados Unidos": "US", "CanadÃ¡": "CA", "Australia": "AU", "Nueva Zelanda": "NZ",
+  "JapÃ³n": "JP", "Corea": "KR", "China": "CN", "TaiwÃ¡n": "TW",
   "Tailandia": "TH", "Hong Kong": "HK", "India": "IN",
 };
-// Uniones OR (pipe-delimited, TMDB con with_origin_country) — un pseudo-país
-// "regional" que no existe como código ISO propio.
+// Uniones OR (pipe-delimited, TMDB con with_origin_country) â€” un pseudo-paÃ­s
+// "regional" que no existe como cÃ³digo ISO propio.
 const REGION_IDS: Record<string, string> = {
-  "Latinoamérica": "AR|MX|CO|CL|BR|PE",
+  "LatinoamÃ©rica": "AR|MX|CO|CL|BR|PE",
   "Europa": "ES|FR|DE|IT|GB|PT",
-  "Norteamérica": "US|CA",
+  "NorteamÃ©rica": "US|CA",
   "Asia": "JP|KR|CN|TW|TH|HK|IN",
-  "Oceanía": "AU|NZ",
+  "OceanÃ­a": "AU|NZ",
 };
 
 const LANGUAGE_IDS: Record<string, string> = {
-  "Español": "es", "Inglés": "en", "Francés": "fr", "Alemán": "de",
-  "Italiano": "it", "Portugués": "pt", "Japonés": "ja", "Coreano": "ko",
-  "Chino": "zh", "Hindi": "hi", "Tailandés": "th",
+  "EspaÃ±ol": "es", "InglÃ©s": "en", "FrancÃ©s": "fr", "AlemÃ¡n": "de",
+  "Italiano": "it", "PortuguÃ©s": "pt", "JaponÃ©s": "ja", "Coreano": "ko",
+  "Chino": "zh", "Hindi": "hi", "TailandÃ©s": "th",
 };
 
 const GENRE_IDS_MOVIE: Record<string, number> = {
-  "Acción": 28, "Aventura": 12, "Animación": 16, "Comedia": 35, "Crimen": 80,
-  "Documental": 99, "Drama": 18, "Familia": 10751, "Fantasía": 14,
-  "Historia": 36, "Terror": 27, "Música": 10402, "Misterio": 9648,
-  "Romance": 10749, "Ciencia Ficción": 878, "Thriller": 53, "Bélica": 10752,
+  "AcciÃ³n": 28, "Aventura": 12, "AnimaciÃ³n": 16, "Comedia": 35, "Crimen": 80,
+  "Documental": 99, "Drama": 18, "Familia": 10751, "FantasÃ­a": 14,
+  "Historia": 36, "Terror": 27, "MÃºsica": 10402, "Misterio": 9648,
+  "Romance": 10749, "Ciencia FicciÃ³n": 878, "Thriller": 53, "BÃ©lica": 10752,
   "Western": 37,
 };
 const GENRE_IDS_SERIES: Record<string, number> = {
-  "Acción y Aventura": 10759, "Animación": 16, "Comedia": 35, "Crimen": 80,
+  "AcciÃ³n y Aventura": 10759, "AnimaciÃ³n": 16, "Comedia": 35, "Crimen": 80,
   "Documental": 99, "Drama": 18, "Familia": 10751, "Infantil": 10762,
   "Misterio": 9648, "Noticias": 10763, "Reality": 10764,
-  "Ciencia Ficción y Fantasía": 10765, "Telenovela": 10766, "Talk Show": 10767,
-  "Bélica y Política": 10768, "Western": 37,
+  "Ciencia FicciÃ³n y FantasÃ­a": 10765, "Telenovela": 10766, "Talk Show": 10767,
+  "BÃ©lica y PolÃ­tica": 10768, "Western": 37,
 };
 
 function discoverExtra(genreMap: Record<string, number>) {
@@ -1745,9 +1745,9 @@ const DISCOVER_MANIFEST = {
   version: "1.0.0",
   name: "Descubrir Maestro",
   description:
-    "Catálogo único con servicio de streaming, región, país, idioma y género " +
-    "combinables como filtros simultáneos (TMDB Discover) — a diferencia de " +
-    "AIOMetadata, donde cada eje es un catálogo fijo separado.",
+    "CatÃ¡logo Ãºnico con servicio de streaming, regiÃ³n, paÃ­s, idioma y gÃ©nero " +
+    "combinables como filtros simultÃ¡neos (TMDB Discover) â€” a diferencia de " +
+    "AIOMetadata, donde cada eje es un catÃ¡logo fijo separado.",
   resources: ["catalog"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
@@ -1757,9 +1757,9 @@ const DISCOVER_MANIFEST = {
   ],
 };
 
-// tmdbId -> imdbId. En memoria (vive mientras el isolate esté caliente) —
+// tmdbId -> imdbId. En memoria (vive mientras el isolate estÃ© caliente) â€”
 // evita repetir el fetch de external_ids en refreshes sucesivos del mismo
-// título; no es crítico si se pierde en un cold start, se repuebla solo.
+// tÃ­tulo; no es crÃ­tico si se pierde en un cold start, se repuebla solo.
 const imdbIdCache = new Map<number, string | null>();
 
 async function resolveImdbId(tmdbId: number): Promise<string | null> {
@@ -1797,12 +1797,12 @@ async function handleDiscover(subPath: string, url: URL): Promise<Response> {
     return jsonResponse(DISCOVER_MANIFEST);
   }
 
-  // /discover/recent — helper interno (no es un catálogo de Stremio) usado por
-  // monthly-digest.mjs: título "de tu gusto" estrenado en los últimos N días,
-  // por país/género. Reusa exactamente los mismos SERVICE_IDS/COUNTRY_IDS/
+  // /discover/recent â€” helper interno (no es un catÃ¡logo de Stremio) usado por
+  // monthly-digest.mjs: tÃ­tulo "de tu gusto" estrenado en los Ãºltimos N dÃ­as,
+  // por paÃ­s/gÃ©nero. Reusa exactamente los mismos SERVICE_IDS/COUNTRY_IDS/
   // GENRE_IDS que discover-master, pero ordenado por fecha desc en vez de
   // popularidad y con la fecha de estreno en la respuesta (discover-master la
-  // recorta a propósito porque no la necesita).
+  // recorta a propÃ³sito porque no la necesita).
   if (subPath.startsWith("/recent")) {
     const qs = url.searchParams;
     const type = qs.get("type") === "series" ? "series" : "movie";
@@ -1857,9 +1857,9 @@ async function handleDiscover(subPath: string, url: URL): Promise<Response> {
   const skip = parseInt(extra.get("skip") ?? "0", 10);
   const page = Math.floor(skip / 20) + 1;
 
-  // Orden por fecha de estreno/emisión desc — SIEMPRE, sin popularidad (ley dura
+  // Orden por fecha de estreno/emisiÃ³n desc â€” SIEMPRE, sin popularidad (ley dura
   // de Pablo, 2026-09-07). vote_count.gte se mantiene como piso de calidad (no es
-  // popularidad, es confianza en el dato — dogma feedback_quality_over_quantity).
+  // popularidad, es confianza en el dato â€” dogma feedback_quality_over_quantity).
   const dateField = type === "movie" ? "primary_release_date" : "first_air_date";
   const params: Record<string, string> = {
     sort_by: `${dateField}.desc`,
@@ -1867,15 +1867,15 @@ async function handleDiscover(subPath: string, url: URL): Promise<Response> {
     page: String(page),
     "vote_count.gte": "20",
   };
-  // Series: sacar telediarios y talk shows — se cuelan con with_origin_country
-  // por país (ej. "Alemania + Crimen" traía Tagesschau) y nunca son lo buscado.
+  // Series: sacar telediarios y talk shows â€” se cuelan con with_origin_country
+  // por paÃ­s (ej. "Alemania + Crimen" traÃ­a Tagesschau) y nunca son lo buscado.
   if (type === "series") params.without_genres = "10763,10767";
   if (service && service !== "Todos" && SERVICE_IDS[service]) {
     params.with_watch_providers = String(SERVICE_IDS[service]);
     params.watch_region = DISCOVER_WATCH_REGION;
   }
-  // país puntual gana sobre región si ambos vienen seteados (evita una
-  // combinación contradictoria silenciosa).
+  // paÃ­s puntual gana sobre regiÃ³n si ambos vienen seteados (evita una
+  // combinaciÃ³n contradictoria silenciosa).
   if (country && country !== "Todos" && COUNTRY_IDS[country]) {
     params.with_origin_country = COUNTRY_IDS[country];
   } else if (region && region !== "Todos" && REGION_IDS[region]) {
@@ -1913,7 +1913,7 @@ async function handleDiscover(subPath: string, url: URL): Promise<Response> {
 
     const metas = resolved
       .filter((m) => m !== null)
-      .sort((a, b) => (b!._d).localeCompare(a!._d))  // fecha desc, garantía extra sobre el orden de TMDB
+      .sort((a, b) => (b!._d).localeCompare(a!._d))  // fecha desc, garantÃ­a extra sobre el orden de TMDB
       // deno-lint-ignore no-explicit-any
       .map(({ _d, ...m }: any) => m);
     return jsonResponse({ metas });
@@ -1922,26 +1922,26 @@ async function handleDiscover(subPath: string, url: URL): Promise<Response> {
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /mediathek — streams directos de la Mediathek alemana (Tatort) ────────
-// La antología Tatort (tt0806910) casi no tiene cobertura en los indexers de
-// torrents (los releases se nombran por Folge/caso, no SxxExx, así que
-// Torrentio/Comet no los mapean al esquema season=año de Cinemeta). Pero la
-// ARD/SWR/WDR/NDR/… mantienen online cientos de episodios en la Mediathek
-// pública, con MP4 progresivo directo + subtítulo alemán oficial (EBU-TT-D).
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /mediathek â€” streams directos de la Mediathek alemana (Tatort) â”€â”€â”€â”€â”€â”€â”€â”€
+// La antologÃ­a Tatort (tt0806910) casi no tiene cobertura en los indexers de
+// torrents (los releases se nombran por Folge/caso, no SxxExx, asÃ­ que
+// Torrentio/Comet no los mapean al esquema season=aÃ±o de Cinemeta). Pero la
+// ARD/SWR/WDR/NDR/â€¦ mantienen online cientos de episodios en la Mediathek
+// pÃºblica, con MP4 progresivo directo + subtÃ­tulo alemÃ¡n oficial (EBU-TT-D).
 // Este addon los expone como streams y adjunta, en el propio stream, un
-// subtítulo en español latino generado por /translate a partir de esa pista
+// subtÃ­tulo en espaÃ±ol latino generado por /translate a partir de esa pista
 // alemana (perfectamente sincronizada con el mismo archivo).
 //
-// Fuente: MediathekViewWeb (mediathekviewweb.de/api/query) — API JSON pública
-// que agrega las Filmlisten de todos los canales públicos alemanes + ORF.
-// ════════════════════════════════════════════════════════════════════════
+// Fuente: MediathekViewWeb (mediathekviewweb.de/api/query) â€” API JSON pÃºblica
+// que agrega las Filmlisten de todos los canales pÃºblicos alemanes + ORF.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const MVW_API = "https://mediathekviewweb.de/api/query";
 
-// Series policiales alemanas de antología (episodios autoconclusivos por título de
-// caso) que están en la Mediathek pública. Todas comparten el mismo esquema:
-// buscar por `topic`, matchear el título del caso contra la Filmliste.
+// Series policiales alemanas de antologÃ­a (episodios autoconclusivos por tÃ­tulo de
+// caso) que estÃ¡n en la Mediathek pÃºblica. Todas comparten el mismo esquema:
+// buscar por `topic`, matchear el tÃ­tulo del caso contra la Filmliste.
 const MEDIATHEK_SHOWS: Record<string, { topic: string; minDur: number }> = {
   "tt0806910": { topic: "Tatort", minDur: 3300 },          // ~89 min
   "tt0806901": { topic: "Polizeiruf 110", minDur: 3300 },  // ~89 min
@@ -1953,9 +1953,9 @@ const MEDIATHEK_MANIFEST = {
   version: "1.1.0",
   name: "Mediathek DE (policiales)",
   description:
-    "Streams directos de la Mediathek pública alemana (ARD/ZDF/SWR/WDR/NDR/MDR/RBB/BR…) para " +
-    "Tatort, Polizeiruf 110 y SOKO Leipzig — audio alemán HD, sin torrents ni debrid. Cada " +
-    "stream trae adjunto el subtítulo alemán oficial y una traducción IA al español latino.",
+    "Streams directos de la Mediathek pÃºblica alemana (ARD/ZDF/SWR/WDR/NDR/MDR/RBB/BRâ€¦) para " +
+    "Tatort, Polizeiruf 110 y SOKO Leipzig â€” audio alemÃ¡n HD, sin torrents ni debrid. Cada " +
+    "stream trae adjunto el subtÃ­tulo alemÃ¡n oficial y una traducciÃ³n IA al espaÃ±ol latino.",
   resources: ["stream"],
   types: ["series"],
   idPrefixes: ["tt"],
@@ -1980,7 +1980,7 @@ function normTitleKey(s: string): string {
   return String(s)
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[Ì€-Í¯]/g, "")
     .replace(/\bteil\b/g, "")
     .replace(/[^a-z0-9 ]/g, " ")
     .replace(/\s+/g, " ")
@@ -1988,13 +1988,13 @@ function normTitleKey(s: string): string {
 }
 
 // "Odenthal - 81 - Der Stelzenmann" -> "Der Stelzenmann"  (formato Tatort)
-// "Tatort: Das Haus am Ende der Straße" -> "Das Haus am Ende der Straße"
-// "Goldraub" -> "Goldraub"  (Polizeiruf/SOKO: el nombre ya es el título del caso)
-// "Episode 12" -> ""  (placeholder de Cinemeta sin título real → no se puede matchear)
+// "Tatort: Das Haus am Ende der StraÃŸe" -> "Das Haus am Ende der StraÃŸe"
+// "Goldraub" -> "Goldraub"  (Polizeiruf/SOKO: el nombre ya es el tÃ­tulo del caso)
+// "Episode 12" -> ""  (placeholder de Cinemeta sin tÃ­tulo real â†’ no se puede matchear)
 function showCaseTitle(episodeName: string, topic: string): string {
   let n = String(episodeName || "");
   if (/^episode\s+\d+$/i.test(n.trim())) return "";
-  const dash = n.match(/^.*?-\s*\d+\s*-\s*(.+)$/); // "Detective - NN - Título"
+  const dash = n.match(/^.*?-\s*\d+\s*-\s*(.+)$/); // "Detective - NN - TÃ­tulo"
   if (dash) n = dash[1];
   n = n.replace(new RegExp(`^${topic.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[:\\s-]+`, "i"), "")
     .replace(/\(.*?\)/g, "").trim();
@@ -2025,7 +2025,7 @@ async function loadMvwShow(topic: string, minDur: number): Promise<MvwFilm[]> {
     const res: any[] = r?.result?.results ?? [];
     for (const x of res) {
       if ((x.duration ?? 0) < minDur) continue; // descarta trailers/clips, deja solo episodios completos
-      if (/Audiodeskription|H[oö]rfassung|klare Sprache|Geb[aä]rden/i.test(x.title)) continue;
+      if (/Audiodeskription|H[oÃ¶]rfassung|klare Sprache|Geb[aÃ¤]rden/i.test(x.title)) continue;
       const hd = String(x.url_video_hd || "");
       const mp4 = String(x.url_video || "");
       if (/audio_description|sign_language|\.ad\.|_ad_/i.test(hd + mp4)) continue;
@@ -2113,7 +2113,7 @@ async function handleMediathek(subPath: string, mountBase: string, translateMoun
       }
       return {
         name: `Mediathek DE\n${quality}`,
-        title: `${f.channel} · ${caseTitle}\n🇩🇪 audio alemán${f.urlSub ? " · sub DE oficial + IA→ES latino" : ""} · ${Math.round(f.duration / 60)}min`,
+        title: `${f.channel} Â· ${caseTitle}\nðŸ‡©ðŸ‡ª audio alemÃ¡n${f.urlSub ? " Â· sub DE oficial + IAâ†’ES latino" : ""} Â· ${Math.round(f.duration / 60)}min`,
         url: video,
         subtitles: subs,
         behaviorHints: { notWebReady: /\.m3u8($|\?)/.test(video), bingeGroup: `mediathek-${imdbId}` },
@@ -2126,28 +2126,28 @@ async function handleMediathek(subPath: string, mountBase: string, translateMoun
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /translate — subtítulo ES latino generado por IA ─────────────────────
-// Para contenido alemán (u otro) que NO tiene ningún subtítulo en español
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /translate â€” subtÃ­tulo ES latino generado por IA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Para contenido alemÃ¡n (u otro) que NO tiene ningÃºn subtÃ­tulo en espaÃ±ol
 // pre-hecho en ninguna fuente (Tatort: OpenSubtitles.com tiene 1 en toda la
 // historia de la serie; SubDL 0). Toma la mejor pista base disponible
-// —alemán oficial de la Mediathek si es Tatort, si no alemán/inglés de
-// OpenSubtitles.com— y la traduce al español latino con IA (Gemini, fallback
-// OpenRouter), en lotes paralelos. Cachea el SRT resultante 90 días en KV.
+// â€”alemÃ¡n oficial de la Mediathek si es Tatort, si no alemÃ¡n/inglÃ©s de
+// OpenSubtitles.comâ€” y la traduce al espaÃ±ol latino con IA (Gemini, fallback
+// OpenRouter), en lotes paralelos. Cachea el SRT resultante 90 dÃ­as en KV.
 //
-// Se auto-limita: si ya existe algún subtítulo ES real en OpenSubtitles.com
-// para ese título, no ofrece nada (no ensucia la lista de contenido que ya
-// está bien cubierto). Solo aparece donde de verdad hace falta.
-// ════════════════════════════════════════════════════════════════════════
+// Se auto-limita: si ya existe algÃºn subtÃ­tulo ES real en OpenSubtitles.com
+// para ese tÃ­tulo, no ofrece nada (no ensucia la lista de contenido que ya
+// estÃ¡ bien cubierto). Solo aparece donde de verdad hace falta.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const TRANSLATE_MANIFEST = {
   id: "com.mejorastremio.translate",
   version: "1.0.0",
-  name: "Traducción IA → ES latino",
+  name: "TraducciÃ³n IA â†’ ES latino",
   description:
-    "Genera un subtítulo en español latino traduciendo con IA la mejor pista alemana o " +
-    "inglesa disponible. Pensado para contenido alemán sin subs ES (Tatort y similares). " +
-    "Cachea 90 días — la primera apertura de un episodio tarda ~20-40s, después es instantánea.",
+    "Genera un subtÃ­tulo en espaÃ±ol latino traduciendo con IA la mejor pista alemana o " +
+    "inglesa disponible. Pensado para contenido alemÃ¡n sin subs ES (Tatort y similares). " +
+    "Cachea 90 dÃ­as â€” la primera apertura de un episodio tarda ~20-40s, despuÃ©s es instantÃ¡nea.",
   resources: ["subtitles"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
@@ -2156,52 +2156,52 @@ const TRANSLATE_MANIFEST = {
 
 const TRANSLATE_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const TRANSLATE_BUDGET_MS = 55000;
-// Gemini free tier ≈ 15 RPM. Lotes grandes + poca concurrencia mantienen el
+// Gemini free tier â‰ˆ 15 RPM. Lotes grandes + poca concurrencia mantienen el
 // total de requests por episodio en ~5-6 (una tanda), bien por debajo del tope.
 const TRANSLATE_BATCH = 220;
 const TRANSLATE_PARALLEL = 4;
-const NL = "⏎"; // sentinel para saltos de línea internos al mandar a la IA
+const NL = "âŽ"; // sentinel para saltos de lÃ­nea internos al mandar a la IA
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface Cue { start: string; end: string; text: string }
 
 // Una cue "solo sonido" no se traduce (y de hecho se descarta del SRT final):
-// "(spannungsvolle Musik)", "[Tür quietscht]", ".", "♪ ... ♪", líneas todas
-// entre paréntesis. Para alguien que mira en alemán con subs ES son ruido.
+// "(spannungsvolle Musik)", "[TÃ¼r quietscht]", ".", "â™ª ... â™ª", lÃ­neas todas
+// entre parÃ©ntesis. Para alguien que mira en alemÃ¡n con subs ES son ruido.
 function isSoundOnly(text: string): boolean {
   const t = String(text ?? "").trim();
-  if (!t || /^[.\-–—#♪*\s]+$/.test(t)) return true;
+  if (!t || /^[.\-â€“â€”#â™ª*\s]+$/.test(t)) return true;
   const oneLine = t.replace(/\s+/g, " ");
-  // toda la cue entre ( ), [ ] o * * (los 3 estilos de acotación sonora de la
-  // Mediathek): "(spannungsvolle Musik)", "[Tür quietscht]", "* Musik *"
+  // toda la cue entre ( ), [ ] o * * (los 3 estilos de acotaciÃ³n sonora de la
+  // Mediathek): "(spannungsvolle Musik)", "[TÃ¼r quietscht]", "* Musik *"
   if (/^[(\[*][^)\]]*[)\]*]$/.test(oneLine)) return true;
   return t.split("\n").every((l) => l.trim() === "" || /^[(\[*][^)\]]*[)\]*]$/.test(l.trim()));
 }
 
-// Heurística de contenido para SDH real, para cuando el flag del proveedor (SubDL
+// HeurÃ­stica de contenido para SDH real, para cuando el flag del proveedor (SubDL
 // "hi", OpenSubtitles "hearing_impaired") viene mal cargado en la fuente. Confirmado
-// 2026-09-05 con evidencia real: OpenSubtitles devolvió hi:false en un archivo de HPI/ACI
-// lleno de "(SUSPIRA)"/"(CANTURREA)"/letras de canción entre ♪; SubDL devuelve hi:false
-// para TODOS sus resultados sin excepción, incluidos archivos con "Hi" en el nombre. No
-// hay forma de confiar ciegamente en el campo — se cuenta qué fracción de las cues son
-// puramente descripción de sonido (isSoundOnly) o tienen una acotación entre paréntesis/
-// corchetes intercalada en el diálogo. Umbral conservador (mejor un falso negativo
-// ocasional que descartar un subtítulo real por error) — requiere al menos 8 cues para
+// 2026-09-05 con evidencia real: OpenSubtitles devolviÃ³ hi:false en un archivo de HPI/ACI
+// lleno de "(SUSPIRA)"/"(CANTURREA)"/letras de canciÃ³n entre â™ª; SubDL devuelve hi:false
+// para TODOS sus resultados sin excepciÃ³n, incluidos archivos con "Hi" en el nombre. No
+// hay forma de confiar ciegamente en el campo â€” se cuenta quÃ© fracciÃ³n de las cues son
+// puramente descripciÃ³n de sonido (isSoundOnly) o tienen una acotaciÃ³n entre parÃ©ntesis/
+// corchetes intercalada en el diÃ¡logo. Umbral conservador (mejor un falso negativo
+// ocasional que descartar un subtÃ­tulo real por error) â€” requiere al menos 8 cues para
 // no arriesgar un veredicto con muestra chica.
 function looksLikeSDH(srtText: string): boolean {
   const cues = parseSrt(srtText);
   if (cues.length < 8) return false;
   const soundOnly = cues.filter((c) => isSoundOnly(c.text)).length;
   const bracketed = cues.filter((c) => /[(\[][^)\]\n]{2,50}[)\]]/.test(c.text)).length;
-  // Señal fuerte y específica: una acotación TODO EN MAYÚSCULAS entre paréntesis/
-  // corchetes -- "(SUSPIRA)", "(CANTURREA)", "(SE OYE UN GOLPE)" -- el diálogo real casi
-  // nunca usa mayúsculas sostenidas, así que esto casi no da falsos positivos.
-  const capsTag = cues.filter((c) => /[(\[]\s*[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{1,35}[)\]]/.test(c.text)).length;
+  // SeÃ±al fuerte y especÃ­fica: una acotaciÃ³n TODO EN MAYÃšSCULAS entre parÃ©ntesis/
+  // corchetes -- "(SUSPIRA)", "(CANTURREA)", "(SE OYE UN GOLPE)" -- el diÃ¡logo real casi
+  // nunca usa mayÃºsculas sostenidas, asÃ­ que esto casi no da falsos positivos.
+  const capsTag = cues.filter((c) => /[(\[]\s*[A-ZÃÃ‰ÃÃ“ÃšÃ‘][A-ZÃÃ‰ÃÃ“ÃšÃ‘\s]{1,35}[)\]]/.test(c.text)).length;
   // Calibrado 2026-09-05 contra un caso real confirmado (HPI/ACI 1x01: 964 cues, 4.3%
-  // sonido puro, 5.5% con acotación entre paréntesis, ejemplos reales "(SUSPIRA)",
+  // sonido puro, 5.5% con acotaciÃ³n entre parÃ©ntesis, ejemplos reales "(SUSPIRA)",
   // "(CANTURREA)", "(RESOPLA)", "(Disparo)", "(Llanto)") -- el umbral viejo (6%/15%)
-  // dejaba pasar este caso de punta a punta. Bajado a un piso que sí lo detecta, sin
-  // ser tan sensible como para marcar un subtítulo limpio por 1-2 cues sueltas.
+  // dejaba pasar este caso de punta a punta. Bajado a un piso que sÃ­ lo detecta, sin
+  // ser tan sensible como para marcar un subtÃ­tulo limpio por 1-2 cues sueltas.
   return soundOnly / cues.length > 0.02 || bracketed / cues.length > 0.03 || capsTag / cues.length > 0.015;
 }
 
@@ -2263,44 +2263,44 @@ function serializeSrt(cues: Cue[]): string {
 }
 
 const TRANSLATE_SYS =
-  "Sos traductor profesional de subtítulos. Traducí del alemán (o inglés) al ESPAÑOL " +
-  "LATINOAMERICANO NEUTRO — el registro de doblaje: nada de 'vosotros', nada de 'coger' " +
-  "por agarrar, trato 'usted'/'tú' según la formalidad, modismos neutros (ni argentino, " +
-  "ni mexicano, ni español de España). Es una serie policial alemana (Tatort). Conservá " +
-  "el tono y las malas palabras. Recibís líneas numeradas '<n>▸ <texto>'. Devolvé " +
-  "EXACTAMENTE las mismas líneas numeradas '<n>▸ <traducción>', una por línea, mismo n, " +
-  `misma cantidad, sin texto extra. El símbolo ${NL} es un salto de línea interno: dejalo donde está.`;
+  "Sos traductor profesional de subtÃ­tulos. TraducÃ­ del alemÃ¡n (o inglÃ©s) al ESPAÃ‘OL " +
+  "LATINOAMERICANO NEUTRO â€” el registro de doblaje: nada de 'vosotros', nada de 'coger' " +
+  "por agarrar, trato 'usted'/'tÃº' segÃºn la formalidad, modismos neutros (ni argentino, " +
+  "ni mexicano, ni espaÃ±ol de EspaÃ±a). Es una serie policial alemana (Tatort). ConservÃ¡ " +
+  "el tono y las malas palabras. RecibÃ­s lÃ­neas numeradas '<n>â–¸ <texto>'. DevolvÃ© " +
+  "EXACTAMENTE las mismas lÃ­neas numeradas '<n>â–¸ <traducciÃ³n>', una por lÃ­nea, mismo n, " +
+  `misma cantidad, sin texto extra. El sÃ­mbolo ${NL} es un salto de lÃ­nea interno: dejalo donde estÃ¡.`;
 
 // Parsea la respuesta numerada del modelo. Devuelve map n->texto.
 function parseNumbered(raw: string): Map<number, string> {
   const out = new Map<number, string>();
-  const re = /(^|\n)\s*(\d+)\s*▸\s*([\s\S]*?)(?=\n\s*\d+\s*▸|\s*$)/g;
+  const re = /(^|\n)\s*(\d+)\s*â–¸\s*([\s\S]*?)(?=\n\s*\d+\s*â–¸|\s*$)/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(raw))) out.set(parseInt(m[2], 10), m[3].trim());
   return out;
 }
 
 // Traduce un lote. Devuelve el mapa n->texto (con fallback al original en las
-// líneas que la IA no devolvió) y `ok` = si la IA cubrió ≥90% del lote (para
-// decidir si vale cachearlo). OpenRouter free quedó descartado del camino de
-// subtítulos: su router tarda >40s por request. Gemini flash-lite hace 80
-// líneas en ~5s y aguanta ráfagas paralelas sin rate-limit.
+// lÃ­neas que la IA no devolviÃ³) y `ok` = si la IA cubriÃ³ â‰¥90% del lote (para
+// decidir si vale cachearlo). OpenRouter free quedÃ³ descartado del camino de
+// subtÃ­tulos: su router tarda >40s por request. Gemini flash-lite hace 80
+// lÃ­neas en ~5s y aguanta rÃ¡fagas paralelas sin rate-limit.
 async function translateBatch(
   items: { n: number; text: string }[],
   signal: AbortSignal,
 ): Promise<{ map: Map<number, string>; ok: boolean }> {
-  const payload = items.map((it) => `${it.n}▸ ${it.text.replace(/\n/g, NL)}`).join("\n");
+  const payload = items.map((it) => `${it.n}â–¸ ${it.text.replace(/\n/g, NL)}`).join("\n");
   const prompt = `${TRANSLATE_SYS}\n\n${payload}`;
 
   const merged = new Map<number, string>();
   for (let attempt = 0; attempt < 4 && merged.size < items.length; attempt++) {
-    // Tras el primer intento, se re-piden SOLO las líneas que faltan — un lote
-    // más chico parsea mejor y no re-gasta tiempo en lo ya traducido.
+    // Tras el primer intento, se re-piden SOLO las lÃ­neas que faltan â€” un lote
+    // mÃ¡s chico parsea mejor y no re-gasta tiempo en lo ya traducido.
     const todo = attempt === 0 ? items : items.filter((it) => !merged.has(it.n));
     if (!todo.length) break;
     const p = attempt === 0
       ? prompt
-      : `${TRANSLATE_SYS}\n\n${todo.map((it) => `${it.n}▸ ${it.text.replace(/\n/g, NL)}`).join("\n")}`;
+      : `${TRANSLATE_SYS}\n\n${todo.map((it) => `${it.n}â–¸ ${it.text.replace(/\n/g, NL)}`).join("\n")}`;
     try {
       const parsed = parseNumbered(await callGemini(p, GEMINI_API_KEY, signal));
       for (const it of todo) {
@@ -2310,7 +2310,7 @@ async function translateBatch(
       const msg = (e as Error).message;
       // 429 (cuota) / 503 (sobrecarga) de Gemini: esperar y reintentar.
       if (/429|503/.test(msg) && attempt < 3) await sleep(3500 + attempt * 3500);
-      else if (attempt >= 3) console.log(`[translate] batch n0=${items[0]?.n} agotó reintentos: ${msg}`);
+      else if (attempt >= 3) console.log(`[translate] batch n0=${items[0]?.n} agotÃ³ reintentos: ${msg}`);
     }
   }
 
@@ -2319,12 +2319,12 @@ async function translateBatch(
     const t = merged.get(it.n);
     map.set(it.n, t ? t.replace(new RegExp(NL, "g"), "\n") : it.text);
   }
-  // ≥80% traducido = se acepta y se cachea (el resto queda en alemán). Un puñado
-  // de líneas sueltas sin traducir no justifica que cada apertura rehaga 30s.
+  // â‰¥80% traducido = se acepta y se cachea (el resto queda en alemÃ¡n). Un puÃ±ado
+  // de lÃ­neas sueltas sin traducir no justifica que cada apertura rehaga 30s.
   return { map, ok: merged.size >= items.length * 0.8 };
 }
 
-// Traduce solo las cues de diálogo, con cache por-lote en KV para que un
+// Traduce solo las cues de diÃ¡logo, con cache por-lote en KV para que un
 // reintento (o el pre-warm) no rehaga lo ya hecho. cacheRef identifica la
 // pista base (url ARD o os-<fileId>).
 async function translateCues(
@@ -2357,7 +2357,7 @@ async function translateCues(
     }));
   }
 
-  // Rondas de traducción: cada ronda toma hasta TRANSLATE_PARALLEL lotes
+  // Rondas de traducciÃ³n: cada ronda toma hasta TRANSLATE_PARALLEL lotes
   // pendientes en paralelo y reintenta los que fallaron, hasta agotarlos o
   // quedarse sin presupuesto.
   for (let round = 0; round < 5 && pending.size && Date.now() < deadline - 3000; round++) {
@@ -2401,23 +2401,23 @@ async function fetchBaseCues(src: { t: string; u?: string; f?: number }): Promis
     if (!dl?.link) throw new Error("base OS sin link");
     const r = await fetch(dl.link, { signal: AbortSignal.timeout(20000) });
     if (!r.ok) throw new Error(`base OS dl ${r.status}`);
-    // decodeSubtitleText (no r.text()) — mismo cuidado de charset/artefactos que las
-    // rutas de servido directo, así la traducción no arranca de un texto ya corrupto.
+    // decodeSubtitleText (no r.text()) â€” mismo cuidado de charset/artefactos que las
+    // rutas de servido directo, asÃ­ la traducciÃ³n no arranca de un texto ya corrupto.
     return parseSrt(decodeSubtitleText(new Uint8Array(await r.arrayBuffer())));
   }
   throw new Error("base desconocida");
 }
 
-// Marcadores de SDH a nivel nombre de archivo / release — barato, sin descargar nada.
+// Marcadores de SDH a nivel nombre de archivo / release â€” barato, sin descargar nada.
 const SDH_NAME_RE = /\b(sdh|hearing[\s._-]*impaired|for the deaf|\[cc\]|\bcc\b|forced\s*sdh)\b/i;
 
 async function osHasSpanish(imdbId: string, season: number | null, episode: number | null): Promise<boolean> {
   if (!OPENSUBTITLES_API_KEY) return false;
-  // es (genérico) + sp (España) + ea (Latinoamérica) — los 3 códigos de español
+  // es (genÃ©rico) + sp (EspaÃ±a) + ea (LatinoamÃ©rica) â€” los 3 cÃ³digos de espaÃ±ol
   // de la API moderna (ver commit "OpenSubtitles Latino real"). /translate solo se
-  // calla si ya hay un subtítulo ES **LIMPIO** (no SDH): si lo único disponible en
-  // español es para sordos, la traducción IA sí vale la pena (preferencia dura de
-  // Pablo — "SDH me molesta muchísimo"). El chequeo es a nivel metadata (flag
+  // calla si ya hay un subtÃ­tulo ES **LIMPIO** (no SDH): si lo Ãºnico disponible en
+  // espaÃ±ol es para sordos, la traducciÃ³n IA sÃ­ vale la pena (preferencia dura de
+  // Pablo â€” "SDH me molesta muchÃ­simo"). El chequeo es a nivel metadata (flag
   // hearing_impaired + regex sobre release/filename), sin gastar cupo de descarga.
   const p = new URLSearchParams({ languages: "es,sp,ea" });
   if (season != null && episode != null) {
@@ -2441,23 +2441,23 @@ async function osHasSpanish(imdbId: string, season: number | null, episode: numb
     return !SDH_NAME_RE.test(hay);
   });
   if (!survivors.length) return false;
-  // Título mainstream con muchas opciones en español: no vale la pena verificar por
-  // contenido, seguro hay alguna limpia — /translate se calla.
+  // TÃ­tulo mainstream con muchas opciones en espaÃ±ol: no vale la pena verificar por
+  // contenido, seguro hay alguna limpia â€” /translate se calla.
   if (survivors.length > 3) return true;
 
   // Nivel 2: el flag hearing_impaired de OpenSubtitles miente (2026-09-05). Para los
   // pocos candidatos que quedan, usar el veredicto por CONTENIDO ya cacheado por el
-  // handler de /opensubtitles (cache hit = gratis; si alguno no está clasificado, la
-  // primera vez cuesta una descarga, después queda para siempre). Si al menos uno es
-  // limpio de verdad, /translate se calla; si todos son SDH, ofrece su traducción.
+  // handler de /opensubtitles (cache hit = gratis; si alguno no estÃ¡ clasificado, la
+  // primera vez cuesta una descarga, despuÃ©s queda para siempre). Si al menos uno es
+  // limpio de verdad, /translate se calla; si todos son SDH, ofrece su traducciÃ³n.
   for (const d of survivors) {
     // deno-lint-ignore no-explicit-any
     const fid = (d as any)?.attributes?.files?.[0]?.file_id;
-    if (!Number.isFinite(fid)) return true; // sin file_id no se puede verificar → conservador
+    if (!Number.isFinite(fid)) return true; // sin file_id no se puede verificar â†’ conservador
     const verdict = await classifySDHCached(Number(fid));
-    if (verdict !== true) return true; // limpio o indeterminado → hay español usable
+    if (verdict !== true) return true; // limpio o indeterminado â†’ hay espaÃ±ol usable
   }
-  return false; // todos los candidatos en español resultaron SDH por contenido
+  return false; // todos los candidatos en espaÃ±ol resultaron SDH por contenido
 }
 
 async function osBaseFileId(
@@ -2483,9 +2483,9 @@ async function osBaseFileId(
   if (!data.length) return null;
 
   // Con el filename real del video: elegir el candidato cuyo release/nombre de
-  // archivo matchee mejor (mismo corte/fuente = mismo timing), no ciegamente el más
-  // descargado. Umbral bajo (>0) porque cualquier señal real de match (ej. "AMZN",
-  // "WEBRip", el nombre del grupo de release) vale más que popularidad a ciegas.
+  // archivo matchee mejor (mismo corte/fuente = mismo timing), no ciegamente el mÃ¡s
+  // descargado. Umbral bajo (>0) porque cualquier seÃ±al real de match (ej. "AMZN",
+  // "WEBRip", el nombre del grupo de release) vale mÃ¡s que popularidad a ciegas.
   if (videoFilename) {
     let best: { fid: number; score: number } | null = null;
     for (const d of data) {
@@ -2506,7 +2506,7 @@ async function osBaseFileId(
 async function handleTranslate(subPath: string, mountBase: string): Promise<Response> {
   if (subPath === "/manifest.json") return jsonResponse(TRANSLATE_MANIFEST);
 
-  // ── listar: /subtitles/:type/:id.json ──────────────────────────────────
+  // â”€â”€ listar: /subtitles/:type/:id.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const listM = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
   if (listM) {
     const [, , rawId] = listM;
@@ -2529,8 +2529,8 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
       }
       if (!bases.length) {
         // El filename real (cuando Stremio lo manda) elige, entre varios candidatos,
-        // el que corresponda al MISMO release que se está reproduciendo — evita el
-        // desface por comparar contra un release distinto (ver "El Gran Héroe
+        // el que corresponda al MISMO release que se estÃ¡ reproduciendo â€” evita el
+        // desface por comparar contra un release distinto (ver "El Gran HÃ©roe
         // Americano", 2026-09-09).
         const de = await osBaseFileId(imdbId, season, episode, "de", filename);
         if (de) bases.push({ t: "os", f: de, label: "base DE", keyRef: `os-${de}` });
@@ -2544,8 +2544,8 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         id: `ia-es-${i}`,
         url: `${mountBase}/gen/${b64u.enc(JSON.stringify({ t: b.t, u: b.u, f: b.f, r: b.keyRef }))}.srt`,
         lang: "spa",
-        label: `[IA→ES latino] ${b.label}`,
-        name: `[IA→ES latino] ${b.label}`,
+        label: `[IAâ†’ES latino] ${b.label}`,
+        name: `[IAâ†’ES latino] ${b.label}`,
       }));
       return jsonResponse({ subtitles });
     } catch (e) {
@@ -2553,7 +2553,7 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
     }
   }
 
-  // ── generar: /gen/<token>.srt  y  /x/<b64 url ARD>.srt ─────────────────
+  // â”€â”€ generar: /gen/<token>.srt  y  /x/<b64 url ARD>.srt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const genM = subPath.match(/^\/gen\/([^/]+?)(?:\.srt)?$/);
   const xM = subPath.match(/^\/x\/([^/]+?)(?:\.srt)?$/);
   if (genM || xM) {
@@ -2566,7 +2566,7 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         src = JSON.parse(b64u.dec(genM![1]));
       }
     } catch {
-      return new Response("token inválido", { status: 400, headers: cors });
+      return new Response("token invÃ¡lido", { status: 400, headers: cors });
     }
 
     const cacheKey = ["translate-srt", "v8", src.r];
@@ -2581,19 +2581,19 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
 
     try {
       const baseCues = await fetchBaseCues(src);
-      if (!baseCues.length) return new Response("subtítulo base vacío", { status: 502, headers: cors });
+      if (!baseCues.length) return new Response("subtÃ­tulo base vacÃ­o", { status: 502, headers: cors });
 
       const { texts, done } = await translateCues(baseCues, src.r, kv, Date.now() + TRANSLATE_BUDGET_MS);
-      // El SRT final descarta las cues de puro sonido (ruido para quien mira en alemán).
+      // El SRT final descarta las cues de puro sonido (ruido para quien mira en alemÃ¡n).
       const outCues = baseCues
         .map((c, i) => ({ ...c, text: texts[i] }))
         .filter((c) => !isSoundOnly(c.text));
       const srt = serializeSrt(outCues);
 
-      // Completa → cache 90 días. Parcial (algún lote nunca parseó — típico:
-      // una escena que la IA se niega a devolver) → igual se cachea el SRT pero
-      // 2 días, así las aperturas repetidas son instantáneas mientras el resto
-      // ya está traducido; se re-genera solo pasado ese plazo por si mejora.
+      // Completa â†’ cache 90 dÃ­as. Parcial (algÃºn lote nunca parseÃ³ â€” tÃ­pico:
+      // una escena que la IA se niega a devolver) â†’ igual se cachea el SRT pero
+      // 2 dÃ­as, asÃ­ las aperturas repetidas son instantÃ¡neas mientras el resto
+      // ya estÃ¡ traducido; se re-genera solo pasado ese plazo por si mejora.
       if (kv) {
         const ttl = done ? TRANSLATE_CACHE_TTL_MS : 2 * 24 * 60 * 60 * 1000;
         try { await kv.set(cacheKey, srt, { expireIn: ttl }); } catch { /* sin cache */ }
@@ -2607,16 +2607,16 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         },
       });
     } catch (e) {
-      return new Response("Error generando traducción: " + (e as Error).message, { status: 502, headers: cors });
+      return new Response("Error generando traducciÃ³n: " + (e as Error).message, { status: 502, headers: cors });
     }
   }
 
   return new Response("Not found", { status: 404, headers: cors });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── /health — estado de config de las sub-funciones ──────────────────────
-// ════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ /health â€” estado de config de las sub-funciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function handleHealth(): Response {
   return jsonResponse({
@@ -2645,9 +2645,9 @@ function handleHealth(): Response {
   });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ── Router ──────────────────────────────────────────────────────────────
-// ════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ Router â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 Deno.serve(async (req: Request): Promise<Response> => {
   const url = new URL(req.url);
@@ -2686,7 +2686,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const subPath = path.slice("/subdl".length) || "/";
       res = await handleSubdl(subPath, `${url.origin}/subdl`);
     } else if (path.startsWith("/opensubtitles-latino")) {
-      // Debe ir ANTES que "/opensubtitles" — ese startsWith también matchea este path.
+      // Debe ir ANTES que "/opensubtitles" â€” ese startsWith tambiÃ©n matchea este path.
       route = "opensubtitles-latino";
       const subPath = path.slice("/opensubtitles-latino".length) || "/";
       res = await handleOpenSubtitles(

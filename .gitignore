@@ -21,5 +21,6 @@ SECRETS.local.md
 # (evita subir SECRETS.local.md/.backups al acotar el root-path del deploy)
 .deploy-hub
 
-# Config/estado local de Claude Code + worktrees de agentes (no versionar)
-.claude/
+# Config/estado local de Antigravity / Gemini + worktrees de agentes (no versionar)
+.agents/local/
+.gemini/

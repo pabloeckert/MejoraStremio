@@ -1,34 +1,34 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * torbox-airlock.mjs — Marca en TorBox como "airlocked" (no se purga a los 30 días de inactividad)
- * los episodios cacheados de shows que Pablo está mirando despacio (Continue Watching en MyTrakt
- * Sync) pero todavía no vio — el caso real que motivó esto fue Ágata y Lola (8 episodios cacheados
- * en riesgo de purgarse antes de que los mire, ver sesión 2026-08-25 en CLAUDE.md).
+ * torbox-airlock.mjs â€” Marca en TorBox como "airlocked" (no se purga a los 30 dÃ­as de inactividad)
+ * los episodios cacheados de shows que Pablo estÃ¡ mirando despacio (Continue Watching en MyTrakt
+ * Sync) pero todavÃ­a no vio â€” el caso real que motivÃ³ esto fue Ãgata y Lola (8 episodios cacheados
+ * en riesgo de purgarse antes de que los mire, ver sesiÃ³n 2026-08-25 en GEMINI.md).
  *
- * Mismo patrón de "próximo episodio no visto" que premiere-radar.mjs, pero en vez de mirar solo el
- * siguiente episodio, recorre TODOS los no vistos de cada show en progreso — cualquiera de ellos
+ * Mismo patrÃ³n de "prÃ³ximo episodio no visto" que premiere-radar.mjs, pero en vez de mirar solo el
+ * siguiente episodio, recorre TODOS los no vistos de cada show en progreso â€” cualquiera de ellos
  * puede estar cacheado y en riesgo, no solo el inmediato siguiente.
  *
  * Matching contra TorBox: se identifica el stream cacheado en Torrentio/Comet (mismo criterio
- * isCachedStream ya usado en el resto del repo) y se extrae su infoHash (campo estándar del
+ * isCachedStream ya usado en el resto del repo) y se extrae su infoHash (campo estÃ¡ndar del
  * protocolo Stremio para streams de torrent). Se compara contra el hash de cada torrent de
  * /api/torrents/mylist para encontrar el id interno de TorBox y marcarlo airlocked.
  *
- * Endpoint de escritura confirmado el 2026-09-03 (sesión previa había dejado esto sin verificar,
- * por el mismo bloqueo de red hacia api.torbox.app/support.torbox.app de esta sesión — ver sesión
- * 2026-08-27/28 en CLAUDE.md): NO es `controltorrent` con operation="airlock" (esa lista de
- * operaciones es Reannounce/Delete/Resume únicamente, confirmado contra la documentación oficial
- * del SDK — TorBox-App/torbox-sdk-js y torbox-sdk-py). El campo `airlocked` se setea con
+ * Endpoint de escritura confirmado el 2026-09-03 (sesiÃ³n previa habÃ­a dejado esto sin verificar,
+ * por el mismo bloqueo de red hacia api.torbox.app/support.torbox.app de esta sesiÃ³n â€” ver sesiÃ³n
+ * 2026-08-27/28 en GEMINI.md): NO es `controltorrent` con operation="airlock" (esa lista de
+ * operaciones es Reannounce/Delete/Resume Ãºnicamente, confirmado contra la documentaciÃ³n oficial
+ * del SDK â€” TorBox-App/torbox-sdk-js y torbox-sdk-py). El campo `airlocked` se setea con
  * `PUT /api/torrents/edittorrent` (`{ torrent_id, airlocked: true }`), confirmado leyendo el
- * código fuente real de un cliente TorBox de terceros open-source (jittarao/torbox-app,
- * backend/src/api/ApiClient.js — método `setAirlock`, que arma el PUT a `edittorrent`/
- * `editusenetdownload`/`editwebdownload` según el tipo de asset). Todavía no probado contra la
- * cuenta real de Pablo (esta sesión sigue sin salida de red hacia TorBox) — correr primero con
+ * cÃ³digo fuente real de un cliente TorBox de terceros open-source (jittarao/torbox-app,
+ * backend/src/api/ApiClient.js â€” mÃ©todo `setAirlock`, que arma el PUT a `edittorrent`/
+ * `editusenetdownload`/`editwebdownload` segÃºn el tipo de asset). TodavÃ­a no probado contra la
+ * cuenta real de Pablo (esta sesiÃ³n sigue sin salida de red hacia TorBox) â€” correr primero con
  * --dry-run y revisar la respuesta cruda antes de confiar en --apply, mismo criterio de siempre.
  *
  * Requiere: ST_EMAIL, ST_PASS, TORBOX_API_KEY
  * Uso:
- *   node scripts/torbox-airlock.mjs              # dry-run: solo muestra qué marcaría
+ *   node scripts/torbox-airlock.mjs              # dry-run: solo muestra quÃ© marcarÃ­a
  *   node scripts/torbox-airlock.mjs --apply       # marca de verdad los episodios encontrados
  *
  * Node >= 20, sin dependencias.
@@ -40,7 +40,7 @@ const TORBOX_API = 'https://api.torbox.app/v1/api';
 
 const APPLY = process.argv.includes('--apply');
 
-const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
+const die = (m, code = 1) => { console.error(`âœ— ${m}`); process.exit(code); };
 const getJson = (url, t = 20000) =>
   fetch(url, { signal: AbortSignal.timeout(t) })
     .then((r) => (r.ok ? r.json() : null))
@@ -53,11 +53,11 @@ const torboxKey = process.env.TORBOX_API_KEY;
 if (!email || !pass) die('Faltan ST_EMAIL / ST_PASS');
 if (!torboxKey) die('Falta TORBOX_API_KEY');
 
-console.log('═'.repeat(60));
-console.log(' MejoraStremio — TorBox AirLock (contenido en progreso)');
+console.log('â•'.repeat(60));
+console.log(' MejoraStremio â€” TorBox AirLock (contenido en progreso)');
 console.log(' ' + new Date().toISOString());
 console.log(` Modo: ${APPLY ? 'APLICANDO (--apply)' : 'dry-run (sin --apply, no escribe nada)'}`);
-console.log('═'.repeat(60));
+console.log('â•'.repeat(60));
 
 const login = await apiPost('login', { authKey: null, email, password: pass });
 const authKey = login?.result?.authKey;
@@ -69,8 +69,8 @@ const addons = col?.result?.addons || [];
 const myTrakt = addons.find((a) => (a.manifest?.id || '').startsWith('trakt.addon.v3.'));
 const torrentio = addons.find((a) => a.manifest?.id === 'com.stremio.torrentio.addon');
 const comet = addons.find((a) => a.manifest?.id === 'stremio.comet.fast');
-if (!myTrakt) die('No se encontró MyTrakt Sync en la colección instalada.');
-if (!torrentio || !comet) die('Torrentio y/o Comet no están instalados.');
+if (!myTrakt) die('No se encontrÃ³ MyTrakt Sync en la colecciÃ³n instalada.');
+if (!torrentio || !comet) die('Torrentio y/o Comet no estÃ¡n instalados.');
 
 const traktBase = baseOf(myTrakt.transportUrl);
 const torrentioBase = baseOf(torrentio.transportUrl);
@@ -91,21 +91,21 @@ const continueWatching = await fetchCatalog('series', 'continue_watching_shows')
 const shows = new Map();
 for (const m of continueWatching) if (m.imdb_id && !shows.has(m.imdb_id)) shows.set(m.imdb_id, m.name);
 if (shows.size === 0) {
-  // MyTrakt devolvió 0 shows: casi seguro un fallo transitorio del endpoint (Pablo siempre tiene
-  // algo en progreso). A diferencia de premiere-radar.mjs, este script NO persiste estado — no hay
+  // MyTrakt devolviÃ³ 0 shows: casi seguro un fallo transitorio del endpoint (Pablo siempre tiene
+  // algo en progreso). A diferencia de premiere-radar.mjs, este script NO persiste estado â€” no hay
   // nada que un fallo silencioso pueda corromper. Salir limpio (exit 0) en vez de marcar el job en
-  // rojo por un hipo de un servicio de terceros: la corrida de mañana reintenta sola.
-  console.log('⚠ MyTrakt Sync devolvió 0 shows en Continue Watching — probable fallo transitorio ' +
-              'del endpoint. No hay nada que airlockear en esta corrida; se reintenta mañana.');
+  // rojo por un hipo de un servicio de terceros: la corrida de maÃ±ana reintenta sola.
+  console.log('âš  MyTrakt Sync devolviÃ³ 0 shows en Continue Watching â€” probable fallo transitorio ' +
+              'del endpoint. No hay nada que airlockear en esta corrida; se reintenta maÃ±ana.');
   process.exit(0);
 }
 console.log(`${shows.size} show(s) en Continue Watching en MyTrakt Sync.\n`);
 
-// Solo tiene sentido airlockear episodios cuya cache en TorBox sea reciente (TorBox recién los
-// bajó y los purga a los 30 días de inactividad). Un episodio estrenado hace años que Pablo
-// "mira despacio" no suele tener una descarga fresca en riesgo. Acotar además evita que el
+// Solo tiene sentido airlockear episodios cuya cache en TorBox sea reciente (TorBox reciÃ©n los
+// bajÃ³ y los purga a los 30 dÃ­as de inactividad). Un episodio estrenado hace aÃ±os que Pablo
+// "mira despacio" no suele tener una descarga fresca en riesgo. Acotar ademÃ¡s evita que el
 // dry-run recorra cientos de episodios viejos de shows largos (X-Files, etc.) probando streams
-// uno por uno — antes no terminaba nunca. Ventana: 2 años, tope 30 episodios por show.
+// uno por uno â€” antes no terminaba nunca. Ventana: 2 aÃ±os, tope 30 episodios por show.
 const AIRLOCK_MAX_AGE_MS = 2 * 365 * 24 * 60 * 60 * 1000;
 const AIRLOCK_PER_SHOW_CAP = 30;
 function unwatchedEpisodes(videos) {
@@ -132,7 +132,7 @@ async function cachedInfoHashes(imdbId, season, episode) {
   return streams.filter(isCachedStream).map((s) => (s.infoHash || '').toLowerCase()).filter(Boolean);
 }
 
-// ── TorBox: listar torrents cacheados de la cuenta y correlacionar por hash ──────────────────
+// â”€â”€ TorBox: listar torrents cacheados de la cuenta y correlacionar por hash â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function torboxMyList() {
   const url = `${TORBOX_API}/torrents/mylist?bypass_cache=true`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${torboxKey}` }, signal: AbortSignal.timeout(20000) });
@@ -172,35 +172,35 @@ for (const [imdbId, showName] of shows) {
       candidates++;
       if (torrent.airlocked) {
         alreadyLocked++;
-        console.log(`  ⏭  ${label} — ya airlocked (${torrent.name || hash})`);
+        console.log(`  â­  ${label} â€” ya airlocked (${torrent.name || hash})`);
         continue;
       }
-      console.log(`  🔒 ${label} — candidato a airlock (${torrent.name || hash}, id=${torrent.id})`);
+      console.log(`  ðŸ”’ ${label} â€” candidato a airlock (${torrent.name || hash}, id=${torrent.id})`);
       if (APPLY) {
         const r = await torboxSetAirlock(torrent.id);
         if (r.ok) {
           marked++;
-          console.log(`     ✅ marcado (status ${r.status})`);
+          console.log(`     âœ… marcado (status ${r.status})`);
         } else {
           failed++;
-          console.log(`     ✗ falló — status ${r.status}, respuesta: ${JSON.stringify(r.body)}`);
+          console.log(`     âœ— fallÃ³ â€” status ${r.status}, respuesta: ${JSON.stringify(r.body)}`);
         }
       }
     }
   }
 }
 
-console.log('\n' + '═'.repeat(60));
+console.log('\n' + 'â•'.repeat(60));
 console.log(`RESUMEN: ${candidates} candidato(s) encontrados, ${alreadyLocked} ya airlocked.`);
 if (APPLY) {
   console.log(`  ${marked} marcado(s) OK, ${failed} fallido(s).`);
   if (failed > 0) {
-    console.log(`  ⚠ Si TODOS fallaron con el mismo error: revisar la respuesta cruda de arriba —`);
+    console.log(`  âš  Si TODOS fallaron con el mismo error: revisar la respuesta cruda de arriba â€”`);
     console.log(`    puede que la cuenta no tenga cupo de AirLock disponible, o que el campo`);
-    console.log(`    esperado por la API haya cambiado desde que se confirmó este endpoint.`);
+    console.log(`    esperado por la API haya cambiado desde que se confirmÃ³ este endpoint.`);
   }
 } else {
-  console.log('  (dry-run — correr con --apply para marcar de verdad)');
+  console.log('  (dry-run â€” correr con --apply para marcar de verdad)');
 }
-console.log('═'.repeat(60));
+console.log('â•'.repeat(60));
 process.exit(failed > 0 && APPLY ? 1 : 0);

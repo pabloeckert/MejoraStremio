@@ -1,15 +1,15 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * Validador de data/preset.json — la fuente de verdad de los catálogos.
+ * Validador de data/preset.json â€” la fuente de verdad de los catÃ¡logos.
  *
  * Red de seguridad: corre esto antes de regenerar AIOMetadata para que un error
- * de edición a mano no llegue a la cuenta. No necesita credenciales ni red.
+ * de ediciÃ³n a mano no llegue a la cuenta. No necesita credenciales ni red.
  *
  * Uso:
  *   node scripts/validate-config.mjs
  *   node scripts/validate-config.mjs --json   # salida machine-readable
  *
- * Exit 0 = válido (puede haber warnings). Exit 1 = hay errores. Exit 2 = no se pudo leer.
+ * Exit 0 = vÃ¡lido (puede haber warnings). Exit 1 = hay errores. Exit 2 = no se pudo leer.
  *
  * Node >= 20, sin dependencias.
  */
@@ -33,12 +33,12 @@ let preset;
 try {
   preset = JSON.parse(readFileSync(PRESET_PATH, "utf8"));
 } catch (e) {
-  console.error(`✗ No se pudo leer/parsear ${PRESET_PATH}: ${e.message}`);
+  console.error(`âœ— No se pudo leer/parsear ${PRESET_PATH}: ${e.message}`);
   process.exit(2);
 }
 
-// ── Estructura raíz ──────────────────────────────────────────────────────────
-if (!isObj(preset)) err("La raíz de preset.json no es un objeto");
+// â”€â”€ Estructura raÃ­z â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+if (!isObj(preset)) err("La raÃ­z de preset.json no es un objeto");
 
 const aio = preset?.aioMetadataConfig;
 if (!isObj(aio)) {
@@ -52,47 +52,47 @@ if (!isObj(aio)) {
 const cfg = aio?.config || {};
 const standard = Array.isArray(aio?.catalogs?.standard) ? aio.catalogs.standard : [];
 
-// ── Reglas de config crítica (ver CLAUDE.md) ────────────────────────────────
+// â”€â”€ Reglas de config crÃ­tica (ver GEMINI.md) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 if (cfg.hideUnreleasedDigital !== false)
   err(`config.hideUnreleasedDigital debe ser false (es ${JSON.stringify(cfg.hideUnreleasedDigital)}); ` +
-      `con true "Próximos Estrenos"/"En Cartelera" no devuelven resultados`);
+      `con true "PrÃ³ximos Estrenos"/"En Cartelera" no devuelven resultados`);
 
 const eng = cfg.search?.engineEnabled || {};
 for (const k of ["people_search_movie", "people_search_series"]) {
-  if (eng[k] !== true) warn(`search.engineEnabled.${k} no está en true → la búsqueda por actor puede no funcionar`);
+  if (eng[k] !== true) warn(`search.engineEnabled.${k} no estÃ¡ en true â†’ la bÃºsqueda por actor puede no funcionar`);
 }
 if (!isObj(cfg.apiKeys)) warn("config.apiKeys no es un objeto");
 
-// ── Catálogos ────────────────────────────────────────────────────────────────
+// â”€â”€ CatÃ¡logos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const VALID_TYPES = new Set(["movie", "series", "all"]);
-const seen = new Map(); // "type|id" -> primer índice
+const seen = new Map(); // "type|id" -> primer Ã­ndice
 const DISCOVER_RE = /^tmdb\.discover\./;
 
 standard.forEach((c, i) => {
   const at = `standard[${i}]`;
   if (!isObj(c)) { err(`${at} no es un objeto`); return; }
-  if (!isStr(c.id)) err(`${at} sin id válido`);
-  if (!VALID_TYPES.has(c.type)) err(`${at} (${c.id}) type inválido: ${JSON.stringify(c.type)}`);
-  if (!isStr(c.name)) err(`${at} (${c.id}) sin name válido`);
+  if (!isStr(c.id)) err(`${at} sin id vÃ¡lido`);
+  if (!VALID_TYPES.has(c.type)) err(`${at} (${c.id}) type invÃ¡lido: ${JSON.stringify(c.type)}`);
+  if (!isStr(c.name)) err(`${at} (${c.id}) sin name vÃ¡lido`);
   if (!isBool(c.enabled)) err(`${at} (${c.id}) enabled no es booleano`);
   if (!isBool(c.showInHome)) warn(`${at} (${c.id}) sin showInHome booleano`);
   if (!isStr(c.source)) warn(`${at} (${c.id}) sin source`);
 
-  // Catálogos discover custom deben traer sus params de TMDB.
+  // CatÃ¡logos discover custom deben traer sus params de TMDB.
   if (isStr(c.id) && DISCOVER_RE.test(c.id)) {
     const params = c.metadata?.discover?.params;
     if (!isObj(params)) err(`${at} (${c.id}) es discover pero le falta metadata.discover.params`);
   }
 
-  // Unicidad type|id (un id duplicado rompe la búsqueda/colección).
+  // Unicidad type|id (un id duplicado rompe la bÃºsqueda/colecciÃ³n).
   if (isStr(c.id)) {
     const key = `${c.type}|${c.id}`;
-    if (seen.has(key)) err(`id duplicado "${key}" en ${at} (también en standard[${seen.get(key)}])`);
+    if (seen.has(key)) err(`id duplicado "${key}" en ${at} (tambiÃ©n en standard[${seen.get(key)}])`);
     else seen.set(key, i);
   }
 });
 
-// ── Salida ───────────────────────────────────────────────────────────────────
+// â”€â”€ Salida â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const summary = {
   ok: errors.length === 0,
   catalogs: standard.length,
@@ -104,17 +104,17 @@ const summary = {
 if (process.argv.includes("--json")) {
   console.log(JSON.stringify(summary, null, 2));
 } else {
-  console.log(`\nValidación de preset.json — ${standard.length} catálogos (${summary.enabled} enabled)`);
+  console.log(`\nValidaciÃ³n de preset.json â€” ${standard.length} catÃ¡logos (${summary.enabled} enabled)`);
   if (warns.length) {
-    console.log(`\n⚠ ${warns.length} warning(s):`);
+    console.log(`\nâš  ${warns.length} warning(s):`);
     warns.forEach((m) => console.log(`  - ${m}`));
   }
   if (errors.length) {
-    console.log(`\n✗ ${errors.length} error(es):`);
+    console.log(`\nâœ— ${errors.length} error(es):`);
     errors.forEach((m) => console.log(`  - ${m}`));
-    console.log("\n✗ preset.json INVÁLIDO");
+    console.log("\nâœ— preset.json INVÃLIDO");
   } else {
-    console.log("\n✅ preset.json válido");
+    console.log("\nâœ… preset.json vÃ¡lido");
   }
 }
 

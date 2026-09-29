@@ -1,19 +1,19 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * log-status.mjs — Registra el resultado de una corrida automatizada (health-monitor,
+ * log-status.mjs â€” Registra el resultado de una corrida automatizada (health-monitor,
  * daily-catalog-refresh, anti-frustration-review, premiere-radar) en un log interno
- * (data/internal-log.jsonl) que NO se manda por mail a Pablo — pensado para que Claude lo lea
- * en sesiones futuras: cómo viene funcionando la cuenta día a día, y material crudo para inferir
- * gustos/uso con el tiempo (a pedido explícito de Pablo, ver CLAUDE.md).
+ * (data/internal-log.jsonl) que NO se manda por mail a Pablo â€” pensado para que Gemini lo lea
+ * en sesiones futuras: cÃ³mo viene funcionando la cuenta dÃ­a a dÃ­a, y material crudo para inferir
+ * gustos/uso con el tiempo (a pedido explÃ­cito de Pablo, ver GEMINI.md).
  *
  * Uso: node scripts/log-status.mjs <source> <status> < output.txt
- *   <status> = ok | warn | error   (libre, no se valida — cada workflow decide su propio criterio)
+ *   <status> = ok | warn | error   (libre, no se valida â€” cada workflow decide su propio criterio)
  *
- * Filtra del output las líneas de chequeo rutinario ("  ✓ ...") para no acumular ruido — conserva
- * encabezados, advertencias (⚠), errores (✗), resúmenes finales y cualquier línea con otro formato
- * (✅/⏳/LISTO_NUEVO/etc., que ya vienen usando otros scripts del repo).
+ * Filtra del output las lÃ­neas de chequeo rutinario ("  âœ“ ...") para no acumular ruido â€” conserva
+ * encabezados, advertencias (âš ), errores (âœ—), resÃºmenes finales y cualquier lÃ­nea con otro formato
+ * (âœ…/â³/LISTO_NUEVO/etc., que ya vienen usando otros scripts del repo).
  *
- * Poda entradas de más de RETENTION_DAYS para no crecer sin límite.
+ * Poda entradas de mÃ¡s de RETENTION_DAYS para no crecer sin lÃ­mite.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -32,7 +32,7 @@ if (!source || !status) {
 const raw = readFileSync(0, 'utf8');
 const summary = raw
   .split('\n')
-  .filter((l) => !/^\s*✓/.test(l))
+  .filter((l) => !/^\s*âœ“/.test(l))
   .join('\n')
   .trim();
 
@@ -46,4 +46,4 @@ kept.push({ date: new Date().toISOString(), source, status, summary });
 
 mkdirSync(dirname(LOG_PATH), { recursive: true });
 writeFileSync(LOG_PATH, kept.map((e) => JSON.stringify(e)).join('\n') + '\n');
-console.log(`✓ Log interno actualizado (${kept.length} entradas, retención ${RETENTION_DAYS}d).`);
+console.log(`âœ“ Log interno actualizado (${kept.length} entradas, retenciÃ³n ${RETENTION_DAYS}d).`);

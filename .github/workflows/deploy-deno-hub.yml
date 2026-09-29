@@ -1,8 +1,8 @@
 name: deploy-deno-hub
 
 # Redeploya scripts/deno-hub.ts (la app "mejorastremio-hub" en Deno Deploy) desde un runner de
-# GitHub Actions, que sí tiene salida de red a deno.land/api de Deno Deploy — a diferencia de las
-# sesiones de Claude Code en contenedores con esa salida bloqueada (ver CLAUDE.md, varias sesiones
+# GitHub Actions, que sí tiene salida de red a deno.land/api de Deno Deploy — a diferencia de
+# entornos de ejecución restringidos o contenedores con salida bloqueada (ver GEMINI.md, sesiones
 # de agosto 2026). Solo disparo manual: un deploy es una acción deliberada, nunca automática.
 
 on:

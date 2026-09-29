@@ -26,7 +26,7 @@ jobs:
       # ambos lados aparece como conflicto "add/add", aunque el contenido no choque de verdad).
       # Encontrado el 2026-08-28 al disparar este workflow manualmente contra una rama de trabajo
       # divergente — el mismo riesgo existe en frío, aunque más raro, si dos de los 4 workflows que
-      # commitean a data/ llegan a correr casi al mismo tiempo sobre main (ver CLAUDE.md).
+      # commitean a data/ llegan a correr casi al mismo tiempo sobre main (ver GEMINI.md).
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -48,7 +48,7 @@ jobs:
           fi
 
       # Regenera la instancia de AIOMetadata en ElfHosted y la aplica a la cuenta real cuando
-      # refresh-dates.mjs efectivamente movió la ventana de fechas (ver CLAUDE.md → "AIOMetadata
+      # refresh-dates.mjs efectivamente movió la ventana de fechas (ver GEMINI.md → "AIOMetadata
       # — reconstruir/editar la instancia"), O cuando el run se disparó a mano (workflow_dispatch)
       # — un dispatch manual significa "aplicá esto ahora", y "changed" solo detecta si
       # refresh-dates.mjs hizo cambios EN ESTA corrida, no si el preset.json ya commiteado
@@ -85,7 +85,7 @@ jobs:
           ST_PASS="${{ secrets.STREMIO_PASS }}" \
           node scripts/health-check.mjs 2>&1 | tee -a /tmp/summary.txt
 
-      # Instancia propia de solotveg (perfil juvenil, ver cuentas/solotveg/CLAUDE.md): reordena/
+      # Instancia propia de solotveg (perfil juvenil, ver GEMINI.md): reordena/
       # filtra igual que regenerate-aiometadata.mjs pero con ageRating=PG-13 y sin país/región/
       # rating en Home. Corre siempre que preset.json cambió (misma condición que la instancia
       # compartida, porque lee las mismas fechas de Estrenos/Cartelera).

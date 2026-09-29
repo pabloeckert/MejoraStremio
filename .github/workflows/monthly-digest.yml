@@ -2,7 +2,7 @@ name: monthly-digest
 
 # 08:00 Argentina (UTC-3) el día 1 de cada mes. "Esto se estrenó de tu gusto" — barre el
 # cluster policial/familia contra el hub propio y registra el resultado en el log interno
-# (sin email, ver CLAUDE.md "Sesión 2026-08-02"). No requiere ningún secret: solo le pega
+# (sin email, ver GEMINI.md "Sesión 2026-08-02"). No requiere ningún secret: solo le pega
 # al hub público (mejorastremio-hub), que ya tiene la TMDB key server-side.
 on:
   schedule:

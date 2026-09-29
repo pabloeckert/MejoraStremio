@@ -1,22 +1,22 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
  * Regenera la instancia de AIOMetadata PROPIA de la cuenta solotveg (perfil
  * juvenil/adolescente) desde data/preset.json, aplicando las diferencias de
  * ese perfil respecto a la instancia compartida de stremioeg/stremiojn (ver
- * cuentas/solotveg/CLAUDE.md):
+ * cuentas/solotveg/GEMINI.md):
  *
  *   1. ageRating="PG-13" (cap nativo del addon, mapea a TV-14 en series).
  *   2. Sin tokens trakt/simkl de Pablo (esta cuenta no tiene Trakt conectado).
- *   3. Reorden de catalogs.standard: Estrenos/Cartelera → Plataforma/Canal →
- *      Tipo de contenido (animación / acción real) → resto de géneros →
+ *   3. Reorden de catalogs.standard: Estrenos/Cartelera â†’ Plataforma/Canal â†’
+ *      Tipo de contenido (animaciÃ³n / acciÃ³n real) â†’ resto de gÃ©neros â†’
  *      al final y ocultos de Inicio: Trending/Latest/Top Rated/Best of 2020s
- *      y los catálogos por país/región (a este perfil no le interesan).
- *   4. Se agregan 2 catálogos nuevos ("Acción Real" movie/series, con
- *      without_genres=16) que no existen en el preset compartido — son
+ *      y los catÃ¡logos por paÃ­s/regiÃ³n (a este perfil no le interesan).
+ *   4. Se agregan 2 catÃ¡logos nuevos ("AcciÃ³n Real" movie/series, con
+ *      without_genres=16) que no existen en el preset compartido â€” son
  *      SOLO de esta instancia, no se escriben en data/preset.json.
- *   5. Se quita vote_average.gte y se baja vote_count.gte en los catálogos
- *      de género/plataforma — este perfil prioriza cantidad de contenido por
- *      sobre validación por rating (a diferencia de stremioeg). Se conserva
+ *   5. Se quita vote_average.gte y se baja vote_count.gte en los catÃ¡logos
+ *      de gÃ©nero/plataforma â€” este perfil prioriza cantidad de contenido por
+ *      sobre validaciÃ³n por rating (a diferencia de stremioeg). Se conserva
  *      el piso de with_runtime.gte (evita basura real, no filtra por gusto).
  *
  * No toca data/preset.json ni la instancia compartida. El UUID resultante se
@@ -36,14 +36,14 @@ const PRESET_PATH = "data/preset.json";
 const INSTANCE_PATH = "cuentas/solotveg/aiometadata-instance.json";
 const APPLY = process.argv.includes("--apply");
 
-const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
+const die = (m, code = 1) => { console.error(`âœ— ${m}`); process.exit(code); };
 const aioPass = process.env.AIO_PASSWORD;
 const email = process.env.ST_EMAIL_TEEN;
 const pass = process.env.ST_PASS_TEEN;
 if (!aioPass) die("Falta AIO_PASSWORD");
 if (!email || !pass) die("Faltan ST_EMAIL_TEEN / ST_PASS_TEEN");
 
-// ── Clasificación de catálogos ───────────────────────────────────────────────
+// â”€â”€ ClasificaciÃ³n de catÃ¡logos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const isDate = (c) => /upcoming|now_playing/.test(c.id);
 const isPlatform = (c) => c.id.startsWith("flixpatrol.") || /cartoon-network|nickelodeon|warner-bros|youtube-premium/.test(c.id);
 const isAnimation = (c) => /animation_movies|animation_shows/.test(c.id);
@@ -70,7 +70,7 @@ function buildLiveActionCatalog(type) {
   return {
     id: `tmdb.discover.${isMovie ? "movie" : "tv"}.live_action.pablo9${isMovie ? "00" : "01"}`,
     type: isMovie ? "movie" : "series",
-    name: isMovie ? "Acción Real (Películas)" : "Acción Real (Series)",
+    name: isMovie ? "AcciÃ³n Real (PelÃ­culas)" : "AcciÃ³n Real (Series)",
     enabled: true,
     showInHome: true,
     source: "tmdb",
@@ -86,14 +86,14 @@ function buildLiveActionCatalog(type) {
           include_adult: false,
           without_genres: "16",
           watch_region: "US",
-          "vote_count.gte": 50, // piso mínimo: sin esto, ordenar por fecha saca puro indie sin
-                                 // certificación cargada en TMDB, y el cap de edad los descarta a
-                                 // todos por "no verificado" (probado empíricamente, ver commit)
+          "vote_count.gte": 50, // piso mÃ­nimo: sin esto, ordenar por fecha saca puro indie sin
+                                 // certificaciÃ³n cargada en TMDB, y el cap de edad los descarta a
+                                 // todos por "no verificado" (probado empÃ­ricamente, ver commit)
           ...(isMovie ? { with_release_type: "4|5|6", "with_runtime.gte": 60 } : { with_type: "2", "with_runtime.gte": 10 }),
           with_origin_country: "US|GB|CA|AU|IE|FR|DE|IT|ES|PT|NL|BE|SE|NO|DK|FI|AT|CH|AR|MX|BR|CO|CL|PE|JP|KR",
         },
         formState: {
-          catalogName: isMovie ? "Acción Real (Películas)" : "Acción Real (Series)",
+          catalogName: isMovie ? "AcciÃ³n Real (PelÃ­culas)" : "AcciÃ³n Real (Series)",
           discoverSource: "tmdb",
           sortBy: isMovie ? "primary_release_date.desc" : "first_air_date.desc",
           cacheTTL: 86400,
@@ -126,7 +126,7 @@ const liveActionCats = [buildLiveActionCatalog("movie"), buildLiveActionCatalog(
 const deprioritized = enabled.filter((c) => !isDate(c) && !isPlatform(c) && !isAnimation(c) && (isCountryOrRegion(c) || isRatingBased(c)));
 const rest = enabled.filter((c) => ![...dateCats, ...platformCats, ...animationCats, ...deprioritized].includes(c));
 
-console.log(`Estrenos/Cartelera: ${dateCats.length} | Plataforma/Canal: ${platformCats.length} | Animación: ${animationCats.length} (+2 Acción Real nuevas) | Resto géneros: ${rest.length} | Deprioritizados (país/región/rating): ${deprioritized.length}`);
+console.log(`Estrenos/Cartelera: ${dateCats.length} | Plataforma/Canal: ${platformCats.length} | AnimaciÃ³n: ${animationCats.length} (+2 AcciÃ³n Real nuevas) | Resto gÃ©neros: ${rest.length} | Deprioritizados (paÃ­s/regiÃ³n/rating): ${deprioritized.length}`);
 
 const finalOrder = [
   ...dateCats,
@@ -145,8 +145,8 @@ delete config.trakt;
 delete config.simkl;
 if (config.apiKeys) { delete config.apiKeys.trakt; delete config.apiKeys.simkl; }
 
-console.log(`\nTotal catálogos en la config nueva: ${finalOrder.length}`);
-console.log(`Orden: ${finalOrder.slice(0, 8).map((c) => c.name).join(" → ")} → ...`);
+console.log(`\nTotal catÃ¡logos en la config nueva: ${finalOrder.length}`);
+console.log(`Orden: ${finalOrder.slice(0, 8).map((c) => c.name).join(" â†’ ")} â†’ ...`);
 
 const save = await fetch(`${AIO_BASE}/api/config/save`, {
   method: "POST",
@@ -154,18 +154,18 @@ const save = await fetch(`${AIO_BASE}/api/config/save`, {
   body: JSON.stringify({ config, password: aioPass }),
   signal: AbortSignal.timeout(30000),
 }).then((r) => r.json());
-if (!save?.success || !save?.installUrl) die("Save falló: " + JSON.stringify(save));
+if (!save?.success || !save?.installUrl) die("Save fallÃ³: " + JSON.stringify(save));
 const installUrl = save.installUrl;
 const newUuid = (installUrl.match(/\/([0-9a-f-]{36})\//) || [])[1];
-console.log(`\n✓ Instancia nueva: ${newUuid}`);
+console.log(`\nâœ“ Instancia nueva: ${newUuid}`);
 
 const newMan = await fetch(installUrl).then((r) => r.json());
-console.log(`Manifest: ${(newMan.catalogs || []).length} catálogos, primero: ${newMan.catalogs?.[0]?.name}`);
-if (!newMan.catalogs?.length) die("Manifest nuevo sin catálogos — algo salió mal, no se instala");
+console.log(`Manifest: ${(newMan.catalogs || []).length} catÃ¡logos, primero: ${newMan.catalogs?.[0]?.name}`);
+if (!newMan.catalogs?.length) die("Manifest nuevo sin catÃ¡logos â€” algo saliÃ³ mal, no se instala");
 
 mkdirSync("cuentas/solotveg", { recursive: true });
-writeFileSync(INSTANCE_PATH, JSON.stringify({ instanceId: newUuid, note: "AIOMetadata separado con ageRating=PG-13 (cap TV-14 en series), reorden Estrenos→Plataforma→Contenido→resto, sin país/región/rating en Home. Solo para esta cuenta.", regeneratedAt: new Date().toISOString() }, null, 2) + "\n");
-console.log(`✓ ${INSTANCE_PATH} actualizado`);
+writeFileSync(INSTANCE_PATH, JSON.stringify({ instanceId: newUuid, note: "AIOMetadata separado con ageRating=PG-13 (cap TV-14 en series), reorden Estrenosâ†’Plataformaâ†’Contenidoâ†’resto, sin paÃ­s/regiÃ³n/rating en Home. Solo para esta cuenta.", regeneratedAt: new Date().toISOString() }, null, 2) + "\n");
+console.log(`âœ“ ${INSTANCE_PATH} actualizado`);
 
 if (!APPLY) {
   console.log("\nModo reporte (sin --apply): instancia creada pero NO instalada en la cuenta.");
@@ -178,7 +178,7 @@ if (!authKey) die("Login fallido: " + JSON.stringify(login?.error || login));
 const col = await apiPost("addonCollectionGet", { type: "AddonCollectionGet", authKey, update: true });
 const addons = col?.result?.addons || [];
 const idx = addons.findIndex((a) => a.manifest?.id === "aio-metadata");
-if (idx < 0) die("No se encontró AIOMetadata en la cuenta");
+if (idx < 0) die("No se encontrÃ³ AIOMetadata en la cuenta");
 
 mkdirSync(".backups", { recursive: true });
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -186,7 +186,7 @@ writeFileSync(`.backups/backup-solotveg-pre-aio-regen-${stamp}.json`, JSON.strin
 
 addons[idx] = { ...addons[idx], transportUrl: installUrl, manifest: newMan };
 const set = await apiPost("addonCollectionSet", { type: "AddonCollectionSet", authKey, addons });
-if (!(set?.result || set?.success)) die("addonCollectionSet falló: " + JSON.stringify(set));
+if (!(set?.result || set?.success)) die("addonCollectionSet fallÃ³: " + JSON.stringify(set));
 
 let okSwap = false;
 for (let i = 0; i < 4 && !okSwap; i++) {
@@ -195,5 +195,5 @@ for (let i = 0; i < 4 && !okSwap; i++) {
   const aioAfter = (after?.result?.addons || []).find((a) => a.manifest?.id === "aio-metadata");
   okSwap = (aioAfter?.transportUrl || "").includes(newUuid);
 }
-console.log(`\n${okSwap ? "✅" : "✗"} Swap ${okSwap ? "OK" : "NO confirmado"} — AIOMetadata solotveg → ${newUuid}`);
+console.log(`\n${okSwap ? "âœ…" : "âœ—"} Swap ${okSwap ? "OK" : "NO confirmado"} â€” AIOMetadata solotveg â†’ ${newUuid}`);
 process.exit(okSwap ? 0 : 1);

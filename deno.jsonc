@@ -6,7 +6,7 @@
   // deployar a producción (deploya a preview igual) Y rompe el `--prod` explícito
   // local por duplicación. En CI (deploy-deno-hub.yml) el deploy queda en preview
   // y hay que promoverlo a mano en console.deno.com — quirk conocido del CLI en
-  // Actions, ver CLAUDE.md sesión 2026-08-29 / 2026-09-03.
+  // Actions, ver GEMINI.md sesión 2026-08-29 / 2026-09-03.
   "deploy": {
     "org": "pabloeckert",
     "app": "mejorastremio-hub"

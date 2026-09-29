@@ -42,7 +42,7 @@ console.log(' [TEST 1/3] Validación de Estructura de Configuración y Perfil');
 console.log('═'.repeat(70));
 
 const profileJsonPath = join(ROOT, 'cuentas', 'stremioeg', 'profile.json');
-const profileClaudePath = join(ROOT, 'cuentas', 'stremioeg', 'CLAUDE.md');
+const profileGeminiPath = join(ROOT, 'cuentas', 'stremioeg', 'GEMINI.md');
 const presetPath = join(ROOT, 'data', 'preset.json');
 const workflowPath = join(ROOT, '.github', 'workflows', 'daily-catalog-refresh.yml');
 
@@ -65,9 +65,9 @@ if (profile) {
   record(report.test1_structure, 'Regla de sincronización diaria de catálogos declarada', hasCatalogs);
 }
 
-// 1.3 Documentación en cuentas/stremioeg/CLAUDE.md
-const hasClaudeDoc = existsSync(profileClaudePath);
-record(report.test1_structure, 'Documentación cuentas/stremioeg/CLAUDE.md presente', hasClaudeDoc);
+// 1.3 Documentación en cuentas/stremioeg/GEMINI.md
+const hasGeminiDoc = existsSync(profileGeminiPath);
+record(report.test1_structure, 'Documentación cuentas/stremioeg/GEMINI.md presente', hasGeminiDoc);
 
 // 1.4 Integridad de data/preset.json
 let preset = null;

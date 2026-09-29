@@ -1,6 +1,6 @@
-/**
- * reorder-addons.mjs — Mueve un addon al índice 0 de la colección, o justo
- * después de otro addon con --after.
+﻿/**
+ * reorder-addons.mjs â€” Mueve un addon al Ã­ndice 0 de la colecciÃ³n, o justo
+ * despuÃ©s de otro addon con --after.
  *
  * Uso:
  *   ST_PASS=... node scripts/reorder-addons.mjs <manifest.id>
@@ -39,17 +39,17 @@ const apiPost = (path, body) => _apiPost(path, body, { timeout: 15000 });
 const login = await apiPost('login', { authKey: null, email: EMAIL, password: PASS });
 const authKey = login?.result?.authKey;
 if (!authKey) { console.error('Login fallido:', login?.error); process.exit(1); }
-console.log('✓ Login OK');
+console.log('âœ“ Login OK');
 
-// Leer colección actual
+// Leer colecciÃ³n actual
 const col = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
 const addons = col?.result?.addons || [];
-console.log(`✓ ${addons.length} addons leídos`);
+console.log(`âœ“ ${addons.length} addons leÃ­dos`);
 
 // Buscar el addon objetivo
 const idx = addons.findIndex((a) => a.manifest?.id === targetId);
 if (idx === -1) {
-  console.error(`✗ No se encontró addon con manifest.id="${targetId}"`);
+  console.error(`âœ— No se encontrÃ³ addon con manifest.id="${targetId}"`);
   console.log('IDs disponibles:', addons.map((a) => a.manifest?.id).join(', '));
   process.exit(1);
 }
@@ -60,11 +60,11 @@ let reordered;
 if (afterId) {
   const afterIdx = addons.findIndex((a) => a.manifest?.id === afterId);
   if (afterIdx === -1) {
-    console.error(`✗ No se encontró addon con manifest.id="${afterId}" (--after)`);
+    console.error(`âœ— No se encontrÃ³ addon con manifest.id="${afterId}" (--after)`);
     process.exit(1);
   }
   if (afterIdx === idx - 1) {
-    console.log(`✓ "${targetId}" ya está justo después de "${afterId}" — nada que hacer.`);
+    console.log(`âœ“ "${targetId}" ya estÃ¡ justo despuÃ©s de "${afterId}" â€” nada que hacer.`);
     process.exit(0);
   }
   const withoutTarget = addons.filter((_, i) => i !== idx);
@@ -74,15 +74,15 @@ if (afterId) {
     addons[idx],
     ...withoutTarget.slice(newAfterIdx + 1),
   ];
-  console.log(`\nOrden NUEVO (${targetId} → justo después de ${afterId}):`);
+  console.log(`\nOrden NUEVO (${targetId} â†’ justo despuÃ©s de ${afterId}):`);
 } else {
   if (idx === 0) {
-    console.log(`✓ "${targetId}" ya está en índice 0 — nada que hacer.`);
+    console.log(`âœ“ "${targetId}" ya estÃ¡ en Ã­ndice 0 â€” nada que hacer.`);
     process.exit(0);
   }
   // Nuevo orden: el objetivo al frente, resto igual
   reordered = [addons[idx], ...addons.filter((_, i) => i !== idx)];
-  console.log(`\nOrden NUEVO (${targetId} → índice 0):`);
+  console.log(`\nOrden NUEVO (${targetId} â†’ Ã­ndice 0):`);
 }
 reordered.forEach((a, i) => console.log(`  ${i} ${a.manifest?.id} | ${a.manifest?.name}`));
 
@@ -91,10 +91,10 @@ if (!apply) {
   process.exit(0);
 }
 
-// Guard anti-manifest-congelado: un simple reorden no modifica el manifest de ningún addon, así
-// que ninguno debería perder catalogs — ver scripts/lib/collection-guard.mjs y CLAUDE.md → "Bug
+// Guard anti-manifest-congelado: un simple reorden no modifica el manifest de ningÃºn addon, asÃ­
+// que ninguno deberÃ­a perder catalogs â€” ver scripts/lib/collection-guard.mjs y GEMINI.md â†’ "Bug
 // real: catalogs:[] indiscriminado". regenerate-aiometadata.mjs ya prueba que addonCollectionSet
-// acepta el payload completo (con catálogos embebidos) sin problema; no hace falta vaciarlo.
+// acepta el payload completo (con catÃ¡logos embebidos) sin problema; no hace falta vaciarlo.
 import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
 if (!(await assertNoFrozenEmptyCatalogs(reordered, []))) {
   process.exit(1);
@@ -106,7 +106,7 @@ const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const accountSlug = EMAIL.split('@')[0];
 const backupPath = `.backups/backup-${accountSlug}-pre-reorder-${ts}.json`;
 writeFileSync(backupPath, JSON.stringify({ result: { addons } }, null, 2));
-console.log(`\n✓ Backup guardado: ${backupPath}`);
+console.log(`\nâœ“ Backup guardado: ${backupPath}`);
 
 // Aplicar
 const res = await apiPost('addonCollectionSet', {
@@ -116,13 +116,13 @@ const res = await apiPost('addonCollectionSet', {
 });
 
 if (res?.result?.success) {
-  console.log('✓ Colección actualizada correctamente.');
+  console.log('âœ“ ColecciÃ³n actualizada correctamente.');
   console.log('\nVerificando...');
   const check = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
   const newAddons = check?.result?.addons || [];
-  console.log(`  Índice 0: ${newAddons[0]?.manifest?.id} | ${newAddons[0]?.manifest?.name}`);
-  console.log('✓ Listo.');
+  console.log(`  Ãndice 0: ${newAddons[0]?.manifest?.id} | ${newAddons[0]?.manifest?.name}`);
+  console.log('âœ“ Listo.');
 } else {
-  console.error('✗ Error al aplicar:', JSON.stringify(res));
+  console.error('âœ— Error al aplicar:', JSON.stringify(res));
   process.exit(1);
 }

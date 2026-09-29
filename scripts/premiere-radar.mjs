@@ -1,20 +1,20 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * premiere-radar.mjs — Para cada show en progreso/watchlist en MyTrakt Sync, calcula el próximo
- * episodio no visto y avisa por email la PRIMERA vez que ese episodio puntual está realmente listo
+ * premiere-radar.mjs â€” Para cada show en progreso/watchlist en MyTrakt Sync, calcula el prÃ³ximo
+ * episodio no visto y avisa por email la PRIMERA vez que ese episodio puntual estÃ¡ realmente listo
  * para ver: al menos un stream cacheado en TorBox (Torrentio/Comet, sin depender de que el swarm
- * P2P tenga seeds vivos) Y al menos un subtítulo en español ya hecho (no una traducción bajo
- * demanda todavía sin generar) en alguna de las 5 fuentes de subs instaladas.
+ * P2P tenga seeds vivos) Y al menos un subtÃ­tulo en espaÃ±ol ya hecho (no una traducciÃ³n bajo
+ * demanda todavÃ­a sin generar) en alguna de las 5 fuentes de subs instaladas.
  *
- * "Próximo episodio no visto" viene directo del campo `watched` que MyTrakt Sync ya calcula por
- * episodio en su propio endpoint de meta (sincronizado con Trakt) — no hace falta la API de Trakt
- * ni sus tokens (que ni siquiera son accesibles desde acá, ver CLAUDE.md).
+ * "PrÃ³ximo episodio no visto" viene directo del campo `watched` que MyTrakt Sync ya calcula por
+ * episodio en su propio endpoint de meta (sincronizado con Trakt) â€” no hace falta la API de Trakt
+ * ni sus tokens (que ni siquiera son accesibles desde acÃ¡, ver GEMINI.md).
  *
- * Si el episodio target ni siquiera se estrenó todavía, queda "pendiente" sin gastar requests en
- * Torrentio/Comet/subs. Si ya se estrenó pero falla alguno de los dos chequeos, también queda
- * "pendiente" — se re-chequea en la próxima corrida, sin avisar nada (cero spam de falsos
+ * Si el episodio target ni siquiera se estrenÃ³ todavÃ­a, queda "pendiente" sin gastar requests en
+ * Torrentio/Comet/subs. Si ya se estrenÃ³ pero falla alguno de los dos chequeos, tambiÃ©n queda
+ * "pendiente" â€” se re-chequea en la prÃ³xima corrida, sin avisar nada (cero spam de falsos
  * positivos). El estado persiste en data/premiere-radar-state.json para no avisar dos veces el
- * mismo episodio una vez que ya pasó a LISTO.
+ * mismo episodio una vez que ya pasÃ³ a LISTO.
  *
  * Requiere: ST_EMAIL, ST_PASS
  * Uso: node scripts/premiere-radar.mjs
@@ -31,7 +31,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const STATE_PATH = join(ROOT, 'data', 'premiere-radar-state.json');
 
-const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
+const die = (m, code = 1) => { console.error(`âœ— ${m}`); process.exit(code); };
 const getJson = (url, t = 20000) =>
   fetch(url, { signal: AbortSignal.timeout(t) })
     .then((r) => (r.ok ? r.json() : null))
@@ -60,23 +60,23 @@ const col = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', au
 const addons = col?.result?.addons || [];
 
 const myTrakt = addons.find((a) => (a.manifest?.id || '').startsWith('trakt.addon.v3.'));
-if (!myTrakt) die('No se encontró MyTrakt Sync en la colección instalada.');
+if (!myTrakt) die('No se encontrÃ³ MyTrakt Sync en la colecciÃ³n instalada.');
 const torrentio = addons.find((a) => a.manifest?.id === 'com.stremio.torrentio.addon');
 const comet = addons.find((a) => a.manifest?.id === 'stremio.comet.fast');
-if (!torrentio || !comet) die('Torrentio y/o Comet no están instalados — no se puede chequear cache TorBox.');
+if (!torrentio || !comet) die('Torrentio y/o Comet no estÃ¡n instalados â€” no se puede chequear cache TorBox.');
 // MyTrakt Sync declara el recurso "subtitles" en su manifest pero no lo implementa de verdad
-// (siempre devuelve []) — no es una de las 5 fuentes de subs reales, se excluye explícitamente.
+// (siempre devuelve []) â€” no es una de las 5 fuentes de subs reales, se excluye explÃ­citamente.
 const subAddons = addons.filter((a) => hasRes(a.manifest, 'subtitles') && a.manifest?.id !== myTrakt.manifest.id);
-if (!subAddons.length) die('No hay addons de subtítulos instalados.');
+if (!subAddons.length) die('No hay addons de subtÃ­tulos instalados.');
 
 const traktBase = baseOf(myTrakt.transportUrl);
 const torrentioBase = baseOf(torrentio.transportUrl);
 const cometBase = baseOf(comet.transportUrl);
 
-console.log('═'.repeat(60));
-console.log(' MejoraStremio — Radar de estrenos listos');
+console.log('â•'.repeat(60));
+console.log(' MejoraStremio â€” Radar de estrenos listos');
 console.log(' ' + new Date().toISOString());
-console.log('═'.repeat(60));
+console.log('â•'.repeat(60));
 console.log(`MyTrakt: ${myTrakt.manifest.name} | Streams: Torrentio, Comet | Subs: ${subAddons.map(a => a.manifest.name).join(', ')}\n`);
 
 async function fetchCatalog(type, id) {
@@ -101,12 +101,12 @@ for (const m of [...continueWatching, ...watchlist]) {
 }
 
 // Guard: si MyTrakt devuelve 0 shows es casi siempre un fallo transitorio del endpoint
-// (getJson → null → metas:[]), no que Pablo se haya quedado sin nada en progreso. Sin este
+// (getJson â†’ null â†’ metas:[]), no que Pablo se haya quedado sin nada en progreso. Sin este
 // guard, saveState([]) borraba todo el estado y la corrida siguiente re-"notificaba" cada
-// episodio desde cero (pasó el 2026-09-02, ver CLAUDE.md sesión 2026-09-03 dev 2). Abortamos
+// episodio desde cero (pasÃ³ el 2026-09-02, ver GEMINI.md sesiÃ³n 2026-09-03 dev 2). Abortamos
 // sin tocar el archivo de estado.
 if (shows.size === 0) {
-  die('MyTrakt Sync devolvió 0 shows (continue_watching + watchlist vacíos) — probable fallo ' +
+  die('MyTrakt Sync devolviÃ³ 0 shows (continue_watching + watchlist vacÃ­os) â€” probable fallo ' +
       'transitorio del endpoint. No se toca data/premiere-radar-state.json.');
 }
 console.log(`${shows.size} show(s) en progreso/watchlist en MyTrakt Sync.\n`);
@@ -146,7 +146,7 @@ for (const [imdbId, showName] of shows) {
   const meta = await getJson(`${traktBase}meta/series/${imdbId}.json`);
   const target = nextUnwatched(meta?.meta?.videos);
   if (!target) {
-    console.log(`  — ${showName}: sin próximo episodio (serie al día/completa)`);
+    console.log(`  â€” ${showName}: sin prÃ³ximo episodio (serie al dÃ­a/completa)`);
     continue;
   }
 
@@ -159,7 +159,7 @@ for (const [imdbId, showName] of shows) {
 
   if (!aired) {
     notAiredCount++;
-    console.log(`  ⏳ ${label} — todavía no se estrenó (${releaseDate || 'fecha desconocida'})`);
+    console.log(`  â³ ${label} â€” todavÃ­a no se estrenÃ³ (${releaseDate || 'fecha desconocida'})`);
     newState.push({ key, imdbId, show: showName, season: target.season, episode: target.number,
       episodeTitle: target.name || target.title || '', status: 'pendiente', reason: 'no-estrenado',
       lastCheckedAt: now.toISOString(), notifiedAt: prev?.notifiedAt || null });
@@ -175,7 +175,7 @@ for (const [imdbId, showName] of shows) {
   if (ready) {
     readyCount++;
     const alreadyNotified = !!prev?.notifiedAt;
-    console.log(`  ✅ ${label} "${target.name || ''}" — LISTO (cache=${cached} subs=${subs})${alreadyNotified ? ' [ya avisado]' : ''}`);
+    console.log(`  âœ… ${label} "${target.name || ''}" â€” LISTO (cache=${cached} subs=${subs})${alreadyNotified ? ' [ya avisado]' : ''}`);
     if (!alreadyNotified) {
       newlyReady.push({ show: showName, season: target.season, episode: target.number, title: target.name || target.title || '' });
     }
@@ -184,7 +184,7 @@ for (const [imdbId, showName] of shows) {
       notifiedAt: alreadyNotified ? prev.notifiedAt : now.toISOString() });
   } else {
     pendingCount++;
-    console.log(`  ⏳ ${label} — pendiente (cache=${cached} subs=${subs})`);
+    console.log(`  â³ ${label} â€” pendiente (cache=${cached} subs=${subs})`);
     newState.push({ key, imdbId, show: showName, season: target.season, episode: target.number,
       episodeTitle: target.name || target.title || '', status: 'pendiente', reason: !cached ? 'sin-cache-torbox' : 'sin-subs-es',
       lastCheckedAt: now.toISOString(), notifiedAt: prev?.notifiedAt || null });
@@ -193,10 +193,10 @@ for (const [imdbId, showName] of shows) {
 
 saveState(newState);
 
-console.log('\n' + '═'.repeat(60));
-console.log(`RESUMEN: ${readyCount} listo(s), ${pendingCount} pendiente(s), ${notAiredCount} sin estrenar todavía.`);
+console.log('\n' + 'â•'.repeat(60));
+console.log(`RESUMEN: ${readyCount} listo(s), ${pendingCount} pendiente(s), ${notAiredCount} sin estrenar todavÃ­a.`);
 for (const r of newlyReady) {
   console.log(`LISTO_NUEVO | ${r.show} | S${String(r.season).padStart(2, '0')}E${String(r.episode).padStart(2, '0')} | ${r.title}`);
 }
-console.log('═'.repeat(60));
+console.log('â•'.repeat(60));
 process.exit(0);

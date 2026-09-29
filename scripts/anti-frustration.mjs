@@ -1,17 +1,17 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * Registro "antifrustración": cuando un título "no abre" (streams que cargan sin
+ * Registro "antifrustraciÃ³n": cuando un tÃ­tulo "no abre" (streams que cargan sin
  * fin o no aparecen), lo registra en data/anti-frustration-log.json con su
- * cobertura real de streams. Permite revisar cada tanto si mejoró.
+ * cobertura real de streams. Permite revisar cada tanto si mejorÃ³.
  *
- * Un stream cuenta como "real" si no trae contador de seeds (👤 N — addons HTTP
+ * Un stream cuenta como "real" si no trae contador de seeds (ðŸ‘¤ N â€” addons HTTP
  * como NoTorrent/WebStreamrMBG/Nuvio, donde no aplica) o si trae seeds > 0
- * (torrents con al menos un peer). Los torrents con 👤 0 (el patrón "carga y
- * nunca arranca" de Meteor, ver CLAUDE.md) NO cuentan.
+ * (torrents con al menos un peer). Los torrents con ðŸ‘¤ 0 (el patrÃ³n "carga y
+ * nunca arranca" de Meteor, ver GEMINI.md) NO cuentan.
  *
- * Para títulos familiares/adolescentes/infantiles (género TMDB/Cinemeta:
- * Animation, Family), además detecta si algún stream trae audio latino
- * (🇲🇽/🇦🇷/🇨🇴 o "latino" en el título).
+ * Para tÃ­tulos familiares/adolescentes/infantiles (gÃ©nero TMDB/Cinemeta:
+ * Animation, Family), ademÃ¡s detecta si algÃºn stream trae audio latino
+ * (ðŸ‡²ðŸ‡½/ðŸ‡¦ðŸ‡·/ðŸ‡¨ðŸ‡´ o "latino" en el tÃ­tulo).
  *
  * Requiere: ST_EMAIL, ST_PASS
  *
@@ -34,16 +34,16 @@ const ROOT = join(__dirname, '..');
 const LOG_PATH = join(ROOT, 'data', 'anti-frustration-log.json');
 const CINEMETA = 'https://v3-cinemeta.strem.io';
 
-const RESOLVED_THRESHOLD = 3; // streams "reales" mínimos para considerar resuelto
-const LATINO_RE = /latino|🇲🇽|🇦🇷|🇨🇴/i;
+const RESOLVED_THRESHOLD = 3; // streams "reales" mÃ­nimos para considerar resuelto
+const LATINO_RE = /latino|ðŸ‡²ðŸ‡½|ðŸ‡¦ðŸ‡·|ðŸ‡¨ðŸ‡´/i;
 const FAMILY_GENRES = new Set(['Animation', 'Family']);
-// Meteor no expone contador de seeds en el título (a diferencia de Torrentio) y
+// Meteor no expone contador de seeds en el tÃ­tulo (a diferencia de Torrentio) y
 // tiene fama documentada de dar torrents sin seeds que "cargan y nunca arrancan"
-// (ver CLAUDE.md). Sin forma de verificar, sus streams NO cuentan para el total
-// "real" — se reportan aparte como referencia, no como señal de que abre.
+// (ver GEMINI.md). Sin forma de verificar, sus streams NO cuentan para el total
+// "real" â€” se reportan aparte como referencia, no como seÃ±al de que abre.
 const UNVERIFIABLE_ADDONS = new Set(['Meteor']);
 
-const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
+const die = (m, code = 1) => { console.error(`âœ— ${m}`); process.exit(code); };
 const getJson = (url, t = 20000) =>
   fetch(url, { signal: AbortSignal.timeout(t) })
     .then((r) => (r.ok ? r.json() : null))
@@ -91,10 +91,10 @@ async function checkTitle({ id, type, season, episode }) {
   const genres = meta?.meta?.genre || [];
   const isFamily = genres.some((g) => FAMILY_GENRES.has(g));
 
-  // Para series: ¿el episodio pedido existe realmente en la metadata? Un episodio inexistente
-  // (o un id de IMDb que Cinemeta resuelve a OTRO título por un mapeo roto de TMDB) genera una
-  // entrada que nunca puede resolver — como pasó con "Infiltrada S01E11" mapeada al id de Wild
-  // Cards (2026-09-03/06). null = no se pudo determinar (Cinemeta caído o sin lista de videos).
+  // Para series: Â¿el episodio pedido existe realmente en la metadata? Un episodio inexistente
+  // (o un id de IMDb que Cinemeta resuelve a OTRO tÃ­tulo por un mapeo roto de TMDB) genera una
+  // entrada que nunca puede resolver â€” como pasÃ³ con "Infiltrada S01E11" mapeada al id de Wild
+  // Cards (2026-09-03/06). null = no se pudo determinar (Cinemeta caÃ­do o sin lista de videos).
   let episodeExists = null;
   if (type === 'series' && season && episode) {
     const videos = meta?.meta?.videos;
@@ -131,7 +131,7 @@ const [, , cmd, ...rest] = process.argv;
 if (cmd === 'add') {
   const force = rest.includes('--force');
   const [id, type = 'movie', season, episode, ...titleParts] = rest.filter((a) => a !== '--force');
-  if (!id) die('Uso: anti-frustration.mjs add <imdbId> [movie|series] [season] [episode] ["título"] [--force]');
+  if (!id) die('Uso: anti-frustration.mjs add <imdbId> [movie|series] [season] [episode] ["tÃ­tulo"] [--force]');
   const result = await checkTitle({
     id,
     type,
@@ -142,8 +142,8 @@ if (cmd === 'add') {
 
   if (result.episodeExists === false && !force) {
     die(`El episodio S${season}E${episode} NO existe en la metadata de "${result.name}" (${id}).\n` +
-        `  Probablemente un id de IMDb equivocado o un mapeo roto de TMDB → una entrada así nunca\n` +
-        `  va a poder resolver. Si igual querés registrarlo, agregá --force.`);
+        `  Probablemente un id de IMDb equivocado o un mapeo roto de TMDB â†’ una entrada asÃ­ nunca\n` +
+        `  va a poder resolver. Si igual querÃ©s registrarlo, agregÃ¡ --force.`);
   }
 
   const log = loadLog();
@@ -164,15 +164,15 @@ if (cmd === 'add') {
   saveLog(log);
 
   console.log(`\n"${label}" (${result.id}${result.season ? `:${result.season}:${result.episode}` : ''})`);
-  console.log(`  Género: ${result.genres.join(', ') || '?'}${result.isFamily ? ' — FAMILIAR/INFANTIL' : ''}`);
+  console.log(`  GÃ©nero: ${result.genres.join(', ') || '?'}${result.isFamily ? ' â€” FAMILIAR/INFANTIL' : ''}`);
   for (const [name, c] of Object.entries(result.perAddon)) {
     console.log(`  ${name}: ${c.unverifiable ? `${c.total} sin verificar (no cuenta)` : `${c.real} reales / ${c.total} totales`}`);
   }
-  console.log(`  Total streams reales: ${result.totalReal} → ${result.status.toUpperCase()}`);
+  console.log(`  Total streams reales: ${result.totalReal} â†’ ${result.status.toUpperCase()}`);
   if (result.latino) {
-    console.log(`  Audio latino: ${result.latino.found ? '✓ encontrado' : '✗ no encontrado'}${result.latino.samples.length ? ' — ' + result.latino.samples.join(' | ') : ''}`);
+    console.log(`  Audio latino: ${result.latino.found ? 'âœ“ encontrado' : 'âœ— no encontrado'}${result.latino.samples.length ? ' â€” ' + result.latino.samples.join(' | ') : ''}`);
   }
-  console.log(`\n✓ Guardado en data/anti-frustration-log.json`);
+  console.log(`\nâœ“ Guardado en data/anti-frustration-log.json`);
 } else if (cmd === 'review') {
   const log = loadLog();
   const pending = log.filter((e) => e.status === 'pendiente');
@@ -180,7 +180,7 @@ if (cmd === 'add') {
     console.log('Nada pendiente en el log.');
     process.exit(0);
   }
-  console.log(`Re-chequeando ${pending.length} título(s) pendientes...\n`);
+  console.log(`Re-chequeando ${pending.length} tÃ­tulo(s) pendientes...\n`);
   let fixed = 0, stillStuck = 0;
   for (const e of pending) {
     const { episodeExists: _drop, ...result } = await checkTitle({ id: e.id, type: e.type, season: e.season, episode: e.episode });
@@ -188,10 +188,10 @@ if (cmd === 'add') {
     log[idx] = { ...e, ...result, lastCheckedAt: new Date().toISOString() };
     if (result.status === 'resuelto') {
       fixed++;
-      console.log(`  ✅ RESUELTO: ${e.label} (${result.totalReal} streams reales)`);
+      console.log(`  âœ… RESUELTO: ${e.label} (${result.totalReal} streams reales)`);
     } else {
       stillStuck++;
-      console.log(`  ⏳ sigue pendiente: ${e.label} (${result.totalReal} streams reales)`);
+      console.log(`  â³ sigue pendiente: ${e.label} (${result.totalReal} streams reales)`);
     }
   }
   saveLog(log);
@@ -199,15 +199,15 @@ if (cmd === 'add') {
 } else if (cmd === 'list' || !cmd) {
   const log = loadLog();
   if (!log.length) {
-    console.log('Log vacío — usá: node scripts/anti-frustration.mjs add <imdbId> ...');
+    console.log('Log vacÃ­o â€” usÃ¡: node scripts/anti-frustration.mjs add <imdbId> ...');
     process.exit(0);
   }
-  console.log(`${log.length} título(s) en el log:\n`);
+  console.log(`${log.length} tÃ­tulo(s) en el log:\n`);
   for (const e of log) {
-    const flag = e.status === 'resuelto' ? '✅' : '⏳';
-    const lat = e.latino ? ` | latino: ${e.latino.found ? '✓' : '✗'}` : '';
-    console.log(`${flag} ${e.label} (${e.id}) — ${e.totalReal} streams reales${lat} — última revisión ${e.lastCheckedAt.slice(0, 10)}`);
+    const flag = e.status === 'resuelto' ? 'âœ…' : 'â³';
+    const lat = e.latino ? ` | latino: ${e.latino.found ? 'âœ“' : 'âœ—'}` : '';
+    console.log(`${flag} ${e.label} (${e.id}) â€” ${e.totalReal} streams reales${lat} â€” Ãºltima revisiÃ³n ${e.lastCheckedAt.slice(0, 10)}`);
   }
 } else {
-  die(`Comando desconocido: ${cmd}. Usá add | review | list`);
+  die(`Comando desconocido: ${cmd}. UsÃ¡ add | review | list`);
 }

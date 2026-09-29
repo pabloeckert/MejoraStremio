@@ -1,7 +1,7 @@
-/**
- * update-addon-url.mjs — Cambia el transportUrl de un addon ya instalado (mismo
- * manifest.id), refrescando su manifest desde la URL nueva. Útil cuando un addon
- * migra de infraestructura del lado del proveedor (ej. NoTorrent: Render → Workers,
+﻿/**
+ * update-addon-url.mjs â€” Cambia el transportUrl de un addon ya instalado (mismo
+ * manifest.id), refrescando su manifest desde la URL nueva. Ãštil cuando un addon
+ * migra de infraestructura del lado del proveedor (ej. NoTorrent: Render â†’ Workers,
  * 2026-07-13) y hay que apuntar la cuenta a la URL nueva sin duplicar la entrada.
  *
  * Uso:
@@ -9,7 +9,7 @@
  *   ST_EMAIL=... ST_PASS=... node scripts/update-addon-url.mjs <manifest.id> <nuevaTransportUrl> --apply
  *
  * Guarda backup antes de aplicar. Aborta si el manifest.id de la URL nueva no
- * coincide con el addon que se está reemplazando (evita instalar otra cosa por error).
+ * coincide con el addon que se estÃ¡ reemplazando (evita instalar otra cosa por error).
  * Sin --apply solo reporta (dry-run).
  */
 import { apiPost as _apiPost } from './lib/stremio-api.mjs';
@@ -36,20 +36,20 @@ const apiPost = (path, body) => _apiPost(path, body, { timeout: 15000 });
 const login = await apiPost('login', { authKey: null, email: EMAIL, password: PASS });
 const authKey = login?.result?.authKey;
 if (!authKey) { console.error('Login fallido:', login?.error); process.exit(1); }
-console.log('✓ Login OK');
+console.log('âœ“ Login OK');
 
-// Leer colección actual
+// Leer colecciÃ³n actual
 const col = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
 const addons = col?.result?.addons || [];
-console.log(`✓ ${addons.length} addons leídos`);
+console.log(`âœ“ ${addons.length} addons leÃ­dos`);
 
 const idx = addons.findIndex((a) => a.manifest?.id === targetId);
 if (idx === -1) {
-  console.error(`✗ No se encontró addon con manifest.id="${targetId}"`);
+  console.error(`âœ— No se encontrÃ³ addon con manifest.id="${targetId}"`);
   process.exit(1);
 }
 const current = addons[idx];
-console.log(`\nAddon actual (índice ${idx}):`);
+console.log(`\nAddon actual (Ã­ndice ${idx}):`);
 console.log(`  transportUrl: ${current.transportUrl}`);
 console.log(`  manifest.name: ${current.manifest?.name}`);
 console.log(`  manifest.version: ${current.manifest?.version}`);
@@ -57,7 +57,7 @@ console.log(`  manifest.version: ${current.manifest?.version}`);
 // Fetch fresco del manifest nuevo
 const newManifest = await fetch(newUrl, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
 if (newManifest?.id !== targetId) {
-  console.error(`✗ El manifest.id de la URL nueva ("${newManifest?.id}") no coincide con "${targetId}" — abortado para no instalar otra cosa por error.`);
+  console.error(`âœ— El manifest.id de la URL nueva ("${newManifest?.id}") no coincide con "${targetId}" â€” abortado para no instalar otra cosa por error.`);
   process.exit(1);
 }
 
@@ -71,10 +71,10 @@ if (!apply) {
   process.exit(0);
 }
 
-// Guard anti-manifest-congelado: este script SÍ modifica el manifest del addon
-// objetivo intencionalmente (con datos frescos), así que se excluye del chequeo;
-// el resto de la colección no se toca. Ver scripts/lib/collection-guard.mjs y
-// CLAUDE.md → "Bug real: catalogs:[] indiscriminado".
+// Guard anti-manifest-congelado: este script SÃ modifica el manifest del addon
+// objetivo intencionalmente (con datos frescos), asÃ­ que se excluye del chequeo;
+// el resto de la colecciÃ³n no se toca. Ver scripts/lib/collection-guard.mjs y
+// GEMINI.md â†’ "Bug real: catalogs:[] indiscriminado".
 const updated = addons.map((a, i) => (i === idx ? { ...a, transportUrl: newUrl, manifest: newManifest } : a));
 import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
 if (!(await assertNoFrozenEmptyCatalogs(updated, [targetId]))) {
@@ -87,7 +87,7 @@ const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const accountSlug = EMAIL.split('@')[0];
 const backupPath = `.backups/backup-${accountSlug}-pre-update-url-${ts}.json`;
 writeFileSync(backupPath, JSON.stringify({ result: { addons } }, null, 2));
-console.log(`\n✓ Backup guardado: ${backupPath}`);
+console.log(`\nâœ“ Backup guardado: ${backupPath}`);
 
 // Aplicar
 const res = await apiPost('addonCollectionSet', {
@@ -97,13 +97,13 @@ const res = await apiPost('addonCollectionSet', {
 });
 
 if (res?.result?.success) {
-  console.log('✓ Colección actualizada correctamente.');
+  console.log('âœ“ ColecciÃ³n actualizada correctamente.');
   console.log('\nVerificando...');
   const check = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
   const after = (check?.result?.addons || []).find((a) => a.manifest?.id === targetId);
   console.log(`  ${after?.manifest?.id}: transportUrl=${after?.transportUrl} | name=${after?.manifest?.name} | version=${after?.manifest?.version}`);
-  console.log('✓ Listo.');
+  console.log('âœ“ Listo.');
 } else {
-  console.error('✗ Error al aplicar:', JSON.stringify(res));
+  console.error('âœ— Error al aplicar:', JSON.stringify(res));
   process.exit(1);
 }

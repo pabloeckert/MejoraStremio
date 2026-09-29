@@ -1,11 +1,11 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * Conecta TorBox (debrid, ver CLAUDE.md → "Plan debrid" / "TorBox (debrid activo)") a Torrentio y
- * Comet, y reordena el bloque de addons de streams para reflejar la nueva jerarquía de fiabilidad
- * ahora que hay debrid: TorBox-backed primero, HTTP scrapers después, P2P puro (Meteor, sin
+ * Conecta TorBox (debrid, ver GEMINI.md â†’ "Plan debrid" / "TorBox (debrid activo)") a Torrentio y
+ * Comet, y reordena el bloque de addons de streams para reflejar la nueva jerarquÃ­a de fiabilidad
+ * ahora que hay debrid: TorBox-backed primero, HTTP scrapers despuÃ©s, P2P puro (Meteor, sin
  * soporte de debrid) al final.
  *
- * No toca la config de Meteor (se deja el minSeeders:1 del perfil CGNAT — Meteor sigue siendo
+ * No toca la config de Meteor (se deja el minSeeders:1 del perfil CGNAT â€” Meteor sigue siendo
  * P2P puro y el CGNAT lo sigue afectando igual, TorBox no lo cubre).
  *
  *   1. Torrentio: agrega/actualiza el segmento `torbox=<KEY>` en su transportUrl (formato
@@ -13,15 +13,15 @@
  *      la config existente (24 providers, sort, qualityfilter).
  *   2. Comet: agrega/actualiza `debridServices: [{service:"torbox", apiKey:<KEY>}]` en su config
  *      (JSON base64 en el path, mismo mecanismo que ya lee apply-cgnat-profile.mjs) y fija
- *      `enableTorrent:false` — TorBox descarga torrents no cacheados en sus propios servidores
- *      (no depende de la conexión del usuario), así que mezclar P2P crudo como fallback
+ *      `enableTorrent:false` â€” TorBox descarga torrents no cacheados en sus propios servidores
+ *      (no depende de la conexiÃ³n del usuario), asÃ­ que mezclar P2P crudo como fallback
  *      reintroduce el problema de CGNAT sin necesidad. Preserva resolutions/options/etc. tal cual.
- *   3. Reordena el bloque de streams: Torrentio, Comet (TorBox-backed) → NoTorrent, WebStreamrMBG,
- *      Nuvio Streams (HTTP, no dependen de debrid ni P2P entrante) → Meteor (P2P puro, último
+ *   3. Reordena el bloque de streams: Torrentio, Comet (TorBox-backed) â†’ NoTorrent, WebStreamrMBG,
+ *      Nuvio Streams (HTTP, no dependen de debrid ni P2P entrante) â†’ Meteor (P2P puro, Ãºltimo
  *      recurso).
  *
- * Un solo propósito, no genérico — mismo criterio que scripts/apply-cgnat-profile.mjs. Revertir =
- * restaurar el backup pre-cambio (ver "Backup y restauración de addons" en CLAUDE.md).
+ * Un solo propÃ³sito, no genÃ©rico â€” mismo criterio que scripts/apply-cgnat-profile.mjs. Revertir =
+ * restaurar el backup pre-cambio (ver "Backup y restauraciÃ³n de addons" en GEMINI.md).
  *
  * Requiere: ST_EMAIL, ST_PASS, TORBOX_API_KEY
  *
@@ -50,10 +50,10 @@ const STREAM_ORDER = [
   'com.notorrent.addon', // NoTorrent   HTTP
   'webstreamr-mbg', // WebStreamrMBG HTTP
   'org.nuvio.streams', // Nuvio       HTTP
-  'community.meteor', // Meteor      P2P puro, sin debrid, último recurso
+  'community.meteor', // Meteor      P2P puro, sin debrid, Ãºltimo recurso
 ];
 
-const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
+const die = (m, code = 1) => { console.error(`âœ— ${m}`); process.exit(code); };
 
 const email = process.env.ST_EMAIL || 'stremioeg@gmail.com';
 const pass = process.env.ST_PASS || '';
@@ -61,18 +61,18 @@ const torboxKey = process.env.TORBOX_API_KEY || '';
 if (!pass) die('Falta ST_PASS');
 if (!torboxKey) die('Falta TORBOX_API_KEY');
 
-// ── 1. Login + colección actual ──────────────────────────────────────────────
+// â”€â”€ 1. Login + colecciÃ³n actual â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const login = await apiPost('login', { authKey: null, email, password: pass });
 const authKey = login?.result?.authKey;
 if (!authKey) die('Login fallido: ' + JSON.stringify(login?.error || login));
 
 const col = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
 const addons = col?.result?.addons || [];
-console.log(`✓ Login OK — ${addons.length} addons leídos`);
+console.log(`âœ“ Login OK â€” ${addons.length} addons leÃ­dos`);
 
-// ── 2. Torrentio — insertar/actualizar torbox=<KEY> en el path pipe-delimited ──
+// â”€â”€ 2. Torrentio â€” insertar/actualizar torbox=<KEY> en el path pipe-delimited â”€â”€
 const torrentioIdx = addons.findIndex((a) => a.manifest?.id === 'com.stremio.torrentio.addon');
-if (torrentioIdx === -1) die('No encontré Torrentio (com.stremio.torrentio.addon) en la colección');
+if (torrentioIdx === -1) die('No encontrÃ© Torrentio (com.stremio.torrentio.addon) en la colecciÃ³n');
 
 const torrentio = addons[torrentioIdx];
 const torrentioMatch = torrentio.transportUrl.match(/^(https:\/\/[^/]+\/)([^/]*)(\/manifest\.json.*)$/);
@@ -90,13 +90,13 @@ if (!torrentioFoundTorbox) torrentioPairsNew.push(`torbox=${torboxKey}`);
 const torrentioCfgNew = torrentioPairsNew.join('|');
 const newTorrentioUrl = `${torrentioPrefix}${torrentioCfgNew}${torrentioSuffix}`;
 
-console.log('\nTorrentio — diff de config:');
-console.log(`  antes: ${torrentioBefore || '(vacío)'}`);
-console.log(`  después: ${torrentioCfgNew.replace(torboxKey, '<TORBOX_KEY>')}`);
+console.log('\nTorrentio â€” diff de config:');
+console.log(`  antes: ${torrentioBefore || '(vacÃ­o)'}`);
+console.log(`  despuÃ©s: ${torrentioCfgNew.replace(torboxKey, '<TORBOX_KEY>')}`);
 
-// ── 3. Comet — debridServices + enableTorrent:false en el JSON base64 ─────────
+// â”€â”€ 3. Comet â€” debridServices + enableTorrent:false en el JSON base64 â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const cometIdx = addons.findIndex((a) => a.manifest?.id === 'stremio.comet.fast');
-if (cometIdx === -1) die('No encontré Comet (stremio.comet.fast) en la colección');
+if (cometIdx === -1) die('No encontrÃ© Comet (stremio.comet.fast) en la colecciÃ³n');
 
 const comet = addons[cometIdx];
 const cometMatch = comet.transportUrl.match(/^(https:\/\/[^/]+\/)([^/]+)(\/manifest\.json.*)$/);
@@ -121,12 +121,12 @@ cometCfg.enableTorrent = false;
 const newCometB64 = Buffer.from(JSON.stringify(cometCfg)).toString('base64');
 const newCometUrl = `${cometPrefix}${newCometB64}${cometSuffix}`;
 
-console.log('\nComet — diff de config:');
+console.log('\nComet â€” diff de config:');
 console.log(`  debridServices antes: ${JSON.stringify(cometCfgBefore.debridServices || [])}`);
-console.log(`  debridServices después: ${JSON.stringify(cometCfg.debridServices).replace(torboxKey, '<TORBOX_KEY>')}`);
-console.log(`  enableTorrent: ${cometCfgBefore.enableTorrent} → ${cometCfg.enableTorrent}`);
+console.log(`  debridServices despuÃ©s: ${JSON.stringify(cometCfg.debridServices).replace(torboxKey, '<TORBOX_KEY>')}`);
+console.log(`  enableTorrent: ${cometCfgBefore.enableTorrent} â†’ ${cometCfg.enableTorrent}`);
 
-// ── 4. Aplicar transportUrl nuevos + reordenar el bloque de streams ───────────
+// â”€â”€ 4. Aplicar transportUrl nuevos + reordenar el bloque de streams â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const withNewUrls = addons.map((a, i) => {
   if (i === torrentioIdx) return { ...a, transportUrl: newTorrentioUrl };
   if (i === cometIdx) return { ...a, transportUrl: newCometUrl };
@@ -135,10 +135,10 @@ const withNewUrls = addons.map((a, i) => {
 
 const isStreamAddon = (a) => STREAM_ORDER.includes(a.manifest?.id);
 const firstStreamIdx = withNewUrls.findIndex(isStreamAddon);
-if (firstStreamIdx === -1) die('No encontré ningún addon del bloque de streams esperado');
+if (firstStreamIdx === -1) die('No encontrÃ© ningÃºn addon del bloque de streams esperado');
 
 const missing = STREAM_ORDER.filter((id) => !withNewUrls.some((a) => a.manifest?.id === id));
-if (missing.length) console.warn(`⚠ No se encontraron estos addons (¿se removieron?): ${missing.join(', ')}`);
+if (missing.length) console.warn(`âš  No se encontraron estos addons (Â¿se removieron?): ${missing.join(', ')}`);
 
 const sortedStreamAddons = STREAM_ORDER.map((id) => withNewUrls.find((a) => a.manifest?.id === id)).filter(Boolean);
 const reordered = [
@@ -147,45 +147,45 @@ const reordered = [
   ...withNewUrls.slice(firstStreamIdx).filter((a) => !isStreamAddon(a)),
 ];
 
-if (reordered.length !== addons.length) die(`El reorden perdió addons: antes ${addons.length}, después ${reordered.length}`);
+if (reordered.length !== addons.length) die(`El reorden perdiÃ³ addons: antes ${addons.length}, despuÃ©s ${reordered.length}`);
 
 console.log('\nOrden ACTUAL:');
 addons.forEach((a, i) => console.log(`  ${i} ${a.manifest?.id} | ${a.manifest?.name}`));
 console.log('\nOrden NUEVO:');
 reordered.forEach((a, i) => console.log(`  ${i} ${a.manifest?.id} | ${a.manifest?.name}`));
 
-// ── 5. Guard anti-duplicados ─────────────────────────────────────────────────
+// â”€â”€ 5. Guard anti-duplicados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ids = reordered.map((a) => a.manifest?.id).filter(Boolean);
 const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
 if (dup.length) die('manifest.id duplicado tras el cambio: ' + dup.join(', '));
-console.log(`\n✓ Sin ids duplicados tras el cambio (${reordered.length} addons)`);
+console.log(`\nâœ“ Sin ids duplicados tras el cambio (${reordered.length} addons)`);
 
 if (!APPLY) {
   console.log('\n[DRY-RUN] Pasar --apply para escribir los cambios en la cuenta.');
   process.exitCode = 0;
 } else {
 
-// ── 6. Guard anti-manifest-congelado ─────────────────────────────────────────
+// â”€â”€ 6. Guard anti-manifest-congelado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // No vaciamos manifest.catalogs de addons que no tocamos: regenerate-aiometadata.mjs ya prueba
-// que addonCollectionSet acepta el payload completo (con los ~132 catálogos de AIOMetadata
-// embebidos) sin problema — ver CLAUDE.md → "Bug real: catalogs:[] indiscriminado".
+// que addonCollectionSet acepta el payload completo (con los ~132 catÃ¡logos de AIOMetadata
+// embebidos) sin problema â€” ver GEMINI.md â†’ "Bug real: catalogs:[] indiscriminado".
 if (!(await assertNoFrozenEmptyCatalogs(reordered, ['com.stremio.torrentio.addon', 'stremio.comet.fast']))) {
   process.exit(1);
 }
 
-// ── 7. Backup + aplicar ──────────────────────────────────────────────────────
+// â”€â”€ 7. Backup + aplicar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 mkdirSync(BACKUPS, { recursive: true });
 const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const accountSlug = email.split('@')[0];
 const backupPath = join(BACKUPS, `backup-${accountSlug}-pre-torbox-${ts}.json`);
 writeFileSync(backupPath, JSON.stringify({ result: { addons } }, null, 2));
-console.log(`\n✓ Backup guardado: ${backupPath}`);
+console.log(`\nâœ“ Backup guardado: ${backupPath}`);
 
 const res = await apiPost('addonCollectionSet', { type: 'AddonCollectionSet', authKey, addons: reordered });
-if (!(res?.result?.success || res?.result)) die('addonCollectionSet falló: ' + JSON.stringify(res));
-console.log('✓ Colección actualizada correctamente.');
+if (!(res?.result?.success || res?.result)) die('addonCollectionSet fallÃ³: ' + JSON.stringify(res));
+console.log('âœ“ ColecciÃ³n actualizada correctamente.');
 
-// ── 8. Verificación post-cambio ────────────────────────────────────────────
+// â”€â”€ 8. VerificaciÃ³n post-cambio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const after = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
 const afterAddons = after?.result?.addons || [];
 console.log(`\nVerificando... (${afterAddons.length} addons, antes ${addons.length})`);
@@ -210,15 +210,15 @@ let torrentioManifestOk = false, cometManifestOk = false;
 try {
   const m = await fetch(newTorrentioUrl.replace(/\/manifest\.json.*/, '/manifest.json'), { signal: AbortSignal.timeout(20000) }).then((r) => r.json());
   torrentioManifestOk = m?.id === 'com.stremio.torrentio.addon';
-} catch (e) { console.warn(`⚠ No pude fetchear el manifest nuevo de Torrentio: ${e.message}`); }
+} catch (e) { console.warn(`âš  No pude fetchear el manifest nuevo de Torrentio: ${e.message}`); }
 try {
   const m = await fetch(newCometUrl, { signal: AbortSignal.timeout(20000) }).then((r) => r.json());
   cometManifestOk = m?.id === 'stremio.comet.fast' || m?.id === comet.manifest?.id;
-} catch (e) { console.warn(`⚠ No pude fetchear el manifest nuevo de Comet: ${e.message}`); }
+} catch (e) { console.warn(`âš  No pude fetchear el manifest nuevo de Comet: ${e.message}`); }
 
 const lengthOk = afterAddons.length === addons.length;
 const ok = lengthOk && torrentioOk && cometOk && torrentioManifestOk && cometManifestOk;
-console.log(`\n${ok ? '✅' : '✗'} Perfil TorBox ${ok ? 'aplicado y verificado' : 'NO confirmado del todo'}`);
+console.log(`\n${ok ? 'âœ…' : 'âœ—'} Perfil TorBox ${ok ? 'aplicado y verificado' : 'NO confirmado del todo'}`);
 console.log(`   Total addons: ${afterAddons.length} (antes: ${addons.length})`);
 console.log(`   Torrentio config OK: ${torrentioOk} | manifest responde: ${torrentioManifestOk}`);
 console.log(`   Comet config OK: ${cometOk} | manifest responde: ${cometManifestOk}`);

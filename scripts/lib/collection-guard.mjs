@@ -1,22 +1,22 @@
-/**
- * collection-guard.mjs — Guard compartido contra manifests con catálogos congelados en 0.
+﻿/**
+ * collection-guard.mjs â€” Guard compartido contra manifests con catÃ¡logos congelados en 0.
  *
- * Causa raíz real encontrada el 2026-07-11: varios scripts de escritura (apply-torbox-profile.mjs,
+ * Causa raÃ­z real encontrada el 2026-07-11: varios scripts de escritura (apply-torbox-profile.mjs,
  * apply-cgnat-profile.mjs, reorder-addons.mjs, apply-friction-zero-sort.mjs) vaciaban
- * `manifest.catalogs = []` para TODOS los addons del payload antes de addonCollectionSet — no solo
- * el que modificaban — por una premisa falsa ("evitar exceder el tamaño máximo del descriptor").
+ * `manifest.catalogs = []` para TODOS los addons del payload antes de addonCollectionSet â€” no solo
+ * el que modificaban â€” por una premisa falsa ("evitar exceder el tamaÃ±o mÃ¡ximo del descriptor").
  * regenerate-aiometadata.mjs ya probaba, corrida tras corrida, que el payload completo (con los
- * ~132 catálogos de AIOMetadata embebidos) se acepta sin problema. El vaciado indiscriminado dejó
- * congelados en 0 los catálogos de AIOMetadata, MyTrakt Sync, Streaming Catalogs y Audio Latino
- * (verificado) en el storage de Stremio — rompiendo búsqueda/catálogos/sugerencias de Home hasta
- * la próxima regeneración completa. Ver CLAUDE.md → "Bug real: catalogs:[] indiscriminado".
+ * ~132 catÃ¡logos de AIOMetadata embebidos) se acepta sin problema. El vaciado indiscriminado dejÃ³
+ * congelados en 0 los catÃ¡logos de AIOMetadata, MyTrakt Sync, Streaming Catalogs y Audio Latino
+ * (verificado) en el storage de Stremio â€” rompiendo bÃºsqueda/catÃ¡logos/sugerencias de Home hasta
+ * la prÃ³xima regeneraciÃ³n completa. Ver GEMINI.md â†’ "Bug real: catalogs:[] indiscriminado".
  *
- * Importante: NO alcanza con "resources incluye catalog && catalogs.length === 0" como señal de
- * ruptura — varios addons sanos (Cinemeta, Mubi Catalog, Trakt Integration) SIEMPRE tienen
- * catalogs:[] en el storage aunque funcionen perfectamente (su fuente de catálogos no depende de
+ * Importante: NO alcanza con "resources incluye catalog && catalogs.length === 0" como seÃ±al de
+ * ruptura â€” varios addons sanos (Cinemeta, Mubi Catalog, Trakt Integration) SIEMPRE tienen
+ * catalogs:[] en el storage aunque funcionen perfectamente (su fuente de catÃ¡logos no depende de
  * ese campo). Por eso este guard compara contra un fetch EN VIVO del manifest antes de decidir:
- * solo aborta si el storage dice 0 pero el addon en vivo (mismo transportUrl) responde con más de
- * 0 catálogos — eso sí es una regresión real, no el estado normal del addon.
+ * solo aborta si el storage dice 0 pero el addon en vivo (mismo transportUrl) responde con mÃ¡s de
+ * 0 catÃ¡logos â€” eso sÃ­ es una regresiÃ³n real, no el estado normal del addon.
  */
 
 const hasResource = (manifest, res) =>
@@ -33,14 +33,14 @@ const getJson = (url, timeout = 15000) =>
     .catch(() => null);
 
 /**
- * Revisa que ningún addon NO modificado en esta corrida esté a punto de persistir catalogs=[]
- * cuando su manifest EN VIVO (mismo transportUrl) tiene catálogos reales. Si encuentra alguno,
- * imprime un warning claro y devuelve false — el script llamante debe abortar antes de escribir.
+ * Revisa que ningÃºn addon NO modificado en esta corrida estÃ© a punto de persistir catalogs=[]
+ * cuando su manifest EN VIVO (mismo transportUrl) tiene catÃ¡logos reales. Si encuentra alguno,
+ * imprime un warning claro y devuelve false â€” el script llamante debe abortar antes de escribir.
  *
- * @param {Array} addons - la lista completa que se está por escribir (post-cambios)
+ * @param {Array} addons - la lista completa que se estÃ¡ por escribir (post-cambios)
  * @param {Set<string>|string[]} modifiedIds - manifest.id de los addons que ESTA corrida modifica
- *   intencionalmente (a esos no se les exige nada, pueden legítimamente traer un manifest nuevo).
- * @returns {Promise<boolean>} true si está todo OK para escribir, false si hay que abortar.
+ *   intencionalmente (a esos no se les exige nada, pueden legÃ­timamente traer un manifest nuevo).
+ * @returns {Promise<boolean>} true si estÃ¡ todo OK para escribir, false si hay que abortar.
  */
 export async function assertNoFrozenEmptyCatalogs(addons, modifiedIds) {
   const modified = new Set(modifiedIds);
@@ -60,16 +60,16 @@ export async function assertNoFrozenEmptyCatalogs(addons, modifiedIds) {
   }
   if (!broken.length) return true;
 
-  console.error('\n✗ ABORTADO — guard anti-manifest-congelado:');
+  console.error('\nâœ— ABORTADO â€” guard anti-manifest-congelado:');
   for (const { addon: a, liveCatalogs } of broken) {
     console.error(
       `  "${a.manifest?.name}" (${a.manifest?.id}): storage tiene catalogs=[] pero el manifest ` +
-        `EN VIVO responde con ${liveCatalogs} catálogos — esta corrida NO lo está modificando, así ` +
-        `que escribir esto congelaría el manifest roto.`
+        `EN VIVO responde con ${liveCatalogs} catÃ¡logos â€” esta corrida NO lo estÃ¡ modificando, asÃ­ ` +
+        `que escribir esto congelarÃ­a el manifest roto.`
     );
   }
   console.error(
-    '  Ver CLAUDE.md → "Bug real: catalogs:[] indiscriminado". Arreglá esos addons primero ' +
+    '  Ver GEMINI.md â†’ "Bug real: catalogs:[] indiscriminado". ArreglÃ¡ esos addons primero ' +
       '(ej. regenerate-aiometadata.mjs --apply para AIOMetadata) antes de correr este script.'
   );
   return false;

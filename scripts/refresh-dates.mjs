@@ -1,19 +1,19 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * Refresca las ventanas de fecha (absolutas) de los catálogos sensibles al tiempo
+ * Refresca las ventanas de fecha (absolutas) de los catÃ¡logos sensibles al tiempo
  * de AIOMetadata, en data/preset.json:
  *   - "En Cartelera" (now_playing, movie): [hoy - ventana, hoy]
- *   - "Próximos Estrenos" (upcoming, movie): primary_release_date.gte = hoy
- *   - "Próximos Estrenos" (upcoming, series): first_air_date.gte = hoy
+ *   - "PrÃ³ximos Estrenos" (upcoming, movie): primary_release_date.gte = hoy
+ *   - "PrÃ³ximos Estrenos" (upcoming, series): first_air_date.gte = hoy
  *
  * TMDB Discover no soporta fechas relativas, por eso hay que regenerar la
- * instancia con la fecha actual cada tanto (ver CLAUDE.md). Este script SOLO
- * edita el preset; para que llegue a la cuenta, correr después:
+ * instancia con la fecha actual cada tanto (ver GEMINI.md). Este script SOLO
+ * edita el preset; para que llegue a la cuenta, correr despuÃ©s:
  *   node scripts/regenerate-aiometadata.mjs --apply
  *
  * Uso:
  *   node scripts/refresh-dates.mjs           # actualiza preset.json
- *   node scripts/refresh-dates.mjs --check    # no escribe; exit 1 si está desactualizado
+ *   node scripts/refresh-dates.mjs --check    # no escribe; exit 1 si estÃ¡ desactualizado
  *
  * Node >= 20, sin dependencias.
  */
@@ -32,7 +32,7 @@ const minusDays = (n) => { const x = new Date(today); x.setUTCDate(x.getUTCDate(
 const spanDays = (gte, lte) => {
   const a = Date.parse(gte), b = Date.parse(lte);
   const d = Math.round((b - a) / 86400000);
-  return Number.isFinite(d) && d > 0 ? d : 75; // ventana por defecto: 75 días
+  return Number.isFinite(d) && d > 0 ? d : 75; // ventana por defecto: 75 dÃ­as
 };
 
 const preset = JSON.parse(readFileSync(PRESET_PATH, "utf8"));
@@ -43,7 +43,7 @@ const changes = [];
 const setParam = (c, key, val, fsKey) => {
   const params = c.metadata.discover.params;
   const fs = c.metadata.discover.formState;
-  if (params[key] !== val) changes.push(`${c.name}: ${key} ${params[key] ?? "—"} → ${val}`);
+  if (params[key] !== val) changes.push(`${c.name}: ${key} ${params[key] ?? "â€”"} â†’ ${val}`);
   params[key] = val;
   if (fsKey) fs[fsKey] = val;
 };
@@ -57,26 +57,26 @@ if (enCartelera) {
   setParam(enCartelera, "primary_release_date.lte", TODAY, "primaryReleaseTo");
 }
 
-// Próximos Estrenos (movie): desde hoy hacia adelante.
+// PrÃ³ximos Estrenos (movie): desde hoy hacia adelante.
 const upMovie = find(/\.movie\.upcoming\./);
 if (upMovie) setParam(upMovie, "primary_release_date.gte", TODAY, "primaryReleaseFrom");
 
-// Próximos Estrenos (series): TMDB tv usa first_air_date.
+// PrÃ³ximos Estrenos (series): TMDB tv usa first_air_date.
 const upSeries = find(/\.tv\.upcoming\./);
 if (upSeries) setParam(upSeries, "first_air_date.gte", TODAY, "firstAirFrom");
 
 if (!changes.length) {
-  console.log(`✓ Fechas ya al día (${TODAY}) — nada que cambiar.`);
+  console.log(`âœ“ Fechas ya al dÃ­a (${TODAY}) â€” nada que cambiar.`);
   process.exit(0);
 }
 
 console.log(`Fecha de hoy: ${TODAY}`);
-changes.forEach((c) => console.log("  • " + c));
+changes.forEach((c) => console.log("  â€¢ " + c));
 
 if (CHECK) {
-  console.log(`\n⚠ Desactualizado: ${changes.length} cambio(s) pendientes. Correr sin --check para aplicar.`);
+  console.log(`\nâš  Desactualizado: ${changes.length} cambio(s) pendientes. Correr sin --check para aplicar.`);
   process.exit(1);
 }
 
 writeFileSync(PRESET_PATH, JSON.stringify(preset, null, 2) + "\n");
-console.log(`\n✓ preset.json actualizado. Ahora: node scripts/regenerate-aiometadata.mjs --apply`);
+console.log(`\nâœ“ preset.json actualizado. Ahora: node scripts/regenerate-aiometadata.mjs --apply`);

@@ -1,19 +1,19 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * Log inteligente de visualización: lee el historial real de la cuenta
- * (colección `libraryItem` del datastore de Stremio — no requiere Trakt/MyTrakt,
- * es nativo de la API de Stremio) y reporta qué se mira más y qué más "engancha"
- * (tiempo total visto, veces completado, última vez visto).
+ * Log inteligente de visualizaciÃ³n: lee el historial real de la cuenta
+ * (colecciÃ³n `libraryItem` del datastore de Stremio â€” no requiere Trakt/MyTrakt,
+ * es nativo de la API de Stremio) y reporta quÃ© se mira mÃ¡s y quÃ© mÃ¡s "engancha"
+ * (tiempo total visto, veces completado, Ãºltima vez visto).
  *
- * Pensado para perfiles familiares (ver cuentas/solotveg/CLAUDE.md) donde no hay
- * Trakt conectado — si en algún momento se conecta Trakt para ese perfil, esto
+ * Pensado para perfiles familiares (ver cuentas/solotveg/GEMINI.md) donde no hay
+ * Trakt conectado â€” si en algÃºn momento se conecta Trakt para ese perfil, esto
  * sigue funcionando igual (son fuentes independientes).
  *
  * Requiere: ST_EMAIL, ST_PASS (de la cuenta a inspeccionar)
  *
  * Uso:
  *   ST_EMAIL=... ST_PASS=... node scripts/watch-log.mjs           # reporta por consola
- *   ST_EMAIL=... ST_PASS=... node scripts/watch-log.mjs --save <slug>   # además guarda snapshot en data/watch-log-<slug>.jsonl
+ *   ST_EMAIL=... ST_PASS=... node scripts/watch-log.mjs --save <slug>   # ademÃ¡s guarda snapshot en data/watch-log-<slug>.jsonl
  *
  * Node >= 20, sin dependencias.
  */
@@ -25,7 +25,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const API = 'https://api.strem.io/api';
 
-const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
+const die = (m, code = 1) => { console.error(`âœ— ${m}`); process.exit(code); };
 
 async function login(email, password) {
   const r = await fetch(`${API}/login`, {
@@ -69,13 +69,13 @@ const ranked = items
   .filter((it) => it.minutesWatched > 0 || it.timesWatched > 0)
   .sort((a, b) => b.minutesWatched - a.minutesWatched || b.timesWatched - a.timesWatched);
 
-console.log(`\n${items.length} título(s) en el historial de ${email}, ${ranked.length} con actividad real:\n`);
+console.log(`\n${items.length} tÃ­tulo(s) en el historial de ${email}, ${ranked.length} con actividad real:\n`);
 if (!ranked.length) {
-  console.log('  (sin actividad todavía — el mecanismo funciona, falta uso real de la cuenta)');
+  console.log('  (sin actividad todavÃ­a â€” el mecanismo funciona, falta uso real de la cuenta)');
 } else {
   for (const it of ranked) {
     const fecha = it.lastWatched ? it.lastWatched.slice(0, 10) : '?';
-    console.log(`  ${it.minutesWatched}min | ${it.timesWatched}x completo | ${it.name} (${it.type}, ${it.id}) | última vez ${fecha}${it.inLibrary ? '' : ' | no guardado en biblioteca'}`);
+    console.log(`  ${it.minutesWatched}min | ${it.timesWatched}x completo | ${it.name} (${it.type}, ${it.id}) | Ãºltima vez ${fecha}${it.inLibrary ? '' : ' | no guardado en biblioteca'}`);
   }
 }
 
@@ -86,5 +86,5 @@ if (flag === '--save') {
   mkdirSync(dirname(logPath), { recursive: true });
   const entry = { date: new Date().toISOString(), totalItems: items.length, ranked };
   appendFileSync(logPath, JSON.stringify(entry) + '\n');
-  console.log(`\n✓ Snapshot guardado en data/watch-log-${slug}.jsonl`);
+  console.log(`\nâœ“ Snapshot guardado en data/watch-log-${slug}.jsonl`);
 }

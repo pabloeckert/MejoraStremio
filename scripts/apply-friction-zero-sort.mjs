@@ -1,23 +1,23 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * Perfil "friction-zero": el usuario no quiere evaluar streams a mano — entra, toca play, anda.
- * Ver CLAUDE.md → "TorBox (debrid activo)" → "Sort friction-zero".
+ * Perfil "friction-zero": el usuario no quiere evaluar streams a mano â€” entra, toca play, anda.
+ * Ver GEMINI.md â†’ "TorBox (debrid activo)" â†’ "Sort friction-zero".
  *
- * Investigado contra los configuradores públicos de Torrentio y Comet (2026-07-11) antes de
+ * Investigado contra los configuradores pÃºblicos de Torrentio y Comet (2026-07-11) antes de
  * escribir nada:
- *   - Torrentio NO tiene ninguna opción de sort por "cacheado en debrid primero" (su dropdown
- *     "Sorting" solo tiene quality/qualitysize/seeders/size, con o sin debrid configurado). Sí
- *     tiene "Priority foreign language" con una opción `latino` (🇲🇽) dedicada — eso se aplica acá
+ *   - Torrentio NO tiene ninguna opciÃ³n de sort por "cacheado en debrid primero" (su dropdown
+ *     "Sorting" solo tiene quality/qualitysize/seeders/size, con o sin debrid configurado). SÃ­
+ *     tiene "Priority foreign language" con una opciÃ³n `latino` (ðŸ‡²ðŸ‡½) dedicada â€” eso se aplica acÃ¡
  *     para audio latino. El objetivo de "el primero siempre anda" para Torrentio queda cubierto
- *     igual por otra vía: con debrid configurado, TODOS los resultados de Torrentio se resuelven
- *     vía TorBox (tageados [TB+] o "[TB download]"), no dependen del swarm P2P del usuario aunque
- *     no estén cacheados — el req real (fiabilidad, no depender del P2P propio) ya está cubierto.
- *   - Comet SÍ tiene la opción exacta: `sortCachedUncachedTogether` (tooltip real: "Disable the
+ *     igual por otra vÃ­a: con debrid configurado, TODOS los resultados de Torrentio se resuelven
+ *     vÃ­a TorBox (tageados [TB+] o "[TB download]"), no dependen del swarm P2P del usuario aunque
+ *     no estÃ©n cacheados â€” el req real (fiabilidad, no depender del P2P propio) ya estÃ¡ cubierto.
+ *   - Comet SÃ tiene la opciÃ³n exacta: `sortCachedUncachedTogether` (tooltip real: "Disable the
  *     default behavior of sorting cached results first, and instead mixes cached and uncached
  *     results together"). El default de la cuenta ya era el correcto (false = cacheados primero)
- *     pero no estaba seteado explícitamente en el config — se fija acá para que no dependa de un
- *     default implícito del addon. También tiene `languages.preferred`, que la cuenta YA tenía en
- *     `["la","en"]` (latino primero) de una sesión anterior — no se toca, ya estaba bien.
+ *     pero no estaba seteado explÃ­citamente en el config â€” se fija acÃ¡ para que no dependa de un
+ *     default implÃ­cito del addon. TambiÃ©n tiene `languages.preferred`, que la cuenta YA tenÃ­a en
+ *     `["la","en"]` (latino primero) de una sesiÃ³n anterior â€” no se toca, ya estaba bien.
  *
  * Por defecto SOLO REPORTA (dry-run). Con --apply escribe de verdad (con backup previo).
  *
@@ -41,24 +41,24 @@ const BACKUPS = join(ROOT, '.backups');
 
 const APPLY = process.argv.includes('--apply');
 
-const die = (m, code = 1) => { console.error(`✗ ${m}`); process.exit(code); };
+const die = (m, code = 1) => { console.error(`âœ— ${m}`); process.exit(code); };
 
 const email = process.env.ST_EMAIL || 'stremioeg@gmail.com';
 const pass = process.env.ST_PASS || '';
 if (!pass) die('Falta ST_PASS');
 
-// ── 1. Login + colección actual ──────────────────────────────────────────────
+// â”€â”€ 1. Login + colecciÃ³n actual â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const login = await apiPost('login', { authKey: null, email, password: pass });
 const authKey = login?.result?.authKey;
 if (!authKey) die('Login fallido: ' + JSON.stringify(login?.error || login));
 
 const col = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
 const addons = col?.result?.addons || [];
-console.log(`✓ Login OK — ${addons.length} addons leídos`);
+console.log(`âœ“ Login OK â€” ${addons.length} addons leÃ­dos`);
 
-// ── 2. Torrentio — agregar language=latino (preservando el resto) ────────────
+// â”€â”€ 2. Torrentio â€” agregar language=latino (preservando el resto) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const torrentioIdx = addons.findIndex((a) => a.manifest?.id === 'com.stremio.torrentio.addon');
-if (torrentioIdx === -1) die('No encontré Torrentio en la colección');
+if (torrentioIdx === -1) die('No encontrÃ© Torrentio en la colecciÃ³n');
 const torrentio = addons[torrentioIdx];
 const torrentioMatch = torrentio.transportUrl.match(/^(https:\/\/[^/]+\/)([^/]*)(\/manifest\.json.*)$/);
 if (!torrentioMatch) die('No pude parsear el transportUrl de Torrentio: ' + torrentio.transportUrl);
@@ -74,13 +74,13 @@ if (!foundLanguage) torrentioPairsNew.push('language=latino');
 const torrentioCfgNew = torrentioPairsNew.join('|');
 const newTorrentioUrl = `${torrentioPrefix}${torrentioCfgNew}${torrentioSuffix}`;
 
-console.log('\nTorrentio — diff:');
+console.log('\nTorrentio â€” diff:');
 console.log(`  antes:   ${torrentioCfgSegment}`);
-console.log(`  después: ${torrentioCfgNew}`);
+console.log(`  despuÃ©s: ${torrentioCfgNew}`);
 
-// ── 3. Comet — fijar sortCachedUncachedTogether:false explícito ──────────────
+// â”€â”€ 3. Comet â€” fijar sortCachedUncachedTogether:false explÃ­cito â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const cometIdx = addons.findIndex((a) => a.manifest?.id === 'stremio.comet.fast');
-if (cometIdx === -1) die('No encontré Comet en la colección');
+if (cometIdx === -1) die('No encontrÃ© Comet en la colecciÃ³n');
 const comet = addons[cometIdx];
 const cometMatch = comet.transportUrl.match(/^(https:\/\/[^/]+\/)([^/]+)(\/manifest\.json.*)$/);
 if (!cometMatch) die('No pude parsear el transportUrl de Comet: ' + comet.transportUrl);
@@ -94,7 +94,7 @@ try {
 }
 const cometCfgBefore = JSON.parse(JSON.stringify(cometCfg));
 cometCfg.sortCachedUncachedTogether = false;
-// languages.preferred ya tiene ["la","en"] de una sesión anterior — no se toca si ya está bien.
+// languages.preferred ya tiene ["la","en"] de una sesiÃ³n anterior â€” no se toca si ya estÃ¡ bien.
 const preferredHasLatino = (cometCfg.languages?.preferred || []).includes('la');
 if (!preferredHasLatino) {
   cometCfg.languages = cometCfg.languages || {};
@@ -104,9 +104,9 @@ if (!preferredHasLatino) {
 const newCometB64 = Buffer.from(JSON.stringify(cometCfg)).toString('base64');
 const newCometUrl = `${cometPrefix}${newCometB64}${cometSuffix}`;
 
-console.log('\nComet — diff:');
-console.log(`  sortCachedUncachedTogether: ${cometCfgBefore.sortCachedUncachedTogether} → ${cometCfg.sortCachedUncachedTogether}`);
-console.log(`  languages.preferred: ${JSON.stringify(cometCfgBefore.languages?.preferred)} → ${JSON.stringify(cometCfg.languages.preferred)}`);
+console.log('\nComet â€” diff:');
+console.log(`  sortCachedUncachedTogether: ${cometCfgBefore.sortCachedUncachedTogether} â†’ ${cometCfg.sortCachedUncachedTogether}`);
+console.log(`  languages.preferred: ${JSON.stringify(cometCfgBefore.languages?.preferred)} â†’ ${JSON.stringify(cometCfg.languages.preferred)}`);
 
 if (!APPLY) {
   console.log('\n[DRY-RUN] Pasar --apply para escribir los cambios en la cuenta.');
@@ -119,26 +119,26 @@ const updated = addons.map((a, i) => {
   return a;
 });
 
-// ── 4. Guard anti-manifest-congelado ──────────────────────────────────────────
+// â”€â”€ 4. Guard anti-manifest-congelado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // No vaciamos manifest.catalogs de addons que no tocamos: regenerate-aiometadata.mjs ya prueba
-// que addonCollectionSet acepta el payload completo (con los ~132 catálogos de AIOMetadata
-// embebidos) sin problema — ver CLAUDE.md → "Bug real: catalogs:[] indiscriminado". Este era
-// justo el script que dejó AIOMetadata/MyTrakt con catalogs=0 el 2026-07-11.
+// que addonCollectionSet acepta el payload completo (con los ~132 catÃ¡logos de AIOMetadata
+// embebidos) sin problema â€” ver GEMINI.md â†’ "Bug real: catalogs:[] indiscriminado". Este era
+// justo el script que dejÃ³ AIOMetadata/MyTrakt con catalogs=0 el 2026-07-11.
 if (!(await assertNoFrozenEmptyCatalogs(updated, ['com.stremio.torrentio.addon', 'stremio.comet.fast']))) {
   process.exit(1);
 }
 
-// ── 5. Backup + aplicar ──────────────────────────────────────────────────────
+// â”€â”€ 5. Backup + aplicar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 mkdirSync(BACKUPS, { recursive: true });
 const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const accountSlug = email.split('@')[0];
 const backupPath = join(BACKUPS, `backup-${accountSlug}-pre-frictionzero-${ts}.json`);
 writeFileSync(backupPath, JSON.stringify({ result: { addons } }, null, 2));
-console.log(`\n✓ Backup guardado: ${backupPath}`);
+console.log(`\nâœ“ Backup guardado: ${backupPath}`);
 
 const res = await apiPost('addonCollectionSet', { type: 'AddonCollectionSet', authKey, addons: updated });
-if (!(res?.result?.success || res?.result)) die('addonCollectionSet falló: ' + JSON.stringify(res));
-console.log('✓ Colección actualizada correctamente.');
+if (!(res?.result?.success || res?.result)) die('addonCollectionSet fallÃ³: ' + JSON.stringify(res));
+console.log('âœ“ ColecciÃ³n actualizada correctamente.');
 
 const after = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
 const afterAddons = after?.result?.addons || [];
@@ -156,7 +156,7 @@ if (cometAfter) {
   }
 }
 const ok = torrentioOk && cometOk;
-console.log(`\n${ok ? '✅' : '✗'} Perfil friction-zero ${ok ? 'aplicado y verificado' : 'NO confirmado del todo'}`);
+console.log(`\n${ok ? 'âœ…' : 'âœ—'} Perfil friction-zero ${ok ? 'aplicado y verificado' : 'NO confirmado del todo'}`);
 console.log(`   Torrentio OK: ${torrentioOk} | Comet OK: ${cometOk}`);
 console.log(`   Backup: ${backupPath}`);
 process.exitCode = ok ? 0 : 1;

@@ -32,9 +32,8 @@ jobs:
           fi
           deno --version
           echo "DENO_DEPLOY_TOKEN length: ${#DENO_DEPLOY_TOKEN}"
-          # En runner de GitHub Actions este comando deploya a PREVIEW si no se promueve a prod.
-          # Para deploy a prod directo: deno deploy --prod --org=pabloeckert --app=mejorastremio-hub
-          deno deploy
+          # Deploy a producción directo
+          deno deploy --prod
 
       - name: Verificar endpoints de producción en vivo (Zero Trust)
         run: |

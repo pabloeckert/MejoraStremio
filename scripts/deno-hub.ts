@@ -67,10 +67,17 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
 // ningÃºn ":" literal, asÃ­ que quedaba TODO en imdbId y season/episode = null -> nuestros
 // addons devolvÃ­an [] para CUALQUIER serie en el cliente real, y por eso Pablo nunca veÃ­a
 // nuestros subtÃ­tulos en la app (solo funcionaban con mi curl, que usa ":" literal).
-function parseStremioSubId(rawId: string): { imdbId: string; season: number | null; episode: number | null; filename: string | null } {
+function parseStremioSubId(rawId: string): {
+  imdbId: string;
+  season: number | null;
+  episode: number | null;
+  filename: string | null;
+  videoHash: string | null;
+  videoSize: number | null;
+} {
   const segs = rawId.split("/");
   let core = segs[0];
-  try { core = decodeURIComponent(core); } catch { /* dejar como estÃ¡ si no decodifica */ }
+  try { core = decodeURIComponent(core); } catch { /* dejar como está si no decodifica */ }
   let [imdbId, s, e] = core.split(":");
   if (imdbId === "tt13854128") {
     imdbId = "tt14060708"; // Alias canónico para HPI: Haut Potentiel Intellectuel
@@ -78,17 +85,25 @@ function parseStremioSubId(rawId: string): { imdbId: string; season: number | nu
   if (imdbId === "tt0081871" || core.toLowerCase().includes("heroe-americano")) {
     imdbId = "tt0081871"; // "El gran héroe americano" / "The Greatest American Hero" (1981)
   }
-  // Segundo segmento ("videoHash=...&videoSize=...&filename=....mkv") trae el nombre
-  // real del archivo que Stremio estÃ¡ reproduciendo â€” se usa para elegir, entre varios
-  // candidatos de subtÃ­tulo, el que corresponda al MISMO release (ver releaseSimilarity).
+  // Segundo segmento ("videoHash=...&videoSize=...&filename=....mkv") trae el hash,
+  // tamaño y nombre real del archivo que Stremio está reproduciendo.
   let filename: string | null = null;
+  let videoHash: string | null = null;
+  let videoSize: number | null = null;
   if (segs[1]) {
     try {
       const qs = new URLSearchParams(decodeURIComponent(segs[1]));
       filename = qs.get("filename");
+      videoHash = qs.get("videoHash");
+      const vs = qs.get("videoSize");
+      if (vs) videoSize = parseInt(vs, 10);
     } catch {
       const m = segs[1].match(/filename=([^&]+)/);
       if (m) { try { filename = decodeURIComponent(m[1]); } catch { filename = m[1]; } }
+      const mh = segs[1].match(/videoHash=([^&]+)/);
+      if (mh) videoHash = mh[1];
+      const ms = segs[1].match(/videoSize=([^&]+)/);
+      if (ms) videoSize = parseInt(ms[1], 10);
     }
   }
   return {
@@ -96,6 +111,8 @@ function parseStremioSubId(rawId: string): { imdbId: string; season: number | nu
     season: s ? parseInt(s, 10) : null,
     episode: e ? parseInt(e, 10) : null,
     filename,
+    videoHash,
+    videoSize,
   };
 }
 
@@ -211,16 +228,139 @@ function msToSrtTime(msTotal: number): string {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")},${String(ms).padStart(3, "0")}`;
 }
 
-function rescaleSrtFramerate(srtText: string, fromFps: number, toFps: number): string {
-  if (!fromFps || !toFps || fromFps === toFps) return srtText;
+// ─────────────────────────────────────────────────────────────────────────────
+// MOTOR DE SINCRONIZACIÓN INTELIGENTE (Smart Audio Sync & Framerate Engine)
+// ─────────────────────────────────────────────────────────────────────────────
+// Resuelve la desincronización y deriva temporal (drift) estructural entre streams
+// y subtítulos con metadatos dispares (ej. video WEB-DL 23.976fps vs subtítulo HDTV 25fps).
+//
+// Fórmulas matemáticas extraídas de la auditoría forense (SubSync & Subtitle-Sync):
+//   1. Factor de estiramiento (time-stretch ratio):
+//        R = fps_source / fps_target
+//        t_new = round(t_original * R) + offset_ms
+//   2. PAL (25.0 fps) -> WEB-DL / NTSC Film (23.976 fps):
+//        R = 25.0 / 23.976 ≈ 1.042709376... (deriva acumulada: +42.71 ms/s, +153.75s/h)
+//   3. WEB-DL / NTSC Film (23.976 fps) -> PAL (25.0 fps):
+//        R = 23.976 / 25.0 = 0.95904...      (deriva acumulada: -40.96 ms/s, -147.46s/h)
+//   4. Detección heurística de release tags + VideoHash matching.
+
+interface FramerateInfo {
+  fps: number;
+  standard: "PAL_25" | "NTSC_WEB" | "FILM_24" | "NTSC_TV" | "UNKNOWN";
+  tag: string;
+  confidence: "high" | "medium" | "low";
+}
+
+function detectFramerate(name: string | null | undefined): FramerateInfo {
+  if (!name) return { fps: 23.976, standard: "NTSC_WEB", tag: "WEB-DL (asumido)", confidence: "low" };
+  const s = String(name).toLowerCase();
+
+  // Señales explícitas de 25 fps (PAL / transmisiones de TV europea/británica)
+  if (/\b(pal|hdtv|pdtv|dvb|dvb-t|dvb-s|tf1|ard|zdf|orf|bbc|itv|channel4|rte|25fps|25\.000|50fps|50i)\b/i.test(s)) {
+    return { fps: 25.0, standard: "PAL_25", tag: "PAL/HDTV 25fps", confidence: "high" };
+  }
+
+  // Señales de 23.976 fps (WEB-DL, rips NTSC, BluRay estándar)
+  if (/\b(web-?dl|webrip|web\b|amzn|nf|netflix|dsnp|disney|atvp|apple\s?tv|hmax|max\.web|hulu|bluray|blu-ray|bdrip|brrip|23\.976|23\.98|23\.976fps)\b/i.test(s)) {
+    return { fps: 23.976, standard: "NTSC_WEB", tag: "WEB-DL 23.976fps", confidence: "high" };
+  }
+
+  // Señales de 24.000 fps (Cinema)
+  if (/\b(24fps|24\.000|dci)\b/i.test(s)) {
+    return { fps: 24.0, standard: "FILM_24", tag: "Cinema 24fps", confidence: "high" };
+  }
+
+  // Señales de 29.97 fps (NTSC Broadcast)
+  if (/\b(29\.97|29\.970|59\.94|60i)\b/i.test(s)) {
+    return { fps: 29.97, standard: "NTSC_TV", tag: "NTSC Broadcast 29.97fps", confidence: "high" };
+  }
+
+  return { fps: 23.976, standard: "NTSC_WEB", tag: "WEB-DL (estándar)", confidence: "low" };
+}
+
+interface SmartSyncDecision {
+  needsRescale: boolean;
+  fromFps: number;
+  toFps: number;
+  ratio: number;
+  actionDescription: string;
+  badge: string;
+  fpsParam: string;
+}
+
+function resolveSmartSync(videoName?: string | null, subName?: string | null): SmartSyncDecision {
+  const v = detectFramerate(videoName);
+  const s = detectFramerate(subName);
+
+  // Video WEB-DL (23.976) y subtítulo HDTV/PAL (25.0) -> Time-stretch factor 25 / 23.976 ≈ 1.042709
+  if (Math.abs(v.fps - 23.976) < 0.05 && Math.abs(s.fps - 25.0) < 0.05) {
+    return {
+      needsRescale: true,
+      fromFps: 25.0,
+      toFps: 23.976,
+      ratio: 25.0 / 23.976,
+      actionDescription: "Estiramiento temporal HDTV/PAL (25fps) -> WEB-DL (23.976fps) [+153.75s/h]",
+      badge: "⚡ SmartSync (PAL 25->23.976 WEB)",
+      fpsParam: "25to23976",
+    };
+  }
+
+  // Video HDTV/PAL (25.0) y subtítulo WEB-DL (23.976) -> Time-compression factor 23.976 / 25.0 = 0.95904
+  if (Math.abs(v.fps - 25.0) < 0.05 && Math.abs(s.fps - 23.976) < 0.05) {
+    return {
+      needsRescale: true,
+      fromFps: 23.976,
+      toFps: 25.0,
+      ratio: 23.976 / 25.0,
+      actionDescription: "Compresión temporal WEB-DL (23.976fps) -> HDTV/PAL (25fps) [-147.46s/h]",
+      badge: "⚡ SmartSync (WEB 23.976->25 PAL)",
+      fpsParam: "23976to25",
+    };
+  }
+
+  // Video Cinema (24.0) y subtítulo PAL (25.0)
+  if (Math.abs(v.fps - 24.0) < 0.05 && Math.abs(s.fps - 25.0) < 0.05) {
+    return {
+      needsRescale: true,
+      fromFps: 25.0,
+      toFps: 24.0,
+      ratio: 25.0 / 24.0,
+      actionDescription: "Estiramiento temporal PAL 25fps -> Cinema 24fps",
+      badge: "⚡ SmartSync (PAL 25->24fps)",
+      fpsParam: "25to24",
+    };
+  }
+
+  // Coincidencia de framerate nativo
+  return {
+    needsRescale: false,
+    fromFps: v.fps,
+    toFps: v.fps,
+    ratio: 1.0,
+    actionDescription: `Calce nativo directo (${v.tag})`,
+    badge: `✅ Sincro Nativo (${v.tag})`,
+    fpsParam: "none",
+  };
+}
+
+function rescaleSrtFramerate(
+  srtText: string,
+  fromFps: number,
+  toFps: number,
+  offsetMs: number = 0,
+): string {
+  if (!srtText) return "";
+  if ((!fromFps || !toFps || fromFps === toFps) && offsetMs === 0) return srtText;
   const ratio = fromFps / toFps;
   return srtText.replace(
     /(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})/g,
     (_match, startStr, endStr) => {
-      const startMs = Math.round(srtTimeToMs(startStr) * ratio);
-      const endMs = Math.round(srtTimeToMs(endStr) * ratio);
+      const origStart = srtTimeToMs(startStr);
+      const origEnd = srtTimeToMs(endStr);
+      const startMs = Math.max(0, Math.round(origStart * ratio + offsetMs));
+      const endMs = Math.max(startMs + 10, Math.round(origEnd * ratio + offsetMs));
       return `${msToSrtTime(startMs)} --> ${msToSrtTime(endMs)}`;
-    }
+    },
   );
 }
 
@@ -488,23 +628,48 @@ async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Pr
         const baseId = `mshub-subdl-${subs.indexOf(s)}-${imdbId}`;
         const encoded = encodeURIComponent(s.subdlPath);
 
-        // 1. Opción prioritaria para WEB-DL / Streaming (23.976fps / 24fps)
-        subtitles.push({
-          id: `${baseId}-web`,
-          url: `${mountBase}/srt/${encoded}?fps=25to23976`,
-          lang: "spa",
-          label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${cleanName} (Sincro Web-DL / 24fps)`,
-          name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${cleanName} (Sincro Web-DL / 24fps)`,
-        });
+        const syncDecision = resolveSmartSync(parsed.filename, s.name);
 
-        // 2. Opción para transmisión televisiva (HDTV / PAL 25fps)
-        subtitles.push({
-          id: baseId,
-          url: `${mountBase}/srt/${encoded}`,
-          lang: "spa",
-          label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${cleanName} (Sincro HDTV / 25fps)`,
-          name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${cleanName} (Sincro HDTV / 25fps)`,
-        });
+        if (syncDecision.needsRescale) {
+          // El Hub detecta discrepancia estructural de framerate y APLICA AUTOMÁTICAMENTE
+          // el time-stretch como opción número 1 preferente.
+          subtitles.push({
+            id: `${baseId}-${syncDecision.fpsParam}`,
+            url: `${mountBase}/srt/${encoded}?fps=${syncDecision.fpsParam}&smart=1`,
+            lang: "spa",
+            label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${syncDecision.badge} ${cleanName}`,
+            name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${syncDecision.badge} ${cleanName}`,
+          });
+
+          // Opción secundaria: pista sin estirar (original)
+          subtitles.push({
+            id: baseId,
+            url: `${mountBase}/srt/${encoded}`,
+            lang: "spa",
+            label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
+            name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
+          });
+        } else {
+          // Coincidencia de framerate nativo: NO se estira en la opción 1 (evita drift artificial)
+          subtitles.push({
+            id: baseId,
+            url: `${mountBase}/srt/${encoded}`,
+            lang: "spa",
+            label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${syncDecision.badge} ${cleanName}`,
+            name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${syncDecision.badge} ${cleanName}`,
+          });
+
+          // Opción secundaria: alternativa forzada si los metadatos upstream venían mal etiquetados
+          const altFps = Math.abs(detectFramerate(s.name).fps - 25.0) < 0.1 ? "25to23976" : "23976to25";
+          const altBadge = altFps === "25to23976" ? "⏱️ Forzar 25->23.976fps" : "⏱️ Forzar 23.976->25fps";
+          subtitles.push({
+            id: `${baseId}-alt`,
+            url: `${mountBase}/srt/${encoded}?fps=${altFps}`,
+            lang: "spa",
+            label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${altBadge} ${cleanName}`,
+            name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${altBadge} ${cleanName}`,
+          });
+        }
       }
       return jsonResponse({ subtitles });
     } catch (e) {
@@ -524,10 +689,18 @@ async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Pr
       return new Response("Error descargando o host no permitido", { status: 502, headers: cors });
     }
     const fps = reqUrl?.searchParams?.get("fps");
+    const offsetStr = reqUrl?.searchParams?.get("offset");
+    const offsetMs = offsetStr ? parseInt(offsetStr, 10) || 0 : 0;
     if (fps === "25to23976" || fps === "pal_to_ntsc") {
-      srtText = rescaleSrtFramerate(srtText, 25.0, 23.976);
+      srtText = rescaleSrtFramerate(srtText, 25.0, 23.976, offsetMs);
     } else if (fps === "23976to25" || fps === "ntsc_to_pal") {
-      srtText = rescaleSrtFramerate(srtText, 23.976, 25.0);
+      srtText = rescaleSrtFramerate(srtText, 23.976, 25.0, offsetMs);
+    } else if (fps === "25to24") {
+      srtText = rescaleSrtFramerate(srtText, 25.0, 24.0, offsetMs);
+    } else if (fps === "24to25") {
+      srtText = rescaleSrtFramerate(srtText, 24.0, 25.0, offsetMs);
+    } else if (offsetMs !== 0) {
+      srtText = rescaleSrtFramerate(srtText, 1.0, 1.0, offsetMs);
     }
     srtText = cleanSrt(srtText);
     return new Response(srtText, {
@@ -781,25 +954,50 @@ async function handleOpenSubtitles(
       for (const s of [...sortedClean, ...allSdh]) {
         const isSdh = isSdhName(s.name) || (toCheck.indexOf(s) >= 0 && verdicts[toCheck.indexOf(s)] === true);
         const baseId = `${idTag}-${subs.indexOf(s)}-${imdbId}`;
-        const disp = `[${nameTag}]${isSdh ? " ⚠️ SDH" : ""} ${s.name}`;
+        const disp = `[${nameTag}]${isSdh ? " ⚠️ SDH" : ""}`;
 
-        // 1. Opción prioritaria para WEB-DL / Streaming (23.976fps / 24fps)
-        subtitles.push({
-          id: `${baseId}-web`,
-          url: `${mountBase}/srt/${s.fileId}?fps=25to23976`,
-          lang: "spa",
-          label: `${disp} (Sincro Web-DL / 24fps)`,
-          name: `${disp} (Sincro Web-DL / 24fps)`,
-        });
+        const syncDecision = resolveSmartSync(parsed.filename, s.name);
 
-        // 2. Opción para transmisión televisiva (HDTV / PAL 25fps)
-        subtitles.push({
-          id: baseId,
-          url: `${mountBase}/srt/${s.fileId}`,
-          lang: "spa",
-          label: `${disp} (Sincro HDTV / 25fps)`,
-          name: `${disp} (Sincro HDTV / 25fps)`,
-        });
+        if (syncDecision.needsRescale) {
+          // El Hub detecta discrepancia estructural de framerate y APLICA AUTOMÁTICAMENTE
+          // el time-stretch como opción número 1 preferente.
+          subtitles.push({
+            id: `${baseId}-${syncDecision.fpsParam}`,
+            url: `${mountBase}/srt/${s.fileId}?fps=${syncDecision.fpsParam}&smart=1`,
+            lang: "spa",
+            label: `${disp} ${syncDecision.badge} ${s.name}`,
+            name: `${disp} ${syncDecision.badge} ${s.name}`,
+          });
+
+          // Opción secundaria: pista sin estirar (original)
+          subtitles.push({
+            id: baseId,
+            url: `${mountBase}/srt/${s.fileId}`,
+            lang: "spa",
+            label: `${disp} 📺 Original (${detectFramerate(s.name).tag}) ${s.name}`,
+            name: `${disp} 📺 Original (${detectFramerate(s.name).tag}) ${s.name}`,
+          });
+        } else {
+          // Coincidencia de framerate nativo: NO se estira en la opción 1 (evita drift artificial)
+          subtitles.push({
+            id: baseId,
+            url: `${mountBase}/srt/${s.fileId}`,
+            lang: "spa",
+            label: `${disp} ${syncDecision.badge} ${s.name}`,
+            name: `${disp} ${syncDecision.badge} ${s.name}`,
+          });
+
+          // Opción secundaria: alternativa forzada si los metadatos upstream venían mal etiquetados
+          const altFps = Math.abs(detectFramerate(s.name).fps - 25.0) < 0.1 ? "25to23976" : "23976to25";
+          const altBadge = altFps === "25to23976" ? "⏱️ Forzar 25->23.976fps" : "⏱️ Forzar 23.976->25fps";
+          subtitles.push({
+            id: `${baseId}-alt`,
+            url: `${mountBase}/srt/${s.fileId}?fps=${altFps}`,
+            lang: "spa",
+            label: `${disp} ${altBadge} ${s.name}`,
+            name: `${disp} ${altBadge} ${s.name}`,
+          });
+        }
       }
       return jsonResponse({ subtitles });
     } catch (e) {
@@ -815,10 +1013,18 @@ async function handleOpenSubtitles(
       return new Response("Error descargando el subtítulo de OpenSubtitles", { status: 502, headers: cors });
     }
     const fps = reqUrl?.searchParams?.get("fps");
+    const offsetStr = reqUrl?.searchParams?.get("offset");
+    const offsetMs = offsetStr ? parseInt(offsetStr, 10) || 0 : 0;
     if (fps === "25to23976" || fps === "pal_to_ntsc") {
-      srtText = rescaleSrtFramerate(srtText, 25.0, 23.976);
+      srtText = rescaleSrtFramerate(srtText, 25.0, 23.976, offsetMs);
     } else if (fps === "23976to25" || fps === "ntsc_to_pal") {
-      srtText = rescaleSrtFramerate(srtText, 23.976, 25.0);
+      srtText = rescaleSrtFramerate(srtText, 23.976, 25.0, offsetMs);
+    } else if (fps === "25to24") {
+      srtText = rescaleSrtFramerate(srtText, 25.0, 24.0, offsetMs);
+    } else if (fps === "24to25") {
+      srtText = rescaleSrtFramerate(srtText, 24.0, 25.0, offsetMs);
+    } else if (offsetMs !== 0) {
+      srtText = rescaleSrtFramerate(srtText, 1.0, 1.0, offsetMs);
     }
     srtText = cleanSrt(srtText);
     return new Response(srtText, {
@@ -853,6 +1059,9 @@ async function handleSubtitleProxy(url: URL): Promise<Response> {
     "opensubtitles.org",
     "api.subdl.com",
     "strem.fun",
+    "stremio-subdivx.xor.ar",
+    "subdivx.com",
+    "www.subdivx.com",
     "mejorastremio-hub.pabloeckert.deno.net",
   ];
   if (!allowed.some((h) => host === h || host.endsWith("." + h))) {
@@ -868,10 +1077,23 @@ async function handleSubtitleProxy(url: URL): Promise<Response> {
     if (!srtText) return new Response("No se pudo decodificar el subtítulo", { status: 502, headers: cors });
 
     const fps = url.searchParams.get("fps");
-    if (fps === "25to23976" || fps === "pal_to_ntsc") {
-      srtText = rescaleSrtFramerate(srtText, 25.0, 23.976);
+    const offsetStr = url.searchParams.get("offset");
+    const offsetMs = offsetStr ? parseInt(offsetStr, 10) || 0 : 0;
+    const fromFps = url.searchParams.get("fromFps") ? parseFloat(url.searchParams.get("fromFps")!) : null;
+    const toFps = url.searchParams.get("toFps") ? parseFloat(url.searchParams.get("toFps")!) : null;
+
+    if (fromFps && toFps) {
+      srtText = rescaleSrtFramerate(srtText, fromFps, toFps, offsetMs);
+    } else if (fps === "25to23976" || fps === "pal_to_ntsc") {
+      srtText = rescaleSrtFramerate(srtText, 25.0, 23.976, offsetMs);
     } else if (fps === "23976to25" || fps === "ntsc_to_pal") {
-      srtText = rescaleSrtFramerate(srtText, 23.976, 25.0);
+      srtText = rescaleSrtFramerate(srtText, 23.976, 25.0, offsetMs);
+    } else if (fps === "25to24") {
+      srtText = rescaleSrtFramerate(srtText, 25.0, 24.0, offsetMs);
+    } else if (fps === "24to25") {
+      srtText = rescaleSrtFramerate(srtText, 24.0, 25.0, offsetMs);
+    } else if (offsetMs !== 0) {
+      srtText = rescaleSrtFramerate(srtText, 1.0, 1.0, offsetMs);
     }
 
     const cleaned = cleanSrt(srtText);
@@ -888,6 +1110,146 @@ async function handleSubtitleProxy(url: URL): Promise<Response> {
   } catch (e) {
     return new Response(`Error proxying subtitle: ${(e as Error).message}`, { status: 500, headers: cors });
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ── /subdivx — Subdivx ES Latino (vía Proxy con Smart Audio Sync) ───────────
+// ─────────────────────────────────────────────────────────────────────────────
+const SUBDIVX_PROXY_URL = Deno.env.get("SUBDIVX_PROXY_URL") ?? "https://stremio-subdivx.xor.ar";
+
+const SUBDIVX_MANIFEST = {
+  id: "com.mejorastremio.subdivx",
+  version: "1.0.0",
+  name: "Subdivx ES Latino (Smart Audio Sync)",
+  description:
+    "Subtítulos en Español Latino de Subdivx mediante proxy con Smart Audio Sync automático y filtrado SDH.",
+  resources: ["subtitles"],
+  types: ["movie", "series"],
+  idPrefixes: ["tt"],
+  catalogs: [],
+};
+
+async function handleSubdivx(
+  subPath: string,
+  mountBase: string,
+  reqUrl?: URL,
+): Promise<Response> {
+  if (subPath === "/manifest.json") {
+    return jsonResponse(SUBDIVX_MANIFEST);
+  }
+
+  const subMatch = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
+  if (subMatch) {
+    const [, type, rawId] = subMatch;
+    const parsed = parseStremioSubId(rawId);
+    const { imdbId, season, episode, filename } = parsed;
+
+    try {
+      const proxyBase = SUBDIVX_PROXY_URL.replace(/\/+$/, "");
+      const b64EmptyConfig = b64u.enc(JSON.stringify({ apiKey: "" }));
+      const targetQuery = type === "series" && season != null && episode != null
+        ? `${imdbId}:${season}:${episode}`
+        : imdbId;
+      const targetUrl = `${proxyBase}/${b64EmptyConfig}/subtitles/${type}/${encodeURIComponent(targetQuery)}.json`;
+
+      const r = await fetch(targetUrl, { signal: AbortSignal.timeout(8000) }).catch(() => null);
+      // deno-lint-ignore no-explicit-any
+      let subs: any[] = [];
+      if (r && r.ok) {
+        const d = await r.json().catch(() => null);
+        subs = Array.isArray(d?.subtitles) ? d.subtitles : [];
+      }
+
+      if (!subs.length) {
+        return jsonResponse({ subtitles: [] });
+      }
+
+      // deno-lint-ignore no-explicit-any
+      const subtitles: any[] = [];
+      for (let i = 0; i < subs.length && i < 15; i++) {
+        const s = subs[i];
+        const subName = s.label || s.name || `Subdivx ${i + 1}`;
+        const syncDecision = resolveSmartSync(filename, subName);
+        const encodedUrl = encodeURIComponent(s.url);
+        const baseId = `mshub-subdivx-${i}-${imdbId}`;
+
+        if (syncDecision.needsRescale) {
+          subtitles.push({
+            id: `${baseId}-${syncDecision.fpsParam}`,
+            url: `${mountBase}/srt/${encodedUrl}?fps=${syncDecision.fpsParam}&smart=1`,
+            lang: "spa",
+            label: `[Subdivx] ${syncDecision.badge} ${subName}`,
+            name: `[Subdivx] ${syncDecision.badge} ${subName}`,
+          });
+          subtitles.push({
+            id: baseId,
+            url: `${mountBase}/srt/${encodedUrl}`,
+            lang: "spa",
+            label: `[Subdivx] 📺 Original (${detectFramerate(subName).tag}) ${subName}`,
+            name: `[Subdivx] 📺 Original (${detectFramerate(subName).tag}) ${subName}`,
+          });
+        } else {
+          subtitles.push({
+            id: baseId,
+            url: `${mountBase}/srt/${encodedUrl}`,
+            lang: "spa",
+            label: `[Subdivx] ${syncDecision.badge} ${subName}`,
+            name: `[Subdivx] ${syncDecision.badge} ${subName}`,
+          });
+          const altFps = Math.abs(detectFramerate(subName).fps - 25.0) < 0.1 ? "25to23976" : "23976to25";
+          const altBadge = altFps === "25to23976" ? "⏱️ Forzar 25->23.976fps" : "⏱️ Forzar 23.976->25fps";
+          subtitles.push({
+            id: `${baseId}-alt`,
+            url: `${mountBase}/srt/${encodedUrl}?fps=${altFps}`,
+            lang: "spa",
+            label: `[Subdivx] ${altBadge} ${subName}`,
+            name: `[Subdivx] ${altBadge} ${subName}`,
+          });
+        }
+      }
+
+      return jsonResponse({ subtitles });
+    } catch (e) {
+      return jsonResponse({ subtitles: [], error: (e as Error).message });
+    }
+  }
+
+  const srtMatch = subPath.match(/^\/srt\/(.+)$/);
+  if (srtMatch) {
+    const rawTarget = decodeURIComponent(srtMatch[1]);
+    try {
+      const r = await fetch(rawTarget, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) return new Response("Error upstream Subdivx", { status: 502, headers: cors });
+      const buf = new Uint8Array(await r.arrayBuffer());
+      const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
+      let srtText = isZip ? await extractSrtFromZip(buf) : decodeSubtitleText(buf);
+      if (!srtText) return new Response("Error decodificando subtítulo", { status: 502, headers: cors });
+
+      const fps = reqUrl?.searchParams?.get("fps");
+      const offsetStr = reqUrl?.searchParams?.get("offset");
+      const offsetMs = offsetStr ? parseInt(offsetStr, 10) || 0 : 0;
+      if (fps === "25to23976" || fps === "pal_to_ntsc") {
+        srtText = rescaleSrtFramerate(srtText, 25.0, 23.976, offsetMs);
+      } else if (fps === "23976to25" || fps === "ntsc_to_pal") {
+        srtText = rescaleSrtFramerate(srtText, 23.976, 25.0, offsetMs);
+      } else if (offsetMs !== 0) {
+        srtText = rescaleSrtFramerate(srtText, 1.0, 1.0, offsetMs);
+      }
+
+      srtText = cleanSrt(srtText);
+      return new Response(srtText, {
+        headers: {
+          ...cors,
+          "Content-Type": "application/x-subrip; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="subdivx.srt"',
+        },
+      });
+    } catch (e) {
+      return new Response(`Error: ${(e as Error).message}`, { status: 502, headers: cors });
+    }
+  }
+
+  return new Response("Not found", { status: 404, headers: cors });
 }
 
 
@@ -1283,7 +1645,7 @@ async function handleIptv(subPath: string): Promise<Response> {
 // LÃ³gica idÃ©ntica a deno-synopsis-enricher.ts.
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-flash-lite-latest";
+const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const OPENROUTER_MODEL = Deno.env.get("OPENROUTER_MODEL") ?? "openrouter/free";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") ?? "";
@@ -1406,20 +1768,42 @@ const GEMINI_SAFETY_OFF = [
 ].map((category) => ({ category, threshold: "BLOCK_NONE" }));
 
 async function callGemini(prompt: string, apiKey: string, signal: AbortSignal): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+  const model = GEMINI_MODEL || "gemini-2.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const r = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      // Tatort es contenido policial (violencia, crimen) â€” sin esto Gemini
-      // bloquea lotes con descripciones de escenas y la traducciÃ³n sale a medias.
+      // Tatort es contenido policial (violencia, crimen) — sin esto Gemini
+      // bloquea lotes con descripciones de escenas y la traducción sale a medias.
       safetySettings: GEMINI_SAFETY_OFF,
-      generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
+      generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
     }),
     signal,
   });
-  if (!r.ok) throw new Error(`Gemini respondiÃ³ ${r.status}`);
+  if (!r.ok) {
+    // Si el modelo específico da 404, intentar fallback a gemini-1.5-flash
+    if (r.status === 404 && model !== "gemini-1.5-flash") {
+      const fbUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+      const fb = await fetch(fbUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          safetySettings: GEMINI_SAFETY_OFF,
+          generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
+        }),
+        signal,
+      });
+      if (fb.ok) {
+        const d = await fb.json();
+        const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return String(text).trim();
+      }
+    }
+    throw new Error(`Gemini respondió ${r.status}`);
+  }
   const d = await r.json();
   const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error("Gemini: sin texto (" + (d?.candidates?.[0]?.finishReason || JSON.stringify(d).slice(0, 120)) + ")");
@@ -2230,7 +2614,7 @@ function normTitleKey(s: string): string {
   return String(s)
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[Ì€-Í¯]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/\bteil\b/g, "")
     .replace(/[^a-z0-9 ]/g, " ")
     .replace(/\s+/g, " ")
@@ -2438,6 +2822,12 @@ function isSoundOnly(text: string): boolean {
 // corchetes intercalada en el diÃ¡logo. Umbral conservador (mejor un falso negativo
 // ocasional que descartar un subtÃ­tulo real por error) â€” requiere al menos 8 cues para
 // no arriesgar un veredicto con muestra chica.
+function isSdhName(name: string): boolean {
+  if (!name) return false;
+  const n = name.toLowerCase();
+  return /\b(sdh|cc|forced|forzados)\b/i.test(n) || /[\(\[\{](sdh|cc|forced)[\)\]\}]/i.test(n);
+}
+
 function looksLikeSDH(srtText: string): boolean {
   const cues = parseSrt(srtText);
   if (cues.length < 8) return false;
@@ -2658,56 +3048,78 @@ async function fetchBaseCues(src: { t: string; u?: string; f?: number }): Promis
   throw new Error("base desconocida");
 }
 
-// Marcadores de SDH a nivel nombre de archivo / release â€” barato, sin descargar nada.
+// Marcadores de SDH a nivel nombre de archivo / release — barato, sin descargar nada.
 const SDH_NAME_RE = /\b(sdh|hearing[\s._-]*impaired|for the deaf|\[cc\]|\bcc\b|forced\s*sdh)\b/i;
 
-async function osHasSpanish(imdbId: string, season: number | null, episode: number | null): Promise<boolean> {
-  if (!OPENSUBTITLES_API_KEY) return false;
-  // es (genÃ©rico) + sp (EspaÃ±a) + ea (LatinoamÃ©rica) â€” los 3 cÃ³digos de espaÃ±ol
-  // de la API moderna (ver commit "OpenSubtitles Latino real"). /translate solo se
-  // calla si ya hay un subtÃ­tulo ES **LIMPIO** (no SDH): si lo Ãºnico disponible en
-  // espaÃ±ol es para sordos, la traducciÃ³n IA sÃ­ vale la pena (preferencia dura de
-  // Pablo â€” "SDH me molesta muchÃ­simo"). El chequeo es a nivel metadata (flag
-  // hearing_impaired + regex sobre release/filename), sin gastar cupo de descarga.
-  const p = new URLSearchParams({ languages: "es,sp,ea" });
+async function hasViableSpanishSub(
+  imdbId: string,
+  season: number | null,
+  episode: number | null,
+  videoFilename?: string | null,
+): Promise<{ viable: boolean; reason: string }> {
+  if (!OPENSUBTITLES_API_KEY) return { viable: false, reason: "sin OPENSUBTITLES_API_KEY" };
+
+  const p = new URLSearchParams({ languages: "es,sp,ea", hearing_impaired: "exclude" });
   if (season != null && episode != null) {
     p.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
     p.set("season_number", String(season));
     p.set("episode_number", String(episode));
   } else p.set("imdb_id", imdbId.replace(/^tt0*/, ""));
+
   const r = await fetch(`${OPENSUBTITLES_API}/subtitles?${p}`, {
     headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA },
     signal: AbortSignal.timeout(10000),
   }).then((x) => x.json()).catch(() => null);
-  const data = Array.isArray(r?.data) ? r.data : [];
-  if (!data.length) return false;
 
-  // Nivel 1 (barato): descartar los que se declaran/nombran SDH.
+  const data = Array.isArray(r?.data) ? r.data : [];
+  if (!data.length) return { viable: false, reason: "cero subtítulos en español en upstream" };
+
+  // Nivel 1: filtrar SDH
   // deno-lint-ignore no-explicit-any
-  const survivors = data.filter((d: any) => {
+  const cleanSubs = data.filter((d: any) => {
     const a = d?.attributes ?? {};
     if (a.hearing_impaired === true) return false;
     const hay = `${a.release ?? ""} ${a.files?.[0]?.file_name ?? ""}`;
     return !SDH_NAME_RE.test(hay);
   });
-  if (!survivors.length) return false;
-  // TÃ­tulo mainstream con muchas opciones en espaÃ±ol: no vale la pena verificar por
-  // contenido, seguro hay alguna limpia â€” /translate se calla.
-  if (survivors.length > 3) return true;
 
-  // Nivel 2: el flag hearing_impaired de OpenSubtitles miente (2026-09-05). Para los
-  // pocos candidatos que quedan, usar el veredicto por CONTENIDO ya cacheado por el
-  // handler de /opensubtitles (cache hit = gratis; si alguno no estÃ¡ clasificado, la
-  // primera vez cuesta una descarga, despuÃ©s queda para siempre). Si al menos uno es
-  // limpio de verdad, /translate se calla; si todos son SDH, ofrece su traducciÃ³n.
-  for (const d of survivors) {
+  if (!cleanSubs.length) return { viable: false, reason: "todos los subtítulos en español son SDH" };
+
+  // Nivel 2: Si Stremio envió el filename real del video, verificar si algún subtítulo ES coincide en framerate y corte
+  if (videoFilename) {
+    const videoFps = detectFramerate(videoFilename);
+    let hasFramerateAndReleaseMatch = false;
+
     // deno-lint-ignore no-explicit-any
-    const fid = (d as any)?.attributes?.files?.[0]?.file_id;
-    if (!Number.isFinite(fid)) return true; // sin file_id no se puede verificar â†’ conservador
-    const verdict = await classifySDHCached(Number(fid));
-    if (verdict !== true) return true; // limpio o indeterminado â†’ hay espaÃ±ol usable
+    for (const d of cleanSubs) {
+      const a = (d as any)?.attributes ?? {};
+      const subName = `${a.release ?? ""} ${a.files?.[0]?.file_name ?? ""}`;
+      const subFps = detectFramerate(subName);
+      const sim = releaseSimilarity(videoFilename, subName);
+
+      // Si hay coincidencia de framerate estructural y similitud de release
+      if (Math.abs(videoFps.fps - subFps.fps) < 0.05 && sim > 0.15) {
+        hasFramerateAndReleaseMatch = true;
+        break;
+      }
+    }
+
+    if (!hasFramerateAndReleaseMatch) {
+      return {
+        viable: false,
+        reason: `Discrepancia insalvable: Video es ${videoFps.tag} pero subtítulos ES son de framerate dispar o corte incompatible`,
+      };
+    }
   }
-  return false; // todos los candidatos en espaÃ±ol resultaron SDH por contenido
+
+  // Título cubierto si sobrevivieron opciones limpias compatibles
+  return { viable: true, reason: "cobertura ES adecuada" };
+}
+
+interface BaseSubMatch {
+  fileId: number;
+  matchType: "hash" | "release" | "popular";
+  releaseName: string;
 }
 
 async function osBaseFileId(
@@ -2716,55 +3128,88 @@ async function osBaseFileId(
   episode: number | null,
   lang: string,
   videoFilename?: string | null,
-): Promise<number | null> {
+  videoHash?: string | null,
+  _videoSize?: number | null,
+): Promise<BaseSubMatch | null> {
   if (!OPENSUBTITLES_API_KEY) return null;
+
+  // 1. Prioridad Absoluta Zero-Trust: Emparejamiento 100% por VideoHash
+  if (videoHash && videoHash !== "0000000000000000") {
+    try {
+      const hashParams = new URLSearchParams({ moviehash: videoHash, languages: lang });
+      const hashRes = await fetch(`${OPENSUBTITLES_API}/subtitles?${hashParams}`, {
+        headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA },
+        signal: AbortSignal.timeout(8000),
+      }).then((x) => x.json()).catch(() => null);
+
+      const hashData = Array.isArray(hashRes?.data) ? hashRes.data : [];
+      if (hashData.length > 0) {
+        const best = hashData[0];
+        const fid = best?.attributes?.files?.[0]?.file_id;
+        const rel = best?.attributes?.release || best?.attributes?.files?.[0]?.file_name || "Hash Match";
+        if (Number.isFinite(fid)) {
+          return { fileId: fid, matchType: "hash", releaseName: rel };
+        }
+      }
+    } catch { /* continuar a búsqueda por release */ }
+  }
+
+  // 2. Búsqueda por IMDb ID y emparejamiento por similitud de release
   const p = new URLSearchParams({ languages: lang, hearing_impaired: "exclude", order_by: "download_count" });
   if (season != null && episode != null) {
     p.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
     p.set("season_number", String(season));
     p.set("episode_number", String(episode));
   } else p.set("imdb_id", imdbId.replace(/^tt0*/, ""));
+
   const r = await fetch(`${OPENSUBTITLES_API}/subtitles?${p}`, {
     headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA },
     signal: AbortSignal.timeout(10000),
   }).then((x) => x.json()).catch(() => null);
+
   // deno-lint-ignore no-explicit-any
   const data: any[] = Array.isArray(r?.data) ? r.data : [];
   if (!data.length) return null;
 
-  // Con el filename real del video: elegir el candidato cuyo release/nombre de
-  // archivo matchee mejor (mismo corte/fuente = mismo timing), no ciegamente el mÃ¡s
-  // descargado. Umbral bajo (>0) porque cualquier seÃ±al real de match (ej. "AMZN",
-  // "WEBRip", el nombre del grupo de release) vale mÃ¡s que popularidad a ciegas.
   if (videoFilename) {
-    let best: { fid: number; score: number } | null = null;
+    let best: { fid: number; score: number; rel: string } | null = null;
     for (const d of data) {
       const a = d?.attributes ?? {};
       const fid = a?.files?.[0]?.file_id;
       if (!Number.isFinite(fid)) continue;
       const hay = `${a.release ?? ""} ${a.files?.[0]?.file_name ?? ""}`;
       const score = releaseSimilarity(videoFilename, hay);
-      if (!best || score > best.score) best = { fid, score };
+      if (!best || score > best.score) best = { fid, score, rel: hay };
     }
-    if (best && best.score > 0) return best.fid;
+    if (best && best.score > 0) {
+      return { fileId: best.fid, matchType: "release", releaseName: best.rel };
+    }
   }
 
-  const fid = data[0]?.attributes?.files?.[0]?.file_id;
-  return Number.isFinite(fid) ? fid : null;
+  const first = data[0];
+  const fid = first?.attributes?.files?.[0]?.file_id;
+  const rel = first?.attributes?.release || first?.attributes?.files?.[0]?.file_name || "Top Downloaded";
+  return Number.isFinite(fid) ? { fileId: fid, matchType: "popular", releaseName: rel } : null;
 }
 
 async function handleTranslate(subPath: string, mountBase: string): Promise<Response> {
   if (subPath === "/manifest.json") return jsonResponse(TRANSLATE_MANIFEST);
 
-  // â”€â”€ listar: /subtitles/:type/:id.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── listar: /subtitles/:type/:id.json ──────────────────────────────
   const listM = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
   if (listM) {
     const [, , rawId] = listM;
-    const { imdbId, season, episode, filename } = parseStremioSubId(rawId);
+    const { imdbId, season, episode, filename, videoHash, videoSize } = parseStremioSubId(rawId);
     try {
-      if (await osHasSpanish(imdbId, season, episode)) return jsonResponse({ subtitles: [] });
+      // Detonante IA: se activa si no hay subtítulos ES o si los existentes presentan
+      // discrepancias de framerate insalvables con el stream del usuario.
+      const spanCheck = await hasViableSpanishSub(imdbId, season, episode, filename);
+      if (spanCheck.viable) {
+        return jsonResponse({ subtitles: [] });
+      }
+      console.log(`[translate] Detonando fallback IA para ${imdbId}: ${spanCheck.reason}`);
 
-      const bases: { t: string; u?: string; f?: number; label: string; keyRef: string }[] = [];
+      const bases: { t: string; u?: string; f?: number; label: string; keyRef: string; matchType?: string }[] = [];
 
       const mvwShow = MEDIATHEK_SHOWS[imdbId];
       if (mvwShow && season != null && episode != null) {
@@ -2774,19 +3219,22 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         const ct = showCaseTitle(vid?.name ?? "", mvwShow.topic);
         if (ct) {
           const films = matchMvwFilms(await loadMvwShow(mvwShow.topic, mvwShow.minDur), ct).filter((f) => f.urlSub);
-          if (films[0]) bases.push({ t: "ard", u: films[0].urlSub, label: "base DE oficial", keyRef: films[0].urlSub });
+          if (films[0]) bases.push({ t: "ard", u: films[0].urlSub, label: "base DE oficial", keyRef: films[0].urlSub, matchType: "oficial" });
         }
       }
       if (!bases.length) {
-        // El filename real (cuando Stremio lo manda) elige, entre varios candidatos,
-        // el que corresponda al MISMO release que se estÃ¡ reproduciendo â€” evita el
-        // desface por comparar contra un release distinto (ver "El Gran HÃ©roe
-        // Americano", 2026-09-09).
-        const de = await osBaseFileId(imdbId, season, episode, "de", filename);
-        if (de) bases.push({ t: "os", f: de, label: "base DE", keyRef: `os-${de}` });
-        else {
-          const en = await osBaseFileId(imdbId, season, episode, "en", filename);
-          if (en) bases.push({ t: "os", f: en, label: "base EN", keyRef: `os-${en}` });
+        // Capturar subtítulo en inglés que empareje 100% con el hash o release del video
+        const en = await osBaseFileId(imdbId, season, episode, "en", filename, videoHash, videoSize);
+        if (en) {
+          const badge = en.matchType === "hash" ? "🎯 100% Hash Match" : en.matchType === "release" ? "✨ Release Match" : "Base EN";
+          bases.push({ t: "os", f: en.fileId, label: `${badge} (${en.releaseName})`, keyRef: `os-${en.fileId}`, matchType: en.matchType });
+        } else {
+          // Si no hay inglés, probar base alemana
+          const de = await osBaseFileId(imdbId, season, episode, "de", filename, videoHash, videoSize);
+          if (de) {
+            const badge = de.matchType === "hash" ? "🎯 100% Hash Match" : "Base DE";
+            bases.push({ t: "os", f: de.fileId, label: `${badge} (${de.releaseName})`, keyRef: `os-${de.fileId}`, matchType: de.matchType });
+          }
         }
       }
 
@@ -2794,8 +3242,8 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         id: `ia-es-${i}`,
         url: `${mountBase}/gen/${b64u.enc(JSON.stringify({ t: b.t, u: b.u, f: b.f, r: b.keyRef }))}.srt`,
         lang: "spa",
-        label: `[IAâ†’ES latino] ${b.label}`,
-        name: `[IAâ†’ES latino] ${b.label}`,
+        label: `[IA→ES latino] ${b.label}`,
+        name: `[IA→ES latino] ${b.label}`,
       }));
       return jsonResponse({ subtitles });
     } catch (e) {
@@ -2872,9 +3320,11 @@ function handleHealth(): Response {
   return jsonResponse({
     hub: "mejorastremio-hub",
     timestamp: new Date().toISOString(),
+    smartSync: { active: true, supportedFramerates: ["23.976", "24.0", "25.0", "29.97"] },
     subdl: { configured: !!SUBDL_KEY },
     opensubtitles: { configured: !!OPENSUBTITLES_API_KEY },
     opensubtitlesLatino: { configured: !!OPENSUBTITLES_API_KEY },
+    subdivx: { configured: true, proxy: SUBDIVX_PROXY_URL },
     latino: { configured: true },
     synopsis: {
       configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
@@ -2891,6 +3341,7 @@ function handleHealth(): Response {
     translate: {
       configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
       baseSource: !!OPENSUBTITLES_API_KEY,
+      engine: "gemini-flash",
     },
   });
 }
@@ -2915,6 +3366,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           "/subdl/manifest.json",
           "/opensubtitles/manifest.json",
           "/opensubtitles-latino/manifest.json",
+          "/subdivx/manifest.json",
           "/latino/manifest.json",
           "/synopsis/manifest.json",
           "/miniseries/manifest.json",
@@ -2938,6 +3390,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       route = "subdl";
       const subPath = path.slice("/subdl".length) || "/";
       res = await handleSubdl(subPath, `${url.origin}/subdl`, url);
+    } else if (path.startsWith("/subdivx")) {
+      route = "subdivx";
+      const subPath = path.slice("/subdivx".length) || "/";
+      res = await handleSubdivx(subPath, `${url.origin}/subdivx`, url);
     } else if (path.startsWith("/opensubtitles-latino")) {
       // Debe ir ANTES que "/opensubtitles" â€” ese startsWith tambiÃ©n matchea este path.
       route = "opensubtitles-latino";

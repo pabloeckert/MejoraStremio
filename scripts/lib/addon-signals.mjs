@@ -70,14 +70,99 @@ export function msToSrtTime(ms) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(rem).padStart(3, '0')}`;
 }
 
-export function rescaleSrtFramerate(srtText, fromFps, toFps) {
-  if (!srtText || !fromFps || !toFps || fromFps === toFps) return srtText;
+export function detectFramerate(name) {
+  if (!name) return { fps: 23.976, standard: 'NTSC_WEB', tag: 'WEB-DL (asumido)', confidence: 'low' };
+  const s = String(name).toLowerCase();
+
+  // Señales explícitas de 25 fps (PAL / transmisiones de TV europea/británica)
+  if (/\b(pal|hdtv|pdtv|dvb|dvb-t|dvb-s|tf1|ard|zdf|orf|bbc|itv|channel4|rte|25fps|25\.000|50fps|50i)\b/i.test(s)) {
+    return { fps: 25.0, standard: 'PAL_25', tag: 'PAL/HDTV 25fps', confidence: 'high' };
+  }
+
+  // Señales de 23.976 fps (WEB-DL, rips NTSC, BluRay estándar)
+  if (/\b(web-?dl|webrip|web\b|amzn|nf|netflix|dsnp|disney|atvp|apple\s?tv|hmax|max\.web|hulu|bluray|blu-ray|bdrip|brrip|23\.976|23\.98|23\.976fps)\b/i.test(s)) {
+    return { fps: 23.976, standard: 'NTSC_WEB', tag: 'WEB-DL 23.976fps', confidence: 'high' };
+  }
+
+  // Señales de 24.000 fps (Cinema)
+  if (/\b(24fps|24\.000|dci)\b/i.test(s)) {
+    return { fps: 24.0, standard: 'FILM_24', tag: 'Cinema 24fps', confidence: 'high' };
+  }
+
+  // Señales de 29.97 fps (NTSC Broadcast)
+  if (/\b(29\.97|29\.970|59\.94|60i)\b/i.test(s)) {
+    return { fps: 29.97, standard: 'NTSC_TV', tag: 'NTSC Broadcast 29.97fps', confidence: 'high' };
+  }
+
+  return { fps: 23.976, standard: 'NTSC_WEB', tag: 'WEB-DL (estándar)', confidence: 'low' };
+}
+
+export function resolveSmartSync(videoName, subName) {
+  const v = detectFramerate(videoName);
+  const s = detectFramerate(subName);
+
+  // Video WEB-DL (23.976) y subtítulo HDTV/PAL (25.0) -> Time-stretch factor 25 / 23.976 ≈ 1.042709
+  if (Math.abs(v.fps - 23.976) < 0.05 && Math.abs(s.fps - 25.0) < 0.05) {
+    return {
+      needsRescale: true,
+      fromFps: 25.0,
+      toFps: 23.976,
+      ratio: 25.0 / 23.976,
+      actionDescription: 'Estiramiento temporal HDTV/PAL (25fps) -> WEB-DL (23.976fps) [+153.75s/h]',
+      badge: '⚡ SmartSync (PAL 25->23.976 WEB)',
+      fpsParam: '25to23976',
+    };
+  }
+
+  // Video HDTV/PAL (25.0) y subtítulo WEB-DL (23.976) -> Time-compression factor 23.976 / 25.0 = 0.95904
+  if (Math.abs(v.fps - 25.0) < 0.05 && Math.abs(s.fps - 23.976) < 0.05) {
+    return {
+      needsRescale: true,
+      fromFps: 23.976,
+      toFps: 25.0,
+      ratio: 23.976 / 25.0,
+      actionDescription: 'Compresión temporal WEB-DL (23.976fps) -> HDTV/PAL (25fps) [-147.46s/h]',
+      badge: '⚡ SmartSync (WEB 23.976->25 PAL)',
+      fpsParam: '23976to25',
+    };
+  }
+
+  // Video Cinema (24.0) y subtítulo PAL (25.0)
+  if (Math.abs(v.fps - 24.0) < 0.05 && Math.abs(s.fps - 25.0) < 0.05) {
+    return {
+      needsRescale: true,
+      fromFps: 25.0,
+      toFps: 24.0,
+      ratio: 25.0 / 24.0,
+      actionDescription: 'Estiramiento temporal PAL 25fps -> Cinema 24fps',
+      badge: '⚡ SmartSync (PAL 25->24fps)',
+      fpsParam: '25to24',
+    };
+  }
+
+  // Coincidencia de framerate nativo
+  return {
+    needsRescale: false,
+    fromFps: v.fps,
+    toFps: v.fps,
+    ratio: 1.0,
+    actionDescription: `Calce nativo directo (${v.tag})`,
+    badge: `✅ Sincro Nativo (${v.tag})`,
+    fpsParam: 'none',
+  };
+}
+
+export function rescaleSrtFramerate(srtText, fromFps, toFps, offsetMs = 0) {
+  if (!srtText) return '';
+  if ((!fromFps || !toFps || fromFps === toFps) && offsetMs === 0) return srtText;
   const factor = fromFps / toFps;
   return srtText.replace(
     /(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/g,
     (_m, start, end) => {
-      const sMs = Math.round(srtTimeToMs(start) * factor);
-      const eMs = Math.round(srtTimeToMs(end) * factor);
+      const origStart = srtTimeToMs(start);
+      const origEnd = srtTimeToMs(end);
+      const sMs = Math.max(0, Math.round(origStart * factor + offsetMs));
+      const eMs = Math.max(sMs + 10, Math.round(origEnd * factor + offsetMs));
       return `${msToSrtTime(sMs)} --> ${msToSrtTime(eMs)}`;
     }
   );

@@ -3316,6 +3316,151 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
 // â”€â”€ /health â€” estado de config de las sub-funciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
+// ════════════════════════════════════════════════════════════════════════════
+// ── /streams — Smart Stream Interceptor (Proxy Inteligente de Streams) ──────
+// Intercepta peticiones de streams hacia Torrentio, reordena con prioridad
+// absoluta al audio latino y aplica badges visuales para TV Box.
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface StremioStreamItem {
+  name?: string;
+  title?: string;
+  description?: string;
+  url?: string;
+  infoHash?: string;
+  fileIdx?: number;
+  behaviorHints?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export const STREAMS_MANIFEST = {
+  id: "com.mejorastremio.streams",
+  version: "1.0.0",
+  name: "MejoraStremio Streams (Latino Priority)",
+  description:
+    "Smart Stream Interceptor: proxy inteligente de Torrentio con reordenamiento prioritario a audio latino y etiquetado visual para TV.",
+  resources: ["stream"],
+  types: ["movie", "series"],
+  idPrefixes: ["tt"],
+  catalogs: [],
+};
+
+export const LATINO_STREAM_REGEX =
+  /\b(latino|latina|dual|spa|spanish|espanol|español|castellano)\b|cinecalidad|dual[-_.]?lat|\[lat\]|\(lat\)|[-_.]lat[-_.]|\blat\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪/i;
+
+export function isLatinoStream(stream: { name?: string; title?: string; description?: string }): boolean {
+  const text = `${stream.name || ""} ${stream.title || ""} ${stream.description || ""}`;
+  return LATINO_STREAM_REGEX.test(text);
+}
+
+export function sanitizeTorrentioBase(rawUrl: string): string {
+  let u = (rawUrl || "https://torrentio.strem.fun/").trim();
+  if (!u.endsWith("/")) u += "/";
+  u = u.replace(/\/manifest\.json.*$/, "/");
+  u = u.replace(/([/|])language=[^|/]+/gi, "$1");
+  u = u.replace(/\|+/g, "|").replace(/\/\|/g, "/").replace(/\|\//g, "/");
+  return u;
+}
+
+export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): T[] {
+  if (!Array.isArray(streams) || streams.length === 0) return [];
+
+  const latinoStreams: T[] = [];
+  const otherStreams: T[] = [];
+
+  for (const s of streams) {
+    if (isLatinoStream(s)) {
+      latinoStreams.push(s);
+    } else {
+      otherStreams.push(s);
+    }
+  }
+
+  const badgedLatino = latinoStreams.map((s) => {
+    const rawName = (s.name || "Torrentio").replace(/^\[(🇪🇸 LATINO|⚠️ SOLO INGLÉS)\]\s*/, "");
+    return {
+      ...s,
+      name: `[🇪🇸 LATINO] ${rawName}`,
+    };
+  });
+
+  const badgedOther = otherStreams.map((s) => {
+    const rawName = (s.name || "Torrentio").replace(/^\[(🇪🇸 LATINO|⚠️ SOLO INGLÉS)\]\s*/, "");
+    return {
+      ...s,
+      name: `[⚠️ SOLO INGLÉS] ${rawName}`,
+    };
+  });
+
+  return [...badgedLatino, ...badgedOther];
+}
+
+export async function handleStreams(subPath: string, url: URL): Promise<Response> {
+  if (subPath === "/manifest.json" || subPath === "/manifest" || subPath === "/" || subPath === "") {
+    return jsonResponse(STREAMS_MANIFEST);
+  }
+
+  let configSegment = "";
+  let type = "";
+  let rawId = "";
+
+  const directMatch = subPath.match(/^(?:\/stream)?\/(movie|series)\/(.+)\.json$/);
+  if (directMatch) {
+    type = directMatch[1];
+    rawId = directMatch[2];
+  } else {
+    const configMatch = subPath.match(/^\/([^/]+)(?:\/stream)?\/(movie|series)\/(.+)\.json$/);
+    if (configMatch && configMatch[1] !== "stream") {
+      configSegment = configMatch[1];
+      type = configMatch[2];
+      rawId = configMatch[3];
+    } else if (subPath.endsWith("/manifest.json")) {
+      return jsonResponse(STREAMS_MANIFEST);
+    }
+  }
+
+  if (!type || !rawId) {
+    return new Response("Not found", { status: 404, headers: cors });
+  }
+
+  const envTorrentio =
+    (typeof Deno !== "undefined" && Deno.env?.get?.("TORRENTIO_URL")) ||
+    (typeof process !== "undefined" && process.env?.TORRENTIO_URL) ||
+    "https://torrentio.strem.fun/";
+
+  let upstreamBase = url.searchParams.get("torrentio") || envTorrentio;
+  if (configSegment) {
+    upstreamBase = `https://torrentio.strem.fun/${configSegment}/`;
+  }
+  upstreamBase = sanitizeTorrentioBase(upstreamBase);
+
+  const cleanId = decodeURIComponent(rawId).split("/")[0];
+  const targetUrl = `${upstreamBase}stream/${type}/${cleanId}.json`;
+
+  try {
+    const upstreamRes = await fetch(targetUrl, {
+      signal: AbortSignal.timeout(15000),
+      headers: {
+        "User-Agent": "MejoraStremio-SmartInterceptor/1.0",
+        "Accept": "application/json",
+      },
+    });
+
+    if (!upstreamRes.ok) {
+      return jsonResponse({ streams: [] });
+    }
+
+    const data = await upstreamRes.json();
+    const rawStreams: StremioStreamItem[] = Array.isArray(data?.streams) ? data.streams : [];
+    const ranked = rankAndBadgeStreams(rawStreams);
+
+    return jsonResponse({ streams: ranked });
+  } catch (err) {
+    console.error(`[streams] Error fetching upstream torrentio: ${(err as Error).message}`);
+    return jsonResponse({ streams: [] });
+  }
+}
+
 function handleHealth(): Response {
   return jsonResponse({
     hub: "mejorastremio-hub",
@@ -3338,6 +3483,7 @@ function handleHealth(): Response {
     livetv: { configured: true },
     iptv: { configured: true },
     mediathek: { configured: true },
+    streams: { configured: true, upstream: "https://torrentio.strem.fun/" },
     translate: {
       configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
       baseSource: !!OPENSUBTITLES_API_KEY,
@@ -3350,7 +3496,7 @@ function handleHealth(): Response {
 // â”€â”€ Router â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-Deno.serve(async (req: Request): Promise<Response> => {
+export async function handleHubRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const path = url.pathname;
   const started = Date.now();
@@ -3377,6 +3523,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           "/iptv/manifest.json",
           "/mediathek/manifest.json",
           "/translate/manifest.json",
+          "/streams/manifest.json",
           "/health",
         ],
       });
@@ -3395,7 +3542,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const subPath = path.slice("/subdivx".length) || "/";
       res = await handleSubdivx(subPath, `${url.origin}/subdivx`, url);
     } else if (path.startsWith("/opensubtitles-latino")) {
-      // Debe ir ANTES que "/opensubtitles" â€” ese startsWith tambiÃ©n matchea este path.
+      // Debe ir ANTES que "/opensubtitles" — ese startsWith también matchea este path.
       route = "opensubtitles-latino";
       const subPath = path.slice("/opensubtitles-latino".length) || "/";
       res = await handleOpenSubtitles(
@@ -3459,6 +3606,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
       route = "translate";
       const subPath = path.slice("/translate".length) || "/";
       res = await handleTranslate(subPath, `${url.origin}/translate`);
+    } else if (path.startsWith("/streams") || path.startsWith("/stream/")) {
+      route = "streams";
+      const subPath = path.startsWith("/streams")
+        ? (path.slice("/streams".length) || "/")
+        : path;
+      res = await handleStreams(subPath, url);
     } else {
       res = new Response("Not found", { status: 404, headers: cors });
     }
@@ -3469,4 +3622,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // Logging centralizado por ruta.
   console.log(`[hub] ${route} ${req.method} ${path} -> ${res.status} (${Date.now() - started}ms)`);
   return res;
-});
+}
+
+if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
+  Deno.serve(handleHubRequest);
+}

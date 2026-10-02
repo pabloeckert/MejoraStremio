@@ -1811,8 +1811,7 @@ function needsEnrichment(description: string | undefined): boolean {
 
 let kvPromise: Promise<Deno.Kv> | null = null;
 function getKv(): Promise<Deno.Kv> {
-  if (!kvPromise) kvPromise = Deno.openKv();
-  return kvPromise;
+  return (kvPromise ??= Deno.openKv());
 }
 
 // deno-lint-ignore no-explicit-any

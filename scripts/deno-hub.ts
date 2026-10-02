@@ -343,6 +343,90 @@ function resolveSmartSync(videoName?: string | null, subName?: string | null): S
   };
 }
 
+export interface CanonicalCue {
+  id: number;
+  startMs: number;
+  endMs: number;
+  text: string;
+}
+
+export function parseSrtToCues(srt: string): CanonicalCue[] {
+  if (!srt) return [];
+  const cues: CanonicalCue[] = [];
+  const normalized = srt
+    .replace(/\uFEFF/g, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\\[rn]/g, " ");
+
+  const blocks = normalized.split(/\n\s*\n/);
+  const timestampRegex = /(\d{2}:\d{2}:\d{2}[,.]\d{1,3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{1,3})/;
+
+  for (const block of blocks) {
+    const lines = block.trim().split("\n");
+    if (lines.length < 2) continue;
+    const timeIdx = lines.findIndex((l) => timestampRegex.test(l));
+    if (timeIdx === -1) continue;
+
+    const match = lines[timeIdx].match(timestampRegex);
+    if (!match) continue;
+
+    const startMs = srtTimeToMs(match[1]);
+    const endMs = srtTimeToMs(match[2]);
+    if (endMs <= startMs) continue;
+
+    const textLines = lines.slice(timeIdx + 1).map((l) => l.trim()).filter(Boolean);
+    if (textLines.length === 0) continue;
+
+    cues.push({
+      id: cues.length + 1,
+      startMs,
+      endMs,
+      text: textLines.join("\n"),
+    });
+  }
+
+  return cues;
+}
+
+export function enforceMonotonicClamping(cues: CanonicalCue[]): CanonicalCue[] {
+  if (!cues || cues.length === 0) return [];
+  // Ordenar estrictamente el array por startMs (y si son iguales, por endMs)
+  cues.sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
+
+  for (let i = 0; i < cues.length - 1; i++) {
+    const nextStart = cues[i + 1].startMs;
+    // Anti-Collision Clamping: Si Cue[i] termina después o igual a que empiece Cue[i+1], recortar Cue[i]
+    if (cues[i].endMs >= nextStart) {
+      cues[i].endMs = Math.max(cues[i].startMs + 50, nextStart - 5);
+    }
+    // Si aún con el clamping el fin quedó menor o igual al inicio (por timestamps idénticos de inicio):
+    if (cues[i + 1].startMs <= cues[i].startMs) {
+      cues[i + 1].startMs = cues[i].startMs + 5;
+      if (cues[i + 1].endMs <= cues[i + 1].startMs) {
+        cues[i + 1].endMs = cues[i + 1].startMs + 50;
+      }
+    }
+    if (cues[i].endMs <= cues[i].startMs) {
+      cues[i].endMs = cues[i].startMs + 50;
+    }
+  }
+
+  // Renumerar IDs consecutivos 1..N
+  cues.forEach((c, idx) => {
+    c.id = idx + 1;
+  });
+
+  return cues;
+}
+
+export function serializeCuesToSrt(cues: CanonicalCue[]): string {
+  if (!cues || !cues.length) return "";
+  return cues
+    .map((c, idx) => `${idx + 1}\n${msToSrtTime(c.startMs)} --> ${msToSrtTime(c.endMs)}\n${c.text}`)
+    .join("\n\n") + "\n";
+}
+
 function rescaleSrtFramerate(
   srtText: string,
   fromFps: number,
@@ -350,75 +434,51 @@ function rescaleSrtFramerate(
   offsetMs: number = 0,
 ): string {
   if (!srtText) return "";
-  if ((!fromFps || !toFps || fromFps === toFps) && offsetMs === 0) return srtText;
-  const ratio = fromFps / toFps;
-  return srtText.replace(
-    /(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})/g,
-    (_match, startStr, endStr) => {
-      const origStart = srtTimeToMs(startStr);
-      const origEnd = srtTimeToMs(endStr);
-      const startMs = Math.max(0, Math.round(origStart * ratio + offsetMs));
-      const endMs = Math.max(startMs + 10, Math.round(origEnd * ratio + offsetMs));
-      return `${msToSrtTime(startMs)} --> ${msToSrtTime(endMs)}`;
-    },
-  );
+  const cues = parseSrtToCues(srtText);
+  if (!cues.length) return srtText;
+
+  const ratio = (fromFps && toFps && fromFps !== toFps) ? (fromFps / toFps) : 1.0;
+
+  for (const c of cues) {
+    if (ratio !== 1.0 || offsetMs !== 0) {
+      c.startMs = Math.max(0, Math.round(c.startMs * ratio + offsetMs));
+      c.endMs = Math.max(c.startMs + 50, Math.round(c.endMs * ratio + offsetMs));
+    }
+  }
+
+  const clamped = enforceMonotonicClamping(cues);
+  return serializeCuesToSrt(clamped);
 }
 
 function cleanSrt(srtContent: string): string {
   if (!srtContent) return "";
-  const timestampRegex = /^(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/;
+  const cues = parseSrtToCues(srtContent);
+  if (!cues.length) return "";
+
   const urlPattern = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9_-]+\.(?:com|org|net|io|me|tv|es|lat)\b/i;
   const sitePattern = /\b(?:subdivx|opensubtitles|tusubtitulo|subdl|addic7ed|argenteam|yify|yts|cuevana|gnula|cinetorrent|invision)\b/i;
   const creditPattern = /^(?:subt[ií]tulos?(?:\s+(?:por|de))?|traducci[oó]n(?:\s+(?:por|de))?|sincronizaci[oó]n(?:\s+(?:por|de))?|sincro|corregido\s+por|revisi[oó]n|supervisi[oó]n(?:\s+creativa)?|descargado\s+de|subt[ií]tulo\s+ofrecido\s+por|ajustes?\s+de\s+subt[ií]tulos?|adaptaci[oó]n|resync|ripped\s+by|encoded\s+by|synced\s+by|translated\s+by)\b(?:\s*[:\-–—]|\s+[A-ZÁÉÍÓÚÑa-záéíóúñ])/i;
   const soundCuesRegex = /^(?:m[uú]sica|musique|sonido|son|audio|disparos?|tirs?|gritos?|cris?|aplausos?|applaudissements|risas?|rires?|suspiros?|soupirs?|suspira|soupire|llanto|pleurs?|silbidos?|sifflements?|pasos|pas|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|motor|moteur|timbre|sonnerie|teléfono|téléphone|golpes?|coups?|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|chatarra|alarma|alarme|resopla|souffle|explosión|silencio|silence|jadea|bosteza|bâille)\b/i;
 
-  const blocks = srtContent.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split(/\n\s*\n/);
-  const cleanedBlocks: string[] = [];
-  let lastStartMs = -1;
+  const filteredCues: CanonicalCue[] = [];
 
-  for (const block of blocks) {
-    const lines = block.trim().split("\n");
-    if (lines.length < 2) continue;
-    const timeIdx = lines.findIndex((l) => timestampRegex.test(l.trim()));
-    if (timeIdx === -1) continue;
-
-    const timeLine = lines[timeIdx].trim();
-    const match = timeLine.match(timestampRegex);
-    if (!match) continue;
-
-    const startMs = srtTimeToMs(match[1]);
-    const endMs = srtTimeToMs(match[2]);
-
-    // Sanidad temporal: no aceptar duraciones nulas o negativas
-    if (endMs <= startMs) continue;
-
-    // Sanidad temporal: si el tiempo retrocede (salto atrás mayor a 2s), es un cue corrupto / watermark desplazado
-    if (lastStartMs >= 0 && startMs < lastStartMs - 2000) continue;
-
-    const rawTextLines = lines.slice(timeIdx + 1);
-
-    // Descartar bloque entero si alguna línea es una marca de agua, URL o crédito de uploader
-    const isCreditOrWatermarkCue = rawTextLines.some((l) => {
+  for (const c of cues) {
+    const rawLines = c.text.split("\n");
+    const isCreditOrWatermarkCue = rawLines.some((l) => {
       const cleanLine = l.replace(/^[•\s\-_=~*|]+|[•\s\-_=~*|]+$/g, "").trim();
       return urlPattern.test(cleanLine) || sitePattern.test(cleanLine) || creditPattern.test(cleanLine);
     });
     if (isCreditOrWatermarkCue) continue;
 
-    const filteredLines = rawTextLines
+    const cleanedLines = rawLines
       .map((line) => {
         let l = line;
-        // Purga corchetes [...] y paréntesis (...) típicos de acotaciones sonoras
         l = l.replace(/\[.*?\]/g, "");
         l = l.replace(/\(.*?\)/g, "");
-        // Purga prefijos de personajes (ej: "MORGANE:", "KARADEC :", "HOMBRE:")
         l = l.replace(/^[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/, "");
-        // Purga notas musicales y caracteres de sonido
         l = l.replace(/[♪♫#*]+/g, "");
-        // Purga tags html restantes tipo <font...>, <i>, etc
         l = l.replace(/<[^>]+>/g, "");
-        // Purga bullets y símbolos decorativos en bordes
         l = l.replace(/^[•\s\-_=~*|]+|[•\s\-_=~*|]+$/g, "");
-        // Purga acotaciones sonoras en español y francés
         if (soundCuesRegex.test(l.trim())) {
           l = "";
         }
@@ -426,13 +486,16 @@ function cleanSrt(srtContent: string): string {
       })
       .filter((line) => line.length > 0);
 
-    if (filteredLines.length > 0) {
-      lastStartMs = startMs;
-      cleanedBlocks.push(`${cleanedBlocks.length + 1}\n${timeLine}\n${filteredLines.join("\n")}`);
+    if (cleanedLines.length > 0) {
+      filteredCues.push({
+        ...c,
+        text: cleanedLines.join("\n"),
+      });
     }
   }
 
-  return cleanedBlocks.join("\n\n") + "\n";
+  const clamped = enforceMonotonicClamping(filteredCues);
+  return serializeCuesToSrt(clamped);
 }
 
 async function extractSrtFromZip(buf: Uint8Array): Promise<string | null> {
@@ -1677,18 +1740,27 @@ let cachedInstanceIdAt = 0;
 const INSTANCE_ID_TTL_MS = 10 * 60 * 1000;
 
 async function getInstanceId(): Promise<string> {
+  const fallbackId = "2d8ff56f-9385-4f71-b1e2-2fadd32aa810";
   const now = Date.now();
   if (cachedInstanceId && now - cachedInstanceIdAt < INSTANCE_ID_TTL_MS) {
     return cachedInstanceId;
   }
-  const r = await fetch(PRESET_URL, { signal: AbortSignal.timeout(8000) });
-  if (!r.ok) throw new Error(`No se pudo leer preset.json: ${r.status}`);
-  const preset = await r.json();
-  const id = preset?.aioMetadataConfig?.instanceId;
-  if (!id) throw new Error("preset.json sin aioMetadataConfig.instanceId");
-  cachedInstanceId = id;
-  cachedInstanceIdAt = now;
-  return id;
+  try {
+    const r = await fetch(PRESET_URL, { signal: AbortSignal.timeout(8000) });
+    if (r.ok) {
+      const preset = await r.json();
+      const id = preset?.aioMetadataConfig?.instanceId;
+      if (id) {
+        cachedInstanceId = id;
+        cachedInstanceIdAt = now;
+        return id;
+      }
+    }
+  } catch {
+    // Si la lectura remota falla o da timeout, usa el fallback garantizado
+  }
+  cachedInstanceId = cachedInstanceId || fallbackId;
+  return cachedInstanceId;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -2789,11 +2861,12 @@ const TRANSLATE_MANIFEST = {
 };
 
 const TRANSLATE_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
-const TRANSLATE_BUDGET_MS = 55000;
-// Gemini free tier â‰ˆ 15 RPM. Lotes grandes + poca concurrencia mantienen el
-// total de requests por episodio en ~5-6 (una tanda), bien por debajo del tope.
-const TRANSLATE_BATCH = 220;
-const TRANSLATE_PARALLEL = 4;
+// Fast-Window Sync: Límite estricto de corte síncrono a 4 segundos
+// para responderle de inmediato a Stremio (evita timeout de 10-15s en Android TV).
+const FAST_WINDOW_BUDGET_MS = 4000;
+const FAST_WINDOW_CUES = 70; // Primeros ~10 minutos de diálogo
+const TRANSLATE_BATCH = 100;
+const TRANSLATE_PARALLEL = 3;
 const NL = "âŽ"; // sentinel para saltos de lÃ­nea internos al mandar a la IA
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -2976,15 +3049,21 @@ async function translateCues(
   const texts = cues.map((c) => c.text);
   const dialogueIdx = cues.map((c, i) => (isSoundOnly(c.text) ? -1 : i)).filter((i) => i >= 0);
 
+  // Dividir en lotes: Lote 0 es Fast-Window (primeras 70 cues / ~10 min), el resto en lotes de 100
   const batches: number[][] = [];
-  for (let i = 0; i < dialogueIdx.length; i += TRANSLATE_BATCH) {
-    batches.push(dialogueIdx.slice(i, i + TRANSLATE_BATCH));
+  if (dialogueIdx.length <= FAST_WINDOW_CUES) {
+    batches.push(dialogueIdx);
+  } else {
+    batches.push(dialogueIdx.slice(0, FAST_WINDOW_CUES));
+    for (let i = FAST_WINDOW_CUES; i < dialogueIdx.length; i += TRANSLATE_BATCH) {
+      batches.push(dialogueIdx.slice(i, i + TRANSLATE_BATCH));
+    }
   }
 
-  // Estado por lote: pendiente hasta que quede cacheado o traducido ~entero.
+  // Estado por lote: pendiente hasta que quede cacheado o traducido
   const pending = new Set(batches.map((_, i) => i));
 
-  // Primera pasada: leer de KV lo ya hecho.
+  // Primera pasada: leer de KV lo ya hecho
   if (kv) {
     await Promise.all([...pending].map(async (bi) => {
       try {
@@ -2997,32 +3076,84 @@ async function translateCues(
     }));
   }
 
-  // Rondas de traducciÃ³n: cada ronda toma hasta TRANSLATE_PARALLEL lotes
-  // pendientes en paralelo y reintenta los que fallaron, hasta agotarlos o
-  // quedarse sin presupuesto.
-  for (let round = 0; round < 5 && pending.size && Date.now() < deadline - 3000; round++) {
-    const wave = [...pending].slice(0, TRANSLATE_PARALLEL);
-    const remaining = deadline - Date.now();
-    await Promise.all(wave.map(async (bi) => {
-      const batchIdxs = batches[bi];
-      const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
-      const { map, ok } = await translateBatch(
-        items,
-        AbortSignal.timeout(Math.max(6000, Math.min(remaining, 48000))),
-      );
-      for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
-      if (ok) {
-        pending.delete(bi);
-        if (kv) {
-          const obj: Record<string, string> = {};
-          for (const idx of batchIdxs) obj[idx] = texts[idx];
-          try { await kv.set(["tr-batch", "v8", cacheRef, bi], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
-        }
-      }
-    }));
+  // Si ya todo está en cache KV, salir inmediatamente
+  if (pending.size === 0) {
+    return { texts, done: true };
   }
 
-  return { texts, done: pending.size === 0 };
+  // Fase 1 Síncrona: Traducir Lote 0 (Fast Window) dentro del límite estricto de 4s
+  if (pending.has(0)) {
+    const remaining = Math.max(1000, deadline - Date.now());
+    const batchIdxs = batches[0];
+    const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
+    const { map, ok } = await translateBatch(items, AbortSignal.timeout(remaining));
+    for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
+    if (ok) {
+      pending.delete(0);
+      if (kv) {
+        const obj: Record<string, string> = {};
+        for (const idx of batchIdxs) obj[idx] = texts[idx];
+        try { await kv.set(["tr-batch", "v8", cacheRef, 0], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+      }
+    }
+  }
+
+  // Si aún queda presupuesto antes de los 4s, intentar lotes subsiguientes
+  for (let bi = 1; bi < batches.length && pending.has(bi) && Date.now() < deadline - 800; bi++) {
+    const remaining = Math.max(800, deadline - Date.now());
+    const batchIdxs = batches[bi];
+    const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
+    const { map, ok } = await translateBatch(items, AbortSignal.timeout(remaining));
+    for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
+    if (ok) {
+      pending.delete(bi);
+      if (kv) {
+        const obj: Record<string, string> = {};
+        for (const idx of batchIdxs) obj[idx] = texts[idx];
+        try { await kv.set(["tr-batch", "v8", cacheRef, bi], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+      }
+    }
+  }
+
+  const isDone = pending.size === 0;
+
+  // Fase 2 Asíncrona (Background Job): Si quedan lotes posteriores pendientes, continuar en segundo plano sin bloquear
+  if (!isDone && kv) {
+    const bgPending = [...pending];
+    const bgTask = async () => {
+      try {
+        for (let round = 0; round < 6 && bgPending.length > 0; round++) {
+          const wave = bgPending.splice(0, TRANSLATE_PARALLEL);
+          await Promise.all(wave.map(async (bi) => {
+            const batchIdxs = batches[bi];
+            const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
+            const { map, ok } = await translateBatch(items, AbortSignal.timeout(18000));
+            for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
+            if (ok && kv) {
+              const obj: Record<string, string> = {};
+              for (const idx of batchIdxs) obj[idx] = texts[idx];
+              try { await kv.set(["tr-batch", "v8", cacheRef, bi], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+            }
+          }));
+        }
+        // Cachear el subtítulo completo en KV para subsecuentes consultas / seeks
+        const outCues = cues.map((c, i) => ({ ...c, text: texts[i] })).filter((c) => !isSoundOnly(c.text));
+        const finalSrt = serializeSrt(outCues);
+        await kv.set(["translate-srt", "v8", cacheRef], finalSrt, { expireIn: TRANSLATE_CACHE_TTL_MS });
+      } catch { /* background fallback silencioso */ }
+    };
+
+    // Invocar en background vía waitUntil si está disponible o tarea asíncrona
+    // deno-lint-ignore no-explicit-any
+    const runtime = (globalThis as any).EdgeRuntime;
+    if (runtime && typeof runtime.waitUntil === "function") {
+      runtime.waitUntil(bgTask());
+    } else {
+      bgTask();
+    }
+  }
+
+  return { texts, done: isDone };
 }
 
 async function fetchBaseCues(src: { t: string; u?: string; f?: number }): Promise<Cue[]> {
@@ -3281,7 +3412,7 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
       const baseCues = await fetchBaseCues(src);
       if (!baseCues.length) return new Response("subtÃ­tulo base vacÃ­o", { status: 502, headers: cors });
 
-      const { texts, done } = await translateCues(baseCues, src.r, kv, Date.now() + TRANSLATE_BUDGET_MS);
+      const { texts, done } = await translateCues(baseCues, src.r, kv, Date.now() + FAST_WINDOW_BUDGET_MS);
       // El SRT final descarta las cues de puro sonido (ruido para quien mira en alemÃ¡n).
       const outCues = baseCues
         .map((c, i) => ({ ...c, text: texts[i] }))
@@ -3301,6 +3432,7 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
           ...cors,
           "Content-Type": "text/plain; charset=utf-8",
           "Content-Disposition": 'attachment; filename="es-latino.srt"',
+          "X-Translate-FastWindow": "true",
           "X-Translate-Complete": String(done),
         },
       });
@@ -3362,37 +3494,64 @@ export function sanitizeTorrentioBase(rawUrl: string): string {
   return u;
 }
 
+export function isCachedOrInstantStream(stream: { name?: string; title?: string; description?: string }): boolean {
+  const text = `${stream.name || ""} ${stream.title || ""} ${stream.description || ""}`.toLowerCase();
+  if (/\[(?:tb|torbox|rd|ad|pm|oc|dl)\+\]|\b(?:cached|instant[aá]neo|debrid cache)\b|⚡/i.test(text)) {
+    return true;
+  }
+  if (/\[(?:tb|torbox)\s+download\]|\b(?:uncached|downloading)\b|⏳/i.test(text)) {
+    return false;
+  }
+  const seedMatch = text.match(/👤\s*(\d+)/);
+  if (seedMatch) {
+    const seeders = parseInt(seedMatch[1], 10);
+    return seeders >= 15;
+  }
+  if (/torbox|realdebrid|alldebrid|premiumize|debrid/i.test(text) && !/download/i.test(text)) {
+    return true;
+  }
+  return false;
+}
+
 export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): T[] {
   if (!Array.isArray(streams) || streams.length === 0) return [];
 
-  const latinoStreams: T[] = [];
-  const otherStreams: T[] = [];
+  const latinoCached: T[] = [];
+  const otherCached: T[] = [];
+  const latinoBuffer: T[] = [];
+  const otherBuffer: T[] = [];
 
   for (const s of streams) {
-    if (isLatinoStream(s)) {
-      latinoStreams.push(s);
-    } else {
-      otherStreams.push(s);
-    }
+    const isLat = isLatinoStream(s);
+    const isFast = isCachedOrInstantStream(s);
+
+    if (isLat && isFast) latinoCached.push(s);
+    else if (!isLat && isFast) otherCached.push(s);
+    else if (isLat && !isFast) latinoBuffer.push(s);
+    else otherBuffer.push(s);
   }
 
-  const badgedLatino = latinoStreams.map((s) => {
-    const rawName = (s.name || "Torrentio").replace(/^\[(🇪🇸 LATINO|⚠️ SOLO INGLÉS)\]\s*/, "");
+  const badge = (s: T, isLat: boolean, isFast: boolean): T => {
+    const raw = (s.name || "Torrentio")
+      .replace(/^\[(⚡ INSTANTÁNEO|⏳ REQUIERE BUFFER)\]\s*/g, "")
+      .replace(/^\[(🇪🇸 LATINO|⚠️ SOLO INGLÉS)\]\s*/g, "")
+      .trim();
+
+    const speedPrefix = isFast ? "[⚡ INSTANTÁNEO]" : "[⏳ REQUIERE BUFFER]";
+    const langPrefix = isLat ? "[🇪🇸 LATINO]" : "[⚠️ SOLO INGLÉS]";
+
     return {
       ...s,
-      name: `[🇪🇸 LATINO] ${rawName}`,
+      name: `${speedPrefix} ${langPrefix} ${raw}`,
     };
-  });
+  };
 
-  const badgedOther = otherStreams.map((s) => {
-    const rawName = (s.name || "Torrentio").replace(/^\[(🇪🇸 LATINO|⚠️ SOLO INGLÉS)\]\s*/, "");
-    return {
-      ...s,
-      name: `[⚠️ SOLO INGLÉS] ${rawName}`,
-    };
-  });
-
-  return [...badgedLatino, ...badgedOther];
+  return [
+    ...latinoCached.map((s) => badge(s, true, true)),
+    ...otherCached.map((s) => badge(s, false, true)),
+    ...latinoBuffer.map((s) => badge(s, true, false)),
+    ...otherBuffer.map((s) => badge(s, false, false)),
+  ];
 }
 
 export async function handleStreams(subPath: string, url: URL): Promise<Response> {

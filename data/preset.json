@@ -137,6 +137,414 @@
     "catalogs": {
       "standard": [
         {
+          "id": "tmdb.discover.movie.now_playing.pablo007",
+          "type": "movie",
+          "name": "En Cartelera",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "include_adult": false,
+                "primary_release_date.gte": "2026-07-19",
+                "primary_release_date.lte": "2026-10-02",
+                "with_runtime.gte": 45,
+                "without_keywords": "210024,10292,221355,11001,348144,6075",
+                "vote_count.gte": 1
+              },
+              "formState": {
+                "catalogName": "En Cartelera",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 1,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "2026-07-19",
+                "primaryReleaseTo": "2026-10-02",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.now_playing.pablo062",
+          "type": "series",
+          "name": "En Cartelera (Series)",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "include_adult": false,
+                "first_air_date.gte": "2026-07-19",
+                "first_air_date.lte": "2026-10-02",
+                "with_runtime.gte": 15,
+                "without_keywords": "210024,10292,221355,11001,348144,6075",
+                "without_genres": "10764,10766,10767,10763",
+                "vote_count.gte": 1
+              },
+              "formState": {
+                "catalogName": "En Cartelera (Series)",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "tv",
+                "includeGenres": [],
+                "excludeGenres": [
+                  {
+                    "id": 10764,
+                    "label": "10764"
+                  },
+                  {
+                    "id": 10766,
+                    "label": "10766"
+                  },
+                  {
+                    "id": 10767,
+                    "label": "10767"
+                  },
+                  {
+                    "id": 10763,
+                    "label": "10763"
+                  }
+                ],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 1,
+                "runtimeRange": [
+                  15,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "2026-07-19",
+                "firstAirTo": "2026-10-02",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.upcoming.pablo005",
+          "type": "movie",
+          "name": "Próximos Estrenos",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.asc",
+                "include_adult": false,
+                "primary_release_date.gte": "2026-10-02",
+                "with_runtime.gte": 45,
+                "without_keywords": "210024,10292,221355,11001,348144,6075"
+              },
+              "formState": {
+                "catalogName": "Próximos Estrenos",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.asc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 0,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "2026-10-02",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.upcoming.pablo006",
+          "type": "series",
+          "name": "Próximos Estrenos (Series)",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (tv)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "tv",
+              "params": {
+                "sort_by": "first_air_date.asc",
+                "include_adult": false,
+                "first_air_date.gte": "2026-10-02",
+                "with_runtime.gte": 15,
+                "without_keywords": "210024,10292,221355,11001,348144,6075",
+                "without_genres": "10764,10766,10767,10763"
+              },
+              "formState": {
+                "catalogName": "Próximos Estrenos (Series)",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.asc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [
+                  {
+                    "id": 10764,
+                    "label": "10764"
+                  },
+                  {
+                    "id": 10766,
+                    "label": "10766"
+                  },
+                  {
+                    "id": 10767,
+                    "label": "10767"
+                  },
+                  {
+                    "id": 10763,
+                    "label": "10763"
+                  }
+                ],
+                "genreJoinMode": "or",
+                "originalLanguage": "",
+                "originCountry": "",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [
+                  {
+                    "id": 210024,
+                    "label": "210024"
+                  },
+                  {
+                    "id": 10292,
+                    "label": "10292"
+                  },
+                  {
+                    "id": 221355,
+                    "label": "221355"
+                  },
+                  {
+                    "id": 11001,
+                    "label": "11001"
+                  },
+                  {
+                    "id": 348144,
+                    "label": "348144"
+                  },
+                  {
+                    "id": 6075,
+                    "label": "6075"
+                  }
+                ],
+                "keywordJoinMode": "or",
+                "watchRegion": "",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  0,
+                  10
+                ],
+                "voteCountMin": 0,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "",
+                "primaryReleaseTo": "",
+                "firstAirFrom": "2026-10-02",
+                "firstAirTo": "",
+                "airDateFrom": "",
+                "airDateTo": "",
+                "releaseRegion": ""
+              }
+            }
+          }
+        },
+        {
           "id": "tmdb.discover.movie.enc-para-ver-en-familia-cine.pablo122",
           "type": "movie",
           "name": "Para Ver en Familia (Cine)",
@@ -6659,414 +7067,6 @@
                 "primaryReleaseTo": "",
                 "firstAirFrom": "",
                 "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.upcoming.pablo005",
-          "type": "movie",
-          "name": "Próximos Estrenos",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.asc",
-                "include_adult": false,
-                "primary_release_date.gte": "2026-10-01",
-                "with_runtime.gte": 45,
-                "without_keywords": "210024,10292,221355,11001,348144,6075"
-              },
-              "formState": {
-                "catalogName": "Próximos Estrenos",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.asc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 0,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "2026-10-01",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.upcoming.pablo006",
-          "type": "series",
-          "name": "Próximos Estrenos (Series)",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (tv)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.asc",
-                "include_adult": false,
-                "first_air_date.gte": "2026-10-01",
-                "with_runtime.gte": 15,
-                "without_keywords": "210024,10292,221355,11001,348144,6075",
-                "without_genres": "10764,10766,10767,10763"
-              },
-              "formState": {
-                "catalogName": "Próximos Estrenos (Series)",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.asc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [
-                  {
-                    "id": 10764,
-                    "label": "10764"
-                  },
-                  {
-                    "id": 10766,
-                    "label": "10766"
-                  },
-                  {
-                    "id": 10767,
-                    "label": "10767"
-                  },
-                  {
-                    "id": 10763,
-                    "label": "10763"
-                  }
-                ],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 0,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "2026-10-01",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.now_playing.pablo007",
-          "type": "movie",
-          "name": "En Cartelera",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "include_adult": false,
-                "primary_release_date.gte": "2026-07-18",
-                "primary_release_date.lte": "2026-10-01",
-                "with_runtime.gte": 45,
-                "without_keywords": "210024,10292,221355,11001,348144,6075",
-                "vote_count.gte": 10
-              },
-              "formState": {
-                "catalogName": "En Cartelera",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 0,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "2026-07-18",
-                "primaryReleaseTo": "2026-10-01",
-                "firstAirFrom": "",
-                "firstAirTo": "",
-                "airDateFrom": "",
-                "airDateTo": "",
-                "releaseRegion": ""
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.now_playing.pablo062",
-          "type": "series",
-          "name": "En Cartelera (Series)",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "tv",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "include_adult": false,
-                "first_air_date.gte": "2026-07-18",
-                "first_air_date.lte": "2026-10-01",
-                "with_runtime.gte": 15,
-                "without_keywords": "210024,10292,221355,11001,348144,6075",
-                "without_genres": "10764,10766,10767,10763",
-                "vote_count.gte": 1
-              },
-              "formState": {
-                "catalogName": "En Cartelera (Series)",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "tv",
-                "includeGenres": [],
-                "excludeGenres": [
-                  {
-                    "id": 10764,
-                    "label": "10764"
-                  },
-                  {
-                    "id": 10766,
-                    "label": "10766"
-                  },
-                  {
-                    "id": 10767,
-                    "label": "10767"
-                  },
-                  {
-                    "id": 10763,
-                    "label": "10763"
-                  }
-                ],
-                "genreJoinMode": "or",
-                "originalLanguage": "",
-                "originCountry": "",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [
-                  {
-                    "id": 210024,
-                    "label": "210024"
-                  },
-                  {
-                    "id": 10292,
-                    "label": "10292"
-                  },
-                  {
-                    "id": 221355,
-                    "label": "221355"
-                  },
-                  {
-                    "id": 11001,
-                    "label": "11001"
-                  },
-                  {
-                    "id": 348144,
-                    "label": "348144"
-                  },
-                  {
-                    "id": 6075,
-                    "label": "6075"
-                  }
-                ],
-                "keywordJoinMode": "or",
-                "watchRegion": "",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  0,
-                  10
-                ],
-                "voteCountMin": 1,
-                "runtimeRange": [
-                  15,
-                  400
-                ],
-                "primaryReleaseFrom": "",
-                "primaryReleaseTo": "",
-                "firstAirFrom": "2026-07-18",
-                "firstAirTo": "2026-10-01",
                 "airDateFrom": "",
                 "airDateTo": "",
                 "releaseRegion": ""
@@ -14871,7 +14871,7 @@
         }
       ]
     },
-    "instanceId": "68232c5a-a11a-42c5-ab08-79119795363e"
+    "instanceId": "2d8ff56f-9385-4f71-b1e2-2fadd32aa810"
   },
   "nuvioCollectionsConfig": [
     {

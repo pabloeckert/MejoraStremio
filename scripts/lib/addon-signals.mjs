@@ -152,82 +152,129 @@ export function resolveSmartSync(videoName, subName) {
   };
 }
 
+export function parseSrtToCues(srt) {
+  if (!srt) return [];
+  const cues = [];
+  const normalized = srt
+    .replace(/\uFEFF/g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\\[rn]/g, ' ');
+
+  const blocks = normalized.split(/\n\s*\n/);
+  const timestampRegex = /(\d{2}:\d{2}:\d{2}[,.]\d{1,3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{1,3})/;
+
+  for (const block of blocks) {
+    const lines = block.trim().split('\n');
+    if (lines.length < 2) continue;
+    const timeIdx = lines.findIndex((l) => timestampRegex.test(l));
+    if (timeIdx === -1) continue;
+
+    const match = lines[timeIdx].match(timestampRegex);
+    if (!match) continue;
+
+    const startMs = srtTimeToMs(match[1]);
+    const endMs = srtTimeToMs(match[2]);
+    if (endMs <= startMs) continue;
+
+    const textLines = lines.slice(timeIdx + 1).map((l) => l.trim()).filter(Boolean);
+    if (textLines.length === 0) continue;
+
+    cues.push({
+      id: cues.length + 1,
+      startMs,
+      endMs,
+      text: textLines.join('\n'),
+    });
+  }
+
+  return cues;
+}
+
+export function enforceMonotonicClamping(cues) {
+  if (!cues || cues.length === 0) return [];
+  cues.sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
+
+  for (let i = 0; i < cues.length - 1; i++) {
+    const nextStart = cues[i + 1].startMs;
+    if (cues[i].endMs >= nextStart) {
+      cues[i].endMs = Math.max(cues[i].startMs + 50, nextStart - 5);
+    }
+    if (cues[i + 1].startMs <= cues[i].startMs) {
+      cues[i + 1].startMs = cues[i].startMs + 5;
+      if (cues[i + 1].endMs <= cues[i + 1].startMs) {
+        cues[i + 1].endMs = cues[i + 1].startMs + 50;
+      }
+    }
+    if (cues[i].endMs <= cues[i].startMs) {
+      cues[i].endMs = cues[i].startMs + 50;
+    }
+  }
+
+  cues.forEach((c, idx) => {
+    c.id = idx + 1;
+  });
+
+  return cues;
+}
+
+export function serializeCuesToSrt(cues) {
+  if (!cues || !cues.length) return '';
+  return cues
+    .map((c, idx) => `${idx + 1}\n${msToSrtTime(c.startMs)} --> ${msToSrtTime(c.endMs)}\n${c.text}`)
+    .join('\n\n') + '\n';
+}
+
 export function rescaleSrtFramerate(srtText, fromFps, toFps, offsetMs = 0) {
   if (!srtText) return '';
-  if ((!fromFps || !toFps || fromFps === toFps) && offsetMs === 0) return srtText;
-  const factor = fromFps / toFps;
-  return srtText.replace(
-    /(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/g,
-    (_m, start, end) => {
-      const origStart = srtTimeToMs(start);
-      const origEnd = srtTimeToMs(end);
-      const sMs = Math.max(0, Math.round(origStart * factor + offsetMs));
-      const eMs = Math.max(sMs + 10, Math.round(origEnd * factor + offsetMs));
-      return `${msToSrtTime(sMs)} --> ${msToSrtTime(eMs)}`;
+  const cues = parseSrtToCues(srtText);
+  if (!cues.length) return srtText;
+
+  const factor = (fromFps && toFps && fromFps !== toFps) ? (fromFps / toFps) : 1.0;
+
+  for (const c of cues) {
+    if (factor !== 1.0 || offsetMs !== 0) {
+      c.startMs = Math.max(0, Math.round(c.startMs * factor + offsetMs));
+      c.endMs = Math.max(c.startMs + 50, Math.round(c.endMs * factor + offsetMs));
     }
-  );
+  }
+
+  const clamped = enforceMonotonicClamping(cues);
+  return serializeCuesToSrt(clamped);
 }
 
 export function cleanSrt(text) {
   if (!text) return '';
-  const timestampRegex = /^(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/;
+  const cues = parseSrtToCues(text);
+  if (!cues.length) return '';
+
   const urlPattern = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9_-]+\.(?:com|org|net|io|me|tv|es|lat)\b/i;
   const sitePattern = /\b(?:subdivx|opensubtitles|tusubtitulo|subdl|addic7ed|argenteam|yify|yts|cuevana|gnula|cinetorrent|invision)\b/i;
   const creditPattern = /^(?:subt[ií]tulos?(?:\s+(?:por|de))?|traducci[oó]n(?:\s+(?:por|de))?|sincronizaci[oó]n(?:\s+(?:por|de))?|sincro|corregido\s+por|revisi[oó]n|supervisi[oó]n(?:\s+creativa)?|descargado\s+de|subt[ií]tulo\s+ofrecido\s+por|ajustes?\s+de\s+subt[ií]tulos?|adaptaci[oó]n|resync|ripped\s+by|encoded\s+by|synced\s+by|translated\s+by)\b(?:\s*[:\-–—]|\s+[A-ZÁÉÍÓÚÑa-záéíóúñ])/i;
   const soundCuesRegex = /^(?:m[uú]sica|musique|sonido|son|audio|disparos?|tirs?|gritos?|cris?|aplausos?|applaudissements|risas?|rires?|suspiros?|soupirs?|suspira|soupire|llanto|pleurs?|silbidos?|sifflements?|pasos|pas|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|motor|moteur|timbre|sonnerie|teléfono|téléphone|golpes?|coups?|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|chatarra|alarma|alarme|resopla|souffle|explosión|silencio|silence|jadea|bosteza|bâille)\b/i;
 
-  const normalized = text.replace(/\uFEFF/g, '').replace(/\r\n?/g, '\n').replace(/\\[rn]/g, ' ');
-  const blocks = normalized.split(/\n\s*\n/);
-  const finalBlocks = [];
-  let lastStartMs = -1;
-  let cueCounter = 1;
+  const filteredCues = [];
 
-  for (const block of blocks) {
-    const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
-    const timeIdx = lines.findIndex((l) => timestampRegex.test(l));
-    if (timeIdx === -1) continue;
-    const timeLine = lines[timeIdx];
-    const match = timeLine.match(timestampRegex);
-    if (!match) continue;
-
-    const startMs = srtTimeToMs(match[1]);
-    const endMs = srtTimeToMs(match[2]);
-
-    // Sanidad temporal: no aceptar duraciones nulas o negativas
-    if (endMs <= startMs) continue;
-
-    // Sanidad temporal: si el tiempo retrocede (salto atrás mayor a 2s), es un cue corrupto / watermark desplazado
-    if (lastStartMs >= 0 && startMs < lastStartMs - 2000) continue;
-
-    const rawTextLines = lines.slice(timeIdx + 1);
-
-    // Descartar bloque entero si alguna línea es una marca de agua, URL o crédito de uploader
-    const isCreditOrWatermarkCue = rawTextLines.some((l) => {
+  for (const c of cues) {
+    const rawLines = c.text.split('\n');
+    const isCreditOrWatermarkCue = rawLines.some((l) => {
       const cleanLine = l.replace(/^[•\s\-_=~*|]+|[•\s\-_=~*|]+$/g, '').trim();
       return urlPattern.test(cleanLine) || sitePattern.test(cleanLine) || creditPattern.test(cleanLine);
     });
     if (isCreditOrWatermarkCue) continue;
 
-    const textLines = rawTextLines
-      .map((l) => {
-        let s = l
-          // 1. Eliminar corchetes completos y su contenido
+    const cleanedLines = rawLines
+      .map((line) => {
+        let s = line
           .replace(/\[[^\]]*\]/g, '')
-          // 2. Eliminar paréntesis completos y su contenido
           .replace(/\([^)]*\)/g, '')
-          // 3. Eliminar prefijos de hablantes en mayúsculas (incluyendo acentos franceses/españoles)
           .replace(/^[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:(?:\s*)/, '')
-          // 4. Eliminar notas musicales y caracteres de sonido
           .replace(/[♪♫#*]+/g, '')
-          // 5. Eliminar tags html tipo <i>, </i>, <font...>, etc.
           .replace(/<[^>]+>/g, '')
-          // 6. Eliminar bullets y símbolos decorativos en bordes
           .replace(/^[•\s\-_=~*|]+|[•\s\-_=~*|]+$/g, '')
-          // 7. Normalizar espacios
           .replace(/[ \t]{2,}/g, ' ')
           .trim();
 
-        // 8. Descartar acotaciones sonoras típicas tanto en español como en francés
         if (soundCuesRegex.test(s)) {
           s = '';
         }
@@ -235,13 +282,16 @@ export function cleanSrt(text) {
       })
       .filter((l) => l.length > 0);
 
-    if (textLines.length === 0) continue;
-
-    lastStartMs = startMs;
-    finalBlocks.push(`${cueCounter++}\n${timeLine}\n${textLines.join('\n')}`);
+    if (cleanedLines.length > 0) {
+      filteredCues.push({
+        ...c,
+        text: cleanedLines.join('\n'),
+      });
+    }
   }
 
-  return finalBlocks.join('\n\n') + '\n';
+  const clamped = enforceMonotonicClamping(filteredCues);
+  return serializeCuesToSrt(clamped);
 }
 
 export function sanitizeSubtitleText(text) {

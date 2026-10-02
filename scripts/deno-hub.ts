@@ -3548,8 +3548,8 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
 
   return [
     ...latinoCached.map((s) => badge(s, true, true)),
-    ...otherCached.map((s) => badge(s, false, true)),
     ...latinoBuffer.map((s) => badge(s, true, false)),
+    ...otherCached.map((s) => badge(s, false, true)),
     ...otherBuffer.map((s) => badge(s, false, false)),
   ];
 }

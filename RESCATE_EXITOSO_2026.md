@@ -121,6 +121,39 @@ node scripts/refresh-dates.mjs --check
 
 ---
 
-## 4. Estado de Producción
-- Código auditado bajo metodología Zero-Trust.
-- Pipeline listo para despliegue y monitoreo en Deno Deploy.
+## 4. Estado y Certificación en Producción (Live Reality Check)
+
+- **Workflow de Despliegue:** GitHub Actions [`deploy-deno-hub.yml`](https://github.com/pabloeckert/MejoraStremio/actions/runs/36949346967) (Run ID: `36949346967`).
+- **Target Producción:** `https://mejorastremio-hub.pabloeckert.deno.net`
+- **Commit Desplegado:** `7b48dd8` (`main`).
+- **Resultado de Certificación en Producción en Vivo:**
+
+```
+════════════════════════════════════════════════════════════════════════════════
+ MEJORASTREMIO — CERTIFICACIÓN EN PRODUCCIÓN: SMART STREAM INTERCEPTOR
+ Postura: Zero Trust | Target: https://mejorastremio-hub.pabloeckert.deno.net
+════════════════════════════════════════════════════════════════════════════════
+─── CASO 0: Verificación de Manifiesto en Vivo ───
+  ✅ [PASS] HTTP 200 en manifest
+  ✅ [PASS] ID com.mejorastremio.streams
+  ✅ [PASS] Recurso stream declarado
+  ✅ [PASS] Tipos movie y series soportados
+
+─── CASO 1: "Un show más" (tt32604054:1:1) — PRIORIDAD LATINO ───
+  ✅ [PASS] HTTP 200 OK en streams
+  ✅ [PASS] Array de streams no vacío (Total recibidos: 20)
+  ✅ [PASS] Stream en posición [0] contiene explícitamente "[🇪🇸 LATINO]" en name
+  ✅ [PASS] Stream en posición [0] es release Latino / Cinecalidad
+
+─── CASO 2: "La casa realmente ruidosa" (tt22495072:1:1) — CASO FALLA / SOLO INGLÉS ───
+  ✅ [PASS] HTTP 200 OK en streams
+  ✅ [PASS] Array de streams no vacío (Total recibidos: 5)
+  ✅ [PASS] Stream en posición [0] contiene explícitamente "[⚠️ SOLO INGLÉS]" en name
+  ✅ [PASS] El 100% de los streams sin audio latino reciben el badge [⚠️ SOLO INGLÉS]
+
+════════════════════════════════════════════════════════════════════════════════
+ RESUMEN CERTIFICACIÓN PRODUCCIÓN: 12 APROBADOS, 0 FALLIDOS
+════════════════════════════════════════════════════════════════════════════════
+🎉 SMART STREAM INTERCEPTOR EN PRODUCCIÓN: 100% OPERATIVO Y VERIFICADO.
+```
+

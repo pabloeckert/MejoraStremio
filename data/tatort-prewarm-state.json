@@ -6,8 +6,8 @@
     },
     "tt0806910:2026:15": {
       "complete": false,
-      "reason": "status=200 c=false",
-      "at": "2026-10-01T17:05:36.488Z"
+      "reason": "sin-base",
+      "at": "2026-10-02T16:19:41.944Z"
     },
     "tt0806910:2026:14": {
       "complete": true,
@@ -257,8 +257,8 @@
     },
     "tt0806910:2024:27": {
       "complete": false,
-      "reason": "status=200 c=false",
-      "at": "2026-10-01T17:05:39.776Z"
+      "reason": "sin-base",
+      "at": "2026-10-02T16:19:49.316Z"
     },
     "tt0806910:0:82": {
       "complete": false,
@@ -512,8 +512,8 @@
     },
     "tt0806910:2024:15": {
       "complete": false,
-      "reason": "status=200 c=false",
-      "at": "2026-10-01T17:05:42.992Z"
+      "reason": "sin-base",
+      "at": "2026-10-02T16:19:56.659Z"
     },
     "tt0806901:52:3": {
       "complete": false,
@@ -978,7 +978,7 @@
     "tt0274279:24:6": {
       "complete": false,
       "reason": "status=200 c=",
-      "at": "2026-10-01T17:05:32.915Z"
+      "at": "2026-10-02T16:19:33.140Z"
     },
     "tt0806910:2022:35": {
       "complete": false,
@@ -1180,8 +1180,8 @@
     },
     "tt0806910:2026:18": {
       "complete": false,
-      "reason": "status=200 c=false",
-      "at": "2026-10-01T17:05:29.238Z"
+      "reason": "sin-base",
+      "at": "2026-10-02T16:19:26.049Z"
     }
   }
 }

@@ -7,7 +7,7 @@
     "episode": 1,
     "episodeTitle": "Urban Guard",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
     "notifiedAt": "2026-09-07T15:50:01.147Z"
   },
   {
@@ -18,41 +18,41 @@
     "episode": 1,
     "episodeTitle": "Tinker Tailor Older Spy",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
     "notifiedAt": "2026-09-03T11:22:35.983Z"
   },
   {
-    "key": "tt0106179:1:2",
+    "key": "tt0106179:1:1",
     "imdbId": "tt0106179",
     "show": "The X-Files",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Deep Throat",
+    "episode": 1,
+    "episodeTitle": "Pilot",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-03T11:22:35.983Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt5875444:1:2",
+    "key": "tt5875444:1:1",
     "imdbId": "tt5875444",
     "show": "Slow Horses",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Work Drinks",
+    "episode": 1,
+    "episodeTitle": "Failure's Contagious",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-04T14:20:42.074Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt38504111:1:2",
+    "key": "tt38504111:1:1",
     "imdbId": "tt38504111",
     "show": "Small Prophets",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Episode 2",
+    "episode": 1,
+    "episodeTitle": "Episode 1",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-04T14:20:42.074Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
     "key": "tt17543592:1:1",
@@ -62,130 +62,129 @@
     "episode": 1,
     "episodeTitle": "Pilot",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
     "notifiedAt": "2026-09-03T11:22:35.983Z"
   },
   {
-    "key": "tt8594324:3:5",
+    "key": "tt8594324:1:1",
     "imdbId": "tt8594324",
     "show": "Ghosts",
-    "season": 3,
-    "episode": 5,
-    "episodeTitle": "Something to Share?",
+    "season": 1,
+    "episode": 1,
+    "episodeTitle": "Who Do You Think You Are?",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-04T14:20:42.074Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt31690920:1:2",
+    "key": "tt31690920:1:1",
     "imdbId": "tt31690920",
     "show": "Mentiras, The Series",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Jackals, Beavers, and Parasites",
+    "episode": 1,
+    "episodeTitle": "Lies",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-03T11:22:35.983Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt20883126:1:2",
+    "key": "tt20883126:1:1",
     "imdbId": "tt20883126",
     "show": "Red Queen",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "A Tattoo",
+    "episode": 1,
+    "episodeTitle": "A Leap",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-03T11:22:35.983Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt22091076:1:2",
+    "key": "tt22091076:1:1",
     "imdbId": "tt22091076",
     "show": "High Potential",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Dancers in the Dark",
+    "episode": 1,
+    "episodeTitle": "Pilot",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-03T11:22:35.983Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt39277519:1:2",
+    "key": "tt39277519:1:1",
     "imdbId": "tt39277519",
     "show": "Time Flies",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "The Price of Poison",
+    "episode": 1,
+    "episodeTitle": "Today, I'm starting over",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-11T14:24:54.065Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt27763549:1:2",
+    "key": "tt27763549:1:1",
     "imdbId": "tt27763549",
     "show": "Los mufas: suerte para la desgracia",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Episode 2",
+    "episode": 1,
+    "episodeTitle": "Episode 1",
     "status": "pendiente",
     "reason": "sin-cache-torbox",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
     "notifiedAt": null
   },
   {
-    "key": "tt32974250:1:2",
+    "key": "tt32974250:1:1",
     "imdbId": "tt32974250",
     "show": "Naughty Business",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Let's not be too modern",
+    "episode": 1,
+    "episodeTitle": "What's everyone's issue with sex?",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-03T11:22:35.983Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt33292950:1:2",
+    "key": "tt33292950:1:1",
     "imdbId": "tt33292950",
     "show": "Maledictions",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Act II: Nothing Special",
-    "status": "pendiente",
-    "reason": "sin-cache-torbox",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-11T14:24:54.065Z"
+    "episode": 1,
+    "episodeTitle": "Act I: The Law",
+    "status": "listo",
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt32474482:1:2",
+    "key": "tt32474482:1:1",
     "imdbId": "tt32474482",
     "show": "If It's Tuesday, It's Murder",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Alfama",
+    "episode": 1,
+    "episodeTitle": "Baixa",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-03T11:22:35.983Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt35768911:1:2",
+    "key": "tt35768911:1:1",
     "imdbId": "tt35768911",
     "show": "Tip Toe",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Episode 2",
+    "episode": 1,
+    "episodeTitle": "Episode 1",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-03T11:22:35.983Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   },
   {
-    "key": "tt29780951:1:2",
+    "key": "tt29780951:1:1",
     "imdbId": "tt29780951",
     "show": "Wild Cards",
     "season": 1,
-    "episode": 2,
-    "episodeTitle": "Show Me the Murder",
+    "episode": 1,
+    "episodeTitle": "The Infinity Thief",
     "status": "listo",
-    "lastCheckedAt": "2026-10-01T17:01:10.441Z",
-    "notifiedAt": "2026-09-03T11:22:35.983Z"
+    "lastCheckedAt": "2026-10-02T16:15:46.932Z",
+    "notifiedAt": "2026-10-02T16:15:46.932Z"
   }
 ]

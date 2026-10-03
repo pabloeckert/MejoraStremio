@@ -600,10 +600,27 @@ async function fetchSubdlSubs(
     }));
 }
 
-// Descarga (sin cache â€” SubDL no tiene lÃ­mite de cupo, a diferencia de OpenSubtitles)
-// y desempaqueta si hace falta el SRT real detrÃ¡s de un path de SubDL. dlUrl siempre
-// se valida contra dl.subdl.com antes de llegar acÃ¡ (guard anti-SSRF, ver mÃ¡s abajo).
+const subdlMemCache = new Map<string, string>();
+
+// Descarga con doble capa de caché (Memoria RAM + Deno KV persistente a 30 días)
+// para blindar contra el límite de 50 descargas/día de la API gratuita de SubDL.
 async function downloadSubdlSrt(subdlPath: string): Promise<string | null> {
+  // 1. Memoria rápida
+  if (subdlMemCache.has(subdlPath)) {
+    return subdlMemCache.get(subdlPath)!;
+  }
+  // 2. Deno KV persistente
+  try {
+    const kv = await getKv();
+    const cached = await kv.get<string>(["subdl_srt_cache_v2", subdlPath]);
+    if (cached?.value) {
+      subdlMemCache.set(subdlPath, cached.value);
+      return cached.value;
+    }
+  } catch {
+    // Si KV no está disponible temporalmente, continuar al fetch
+  }
+
   const dlUrl = subdlPath.startsWith("http") ? subdlPath : `${SUBDL_DL}${subdlPath}`;
   let dlHost: string;
   try {
@@ -614,10 +631,25 @@ async function downloadSubdlSrt(subdlPath: string): Promise<string | null> {
   if (dlHost !== "dl.subdl.com") return null;
   try {
     const r = await fetch(dlUrl, { signal: AbortSignal.timeout(20000) });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      if (r.status === 429) {
+        console.warn(`[subdl] Rate limit 429 excedido en SubDL: ${dlUrl}`);
+      }
+      return null;
+    }
     const buf = new Uint8Array(await r.arrayBuffer());
     const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
-    return isZip ? await extractSrtFromZip(buf) : decodeSubtitleText(buf);
+    const srt = isZip ? await extractSrtFromZip(buf) : decodeSubtitleText(buf);
+    if (srt) {
+      subdlMemCache.set(subdlPath, srt);
+      try {
+        const kv = await getKv();
+        await kv.set(["subdl_srt_cache_v2", subdlPath], srt, { expireIn: 30 * 86400 * 1000 });
+      } catch {
+        // Ignorar fallo de escritura KV
+      }
+    }
+    return srt;
   } catch {
     return null;
   }
@@ -700,44 +732,45 @@ async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Pr
 
         const syncDecision = resolveSmartSync(parsed.filename, s.name);
 
+        const metaParams = `imdb=${encodeURIComponent(imdbId)}${season != null ? `&season=${season}` : ""}${episode != null ? `&episode=${episode}` : ""}`;
+
         if (syncDecision.needsRescale) {
           // El Hub detecta discrepancia estructural de framerate y APLICA AUTOMÁTICAMENTE
           // el time-stretch como opción número 1 preferente.
           subtitles.push({
             id: `${baseId}-${syncDecision.fpsParam}`,
-            url: `${mountBase}/srt/${encoded}?fps=${syncDecision.fpsParam}&smart=1`,
+            url: `${mountBase}/srt/${encoded}?fps=${syncDecision.fpsParam}&smart=1&${metaParams}`,
             lang: "spa",
-            label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${syncDecision.badge} ${cleanName}`,
-            name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${syncDecision.badge} ${cleanName}`,
+            label: `[SubDL] ${syncDecision.badge} ${cleanName}`,
+            name: `[SubDL] ${syncDecision.badge} ${cleanName}`,
           });
 
           // Opción secundaria: pista sin estirar (original)
           subtitles.push({
             id: baseId,
-            url: `${mountBase}/srt/${encoded}`,
+            url: `${mountBase}/srt/${encoded}?${metaParams}`,
             lang: "spa",
-            label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
-            name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
+            label: `[SubDL] 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
+            name: `[SubDL] 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
           });
         } else {
           // Coincidencia de framerate nativo: NO se estira en la opción 1 (evita drift artificial)
           subtitles.push({
             id: baseId,
-            url: `${mountBase}/srt/${encoded}`,
+            url: `${mountBase}/srt/${encoded}?${metaParams}`,
             lang: "spa",
-            label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${syncDecision.badge} ${cleanName}`,
-            name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${syncDecision.badge} ${cleanName}`,
+            label: `[SubDL] ${syncDecision.badge} ${cleanName}`,
+            name: `[SubDL] ${syncDecision.badge} ${cleanName}`,
           });
 
           // Opción secundaria: alternativa forzada si los metadatos upstream venían mal etiquetados
-          const altFps = Math.abs(detectFramerate(s.name).fps - 25.0) < 0.1 ? "25to23976" : "23976to25";
-          const altBadge = altFps === "25to23976" ? "⏱️ Forzar 25->23.976fps" : "⏱️ Forzar 23.976->25fps";
+          // (Especialmente crucial en series europeas/PAL como HPI, Tatort, etc.)
           subtitles.push({
-            id: `${baseId}-alt`,
-            url: `${mountBase}/srt/${encoded}?fps=${altFps}`,
+            id: `${baseId}-pal-web`,
+            url: `${mountBase}/srt/${encoded}?fps=25to23976&${metaParams}`,
             lang: "spa",
-            label: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${altBadge} ${cleanName}`,
-            name: `[SubDL]${isSdh ? " ⚠️ SDH" : ""} ${altBadge} ${cleanName}`,
+            label: `[SubDL] ⏱️ Forzar PAL 25->23.976fps ${cleanName}`,
+            name: `[SubDL] ⏱️ Forzar PAL 25->23.976fps ${cleanName}`,
           });
         }
       }
@@ -755,6 +788,25 @@ async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Pr
     // este endpoint actuarÃ­a de proxy HTTP abierto no autenticado hacia esa URL.
     const subdlPath = decodeURIComponent(srtMatch[1]);
     let srtText = await downloadSubdlSrt(subdlPath);
+    if (!srtText) {
+      // Fallback de resiliencia: si SubDL falló (ej. límite 429 de 50/día), intentar OpenSubtitles
+      const fallbackImdb = reqUrl?.searchParams?.get("imdb");
+      if (fallbackImdb) {
+        try {
+          const s = reqUrl?.searchParams?.get("season");
+          const e = reqUrl?.searchParams?.get("episode");
+          const seasonNum = s ? parseInt(s, 10) : null;
+          const episodeNum = e ? parseInt(e, 10) : null;
+          const osSubs = await fetchOpenSubtitlesSubs(fallbackImdb, seasonNum, episodeNum, "es");
+          if (osSubs.length > 0) {
+            srtText = await downloadOpenSubtitlesSrt(osSubs[0].fileId);
+            console.log(`[subdl] Fallback exitoso a OpenSubtitles para ${fallbackImdb}`);
+          }
+        } catch {
+          // Ignorar fallo de fallback
+        }
+      }
+    }
     if (!srtText) {
       return new Response("Error descargando o host no permitido", { status: 502, headers: cors });
     }
@@ -1154,7 +1206,12 @@ async function handleOpenSubtitles(
     const { imdbId, season, episode } = parsed;
 
     try {
-      const subs = await fetchOpenSubtitlesSubs(imdbId, season, episode, lang);
+      let subs = await fetchOpenSubtitlesSubs(imdbId, season, episode, lang);
+      if (!subs.length && lang === "ea") {
+        // Fallback inteligente: si no hay subtítulos específicos "ea" (Latino),
+        // buscar "es" (Español general) para no dejar la pantalla en 0 opciones.
+        subs = await fetchOpenSubtitlesSubs(imdbId, season, episode, "es");
+      }
       // Pedido de Pablo (2026-09-05): la MAYOR cantidad de opciones verificadas
       // posible, no la mÃ­nima "segura" -- taguear y mandar al final los confirmados
       // SDH por contenido en vez de sacarlos de la lista. VerificaciÃ³n de contenido
@@ -1196,9 +1253,8 @@ async function handleOpenSubtitles(
       // deno-lint-ignore no-explicit-any
       const subtitles: any[] = [];
       for (const s of [...sortedClean, ...allSdh]) {
-        const isSdh = isSdhName(s.name) || (toCheck.indexOf(s) >= 0 && verdicts[toCheck.indexOf(s)] === true);
         const baseId = `${idTag}-${subs.indexOf(s)}-${imdbId}`;
-        const disp = `[${nameTag}]${isSdh ? " ⚠️ SDH" : ""}`;
+        const disp = `[${nameTag}]`;
 
         const syncDecision = resolveSmartSync(parsed.filename, s.name);
 
@@ -1231,15 +1287,13 @@ async function handleOpenSubtitles(
             name: `${disp} ${syncDecision.badge} ${s.name}`,
           });
 
-          // Opción secundaria: alternativa forzada si los metadatos upstream venían mal etiquetados
-          const altFps = Math.abs(detectFramerate(s.name).fps - 25.0) < 0.1 ? "25to23976" : "23976to25";
-          const altBadge = altFps === "25to23976" ? "⏱️ Forzar 25->23.976fps" : "⏱️ Forzar 23.976->25fps";
+          // Opción secundaria: alternativa forzada PAL 25->23.976fps para series europeas (HPI, Tatort, etc.)
           subtitles.push({
-            id: `${baseId}-alt`,
-            url: `${mountBase}/srt/${s.fileId}?fps=${altFps}`,
+            id: `${baseId}-pal-web`,
+            url: `${mountBase}/srt/${s.fileId}?fps=25to23976`,
             lang: "spa",
-            label: `${disp} ${altBadge} ${s.name}`,
-            name: `${disp} ${altBadge} ${s.name}`,
+            label: `${disp} ⏱️ Forzar PAL 25->23.976fps ${s.name}`,
+            name: `${disp} ⏱️ Forzar PAL 25->23.976fps ${s.name}`,
           });
         }
       }

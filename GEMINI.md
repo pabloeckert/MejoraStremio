@@ -68,3 +68,19 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Sincronización de Cartelera**: Se ejecutó `scripts/refresh-dates.mjs` actualizando las ventanas de "En Cartelera" y "Próximos Estrenos" en `data/preset.json` a la fecha actual (`2026-10-03`).
 - **Resiliencia de Timezone en Tests**: En `scripts/test-stremioeg-tvbox.mjs`, se incorporó una ventana de tolerancia de 24 horas (`isDateFresh`) para contemplar el desfasaje horario entre UTC y ART (UTC-3) antes de la ejecución del cron diario de las 07:00 ART.
 - **Certificación de la Suite**: 28 de 28 pruebas superadas exitosamente (100% OK en Estructura 9/9, Filtros 9/9 e Integración 10/10) y simulación de encendido de TV Box (`simulate-tv-boot.mjs`) 100% aprobada.
+
+---
+
+## 6. Sesión 2026-10-03: Activación Remota Real y Blindaje TV Box (`stremioeg@gmail.com`)
+
+### 6.1 Corrección Crítica en Smart Stream Interceptor (`deno-hub.ts`)
+- **Fuga de Separadores de Configuración**: Se corrigió un bug en `handleStreams` donde `replace(/[^a-zA-Z0-9_=-]/g, "")` y `encodeURIComponent` destruían las barras verticales (`|`) y comas (`,`) de la URL de configuración de Torrentio, invalidando el token de TorBox Debrid.
+- **Deploy a Producción**: Se deployó la corrección a `mejorastremio-hub.pabloeckert.deno.net` mediante `deploy-deno-hub.yml`. Los streams ahora retornan con prioridad absoluta de TorBox cached + audio latino (`[⚡ INSTANTÁNEO] [🇪🇸 LATINO] [TB+]`).
+
+### 6.2 Sincronización Remota de la Cuenta Stremio Real
+- **Instalación de Addons Faltantes**: Se incorporaron a la colección remota de Stremio de `stremioeg@gmail.com`:
+  - `com.mejorastremio.subsource` (SubSource sin SDH).
+  - `com.mejorastremio.streams` (Proxy inteligente de Torrentio posicionado en el orden #1 de streams).
+- **Sincronización de Instancia AIOMetadata**: Se ejecutó la regeneración en ElfHosted vía `daily-catalog-refresh.yml` y `apply-stremioeg-profile.mjs`, actualizando la instancia a `d29d183a-be46-41ea-bb8a-dc572347e337` (105 catálogos sincronizados 1:1 entre `preset.json` y la API de Stremio).
+- **Verificación Cruda en Vivo**: `verify-live-account.mjs` certificó paridad total (instanceId guardado = instanceId repo = manifest en vivo). Al encender la TV Box, los cambios ya están activos en la nube de Stremio.
+

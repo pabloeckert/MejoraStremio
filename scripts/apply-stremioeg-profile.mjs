@@ -289,11 +289,104 @@ export function ensureHubSubtitleAddons(addons) {
         idPrefixes: ['tt'],
       },
     },
+    {
+      transportUrl: 'https://mejorastremio-hub.pabloeckert.deno.net/subsource/manifest.json',
+      manifest: {
+        id: 'com.mejorastremio.subsource',
+        version: '1.0.0',
+        name: 'SubSource ES (sin SDH)',
+        description: 'Subtítulos en español de SubSource con filtrado hearing-impaired (sin SDH) y smart audio sync.',
+        resources: ['subtitles'],
+        types: ['movie', 'series'],
+        idPrefixes: ['tt'],
+        catalogs: [],
+      },
+    },
   ];
 
   const existingIds = new Set(addons.map((a) => a.manifest?.id || a.id));
   const toAdd = hubAddons.filter((h) => !existingIds.has(h.manifest.id));
   return [...toAdd, ...addons];
+}
+
+export function ensureStreamsInterceptor(addons) {
+  const torrentioAddon = addons.find((a) => a.manifest?.id === 'com.stremio.torrentio.addon');
+  let torConfig = '';
+  if (torrentioAddon?.transportUrl) {
+    const m = torrentioAddon.transportUrl.match(/torrentio\.strem\.fun\/([^/]+)\/manifest\.json/);
+    if (m) torConfig = m[1];
+  }
+  const streamsUrl = torConfig
+    ? `https://mejorastremio-hub.pabloeckert.deno.net/streams/${torConfig}/manifest.json`
+    : 'https://mejorastremio-hub.pabloeckert.deno.net/streams/manifest.json';
+
+  const existingIdx = addons.findIndex((a) => a.manifest?.id === 'com.mejorastremio.streams');
+  const interceptorEntry = {
+    transportUrl: streamsUrl,
+    manifest: {
+      id: 'com.mejorastremio.streams',
+      version: '1.0.0',
+      name: 'MejoraStremio Streams (TorBox Latino)',
+      description: 'Smart Stream Interceptor: proxy inteligente de Torrentio con reordenamiento prioritario a audio latino y etiquetado visual para TV.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt'],
+      catalogs: [],
+    },
+  };
+
+  if (existingIdx >= 0) {
+    if (addons[existingIdx].transportUrl !== streamsUrl) {
+      const copy = [...addons];
+      copy[existingIdx] = interceptorEntry;
+      return { addons: copy, changed: true };
+    }
+    return { addons, changed: false };
+  }
+
+  const torIdx = addons.findIndex((a) => a.manifest?.id === 'com.stremio.torrentio.addon');
+  const insertAt = torIdx >= 0 ? torIdx : 6;
+  const copy = [...addons];
+  copy.splice(insertAt, 0, interceptorEntry);
+  return { addons: copy, changed: true };
+}
+
+export async function syncAioMetadataInstance(addons) {
+  if (!existsSync(PRESET_PATH)) return { addons, changed: false };
+  let presetInstanceId = null;
+  try {
+    const preset = JSON.parse(readFileSync(PRESET_PATH, 'utf8'));
+    presetInstanceId = preset?.aioMetadataConfig?.instanceId;
+  } catch {}
+  if (!presetInstanceId) return { addons, changed: false };
+
+  const aioIdx = addons.findIndex((a) => a.manifest?.id === 'aio-metadata');
+  if (aioIdx < 0) return { addons, changed: false };
+
+  const currentUrl = addons[aioIdx].transportUrl || '';
+  const currentInstanceId = currentUrl.match(/\/([0-9a-f-]{36})\//)?.[1];
+
+  if (currentInstanceId && currentInstanceId !== presetInstanceId) {
+    const newUrl = `https://aiometadata.elfhosted.com/stremio/${presetInstanceId}/manifest.json`;
+    let freshManifest = addons[aioIdx].manifest;
+    try {
+      const res = await fetch(newUrl, { signal: AbortSignal.timeout(15000) });
+      if (res.ok) {
+        freshManifest = await res.json();
+      }
+    } catch (e) {
+      console.warn(`  ⚠️ No se pudo fetchear manifest fresco de AIOMetadata (${e.message})`);
+    }
+
+    const copy = [...addons];
+    copy[aioIdx] = {
+      ...copy[aioIdx],
+      transportUrl: newUrl,
+      manifest: freshManifest,
+    };
+    return { addons: copy, changed: true, oldId: currentInstanceId, newId: presetInstanceId };
+  }
+  return { addons, changed: false };
 }
 
 // ── Ejecución de Auditoría / Aplicación ───────────────────────────────────────
@@ -306,9 +399,9 @@ async function runProfileManager() {
   console.log('═'.repeat(70));
 
   console.log('\n[ 1/3 ] Verificando Políticas del Perfil...');
-  console.log('  ✓ Subtítulos: Modo "strict_no_sdh" (OpenSubtitles Latino/ES + SubDL sin SDH)');
+  console.log('  ✓ Subtítulos: Modo "strict_no_sdh" (OpenSubtitles Latino/ES + SubDL + SubSource sin SDH)');
   console.log('  ✓ Monopolio del Hub: Eliminación de OpenSubtitles v3 y competidores');
-  console.log('  ✓ Audio: Prioridad [Latino, Original] — Castellano relegado a última instancia');
+  console.log('  ✓ Audio: Prioridad [Latino, Original] con Smart Stream Interceptor');
   console.log('  ✓ Catálogos: Sincronización diaria 07:00 ART vía daily-catalog-refresh');
 
   const email = process.env.ST_EMAIL || profile.account;
@@ -373,15 +466,31 @@ async function runProfileManager() {
       removedAddons.forEach((ra) => console.log(`     - [${ra.manifest?.id || ra.id}] ${ra.manifest?.name || ra.name}`));
     }
 
-    // 2. Garantizar presencia de los addons del Hub
+    // 2. Garantizar presencia de los addons de subtítulos del Hub (incluyendo SubSource)
     const withHub = ensureHubSubtitleAddons(cleanedAddons);
     if (withHub.length > cleanedAddons.length) {
       changesCount += (withHub.length - cleanedAddons.length);
       console.log(`  ✓ Instalados ${withHub.length - cleanedAddons.length} add-ons del Hub para monopolio de subtítulos sin SDH`);
     }
 
-    // 3. Ajustar configuración de streams (Torrentio, Comet)
-    const updatedAddons = withHub.map((a) => {
+    // 3. Smart Stream Interceptor (MejoraStremio Streams en puesto #1 de streams)
+    const streamRes = ensureStreamsInterceptor(withHub);
+    let currentAddonsList = streamRes.addons;
+    if (streamRes.changed) {
+      changesCount++;
+      console.log('  ✓ Smart Stream Interceptor (com.mejorastremio.streams) configurado como stream prioritario');
+    }
+
+    // 4. Sincronización de instancia AIOMetadata contra preset.json
+    const aioRes = await syncAioMetadataInstance(currentAddonsList);
+    currentAddonsList = aioRes.addons;
+    if (aioRes.changed) {
+      changesCount++;
+      console.log(`  ✓ AIOMetadata sincronizado con preset.json: ${aioRes.oldId} ➔ ${aioRes.newId}`);
+    }
+
+    // 5. Ajustar configuración de streams (Torrentio, Comet)
+    const updatedAddons = currentAddonsList.map((a) => {
       if (a.manifest?.id === 'com.stremio.torrentio.addon') {
         const tRes = configureTorrentio(a);
         if (tRes.changed) {
@@ -403,13 +512,18 @@ async function runProfileManager() {
 
     if (APPLY && changesCount > 0) {
       console.log('\n  Aplicando cambios con guard anti-catálogos-congelados...');
-      const guardOk = await assertNoFrozenEmptyCatalogs(updatedAddons, [
+      const guardExempt = [
         'com.stremio.torrentio.addon',
         'stremio.comet.fast',
         'com.mejorastremio.opensubtitles-latino',
         'com.mejorastremio.subdl',
         'com.mejorastremio.opensubtitles',
-      ]);
+        'com.mejorastremio.subsource',
+        'com.mejorastremio.streams',
+      ];
+      if (aioRes.changed) guardExempt.push('aio-metadata');
+
+      const guardOk = await assertNoFrozenEmptyCatalogs(updatedAddons, guardExempt);
       if (!guardOk) {
         console.error('✗ Abortado por guard anti-catálogos-congelados');
         process.exit(1);

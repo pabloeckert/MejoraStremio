@@ -3659,9 +3659,30 @@ export const STREAMS_MANIFEST = {
 export const LATINO_STREAM_REGEX =
   /\b(latino|latina|dual|spa|spanish|espanol|español|castellano|latinoamericano|doblaje latino|audio latino|audio-latino|lat-eng|eng-lat|multi-lat|es-la|es-419)\b|cinecalidad|hackstore|dontorrent|estrenosdtl|grantorrent|mejortorrent|dual[-_.]?lat|\[lat\]|\(lat\)|[-_.]lat[-_.]|\blat\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
 
+export const LATIN_TOKENS = [
+  "latino", "latina", "latam", "eslatam", "es419", "419", "esla",
+  "espanoledla", "edla", "multilatino", "multilat", "doblajelatino",
+  "audiolatino", "esplatino", "españollatino", "espanollatino",
+  "spanishlatino", "spanishlatam", "latinoamericano", "cinecalidad",
+  "hackstore", "latin", "sudamerica", "americalatina"
+];
+
+export function cleanReleaseName(text: string): string {
+  return (text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Quita acentos
+    .replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, "") // Quita banderas territoriales
+    .replace(/[\u{1F300}-\u{1F9FF}]/gu, "") // Quita emojis comunes
+    .replace(/[🌎🌍🌏💃🇲🇽🇦🇷🇨🇴🇨🇱🇵🇪🇻🇪🇺🇾]/gu, "") // Quita iconos específicos
+    .replace(/[^a-zA-Z0-9]/g, "") // Remueve delimitadores ([, ], (, ), -, _, |, espacios)
+    .toLowerCase();
+}
+
 export function isLatinoStream(stream: { name?: string; title?: string; description?: string }): boolean {
-  const text = `${stream.name || ""} ${stream.title || ""} ${stream.description || ""}`;
-  return LATINO_STREAM_REGEX.test(text);
+  const rawText = `${stream.name || ""} ${stream.title || ""} ${stream.description || ""}`;
+  if (LATINO_STREAM_REGEX.test(rawText)) return true;
+  const cleaned = cleanReleaseName(rawText);
+  return LATIN_TOKENS.some((t) => cleaned.includes(t));
 }
 
 const ALLOWED_TORRENTIO_HOSTS = new Set(["torrentio.strem.fun"]);
@@ -3724,11 +3745,11 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
   const badge = (s: T, isLat: boolean, isFast: boolean): T => {
     const raw = (s.name || "Torrentio")
       .replace(/^\[(⚡ INSTANTÁNEO|⏳ REQUIERE BUFFER)\]\s*/g, "")
-      .replace(/^\[(🇪🇸 LATINO|⚠️ SOLO INGLÉS)\]\s*/g, "")
+      .replace(/^\[(🇪🇸 LATINO|🌎 LATINO|⚠️ SOLO INGLÉS)\]\s*/g, "")
       .trim();
 
     const speedPrefix = isFast ? "[⚡ INSTANTÁNEO]" : "[⏳ REQUIERE BUFFER]";
-    const langPrefix = isLat ? "[🇪🇸 LATINO]" : "[⚠️ SOLO INGLÉS]";
+    const langPrefix = isLat ? "[🌎 LATINO]" : "[⚠️ SOLO INGLÉS]";
 
     return {
       ...s,

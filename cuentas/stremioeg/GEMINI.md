@@ -51,11 +51,17 @@ La cuenta de Pablo en su TV Box (Android TV / Leanback) está configurada bajo t
 
 * **Script de aplicación y auditoría**:
   ```bash
-  # Modo auditoría / dry-run (sin tocar la cuenta):
-  node scripts/apply-stremioeg-profile.mjs --check
+  # Modo auditoría / dry-run con diff visual estructurado (sin tocar la cuenta):
+  node scripts/apply-stremioeg-profile.mjs --dry-run
 
   # Aplicar cambios en la cuenta Stremio con backup y guard anti-congelado:
   ST_EMAIL=stremioeg@gmail.com ST_PASS=... node scripts/apply-stremioeg-profile.mjs --apply
+
+  # Revertir inmediatamente al último estado respaldado:
+  ST_EMAIL=stremioeg@gmail.com ST_PASS=... node scripts/apply-stremioeg-profile.mjs --rollback-last
+
+  # Revertir a un archivo de backup específico:
+  ST_EMAIL=stremioeg@gmail.com ST_PASS=... node scripts/apply-stremioeg-profile.mjs --rollback .backups/backup-stremioeg-preregen-xxx.json
   ```
 * **Especificación formal**: `cuentas/stremioeg/profile.json`.
 

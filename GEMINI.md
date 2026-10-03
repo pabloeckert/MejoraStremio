@@ -84,3 +84,22 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Sincronización de Instancia AIOMetadata**: Se ejecutó la regeneración en ElfHosted vía `daily-catalog-refresh.yml` y `apply-stremioeg-profile.mjs`, actualizando la instancia a `d29d183a-be46-41ea-bb8a-dc572347e337` (105 catálogos sincronizados 1:1 entre `preset.json` y la API de Stremio).
 - **Verificación Cruda en Vivo**: `verify-live-account.mjs` certificó paridad total (instanceId guardado = instanceId repo = manifest en vivo). Al encender la TV Box, los cambios ya están activos en la nube de Stremio.
 
+---
+
+## 7. Sesión 2026-10-03 (Fase 0): Modernización, Resiliencia y Leanback UX
+
+### 7.1 Higiene Operativa y Mecanismo de Rollback (`apply-stremioeg-profile.mjs`)
+- **Diff Visual Estructurado (`--dry-run`)**: Implementación de una tabla visual con codificación clara (`[+] AGREGADO`, `[-] REMOVIDO`, `[~] MODIFICADO`, `[^] REORDENADO`, `[=] SIN CAMBIO`) que permite inspeccionar con precisión cualquier mutación antes de persistirla en la API de Stremio.
+- **Mecanismo de Reversión Inmediata (`--rollback-last` / `--rollback <file>`)**: Toda operación genera un snapshot atómico en `.backups/`. En caso de anomalía, la cuenta puede revertirse a su estado exacto anterior en 1 comando con validación previa de integridad contra `collection-guard.mjs`.
+
+### 7.2 Motor de Doblaje Latino y Badge Semántico (`deno-hub.ts`)
+- **Normalización de Releases (`cleanReleaseName`)**: Se eliminan acentos, emojis regionales, caracteres no alfanuméricos y delimitadores para procesar nombres no estándar de uploaders.
+- **Diccionario Exhaustivo `LATIN_TOKENS`**: Soporte ampliado para `latino`, `latam`, `es-419`, `audio latino`, `doblaje latino`, `edla`, `multilatino`, etc.
+- **Corrección de Badge Semántico**: Se reemplazó el badge confuso `[🇪🇸 LATINO]` por `[🌎 LATINO]`, alineando la iconografía visual con el continente latinoamericano a 3 metros de distancia en la TV Box.
+
+### 7.3 Curaduría y Poda Leanback UX (`prune-home-catalogs.mjs` & `data/preset.json`)
+- **Eliminación del Scroll Infinito en Android TV**: Reducción de 65 filas en Inicio a 10 filas esenciales curadas para navegación ágil con D-pad (En Cartelera, Próximos Estrenos, Para Ver en Familia, Policial Clásico, Cine/Series Argentina, Latinoamérica).
+- **Preservación Total en Descubrir**: Los 173 catálogos restantes permanecen activos con `enabled: true` y `showInHome: false`, disponibles en la pestaña Descubrir sin sobrecargar el Home.
+- **Calibración TMDB Discover**: Configuración de `with_release_type: "2|3"` (cines), `region: "AR"`, `sort_by: "popularity.desc"` y `vote_count.gte: 1` para asegurar estrenos frescos reales sin omisiones.
+
+

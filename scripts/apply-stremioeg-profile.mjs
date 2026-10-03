@@ -14,7 +14,7 @@
  *
  * Node >= 20, sin dependencias externas.
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { apiPost } from './lib/stremio-api.mjs';
@@ -28,7 +28,10 @@ const BACKUPS = join(ROOT, '.backups');
 
 const args = process.argv.slice(2);
 const APPLY = args.includes('--apply');
-const _CHECK = args.includes('--check') || !APPLY;
+const ROLLBACK_LAST = args.includes('--rollback-last');
+const rbIdx = args.indexOf('--rollback');
+const ROLLBACK_FILE = rbIdx >= 0 ? args[rbIdx + 1] : null;
+const DRY_RUN = args.includes('--dry-run') || args.includes('--check') || (!APPLY && !ROLLBACK_LAST && !ROLLBACK_FILE);
 const RUN_UNIT_TEST = args.includes('--test-unit');
 
 // ── Cargar Especificación de Perfil ──────────────────────────────────────────
@@ -391,6 +394,141 @@ export async function syncAioMetadataInstance(addons) {
   return { addons, changed: false };
 }
 
+// ── Diff Visual Estructurado ──────────────────────────────────────────────────
+export function renderVisualDiff(currentAddons, targetAddons) {
+  console.log('\n' + '┌' + '─'.repeat(78) + '┐');
+  console.log('│ DIFF VISUAL ESTRUCTURADO: ESTADO ACTUAL VS OBJETIVO                         │');
+  console.log('├────┬───────────────────────────────────┬──────────────────────┬───────────────┤');
+  console.log('│ Pos│ Addon                             │ Acción               │ ID / Notas    │');
+  console.log('├────┼───────────────────────────────────┼──────────────────────┼───────────────┤');
+
+  const currentMap = new Map();
+  currentAddons.forEach((a, idx) => {
+    const id = a.manifest?.id || a.id || '(unknown)';
+    currentMap.set(id, { addon: a, pos: idx });
+  });
+
+  const targetMap = new Map();
+  targetAddons.forEach((a, idx) => {
+    const id = a.manifest?.id || a.id || '(unknown)';
+    targetMap.set(id, { addon: a, pos: idx });
+  });
+
+  let added = 0;
+  let removed = 0;
+  let modified = 0;
+  let reordered = 0;
+  let unchanged = 0;
+
+  targetAddons.forEach((t, newPos) => {
+    const id = t.manifest?.id || t.id || '(unknown)';
+    const name = (t.manifest?.name || id).slice(0, 33).padEnd(33);
+    const posStr = String(newPos).padStart(2).padEnd(2);
+
+    if (!currentMap.has(id)) {
+      added++;
+      console.log(`│ ${posStr} │ ${name} │ [+] AGREGADO         │ ${id.slice(0, 13).padEnd(13)} │`);
+    } else {
+      const { addon: c, pos: oldPos } = currentMap.get(id);
+      const urlChanged = c.transportUrl !== t.transportUrl;
+      const posChanged = oldPos !== newPos;
+
+      if (urlChanged) {
+        modified++;
+        const note = posChanged ? `pos ${oldPos}->${newPos} + url` : 'url modif';
+        console.log(`│ ${posStr} │ ${name} │ [~] MODIFICADO       │ ${note.slice(0, 13).padEnd(13)} │`);
+      } else if (posChanged) {
+        reordered++;
+        const note = `pos ${oldPos}->${newPos}`;
+        console.log(`│ ${posStr} │ ${name} │ [^] REORDENADO       │ ${note.slice(0, 13).padEnd(13)} │`);
+      } else {
+        unchanged++;
+        console.log(`│ ${posStr} │ ${name} │ [=] SIN CAMBIO       │ v${(t.manifest?.version || '1.0').slice(0, 11).padEnd(11)} │`);
+      }
+    }
+  });
+
+  currentAddons.forEach((c) => {
+    const id = c.manifest?.id || c.id || '(unknown)';
+    if (!targetMap.has(id)) {
+      removed++;
+      const name = (c.manifest?.name || id).slice(0, 33).padEnd(33);
+      console.log(`│ -- │ ${name} │ [-] REMOVIDO         │ ${id.slice(0, 13).padEnd(13)} │`);
+    }
+  });
+
+  console.log('└────┴───────────────────────────────────┴──────────────────────┴───────────────┘');
+  console.log(`  Resumen: ${added} agregados, ${removed} removidos, ${modified} modificados, ${reordered} reordenados, ${unchanged} sin cambios.`);
+}
+
+// ── Rollback Seguro con 1 Comando ─────────────────────────────────────────────
+export async function handleRollback(authKey, rollbackLast, rollbackFile) {
+  mkdirSync(BACKUPS, { recursive: true });
+  let targetPath = rollbackFile;
+
+  if (rollbackLast || !targetPath) {
+    const files = readdirSync(BACKUPS)
+      .filter((f) => f.startsWith('backup-stremioeg-') && f.endsWith('.json') && !f.includes('pre-rollback'))
+      .map((f) => ({ name: f, path: join(BACKUPS, f), mtime: statSync(join(BACKUPS, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+
+    if (files.length === 0) {
+      console.error('✗ No se encontraron snapshots de backup en .backups/ para rollback.');
+      process.exit(1);
+    }
+    targetPath = files[0].path;
+  }
+
+  if (!existsSync(targetPath)) {
+    console.error(`✗ Archivo de backup no encontrado: ${targetPath}`);
+    process.exit(1);
+  }
+
+  console.log(`\n[ ROLLBACK ] Cargando snapshot de respaldo: ${targetPath}`);
+  const raw = JSON.parse(readFileSync(targetPath, 'utf8'));
+  const rollbackAddons = raw.result?.addons || raw.addons || (Array.isArray(raw) ? raw : null);
+
+  if (!Array.isArray(rollbackAddons) || rollbackAddons.length === 0) {
+    console.error('✗ El archivo de backup no contiene un array válido de addons.');
+    process.exit(1);
+  }
+
+  console.log(`  ✓ Snapshot válido: ${rollbackAddons.length} addons para restaurar.`);
+
+  const currentCol = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
+  const currentAddons = currentCol?.result?.addons || [];
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const safetyBackup = join(BACKUPS, `backup-stremioeg-pre-rollback-${stamp}.json`);
+  writeFileSync(safetyBackup, JSON.stringify({ result: { addons: currentAddons } }, null, 2));
+  console.log(`  ✓ Snapshot de seguridad previo al rollback guardado en: ${safetyBackup}`);
+
+  renderVisualDiff(currentAddons, rollbackAddons);
+
+  const guardOk = await assertNoFrozenEmptyCatalogs(rollbackAddons, [
+    'com.stremio.torrentio.addon',
+    'stremio.comet.fast',
+    'com.mejorastremio.opensubtitles-latino',
+    'com.mejorastremio.subdl',
+    'com.mejorastremio.opensubtitles',
+    'com.mejorastremio.subsource',
+    'com.mejorastremio.streams',
+    'aio-metadata',
+  ]);
+  if (!guardOk) {
+    console.error('✗ Rollback abortado por guard anti-catálogos-congelados');
+    process.exit(1);
+  }
+
+  const res = await apiPost('addonCollectionSet', { type: 'AddonCollectionSet', authKey, addons: rollbackAddons });
+  if (!res?.result?.success && !res?.result) {
+    console.error('✗ Falló addonCollectionSet durante el rollback:', JSON.stringify(res));
+    process.exit(1);
+  }
+
+  console.log('\n  ✓ ROLLBACK COMPLETADO CON ÉXITO: Tu cuenta Stremio fue restaurada al estado del snapshot.');
+}
+
 // ── Ejecución de Auditoría / Aplicación ───────────────────────────────────────
 async function runProfileManager() {
   const profile = loadProfile();
@@ -462,6 +600,11 @@ async function runProfileManager() {
     const addons = col?.result?.addons || [];
     console.log(`  ✓ Colección leída: ${addons.length} add-ons instalados`);
 
+    if (ROLLBACK_LAST || ROLLBACK_FILE) {
+      await handleRollback(authKey, ROLLBACK_LAST, ROLLBACK_FILE);
+      return;
+    }
+
     let changesCount = 0;
 
     // 1. Neutralizar addons de subtítulos competidores
@@ -516,6 +659,9 @@ async function runProfileManager() {
       return a;
     });
 
+    // Renderizar Diff Visual Estructurado
+    renderVisualDiff(addons, updatedAddons);
+
     if (APPLY && changesCount > 0) {
       console.log('\n  Aplicando cambios con guard anti-catálogos-congelados...');
       const guardExempt = [
@@ -548,9 +694,9 @@ async function runProfileManager() {
       }
       console.log('  ✓ Colección guardada exitosamente en la cuenta con monopolio de subtítulos en el Hub.');
     } else if (changesCount === 0) {
-      console.log('  ✓ Add-ons de la cuenta ya cumplen estrictamente con la configuración.');
+      console.log('\n  ✓ Add-ons de la cuenta ya cumplen estrictamente con la configuración.');
     } else {
-      console.log(`  ℹ Se detectaron ${changesCount} cambios pendientes (ejecutar con --apply para guardar).`);
+      console.log(`\n  ℹ MODO DRY-RUN: Se detectaron ${changesCount} cambios pendientes (ejecutar con --apply para guardar en Stremio).`);
     }
   }
 

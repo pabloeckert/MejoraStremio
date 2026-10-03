@@ -2787,7 +2787,7 @@ const b64u = {
   dec: (s: string) => decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/")))),
 };
 
-async function handleMediathek(subPath: string, mountBase: string, translateMount: string): Promise<Response> {
+async function handleMediathek(subPath: string, _mountBase: string, translateMount: string): Promise<Response> {
   if (subPath === "/manifest.json") return jsonResponse(MEDIATHEK_MANIFEST);
 
   const m = subPath.match(/^\/stream\/series\/(.+)\.json$/);
@@ -3227,9 +3227,8 @@ async function hasViableSpanishSub(
     const videoFps = detectFramerate(videoFilename);
     let hasFramerateAndReleaseMatch = false;
 
-    // deno-lint-ignore no-explicit-any
     for (const d of cleanSubs) {
-      const a = (d as any)?.attributes ?? {};
+      const a = (d as { attributes?: { release?: string; files?: Array<{ file_name?: string }> } })?.attributes ?? {};
       const subName = `${a.release ?? ""} ${a.files?.[0]?.file_name ?? ""}`;
       const subFps = detectFramerate(subName);
       const sim = releaseSimilarity(videoFilename, subName);

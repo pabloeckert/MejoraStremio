@@ -724,8 +724,6 @@ async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Pr
       // deno-lint-ignore no-explicit-any
       const subtitles: any[] = [];
       for (const s of [...sortedClean, ...allSdh]) {
-        const idx = toCheck.indexOf(s);
-        const isSdh = isSdhName(s.name) || (idx >= 0 && verdicts[idx] === true);
         const cleanName = s.name.replace(/\.(zip|srt)$/i, "");
         const baseId = `mshub-subdl-${subs.indexOf(s)}-${imdbId}`;
         const encoded = encodeURIComponent(s.subdlPath);

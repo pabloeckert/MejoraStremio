@@ -28,7 +28,7 @@ const BACKUPS = join(ROOT, '.backups');
 
 const args = process.argv.slice(2);
 const APPLY = args.includes('--apply');
-const CHECK = args.includes('--check') || !APPLY;
+const _CHECK = args.includes('--check') || !APPLY;
 const RUN_UNIT_TEST = args.includes('--test-unit');
 
 // ── Cargar Especificación de Perfil ──────────────────────────────────────────
@@ -357,7 +357,9 @@ export async function syncAioMetadataInstance(addons) {
   try {
     const preset = JSON.parse(readFileSync(PRESET_PATH, 'utf8'));
     presetInstanceId = preset?.aioMetadataConfig?.instanceId;
-  } catch {}
+  } catch {
+    // preset.json ausente o no legible
+  }
   if (!presetInstanceId) return { addons, changed: false };
 
   const aioIdx = addons.findIndex((a) => a.manifest?.id === 'aio-metadata');
@@ -413,7 +415,9 @@ async function runProfileManager() {
       try {
         const rawLines = readFileSync(localCred, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
         pass = rawLines.length > 1 ? rawLines[1] : rawLines[0];
-      } catch {}
+      } catch {
+        // Ignorar error al leer credencial local de respaldo
+      }
     }
   }
 
@@ -432,14 +436,16 @@ async function runProfileManager() {
           const list = Array.isArray(raw) ? raw : (raw.addons || []);
           console.log(`\n  Auditoría forense sobre backup de cuenta real (${bp.split('/').pop()}):`);
           console.log(`  • Total add-ons en backup: ${list.length}`);
-          const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(list);
+          const { removedAddons } = filterCompetingSubtitleAddons(list);
           if (removedAddons.length > 0) {
             console.log(`  ⚠️ Se detectaron ${removedAddons.length} add-ons de subtítulos competidores que secuestran la UI de Android TV:`);
             removedAddons.forEach((ra) => console.log(`     - [${ra.manifest?.id || ra.id}] ${ra.manifest?.name || ra.name}`));
             console.log(`  ℹ En Leanback UI, estos add-ons tienen precedencia e inyectan SDH y subtítulos desincronizados.`);
           }
           break;
-        } catch {}
+        } catch {
+          // Ignorar error de lectura de backup y continuar con el siguiente
+        }
       }
     }
   } else {

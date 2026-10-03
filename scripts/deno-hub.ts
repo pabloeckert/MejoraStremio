@@ -627,15 +627,15 @@ async function downloadSubdlSrt(subdlPath: string): Promise<string | null> {
 // mountBase: origin + "/subdl" â€” para que los links generados (srt) vuelvan a
 // pasar por el router del hub.
 async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Promise<Response> {
+  if (subPath === "/manifest.json") {
+    return jsonResponse(SUBDL_MANIFEST);
+  }
+
   if (!SUBDL_KEY) {
     return new Response(
       "SUBDL_KEY no configurada. Setear como Secret en Deno Deploy.",
       { status: 503, headers: cors },
     );
-  }
-
-  if (subPath === "/manifest.json") {
-    return jsonResponse(SUBDL_MANIFEST);
   }
 
   const subMatch = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
@@ -778,6 +778,180 @@ async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Pr
         ...cors,
         "Content-Type": "application/x-subrip; charset=utf-8",
         "Content-Disposition": 'attachment; filename="sub.srt"',
+      },
+    });
+  }
+
+  return new Response("Not found", { status: 404, headers: cors });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ── /subsource — SubSource ES (sin SDH), subtítulos ─────────────────────────
+// SubSource (subsource.net) como proveedor comunitario adicional.
+// Filtra hearing-impaired y aplica smart audio sync automáticamente.
+// ════════════════════════════════════════════════════════════════════════════
+
+const SUBSOURCE_API_KEY = (typeof Deno !== "undefined" && Deno.env?.get?.("SUBSOURCE_API_KEY")) || "";
+const SUBSOURCE_API = "https://api.subsource.net/api/v1";
+
+const SUBSOURCE_MANIFEST = {
+  id: "com.mejorastremio.subsource",
+  version: "1.0.0",
+  name: "SubSource ES (sin SDH)",
+  description:
+    "Subtítulos en español de SubSource con filtrado hearing-impaired (sin SDH) y smart audio sync.",
+  resources: ["subtitles"],
+  types: ["movie", "series"],
+  idPrefixes: ["tt"],
+  catalogs: [],
+};
+
+interface SubSourceCandidate {
+  name: string;
+  downloadUrl: string;
+  hearingImpaired?: boolean;
+}
+
+async function fetchSubSourceSubs(
+  imdbId: string,
+  season: number | null,
+  episode: number | null,
+): Promise<SubSourceCandidate[]> {
+  if (!SUBSOURCE_API_KEY) return [];
+  try {
+    let url = `${SUBSOURCE_API}/subtitles?imdb_id=${imdbId}&language=spanish`;
+    if (season != null) url += `&season=${season}`;
+    if (episode != null) url += `&episode=${episode}`;
+
+    const r = await fetch(url, {
+      headers: {
+        "X-API-Key": SUBSOURCE_API_KEY,
+        "Accept": "application/json",
+      },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!r.ok) return [];
+    const d = await r.json();
+    const subs = Array.isArray(d?.subtitles) ? d.subtitles : Array.isArray(d?.data) ? d.data : [];
+    // deno-lint-ignore no-explicit-any
+    return subs.filter((s: any) => !s.hearing_impaired && !s.hi).map((s: any) => ({
+      name: s.release_name || s.name || "SubSource ES",
+      downloadUrl: s.download_url || s.url || "",
+      hearingImpaired: !!(s.hearing_impaired || s.hi),
+    })).filter((s: SubSourceCandidate) => !!s.downloadUrl);
+  } catch {
+    return [];
+  }
+}
+
+async function downloadSubSourceSrt(downloadUrl: string): Promise<string | null> {
+  let dlHost: string;
+  try {
+    dlHost = new URL(downloadUrl).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  if (!dlHost.endsWith("subsource.net")) return null;
+  try {
+    const headers: Record<string, string> = {};
+    if (SUBSOURCE_API_KEY) headers["X-API-Key"] = SUBSOURCE_API_KEY;
+    const r = await fetch(downloadUrl, { headers, signal: AbortSignal.timeout(20000) });
+    if (!r.ok) return null;
+    const buf = new Uint8Array(await r.arrayBuffer());
+    const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
+    return isZip ? await extractSrtFromZip(buf) : decodeSubtitleText(buf);
+  } catch {
+    return null;
+  }
+}
+
+async function handleSubsource(
+  subPath: string,
+  mountBase: string,
+  reqUrl?: URL,
+): Promise<Response> {
+  if (subPath === "/manifest.json") {
+    return jsonResponse(SUBSOURCE_MANIFEST);
+  }
+
+  const subMatch = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
+  if (subMatch) {
+    const [, type, rawId] = subMatch;
+    const parsed = parseStremioSubId(rawId);
+    const imdbId = parsed.imdbId;
+    const season = type === "series" ? parsed.season : null;
+    const episode = type === "series" ? parsed.episode : null;
+
+    try {
+      const candidates = await fetchSubSourceSubs(imdbId, season, episode);
+      const subtitles = [];
+
+      for (let i = 0; i < candidates.length; i++) {
+        const s = candidates[i];
+        const baseId = `mshub-subsrc-${i}-${imdbId}`;
+        const encoded = encodeURIComponent(s.downloadUrl);
+        const cleanName = s.name.replace(/\.(srt|zip)$/i, "").slice(0, 70);
+        const syncDecision = resolveSmartSync(parsed.filename, s.name);
+
+        if (syncDecision.needsRescale) {
+          subtitles.push({
+            id: `${baseId}-${syncDecision.fpsParam}`,
+            url: `${mountBase}/srt/${encoded}?fps=${syncDecision.fpsParam}&smart=1`,
+            lang: "spa",
+            label: `[SubSource] ${syncDecision.badge} ${cleanName}`,
+            name: `[SubSource] ${syncDecision.badge} ${cleanName}`,
+          });
+          subtitles.push({
+            id: baseId,
+            url: `${mountBase}/srt/${encoded}`,
+            lang: "spa",
+            label: `[SubSource] 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
+            name: `[SubSource] 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
+          });
+        } else {
+          subtitles.push({
+            id: baseId,
+            url: `${mountBase}/srt/${encoded}`,
+            lang: "spa",
+            label: `[SubSource] ${syncDecision.badge} ${cleanName}`,
+            name: `[SubSource] ${syncDecision.badge} ${cleanName}`,
+          });
+        }
+      }
+
+      return jsonResponse({ subtitles });
+    } catch (e) {
+      return jsonResponse({ subtitles: [], error: (e as Error).message }, { status: 500 });
+    }
+  }
+
+  const srtMatch = subPath.match(/^\/srt\/(.+)$/);
+  if (srtMatch) {
+    const downloadUrl = decodeURIComponent(srtMatch[1]);
+    let srtText = await downloadSubSourceSrt(downloadUrl);
+    if (!srtText) {
+      return new Response("Error descargando o host no permitido", { status: 502, headers: cors });
+    }
+    const fps = reqUrl?.searchParams?.get("fps");
+    const offsetStr = reqUrl?.searchParams?.get("offset");
+    const offsetMs = offsetStr ? parseInt(offsetStr, 10) || 0 : 0;
+    if (fps === "25to23976" || fps === "pal_to_ntsc") {
+      srtText = rescaleSrtFramerate(srtText, 25.0, 23.976, offsetMs);
+    } else if (fps === "23976to25" || fps === "ntsc_to_pal") {
+      srtText = rescaleSrtFramerate(srtText, 23.976, 25.0, offsetMs);
+    } else if (fps === "25to24") {
+      srtText = rescaleSrtFramerate(srtText, 25.0, 24.0, offsetMs);
+    } else if (fps === "24to25") {
+      srtText = rescaleSrtFramerate(srtText, 24.0, 25.0, offsetMs);
+    } else if (offsetMs !== 0) {
+      srtText = rescaleSrtFramerate(srtText, 1.0, 1.0, offsetMs);
+    }
+    srtText = cleanSrt(srtText);
+    return new Response(srtText, {
+      headers: {
+        ...cors,
+        "Content-Type": "application/x-subrip; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="subsource.srt"',
       },
     });
   }
@@ -962,15 +1136,15 @@ async function handleOpenSubtitles(
   nameTag: string = "OpenSubtitles",
   reqUrl?: URL,
 ): Promise<Response> {
+  if (subPath === "/manifest.json") {
+    return jsonResponse(manifest);
+  }
+
   if (!OPENSUBTITLES_API_KEY) {
     return new Response(
       "OPENSUBTITLES_API_KEY no configurada. Setear como Secret en Deno Deploy.",
       { status: 503, headers: cors },
     );
-  }
-
-  if (subPath === "/manifest.json") {
-    return jsonResponse(manifest);
   }
 
   const subMatch = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
@@ -3483,7 +3657,7 @@ export const STREAMS_MANIFEST = {
 };
 
 export const LATINO_STREAM_REGEX =
-  /\b(latino|latina|dual|spa|spanish|espanol|español|castellano)\b|cinecalidad|dual[-_.]?lat|\[lat\]|\(lat\)|[-_.]lat[-_.]|\blat\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪/i;
+  /\b(latino|latina|dual|spa|spanish|espanol|español|castellano|latinoamericano|doblaje latino|audio latino|audio-latino|lat-eng|eng-lat|multi-lat|es-la|es-419)\b|cinecalidad|hackstore|dontorrent|estrenosdtl|grantorrent|mejortorrent|dual[-_.]?lat|\[lat\]|\(lat\)|[-_.]lat[-_.]|\blat\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
 
 export function isLatinoStream(stream: { name?: string; title?: string; description?: string }): boolean {
   const text = `${stream.name || ""} ${stream.title || ""} ${stream.description || ""}`;
@@ -3645,6 +3819,7 @@ function handleHealth(): Response {
     opensubtitles: { configured: !!OPENSUBTITLES_API_KEY },
     opensubtitlesLatino: { configured: !!OPENSUBTITLES_API_KEY },
     subdivx: { configured: true, proxy: SUBDIVX_PROXY_URL },
+    subsource: { configured: !!SUBSOURCE_API_KEY },
     latino: { configured: true },
     synopsis: {
       configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
@@ -3688,6 +3863,7 @@ export async function handleHubRequest(req: Request): Promise<Response> {
           "/opensubtitles/manifest.json",
           "/opensubtitles-latino/manifest.json",
           "/subdivx/manifest.json",
+          "/subsource/manifest.json",
           "/latino/manifest.json",
           "/synopsis/manifest.json",
           "/miniseries/manifest.json",
@@ -3716,6 +3892,10 @@ export async function handleHubRequest(req: Request): Promise<Response> {
       route = "subdivx";
       const subPath = path.slice("/subdivx".length) || "/";
       res = await handleSubdivx(subPath, `${url.origin}/subdivx`, url);
+    } else if (path.startsWith("/subsource")) {
+      route = "subsource";
+      const subPath = path.slice("/subsource".length) || "/";
+      res = await handleSubsource(subPath, `${url.origin}/subsource`, url);
     } else if (path.startsWith("/opensubtitles-latino")) {
       // Debe ir ANTES que "/opensubtitles" — ese startsWith también matchea este path.
       route = "opensubtitles-latino";
@@ -3800,5 +3980,6 @@ export async function handleHubRequest(req: Request): Promise<Response> {
 }
 
 if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
-  Deno.serve(handleHubRequest);
+  const port = parseInt(Deno.env.get("PORT") || "8000", 10);
+  Deno.serve({ port }, handleHubRequest);
 }

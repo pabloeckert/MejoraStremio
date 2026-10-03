@@ -95,5 +95,18 @@ Como prueba de referencia para producciones en idioma original no inglés, se au
 * **Mapeo Canónico en el Hub**:
   - `scripts/deno-hub.ts` incluye resolución explícita en `parseStremioSubId` para garantizar que peticiones con `tt0081871` o slugs localizados (`heroe-americano`) se resuelvan de inmediato.
 
+---
+
+## Calibración de Reproducción Leanback (TV Box Hardware & Settings)
+
+Para garantizar una experiencia fluida sin judder ni parpadeos en Android TV:
+
+1. **Auto Frame Rate (AFR)**: En `Configuración > Rendimiento > Match frame rate`, seleccionar **"Match frame rate and resolution"**. Sincroniza la frecuencia de refresco del televisor (23.976Hz, 24Hz, 50Hz, 60Hz) con el framerate nativo del video, eliminando micro-tirones.
+2. **Reproductor Interno libmpv**: En `Configuración > Reproductor`, seleccionar **libmpv** si se reproducen subtítulos con estilos complejos (.ASS/.SSA) o cues densas para evitar cuelgues de ExoPlayer.
+3. **Audio Passthrough**: Seleccionar modo **Direct / Passthrough** si la TV Box está conectada a soundbar o receptor AV para decodificación nativa de Dolby Atmos / DTS-HD.
+4. **Tunneled Playback**: En TV Boxes con procesadores Amlogic, alternar si se presentan desfasajes entre audio y video en streams 4K HDR.
+5. **SubSource Provider**: Integrado en el Hub (`/subsource`) como proveedor comunitario complementario con filtrado nativo anti-SDH y Smart Audio Sync.
+
+
 
 

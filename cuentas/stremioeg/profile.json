@@ -87,6 +87,13 @@
         "now_playing",
         "upcoming"
       ]
+    },
+    "playerOptimization": {
+      "target": "Android TV (Leanback UI)",
+      "recommendedPlayer": "libmpv",
+      "autoFrameRate": "Match frame rate and resolution",
+      "tunneledPlayback": "device_dependent",
+      "audioPassthrough": "direct"
     }
   }
 }

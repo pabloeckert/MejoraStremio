@@ -3779,7 +3779,7 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
 
   let upstreamBase = sanitizeTorrentioBase(url.searchParams.get("torrentio") || envTorrentio);
   if (configSegment) {
-    const safeSegment = encodeURIComponent(configSegment.replace(/[^a-zA-Z0-9_=-]/g, ""));
+    const safeSegment = configSegment.replace(/[^a-zA-Z0-9_=,|%.-]/g, "");
     upstreamBase = `https://torrentio.strem.fun/${safeSegment}/`;
   }
 

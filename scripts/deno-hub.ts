@@ -533,6 +533,8 @@ async function extractSrtFromZip(buf: Uint8Array): Promise<string | null> {
           // escribir y leer EN PARALELO (Promise.all), no en secuencia.
           const ds = new DecompressionStream("deflate-raw");
           const chunks: Uint8Array[] = [];
+          const MAX_DECOMPRESSED_BYTES = 5 * 1024 * 1024; // 5 MB de protección Anti-ZipBomb
+          let accumulatedBytes = 0;
           const writePromise = (async () => {
             const writer = ds.writable.getWriter();
             await writer.write(new Uint8Array(data));
@@ -543,6 +545,11 @@ async function extractSrtFromZip(buf: Uint8Array): Promise<string | null> {
             for (;;) {
               const { done, value } = await reader.read();
               if (done) break;
+              accumulatedBytes += value.byteLength;
+              if (accumulatedBytes > MAX_DECOMPRESSED_BYTES) {
+                await reader.cancel("Protección Zip Bomb: tamaño de descompresión excedió 5MB");
+                throw new Error("El archivo descomprimido excede el límite de 5MB");
+              }
               chunks.push(value);
             }
           })();
@@ -3142,13 +3149,13 @@ async function translateCues(
       } catch { /* background fallback silencioso */ }
     };
 
-    // Invocar en background vía waitUntil si está disponible o tarea asíncrona
+    // Invocar en background vía waitUntil si está disponible o tarea asíncrona segura
     // deno-lint-ignore no-explicit-any
     const runtime = (globalThis as any).EdgeRuntime;
     if (runtime && typeof runtime.waitUntil === "function") {
       runtime.waitUntil(bgTask());
     } else {
-      bgTask();
+      bgTask().catch((err) => console.error(`[translate] Background task error: ${(err as Error).message}`));
     }
   }
 
@@ -3484,8 +3491,19 @@ export function isLatinoStream(stream: { name?: string; title?: string; descript
   return LATINO_STREAM_REGEX.test(text);
 }
 
+const ALLOWED_TORRENTIO_HOSTS = new Set(["torrentio.strem.fun"]);
+
 export function sanitizeTorrentioBase(rawUrl: string): string {
-  let u = (rawUrl || "https://torrentio.strem.fun/").trim();
+  let candidate = (rawUrl || "https://torrentio.strem.fun/").trim();
+  try {
+    const parsed = new URL(candidate);
+    if (!ALLOWED_TORRENTIO_HOSTS.has(parsed.hostname.toLowerCase())) {
+      candidate = "https://torrentio.strem.fun/";
+    }
+  } catch {
+    candidate = "https://torrentio.strem.fun/";
+  }
+  let u = candidate;
   if (!u.endsWith("/")) u += "/";
   u = u.replace(/\/manifest\.json.*$/, "/");
   u = u.replace(/([/|])language=[^|/]+/gi, "$1");
@@ -3586,11 +3604,11 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
     (typeof process !== "undefined" && process.env?.TORRENTIO_URL) ||
     "https://torrentio.strem.fun/";
 
-  let upstreamBase = url.searchParams.get("torrentio") || envTorrentio;
+  let upstreamBase = sanitizeTorrentioBase(url.searchParams.get("torrentio") || envTorrentio);
   if (configSegment) {
-    upstreamBase = `https://torrentio.strem.fun/${configSegment}/`;
+    const safeSegment = encodeURIComponent(configSegment.replace(/[^a-zA-Z0-9_=-]/g, ""));
+    upstreamBase = `https://torrentio.strem.fun/${safeSegment}/`;
   }
-  upstreamBase = sanitizeTorrentioBase(upstreamBase);
 
   const cleanId = decodeURIComponent(rawId).split("/")[0];
   const targetUrl = `${upstreamBase}stream/${type}/${cleanId}.json`;

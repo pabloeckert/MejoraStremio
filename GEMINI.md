@@ -54,3 +54,17 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - `health-monitor.yml`: Monitoreo bicotidiano del estado de add-ons y endpoints.
   - `keep-warm.yml`: Mantiene activos los workers serverless cada 20 minutos.
   - `premiere-radar.yml`, `community-radar.yml`, `torbox-airlock.yml`, `iptv-refresh.yml`: Automatizaciones periódicas de curaduría.
+
+---
+
+## 5. Sesión 2026-10-02: Auditoría Integral y Blindaje E2E
+
+### 5.1 Blindaje de Seguridad y Resiliencia en Deno Deploy (`deno-hub.ts`)
+- **Protección Anti-SSRF (CWE-918)**: Se restringió la resolución del upstream de streams mediante `ALLOWED_TORRENTIO_HOSTS = new Set(["torrentio.strem.fun"])` en `sanitizeTorrentioBase` y `handleStreams`, eliminando la posibilidad de inyectar hosts arbitrarios vía query params.
+- **Protección Anti-ZipBomb / OOM**: En `extractSrtFromZip`, se fijó un tope máximo de descompresión de 5 MB (`MAX_DECOMPRESSED_BYTES = 5 * 1024 * 1024`). Si un stream excede el límite, se cancela la lectura del `DecompressionStream` inmediatamente.
+- **Manejo Seguro de Background Tasks**: En el pipeline de traducción IA, se agregó captura con `.catch()` para promesas asíncronas flotantes cuando no está disponible `EdgeRuntime.waitUntil`.
+
+### 5.2 Estabilidad de Fechas y Testing E2E
+- **Sincronización de Cartelera**: Se ejecutó `scripts/refresh-dates.mjs` actualizando las ventanas de "En Cartelera" y "Próximos Estrenos" en `data/preset.json` a la fecha actual (`2026-10-03`).
+- **Resiliencia de Timezone en Tests**: En `scripts/test-stremioeg-tvbox.mjs`, se incorporó una ventana de tolerancia de 24 horas (`isDateFresh`) para contemplar el desfasaje horario entre UTC y ART (UTC-3) antes de la ejecución del cron diario de las 07:00 ART.
+- **Certificación de la Suite**: 28 de 28 pruebas superadas exitosamente (100% OK en Estructura 9/9, Filtros 9/9 e Integración 10/10) y simulación de encendido de TV Box (`simulate-tv-boot.mjs`) 100% aprobada.

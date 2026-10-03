@@ -99,10 +99,18 @@ if (preset) {
   const movieFrom = proximosMovie?.metadata?.discover?.params?.['primary_release_date.gte'];
   const seriesFrom = proximosSeries?.metadata?.discover?.params?.['first_air_date.gte'];
 
-  const movieFresh = movieTo === todayStr && movieFrom === todayStr;
-  const seriesFresh = seriesTo === todayStr && seriesFrom === todayStr;
+  // Tolerancia de ventana deslizante: fecha de hoy o hasta 24h (para evitar fallas espurias
+  // por desfasaje entre UTC y hora local de Argentina ART = UTC-3 antes del cron diario).
+  const isDateFresh = (targetDateStr) => {
+    if (!targetDateStr) return false;
+    const diffDays = Math.abs(Date.parse(todayStr) - Date.parse(targetDateStr)) / 86400000;
+    return diffDays <= 1.0;
+  };
 
-  record(report.test1_structure, 'Fechas de "En Cartelera" y "Próximos Estrenos" (Películas) sincronizadas a hoy', movieFresh, `Fecha: ${todayStr}`);
+  const movieFresh = isDateFresh(movieTo) && isDateFresh(movieFrom);
+  const seriesFresh = isDateFresh(seriesTo) && isDateFresh(seriesFrom);
+
+  record(report.test1_structure, 'Fechas de "En Cartelera" y "Próximos Estrenos" (Películas) sincronizadas a hoy', movieFresh, `Fecha: ${movieTo}`);
   record(report.test1_structure, 'Fechas de "En Cartelera" y "Próximos Estrenos" (Series) sincronizadas a hoy', seriesFresh, `first_air_date.lte: ${seriesTo}`);
 }
 

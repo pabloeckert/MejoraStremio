@@ -9,14 +9,24 @@
  *
  * Opciones CLI:
  *   --check         Modo auditoría / dry-run (por defecto). No escribe en la cuenta.
+ *   --dry-run       Alias de --check. Gana sobre --apply si se pasan ambos.
  *   --apply         Aplica los cambios en la cuenta en vivo (requiere ST_EMAIL / ST_PASS).
+ *                   Antes de escribir: snapshot en .backups/, chequeo anti-carrera y guard de catálogos.
+ *                   Después de escribir: verificación por lectura posterior.
+ *   --rollback-last Restaura el último snapshot de .backups/ (crea antes un snapshot del estado actual,
+ *                   así que el propio rollback es reversible). Con --dry-run solo muestra el diff.
+ *   --rollback=<archivo>  Restaura un snapshot específico.
  *   --test-unit     Ejecuta simulación y pruebas unitarias de filtros de audio y subtítulos.
+ *
+ * Los diffs y logs enmascaran tokens (TorBox, Real-Debrid, API keys, segmentos de config largos).
+ * Los snapshots SÍ contienen las URLs completas: .backups/ está en .gitignore y se escribe con modo 0600.
  *
  * Node >= 20, sin dependencias externas.
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { apiPost } from './lib/stremio-api.mjs';
 import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
 
@@ -27,9 +37,11 @@ const PRESET_PATH = join(ROOT, 'data', 'preset.json');
 const BACKUPS = join(ROOT, '.backups');
 
 const args = process.argv.slice(2);
-const APPLY = args.includes('--apply');
-const _CHECK = args.includes('--check') || !APPLY;
+const DRY_FLAG = args.includes('--check') || args.includes('--dry-run');
+const APPLY = args.includes('--apply') && !DRY_FLAG;
 const RUN_UNIT_TEST = args.includes('--test-unit');
+const ROLLBACK_ARG = args.find((a) => a.startsWith('--rollback='));
+const ROLLBACK = args.includes('--rollback-last') || Boolean(ROLLBACK_ARG);
 
 // ── Cargar Especificación de Perfil ──────────────────────────────────────────
 export function loadProfile() {
@@ -391,6 +403,268 @@ export async function syncAioMetadataInstance(addons) {
   return { addons, changed: false };
 }
 
+// ── Blindaje operativo: enmascarado, diff, snapshot, verificación, rollback ───
+const SENSITIVE_KEYS = /^(torbox|realdebrid|alldebrid|premiumize|debridlink|offcloud|easydebrid|apikey|api_key|key|token|password|auth|authkey)$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const KEYLIKE_RE = /^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9_-]{16,}$/;
+
+/** Enmascara los valores sensibles de un segmento de config estilo Torrentio (k=v|k=v). */
+export function redactSegment(seg) {
+  return String(seg || '')
+    .split('|')
+    .map((pair) => {
+      const [k, ...rest] = pair.split('=');
+      if (!rest.length) return pair;
+      return SENSITIVE_KEYS.test(k) ? `${k}=***` : pair;
+    })
+    .join('|');
+}
+
+/** Enmascara tokens en una transportUrl para poder imprimirla en consola/CI. */
+export function redactUrl(url) {
+  const s = String(url || '');
+  const m = s.match(/^(https?:\/\/[^/]+)(\/.*)?$/);
+  if (!m) return s.length > 60 ? `${s.slice(0, 20)}…(${s.length}c)` : s;
+  const [, origin, path = ''] = m;
+  const segs = path.split('/').map((seg) => {
+    if (!seg || /^manifest\.json/.test(seg) || UUID_RE.test(seg)) return seg;
+    if (seg.includes('=')) return redactSegment(seg);
+    if (seg.length > 24 || KEYLIKE_RE.test(seg)) return `${seg.slice(0, 4)}…(${seg.length}c)`;
+    return seg;
+  });
+  return origin + segs.join('/');
+}
+
+const idOf = (a) => a?.manifest?.id || a?.id || a?.transportUrl;
+const catalogCountOf = (a) => a?.manifest?.catalogs?.length ?? 0;
+
+/** Diff estructurado entre dos colecciones de add-ons (antes ➔ después). */
+export function diffCollections(before, after) {
+  const b = new Map(before.map((a, i) => [idOf(a), { a, i }]));
+  const f = new Map(after.map((a, i) => [idOf(a), { a, i }]));
+  const added = [];
+  const removed = [];
+  const changed = [];
+  const moved = [];
+
+  for (const [id, { a, i }] of f) {
+    const prev = b.get(id);
+    if (!prev) {
+      added.push({ id, name: a.manifest?.name, index: i, url: a.transportUrl });
+      continue;
+    }
+    const urlChanged = prev.a.transportUrl !== a.transportUrl;
+    const catsChanged = catalogCountOf(prev.a) !== catalogCountOf(a);
+    if (urlChanged || catsChanged) {
+      changed.push({
+        id,
+        name: a.manifest?.name,
+        from: prev.a.transportUrl,
+        to: a.transportUrl,
+        urlChanged,
+        catalogsFrom: catalogCountOf(prev.a),
+        catalogsTo: catalogCountOf(a),
+      });
+    }
+  }
+  for (const [id, { a, i }] of b) {
+    if (!f.has(id)) removed.push({ id, name: a.manifest?.name, index: i, url: a.transportUrl });
+  }
+
+  // Movimientos: rango relativo entre add-ons comunes (insertar al inicio no cuenta como mover al resto).
+  const commonBefore = before.map(idOf).filter((id) => f.has(id));
+  const commonAfter = after.map(idOf).filter((id) => b.has(id));
+  commonAfter.forEach((id, pos) => {
+    const from = commonBefore.indexOf(id);
+    if (from !== pos) moved.push({ id, name: f.get(id).a.manifest?.name, from: from + 1, to: pos + 1 });
+  });
+
+  return { added, removed, changed, moved };
+}
+
+export const isEmptyDiff = (d) => !d.added.length && !d.removed.length && !d.changed.length && !d.moved.length;
+
+export function formatDiff(d) {
+  const lines = [];
+  const label = (x) => `[${x.id}]${x.name ? ` ${x.name}` : ''}`;
+  d.added.forEach((x) => lines.push(`    + ${label(x)}  (pos ${x.index + 1})  ${redactUrl(x.url)}`));
+  d.removed.forEach((x) => lines.push(`    - ${label(x)}  (estaba en pos ${x.index + 1})  ${redactUrl(x.url)}`));
+  d.changed.forEach((x) => {
+    lines.push(`    ~ ${label(x)}`);
+    if (x.urlChanged) {
+      lines.push(`        antes:  ${redactUrl(x.from)}`);
+      lines.push(`        ahora:  ${redactUrl(x.to)}`);
+    }
+    if (x.catalogsFrom !== x.catalogsTo) lines.push(`        catálogos en manifest: ${x.catalogsFrom} ➔ ${x.catalogsTo}`);
+  });
+  d.moved.forEach((x) => lines.push(`    ↕ ${label(x)}  orden relativo ${x.from} ➔ ${x.to}`));
+  if (!lines.length) lines.push('    (sin diferencias)');
+  return lines;
+}
+
+/** Huella de una colección (id + transportUrl). ordered=false ignora el orden. */
+export function collectionFingerprint(addons, { ordered = true } = {}) {
+  const rows = (addons || []).map((a) => `${idOf(a)}\t${a?.transportUrl || ''}`);
+  if (!ordered) rows.sort();
+  return createHash('sha256').update(rows.join('\n')).digest('hex');
+}
+
+/** Valida un snapshot. Rechaza colecciones vacías para que un rollback nunca pueda vaciar la cuenta. */
+export function validateSnapshot(raw) {
+  const addons = Array.isArray(raw) ? raw : raw?.result?.addons || raw?.addons;
+  if (!Array.isArray(addons) || addons.length === 0) {
+    return { ok: false, reason: 'el snapshot no contiene add-ons (se rechaza para no vaciar la cuenta)' };
+  }
+  const bad = addons.findIndex((a) => !a?.transportUrl || !a?.manifest?.id);
+  if (bad >= 0) return { ok: false, reason: `el add-on #${bad + 1} no tiene transportUrl o manifest.id` };
+  return { ok: true, addons };
+}
+
+const SNAPSHOT_RE = /^backup-stremioeg-pre-(profile|rollback)-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})\.json$/;
+
+/** Elige el snapshot más reciente por el timestamp del nombre (no por tipo ni por mtime). */
+export function pickLatestSnapshot(names) {
+  const valid = (names || [])
+    .map((n) => ({ n, m: SNAPSHOT_RE.exec(n) }))
+    .filter((x) => x.m)
+    .sort((a, b) => (a.m[2] < b.m[2] ? 1 : a.m[2] > b.m[2] ? -1 : 0));
+  return valid.length ? valid[0].n : null;
+}
+
+function writeSnapshot(kind, account, addons) {
+  mkdirSync(BACKUPS, { recursive: true, mode: 0o700 });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const file = join(BACKUPS, `backup-stremioeg-pre-${kind}-${stamp}.json`);
+  const payload = {
+    meta: { createdAt: new Date().toISOString(), account, count: addons.length, kind },
+    result: { addons },
+  };
+  // 'wx': nunca pisar un snapshot existente. 0600: contiene URLs con tokens.
+  writeFileSync(file, JSON.stringify(payload, null, 2), { mode: 0o600, flag: 'wx' });
+  const check = validateSnapshot(JSON.parse(readFileSync(file, 'utf8')));
+  if (!check.ok || check.addons.length !== addons.length) {
+    throw new Error(`snapshot inválido tras escribirlo: ${check.reason || 'conteo distinto'}`);
+  }
+  return file;
+}
+
+function resolveCredentials(profile) {
+  const email = process.env.ST_EMAIL || profile.account;
+  let pass = process.env.ST_PASS || '';
+  if (!pass) {
+    const localCred = 'C:/Users/tabeg/OneDrive/Documentos/Stemio/Pruebas/baee30cf-9528-4d53-82f3-2c4831853455.txt';
+    if (existsSync(localCred)) {
+      try {
+        const rawLines = readFileSync(localCred, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        pass = rawLines.length > 1 ? rawLines[1] : rawLines[0];
+      } catch {
+        // Ignorar error al leer credencial local de respaldo
+      }
+    }
+  }
+  return { email, pass };
+}
+
+async function loginOrDie(email, pass) {
+  const login = await apiPost('login', { authKey: null, email, password: pass });
+  const authKey = login?.result?.authKey;
+  if (!authKey) {
+    console.error('✗ Login fallido:', JSON.stringify(login?.error || login));
+    process.exit(1);
+  }
+  return authKey;
+}
+
+async function readCollection(authKey) {
+  const col = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
+  return col?.result?.addons || [];
+}
+
+/** Lee la colección tras escribir y confirma que coincide con lo esperado. */
+async function verifyCollection(authKey, expected) {
+  const live = await readCollection(authKey);
+  if (collectionFingerprint(live, { ordered: false }) !== collectionFingerprint(expected, { ordered: false })) {
+    const d = diffCollections(expected, live);
+    return {
+      ok: false,
+      reason: `la colección leída de vuelta difiere de la escrita (+${d.added.length} −${d.removed.length} ~${d.changed.length}); revisar con --check`,
+    };
+  }
+  if (collectionFingerprint(live) !== collectionFingerprint(expected)) {
+    return { ok: true, warn: 'mismo contenido pero distinto orden al leer de vuelta' };
+  }
+  return { ok: true };
+}
+
+async function runRollback() {
+  const profile = loadProfile();
+  let file;
+  if (ROLLBACK_ARG) {
+    file = resolve(ROLLBACK_ARG.slice('--rollback='.length));
+  } else {
+    const latest = pickLatestSnapshot(existsSync(BACKUPS) ? readdirSync(BACKUPS) : []);
+    if (!latest) {
+      console.error(`✗ No hay snapshots en ${BACKUPS}. Nada que restaurar.`);
+      process.exit(1);
+    }
+    file = join(BACKUPS, latest);
+  }
+  if (!existsSync(file)) {
+    console.error(`✗ No existe el snapshot: ${file}`);
+    process.exit(1);
+  }
+
+  const snap = validateSnapshot(JSON.parse(readFileSync(file, 'utf8')));
+  if (!snap.ok) {
+    console.error(`✗ Snapshot rechazado (${file}): ${snap.reason}`);
+    process.exit(1);
+  }
+
+  console.log('═'.repeat(70));
+  console.log(` MejoraStremio — ROLLBACK ${DRY_FLAG ? '(dry-run)' : ''}`);
+  console.log(` Snapshot: ${file} (${snap.addons.length} add-ons)`);
+  console.log('═'.repeat(70));
+
+  const { email, pass } = resolveCredentials(profile);
+  if (!pass) {
+    console.error('✗ Rollback requiere credenciales: ST_EMAIL=... ST_PASS=... node scripts/apply-stremioeg-profile.mjs --rollback-last');
+    process.exit(1);
+  }
+  const authKey = await loginOrDie(email, pass);
+  const current = await readCollection(authKey);
+  console.log(`  ✓ Colección actual: ${current.length} add-ons`);
+
+  const diff = diffCollections(current, snap.addons);
+  console.log('\n  Cambios que produciría el rollback (actual ➔ snapshot):');
+  formatDiff(diff).forEach((l) => console.log(l));
+
+  if (isEmptyDiff(diff)) {
+    console.log('\n  ✓ La cuenta ya coincide con el snapshot. Nada que hacer.');
+    return;
+  }
+  if (DRY_FLAG) {
+    console.log('\n  ℹ Dry-run: no se escribió nada.');
+    return;
+  }
+
+  // El estado actual también se respalda: el rollback es reversible con --rollback-last.
+  const preFile = writeSnapshot('rollback', email, current);
+  console.log(`\n  ✓ Snapshot del estado actual (para deshacer el rollback): ${preFile}`);
+
+  const saveRes = await apiPost('addonCollectionSet', { type: 'AddonCollectionSet', authKey, addons: snap.addons });
+  if (!saveRes?.result?.success && !saveRes?.result) {
+    console.error('✗ Falló addonCollectionSet:', JSON.stringify(saveRes));
+    process.exit(1);
+  }
+  const verify = await verifyCollection(authKey, snap.addons);
+  if (!verify.ok) {
+    console.error(`✗ Verificación posterior fallida: ${verify.reason}`);
+    process.exit(1);
+  }
+  if (verify.warn) console.warn(`  ⚠ ${verify.warn}`);
+  console.log('  ✓ Rollback aplicado y verificado por lectura posterior.');
+}
+
 // ── Ejecución de Auditoría / Aplicación ───────────────────────────────────────
 async function runProfileManager() {
   const profile = loadProfile();
@@ -406,20 +680,7 @@ async function runProfileManager() {
   console.log('  ✓ Audio: Prioridad [Latino, Original] con Smart Stream Interceptor');
   console.log('  ✓ Catálogos: Sincronización diaria 07:00 ART vía daily-catalog-refresh');
 
-  const email = process.env.ST_EMAIL || profile.account;
-  let pass = process.env.ST_PASS || '';
-
-  if (!pass) {
-    const localCred = 'C:/Users/tabeg/OneDrive/Documentos/Stemio/Pruebas/baee30cf-9528-4d53-82f3-2c4831853455.txt';
-    if (existsSync(localCred)) {
-      try {
-        const rawLines = readFileSync(localCred, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-        pass = rawLines.length > 1 ? rawLines[1] : rawLines[0];
-      } catch {
-        // Ignorar error al leer credencial local de respaldo
-      }
-    }
-  }
+  const { email, pass } = resolveCredentials(profile);
 
   if (!pass) {
     console.log('\n[ 2/3 ] Cuenta Stremio: Modo Auditoría Local (ST_PASS no provisto)');
@@ -450,16 +711,10 @@ async function runProfileManager() {
     }
   } else {
     console.log('\n[ 2/3 ] Conectando a la cuenta Stremio...');
-    const login = await apiPost('login', { authKey: null, email, password: pass });
-    const authKey = login?.result?.authKey;
-    if (!authKey) {
-      console.error('✗ Login fallido:', JSON.stringify(login?.error || login));
-      process.exit(1);
-    }
+    const authKey = await loginOrDie(email, pass);
     console.log('  ✓ Login exitoso');
 
-    const col = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
-    const addons = col?.result?.addons || [];
+    const addons = await readCollection(authKey);
     console.log(`  ✓ Colección leída: ${addons.length} add-ons instalados`);
 
     let changesCount = 0;
@@ -501,7 +756,7 @@ async function runProfileManager() {
         const tRes = configureTorrentio(a);
         if (tRes.changed) {
           changesCount++;
-          console.log(`  ✓ Torrentio actualizado: ${tRes.oldSegment} ➔ ${tRes.newSegment}`);
+          console.log(`  ✓ Torrentio actualizado: ${redactSegment(tRes.oldSegment)} ➔ ${redactSegment(tRes.newSegment)}`);
           return { ...a, transportUrl: tRes.url };
         }
       }
@@ -515,6 +770,14 @@ async function runProfileManager() {
       }
       return a;
     });
+
+    const diff = diffCollections(addons, updatedAddons);
+    if (changesCount > 0 || !isEmptyDiff(diff)) {
+      console.log(
+        `\n  ${APPLY ? 'Cambios a aplicar' : 'DRY-RUN — cambios que se aplicarían'} (${addons.length} ➔ ${updatedAddons.length} add-ons):`
+      );
+      formatDiff(diff).forEach((l) => console.log(l));
+    }
 
     if (APPLY && changesCount > 0) {
       console.log('\n  Aplicando cambios con guard anti-catálogos-congelados...');
@@ -535,18 +798,32 @@ async function runProfileManager() {
         process.exit(1);
       }
 
-      mkdirSync(BACKUPS, { recursive: true });
-      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      const bFile = join(BACKUPS, `backup-stremioeg-pre-profile-${stamp}.json`);
-      writeFileSync(bFile, JSON.stringify({ result: { addons } }, null, 2));
-      console.log(`  ✓ Backup creado: ${bFile}`);
+      const snapFile = writeSnapshot('profile', email, addons);
+      console.log(`  ✓ Snapshot previo creado: ${snapFile}`);
+
+      // Anti-carrera: addonCollectionSet reemplaza TODO. Si la colección cambió desde que se leyó
+      // (p. ej. edición desde la app), abortar en vez de pisar ese cambio.
+      const freshAddons = await readCollection(authKey);
+      if (collectionFingerprint(freshAddons) !== collectionFingerprint(addons)) {
+        console.error('✗ Abortado: la colección cambió en la cuenta mientras se preparaban los cambios. No se escribió nada; reintentar.');
+        process.exit(1);
+      }
 
       const saveRes = await apiPost('addonCollectionSet', { type: 'AddonCollectionSet', authKey, addons: updatedAddons });
       if (!saveRes?.result?.success && !saveRes?.result) {
         console.error('✗ Falló addonCollectionSet:', JSON.stringify(saveRes));
         process.exit(1);
       }
-      console.log('  ✓ Colección guardada exitosamente en la cuenta con monopolio de subtítulos en el Hub.');
+
+      const verify = await verifyCollection(authKey, updatedAddons);
+      if (!verify.ok) {
+        console.error(`✗ Verificación posterior fallida: ${verify.reason}`);
+        console.error('  Restaurar con: node scripts/apply-stremioeg-profile.mjs --rollback-last');
+        process.exit(1);
+      }
+      if (verify.warn) console.warn(`  ⚠ ${verify.warn}`);
+      console.log('  ✓ Colección guardada y verificada por lectura posterior.');
+      console.log('  ↩ Rollback disponible: node scripts/apply-stremioeg-profile.mjs --rollback-last');
     } else if (changesCount === 0) {
       console.log('  ✓ Add-ons de la cuenta ya cumplen estrictamente con la configuración.');
     } else {
@@ -657,6 +934,46 @@ export function runUnitTests() {
   const withHubMonopoly = ensureHubSubtitleAddons(cleanedAddons);
   assertTest('Inyecta los 3 add-ons del Hub al inicio de la colección', withHubMonopoly.some(a => a.manifest.id === 'com.mejorastremio.opensubtitles-latino') && withHubMonopoly.some(a => a.manifest.id === 'com.mejorastremio.subdl'));
 
+  // 5. Blindaje operativo: enmascarado, diff, snapshot, rollback
+  const secretUrl = 'https://torrentio.strem.fun/sort=quality|torbox=SECRETKEY123|language=latino/manifest.json';
+  const redacted = redactUrl(secretUrl);
+  assertTest('redactUrl oculta el token de TorBox', !redacted.includes('SECRETKEY123') && redacted.includes('torbox=***'));
+  assertTest('redactUrl conserva parámetros no sensibles', redacted.includes('sort=quality') && redacted.includes('language=latino'));
+  assertTest('redactSegment oculta el token en segmentos de config', redactSegment('sort=quality|torbox=SECRETKEY123') === 'sort=quality|torbox=***');
+  const b64Url = `https://comet.elfhosted.com/${Buffer.from(JSON.stringify({ debridApiKey: 'ZZTOPSECRET' })).toString('base64')}/manifest.json`;
+  assertTest('redactUrl oculta segmentos base64 largos (Comet)', !redactUrl(b64Url).includes(Buffer.from('ZZTOPSECRET').toString('base64').slice(0, 8)));
+  const aioUrl = 'https://aiometadata.elfhosted.com/stremio/d29d183a-be46-41ea-bb8a-dc572347e337/manifest.json';
+  assertTest('redactUrl conserva el UUID de instancia de AIOMetadata', redactUrl(aioUrl) === aioUrl);
+
+  const mk = (id, url, cats = 0) => ({ manifest: { id, name: id, catalogs: new Array(cats).fill({}) }, transportUrl: url });
+  const before = [mk('a', 'https://a/manifest.json'), mk('b', 'https://b/manifest.json'), mk('c', 'https://c/manifest.json', 2)];
+  const after = [mk('n', 'https://n/manifest.json'), mk('c', 'https://c/manifest.json', 2), mk('a', 'https://a2/manifest.json')];
+  const d = diffCollections(before, after);
+  assertTest('diff detecta add-on agregado', d.added.length === 1 && d.added[0].id === 'n');
+  assertTest('diff detecta add-on eliminado', d.removed.length === 1 && d.removed[0].id === 'b');
+  assertTest('diff detecta transportUrl cambiada', d.changed.length === 1 && d.changed[0].id === 'a');
+  assertTest('diff detecta movimiento relativo (c adelantó a a)', d.moved.some((m) => m.id === 'c' && m.from === 2 && m.to === 1));
+  const dPrepend = diffCollections(before, [mk('n', 'https://n/manifest.json'), ...before]);
+  assertTest('insertar al inicio no cuenta como mover al resto', dPrepend.moved.length === 0 && dPrepend.added.length === 1);
+  assertTest('diff idéntico es vacío', isEmptyDiff(diffCollections(before, before)));
+  assertTest('diff avisa cambio de catálogos en manifest', diffCollections([mk('x', 'https://x/m.json', 0)], [mk('x', 'https://x/m.json', 5)]).changed[0]?.catalogsTo === 5);
+
+  assertTest('fingerprint estable e idéntico para la misma colección', collectionFingerprint(before) === collectionFingerprint([...before]));
+  assertTest('fingerprint cambia con el orden (ordered) y no (unordered)', collectionFingerprint(before) !== collectionFingerprint([...before].reverse()) && collectionFingerprint(before, { ordered: false }) === collectionFingerprint([...before].reverse(), { ordered: false }));
+
+  assertTest('validateSnapshot rechaza colección vacía', !validateSnapshot({ result: { addons: [] } }).ok);
+  assertTest('validateSnapshot rechaza add-on sin transportUrl', !validateSnapshot({ result: { addons: [{ manifest: { id: 'x' } }] } }).ok);
+  assertTest('validateSnapshot acepta snapshot válido (formato legacy y con meta)', validateSnapshot({ result: { addons: before } }).ok && validateSnapshot({ meta: {}, result: { addons: before } }).ok);
+
+  const names = [
+    'backup-stremioeg-pre-profile-2026-10-03T18-00-00.json',
+    'backup-stremioeg-pre-rollback-2026-10-03T19-30-00.json',
+    'backup-stremioeg-pre-profile-2026-10-02T23-59-59.json',
+    'otro-archivo.json',
+  ];
+  assertTest('pickLatestSnapshot elige por timestamp, sin importar el tipo', pickLatestSnapshot(names) === names[1]);
+  assertTest('pickLatestSnapshot devuelve null sin snapshots válidos', pickLatestSnapshot(['x.json']) === null);
+
   console.log(`\nResultado Tests Unitarios: ${passed}/${total} pruebas pasadas con éxito.\n`);
   if (passed !== total) process.exit(1);
 }
@@ -667,6 +984,11 @@ const isMainScript = process.argv[1] && fileURLToPath(import.meta.url) === fileU
 if (isMainScript) {
   if (RUN_UNIT_TEST) {
     runUnitTests();
+  } else if (ROLLBACK) {
+    runRollback().catch((err) => {
+      console.error(`✗ Error fatal en rollback: ${err.message}`);
+      process.exit(1);
+    });
   } else {
     runProfileManager().catch((err) => {
       console.error(`✗ Error fatal: ${err.message}`);

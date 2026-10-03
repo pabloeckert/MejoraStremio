@@ -63,8 +63,9 @@ async function verifyProduction() {
 
   const stream0 = showStreams[0] || {};
   const s0Name = stream0.name || '';
-  const s0HasLatinoBadge = s0Name.includes('[🇪🇸 LATINO]');
-  assert('Stream en posición [0] contiene explícitamente "[🇪🇸 LATINO]" en name', s0HasLatinoBadge, `name: "${s0Name.replace(/\n/g, ' ')}"`);
+  // Acepta la insignia legacy [🇪🇸 LATINO] hasta que el hub desplegado en Deno adopte [🌎 LATINO].
+  const s0HasLatinoBadge = /\[(🌎|🇪🇸) LATINO\]/.test(s0Name);
+  assert('Stream en posición [0] contiene explícitamente "[🌎 LATINO]" (o legacy "[🇪🇸 LATINO]") en name', s0HasLatinoBadge, `name: "${s0Name.replace(/\n/g, ' ')}"`);
 
   const s0Title = stream0.title || '';
   const isCinecalidad = s0Title.includes('Cinecalidad') || s0Title.toLowerCase().includes('lat');

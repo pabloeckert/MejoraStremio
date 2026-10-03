@@ -3724,11 +3724,11 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
   const badge = (s: T, isLat: boolean, isFast: boolean): T => {
     const raw = (s.name || "Torrentio")
       .replace(/^\[(⚡ INSTANTÁNEO|⏳ REQUIERE BUFFER)\]\s*/g, "")
-      .replace(/^\[(🇪🇸 LATINO|⚠️ SOLO INGLÉS)\]\s*/g, "")
+      .replace(/^\[(🌎 LATINO|🇪🇸 LATINO|⚠️ SOLO INGLÉS)\]\s*/g, "")
       .trim();
 
     const speedPrefix = isFast ? "[⚡ INSTANTÁNEO]" : "[⏳ REQUIERE BUFFER]";
-    const langPrefix = isLat ? "[🇪🇸 LATINO]" : "[⚠️ SOLO INGLÉS]";
+    const langPrefix = isLat ? "[🌎 LATINO]" : "[⚠️ SOLO INGLÉS]";
 
     return {
       ...s,

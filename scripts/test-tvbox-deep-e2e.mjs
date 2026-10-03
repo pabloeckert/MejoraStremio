@@ -199,7 +199,8 @@ try {
   assert(results.pass2_playback, 'Entrega de streams para tt32604054:1:1', show1Streams.length > 0, `${show1Streams.length} streams recibidos`);
 
   const topStream1 = show1Streams[0];
-  const top1IsLatino = topStream1?.name?.includes('[🇪🇸 LATINO]');
+  // Acepta la insignia legacy [🇪🇸 LATINO] hasta que el hub desplegado en Deno adopte [🌎 LATINO].
+  const top1IsLatino = /\[(🌎|🇪🇸) LATINO\]/.test(topStream1?.name || '');
   assert(results.pass2_playback, 'Puesto #1 liderado indiscutiblemente por stream con audio Latino', top1IsLatino, topStream1?.name);
 
   const top1Title = `${topStream1?.name || ''} ${topStream1?.title || ''}`;

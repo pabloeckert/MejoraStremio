@@ -138,6 +138,11 @@
     "genres": [],
     "isFamily": false,
     "perAddon": {
+      "MejoraStremio Streams (TorBox Latino)": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
       "Torrentio TB": {
         "total": 0,
         "real": 0,
@@ -189,7 +194,7 @@
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-09-27T18:43:14.341Z"
+    "lastCheckedAt": "2026-10-04T18:25:44.988Z"
   },
   {
     "id": "tt2380307",
@@ -1593,6 +1598,11 @@
     "genres": [],
     "isFamily": false,
     "perAddon": {
+      "MejoraStremio Streams (TorBox Latino)": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
       "Torrentio TB": {
         "total": 0,
         "real": 0,
@@ -1644,7 +1654,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E03",
     "addedAt": "2026-08-23T02:20:55.820Z",
-    "lastCheckedAt": "2026-09-27T18:43:53.685Z"
+    "lastCheckedAt": "2026-10-04T18:25:54.794Z"
   },
   {
     "id": "tt23112594",
@@ -1779,6 +1789,11 @@
     "genres": [],
     "isFamily": false,
     "perAddon": {
+      "MejoraStremio Streams (TorBox Latino)": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
+      },
       "Torrentio TB": {
         "total": 0,
         "real": 0,
@@ -1830,6 +1845,6 @@
     "latino": null,
     "label": "Ágata y Lola S01E09",
     "addedAt": "2026-09-04T13:17:22.882Z",
-    "lastCheckedAt": "2026-09-27T18:44:34.883Z"
+    "lastCheckedAt": "2026-10-04T18:26:26.864Z"
   }
 ]

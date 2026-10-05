@@ -139,6 +139,21 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 ### 9.5 Sincronización del Add-on de Traducción IA en Stremio TV Box
 - Incorporación formal de `com.mejorastremio.translate` a `cuentas/stremioeg/profile.json` y `scripts/apply-stremioeg-profile.mjs` con inmunidad ante el guard de catálogos congelados.
 
+---
 
+## 10. Sesión 2026-10-05 (Parte 3): Resolución Arquitectural del Conflicto de Códigos ISO (Audio y Subtítulos Stremio Core)
 
+### 10.1 Causa Raíz en Stremio Core y nodejs-langs
+- **Mapeo Disyuntivo**: Tras auditoría directa del código fuente abierto de Stremio (`Stremio/stremio-core`, `Stremio/stremio-web`, `Stremio/nodejs-langs`), se descubrió que Stremio bifurca el español en dos códigos independientes:
+  - `spa`: "Español" (ISO-639-2 estándar / IETF `es-ES`).
+  - `spl`: "Español (América Latina)" (IETF `es-419`).
+  En `useAudio.ts` y `useSubtitles.ts`, `normalizeLanguage("spa") === normalizeLanguage("spl")` retorna `false`.
+- **Fallo de Audio en Contenedores MKV/MP4**: Los releases torrent/debrid siguen el estándar audiovisual internacional donde el audio latino se etiqueta como `spa` o `es`. En contenedores multimedia, `spl` no existe. Si el usuario configura "Español (América Latina)" en los ajustes de audio de Stremio Android TV, el reproductor busca `spl`, no encuentra coincidencia y reproduce la pista 1 por omisión (Inglés).
+- **Regla Mandatoria de Audio**: En la TV Box, el idioma de audio preferido debe ser configurado en **`Español`** (código `spa`), permitiendo que el reproductor enlace de inmediato con la pista `spa`/`es` del doblaje latino.
 
+### 10.2 Blindaje Serverless de Subtítulos Duales (`spl` + `spa`) en Deno Hub
+- Se creó e implementó la función canónica `pushDualSubtitles` en `scripts/deno-hub.ts`.
+- Todos los servicios de subtítulos del Hub (`opensubtitles-latino`, `subdl`, `opensubtitles`, `subsource`, `translate`, `subtitles-proxy`) ahora emiten cada pista latina con compatibilidad dual:
+  1. Variante `${id}-spl` (`lang: "spl"`): Enlace automático cuando el cliente busca "Español (América Latina)".
+  2. Variante `${id}-spa` (`lang: "spa"`): Enlace automático cuando el cliente busca "Español".
+- Verificado y deployado en vivo a producción en `mejorastremio-hub.pabloeckert.deno.net` mediante workflow `deploy-deno-hub.yml`.

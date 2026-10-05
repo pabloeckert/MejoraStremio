@@ -102,4 +102,14 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Preservación Total en Descubrir**: Los 173 catálogos restantes permanecen activos con `enabled: true` y `showInHome: false`, disponibles en la pestaña Descubrir sin sobrecargar el Home.
 - **Calibración TMDB Discover**: Configuración de `with_release_type: "2|3"` (cines), `region: "AR"`, `sort_by: "popularity.desc"` y `vote_count.gte: 1` para asegurar estrenos frescos reales sin omisiones.
 
+---
+
+## 8. Sesión 2026-10-05: Formalización de Gobernanza Global y Protocolo Zero-Trust
+
+### 8.1 Institucionalización de la Skill Global y Memoria Permanente
+- **Skill Global de Ecosistema**: Creada en `~/.gemini/config/skills/zero-trust-principal-engineer/SKILL.md`, estableciendo el estándar operativo obligatorio para todos los proyectos del entorno de trabajo en Antigravity.
+- **Regla Local Vinculante**: Establecida en `.agents/rules/zero-trust-principal-engineer.md` para garantizar la ejecución local estricta de las 6 políticas inviolables (verificación empírica, modelado canónico tipado, dry-run/rollback atómico, ergonomía Leanback, higiene de errores y protocolo quirúrgico en 5 puntos).
+- **Retrospectiva y Metamorfosis**: Documentada exhaustivamente en el artefacto `informe_metamorfosis_criterio_antigravity.md`, cerrando la transición del modelo reactivo hacia la excelencia de ingeniería Zero-Trust SRE.
+
+
 

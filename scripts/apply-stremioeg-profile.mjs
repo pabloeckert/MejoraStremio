@@ -8,9 +8,11 @@
  *   3. Catálogos: Sincronización diaria de estrenos (ventanas dinámicas en preset.json y orden desc).
  *
  * Opciones CLI:
- *   --check         Modo auditoría / dry-run (por defecto). No escribe en la cuenta.
- *   --apply         Aplica los cambios en la cuenta en vivo (requiere ST_EMAIL / ST_PASS).
- *   --test-unit     Ejecuta simulación y pruebas unitarias de filtros de audio y subtítulos.
+ *   --check / --dry-run Modo auditoría / dry-run (por defecto). No escribe en la cuenta.
+ *   --apply             Aplica los cambios en la cuenta en vivo (requiere ST_EMAIL / ST_PASS).
+ *   --rollback-last     Restaura el último backup generado.
+ *   --rollback <file>   Restaura un backup JSON específico.
+ *   --test-unit         Ejecuta simulación y pruebas unitarias de filtros de audio y subtítulos.
  *
  * Node >= 20, sin dependencias externas.
  */
@@ -462,7 +464,7 @@ export function renderVisualDiff(currentAddons, targetAddons) {
 }
 
 // ── Rollback Seguro con 1 Comando ─────────────────────────────────────────────
-export async function handleRollback(authKey, rollbackLast, rollbackFile) {
+export async function handleRollback(authKey, rollbackLast, rollbackFile, dryRun = false) {
   mkdirSync(BACKUPS, { recursive: true });
   let targetPath = rollbackFile;
 
@@ -498,11 +500,6 @@ export async function handleRollback(authKey, rollbackLast, rollbackFile) {
   const currentCol = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
   const currentAddons = currentCol?.result?.addons || [];
 
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const safetyBackup = join(BACKUPS, `backup-stremioeg-pre-rollback-${stamp}.json`);
-  writeFileSync(safetyBackup, JSON.stringify({ result: { addons: currentAddons } }, null, 2));
-  console.log(`  ✓ Snapshot de seguridad previo al rollback guardado en: ${safetyBackup}`);
-
   renderVisualDiff(currentAddons, rollbackAddons);
 
   const guardOk = await assertNoFrozenEmptyCatalogs(rollbackAddons, [
@@ -520,6 +517,16 @@ export async function handleRollback(authKey, rollbackLast, rollbackFile) {
     process.exit(1);
   }
 
+  if (dryRun) {
+    console.log('\n  ℹ MODO DRY-RUN: Rollback simulado y validado (ejecutar sin --dry-run para aplicar en Stremio).');
+    return;
+  }
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const safetyBackup = join(BACKUPS, `backup-stremioeg-pre-rollback-${stamp}.json`);
+  writeFileSync(safetyBackup, JSON.stringify({ result: { addons: currentAddons } }, null, 2));
+  console.log(`  ✓ Snapshot de seguridad previo al rollback guardado en: ${safetyBackup}`);
+
   const res = await apiPost('addonCollectionSet', { type: 'AddonCollectionSet', authKey, addons: rollbackAddons });
   if (!res?.result?.success && !res?.result) {
     console.error('✗ Falló addonCollectionSet durante el rollback:', JSON.stringify(res));
@@ -535,7 +542,10 @@ async function runProfileManager() {
 
   console.log('═'.repeat(70));
   console.log(' MejoraStremio — Gestor de Perfil: stremioeg (Pablo)');
-  console.log(` Target: ${profile.deviceTarget} | Versión: ${profile.version}`);
+  const modeLabel = (ROLLBACK_LAST || ROLLBACK_FILE)
+    ? (DRY_RUN ? ' [ROLLBACK DRY-RUN]' : ' [ROLLBACK]')
+    : (DRY_RUN ? ' [DRY-RUN]' : ' [APPLY]');
+  console.log(` Target: ${profile.deviceTarget} | Versión: ${profile.version}${modeLabel}`);
   console.log('═'.repeat(70));
 
   console.log('\n[ 1/3 ] Verificando Políticas del Perfil...');
@@ -601,7 +611,7 @@ async function runProfileManager() {
     console.log(`  ✓ Colección leída: ${addons.length} add-ons instalados`);
 
     if (ROLLBACK_LAST || ROLLBACK_FILE) {
-      await handleRollback(authKey, ROLLBACK_LAST, ROLLBACK_FILE);
+      await handleRollback(authKey, ROLLBACK_LAST, ROLLBACK_FILE, DRY_RUN);
       return;
     }
 
@@ -662,7 +672,7 @@ async function runProfileManager() {
     // Renderizar Diff Visual Estructurado
     renderVisualDiff(addons, updatedAddons);
 
-    if (APPLY && changesCount > 0) {
+    if (APPLY && !DRY_RUN && changesCount > 0) {
       console.log('\n  Aplicando cambios con guard anti-catálogos-congelados...');
       const guardExempt = [
         'com.stremio.torrentio.addon',

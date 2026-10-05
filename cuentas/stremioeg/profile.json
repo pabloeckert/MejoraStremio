@@ -108,7 +108,9 @@
       "recommendedPlayer": "libmpv",
       "autoFrameRate": "Match frame rate and resolution",
       "tunneledPlayback": "device_dependent",
-      "audioPassthrough": "direct"
+      "audioPassthrough": "direct",
+      "defaultSubtitlesLanguage": "spa",
+      "defaultAudioLanguage": "spa"
     }
   }
 }

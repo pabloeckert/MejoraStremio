@@ -113,6 +113,8 @@ Para garantizar una experiencia fluida sin judder ni parpadeos en Android TV:
 4. **Tunneled Playback**: En TV Boxes con procesadores Amlogic, alternar si se presentan desfasajes entre audio y video en streams 4K HDR.
 5. **SubSource Provider**: Integrado en el Hub (`/subsource`) como proveedor comunitario complementario con filtrado nativo anti-SDH y Smart Audio Sync.
 6. **Traducción IA (Gemini Flash)**: Integrado en el Hub (`/translate`) e instalado en la cuenta Stremio (`com.mejorastremio.translate`) como fallback inteligente con soporte multi-idioma (en, fr, de, it, pt), interpretación cinematográfica neutra y preservación de nombres propios.
+7. **Idioma de Subtítulos Predeterminado (Auto-Selección)**: En `Configuración > Subtítulos > Idioma predeterminado`, seleccionar **"Spanish" / "Español"**. Hace que el reproductor active automáticamente las pistas en español latino del Hub (`spa`) al abrir cualquier video, eliminando el molesto salto a inglés por defecto.
+8. **Pista de Audio Predeterminada (Audio Latino en Contenido Familiar)**: En `Configuración > Reproductor (o Audio) > Pista de audio predeterminada`, seleccionar **"Spanish" / "Español"**. Garantiza que en streams Dual Audio (Inglés + Latino, típico en animación y películas familiares de Cinecalidad), el reproductor inicie automáticamente en **Español Latino** como primera opción sin tener que cambiarlo manualmente.
 
 ---
 

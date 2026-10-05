@@ -111,5 +111,34 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Regla Local Vinculante**: Establecida en `.agents/rules/zero-trust-principal-engineer.md` para garantizar la ejecución local estricta de las 6 políticas inviolables (verificación empírica, modelado canónico tipado, dry-run/rollback atómico, ergonomía Leanback, higiene de errores y protocolo quirúrgico en 5 puntos).
 - **Retrospectiva y Metamorfosis**: Documentada exhaustivamente en el artefacto `informe_metamorfosis_criterio_antigravity.md`, cerrando la transición del modelo reactivo hacia la excelencia de ingeniería Zero-Trust SRE.
 
+---
+
+## 9. Sesión 2026-10-05 (Parte 2): Resolución Integral de los 6 Modos de Falla (HPI, Ludwig, Balthazar, TGAH, Spider-Man, Regular Show)
+
+### 9.1 Series Europeas (HPI / HCI): Reescalado Automático PAL 25 ➔ 23.976fps en Opción 1
+- **Causa Raíz**: Rips WEB-DL a 23.976 fps consumían subtítulos comunitarios extraídos de broadcast europeo a 25.0 fps sin tags explícitos en el release. `resolveSmartSync` los marcaba "Nativo", empujando el archivo a 25 fps como Opción 1 y causando un desfasaje acumulativo de +2.28 minutos por hora.
+- **Solución Zero-Trust**: Detección contextual de producciones europeas (`isEuropeanShowOrContext` con IDs IMDb como `tt14060708`). Cuando se detecta discrepancia con WEB-DL, el track reescalado mediante time-stretch `25to23976` (+153.75s/h) se inyecta como **Opción 1 por omisión**, relegando el track crudo a Opción 2 ("📺 Original").
+
+### 9.2 Ludwig: Purgado de SDH, Adaptación Cinematográfica y Blindaje de Nombres Propios
+- **Causa Raíz**: Cues con descriptores sonoros y etiquetas de hablante (`LUDWIG:`, `[sighs]`) se enviaban crudos a Gemini, el prompt carecía del título dinámico y no prohibía la traducción literal ni la alteración de nombres propios.
+- **Solución Zero-Trust**: Función `cleanCueForTranslation` que purga acotaciones sonoras `[...]`, `(...)` y prefijos de interlocutores en mayúsculas antes de la IA. `buildTranslateSystemPrompt` incorpora el título dinámico ("Ludwig"), directiva inviolable de preservación de nombres propios (Ludwig, John, Cambridge, etc.) y prohibición explícita de traducción literal. Pasada final de normalización con `cleanSrt`.
+
+### 9.3 Balthazar & The Greatest American Hero: Bases Multilingües y Detonante Estricto
+- **Causa Raíz**: Balthazar (serie francesa) solo contaba con subtítulos en francés (`fr`) en OpenSubtitles; el Hub solo buscaba bases en `en` y `de`. En *The Greatest American Hero*, un subtítulo de Google Translate de 2005 en `es` suprimía falsamente la traducción IA en la temporada 2.
+- **Solución Zero-Trust**: Búsqueda jerárquica de subtítulos base en OpenSubtitles ampliada a `["fr", "de", "it", "pt"]` si falta inglés. `hasViableSpanishSub` consulta estrictamente `languages: "ea"` (latinoamericano genuino), evitando falsos positivos por subtítulos peninsulares o traducciones basura.
+
+### 9.4 Spider-Man & Regular Show: Aislamiento Estricto de Audio Latino, Original y Relegación de Doblajes
+- **Causa Raíz**: La regex de streams incluía `\bdual\b`, confundiendo releases brasileños (`FULLHD DUAL 5.1`, `BLUDV`, `Comando.to`) con audio latino y desplazando al stream genuino de Cinecalidad. En *Regular Show*, releases en castellano se etiquetaban como latino.
+- **Solución Zero-Trust**: Clasificación canónica tipada `classifyStreamAudio` (`"latino" | "original" | "castellano" | "portuguese"`). Orden jerárquico estricto en `rankAndBadgeStreams`:
+  1. `[⚡ INSTANTÁNEO] [🌎 LATINO]`
+  2. `[⚡ INSTANTÁNEO] [🎧 ORIGINAL]`
+  3. `[⏳ REQUIERE BUFFER] [🌎 LATINO]`
+  4. `[⏳ REQUIERE BUFFER] [🎧 ORIGINAL]`
+  5. `[⚡ INSTANTÁNEO] [🇪🇸 CASTELLANO]` y `[🇧🇷 PORTUGUÉS]` (relegados al final).
+
+### 9.5 Sincronización del Add-on de Traducción IA en Stremio TV Box
+- Incorporación formal de `com.mejorastremio.translate` a `cuentas/stremioeg/profile.json` y `scripts/apply-stremioeg-profile.mjs` con inmunidad ante el guard de catálogos congelados.
+
+
 
 

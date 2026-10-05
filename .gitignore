@@ -24,3 +24,5 @@ SECRETS.local.md
 # Config/estado local de Antigravity / Gemini + worktrees de agentes (no versionar)
 .agents/local/
 .gemini/
+scratch/
+

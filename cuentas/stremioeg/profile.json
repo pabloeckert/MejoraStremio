@@ -55,6 +55,13 @@
           "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/subsource/manifest.json",
           "filterHearingImpaired": true,
           "priority": 4
+        },
+        {
+          "id": "com.mejorastremio.translate",
+          "name": "Traducción IA (Gemini Flash)",
+          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/translate/manifest.json",
+          "filterHearingImpaired": true,
+          "priority": 5
         }
       ]
     },

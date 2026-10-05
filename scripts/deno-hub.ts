@@ -244,6 +244,37 @@ function msToSrtTime(msTotal: number): string {
 //        R = 23.976 / 25.0 = 0.95904...      (deriva acumulada: -40.96 ms/s, -147.46s/h)
 //   4. Detección heurística de release tags + VideoHash matching.
 
+export const EUROPEAN_SHOW_IDS = new Set([
+  "tt14060708", // HPI: Haut Potentiel Intellectuel
+  "tt13854128", // HPI alias
+  "tt9293466",  // Balthazar
+  "tt0806910",  // Tatort
+  "tt28491873", // Ludwig
+  "tt4378376",  // Babylon Berlin
+  "tt6905756",  // Der Pass / Pagan Peak
+  "tt10598848", // Die Toten von Marnow
+  "tt13498564", // Höllental
+  "tt27054614", // Crooks
+  "tt20863760", // Dear Child
+  "tt9184986",  // Barbarians
+  "tt10986056", // Criminal: Germany
+  "tt0475464",  // Los hombres de Paco
+  "tt18482892", // Machos Alfa
+  "tt20883126", // Reina Roja
+  "tt8690776",  // Sky Rojo
+  "tt27950663", // The Marlow Murder Club
+  "tt9258854",  // Das Quartett
+  "tt5094068",  // Einstein
+  "tt6839788",  // Dogs of Berlin
+  "tt18827746", // Passenger
+]);
+
+export function isEuropeanShowOrContext(imdbId?: string | null, name?: string | null): boolean {
+  if (imdbId && EUROPEAN_SHOW_IDS.has(imdbId)) return true;
+  if (!name) return false;
+  return /\b(hpi|balthazar|tatort|ludwig|tf1|ard|zdf|orf|bbc|itv|channel4|rte|french|deutsch|german)\b/i.test(name);
+}
+
 interface FramerateInfo {
   fps: number;
   standard: "PAL_25" | "NTSC_WEB" | "FILM_24" | "NTSC_TV" | "UNKNOWN";
@@ -251,8 +282,13 @@ interface FramerateInfo {
   confidence: "high" | "medium" | "low";
 }
 
-function detectFramerate(name: string | null | undefined): FramerateInfo {
-  if (!name) return { fps: 23.976, standard: "NTSC_WEB", tag: "WEB-DL (asumido)", confidence: "low" };
+export function detectFramerate(name: string | null | undefined, imdbId?: string | null): FramerateInfo {
+  if (!name) {
+    if (isEuropeanShowOrContext(imdbId)) {
+      return { fps: 25.0, standard: "PAL_25", tag: "PAL/HDTV 25fps (Europeo)", confidence: "medium" };
+    }
+    return { fps: 23.976, standard: "NTSC_WEB", tag: "WEB-DL (asumido)", confidence: "low" };
+  }
   const s = String(name).toLowerCase();
 
   // Señales explícitas de 25 fps (PAL / transmisiones de TV europea/británica)
@@ -275,6 +311,12 @@ function detectFramerate(name: string | null | undefined): FramerateInfo {
     return { fps: 29.97, standard: "NTSC_TV", tag: "NTSC Broadcast 29.97fps", confidence: "high" };
   }
 
+  // Heurística de origen: si es serie/película europea y el subtítulo no tiene marcas explícitas de WEB-DL,
+  // el subtítulo upstream se extrajo de broadcast/cable europeo a 25.0 fps nativos
+  if (isEuropeanShowOrContext(imdbId, name)) {
+    return { fps: 25.0, standard: "PAL_25", tag: "PAL/HDTV 25fps (Europeo)", confidence: "medium" };
+  }
+
   return { fps: 23.976, standard: "NTSC_WEB", tag: "WEB-DL (estándar)", confidence: "low" };
 }
 
@@ -288,9 +330,9 @@ interface SmartSyncDecision {
   fpsParam: string;
 }
 
-function resolveSmartSync(videoName?: string | null, subName?: string | null): SmartSyncDecision {
-  const v = detectFramerate(videoName);
-  const s = detectFramerate(subName);
+export function resolveSmartSync(videoName?: string | null, subName?: string | null, imdbId?: string | null): SmartSyncDecision {
+  const v = detectFramerate(videoName, imdbId);
+  const s = detectFramerate(subName, imdbId);
 
   // Video WEB-DL (23.976) y subtítulo HDTV/PAL (25.0) -> Time-stretch factor 25 / 23.976 ≈ 1.042709
   if (Math.abs(v.fps - 23.976) < 0.05 && Math.abs(s.fps - 25.0) < 0.05) {
@@ -450,7 +492,7 @@ function rescaleSrtFramerate(
   return serializeCuesToSrt(clamped);
 }
 
-function cleanSrt(srtContent: string): string {
+export function cleanSrt(srtContent: string): string {
   if (!srtContent) return "";
   const cues = parseSrtToCues(srtContent);
   if (!cues.length) return "";
@@ -728,7 +770,7 @@ async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Pr
         const baseId = `mshub-subdl-${subs.indexOf(s)}-${imdbId}`;
         const encoded = encodeURIComponent(s.subdlPath);
 
-        const syncDecision = resolveSmartSync(parsed.filename, s.name);
+        const syncDecision = resolveSmartSync(parsed.filename, s.name, imdbId);
 
         const metaParams = `imdb=${encodeURIComponent(imdbId)}${season != null ? `&season=${season}` : ""}${episode != null ? `&episode=${episode}` : ""}`;
 
@@ -748,8 +790,8 @@ async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Pr
             id: baseId,
             url: `${mountBase}/srt/${encoded}?${metaParams}`,
             lang: "spa",
-            label: `[SubDL] 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
-            name: `[SubDL] 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
+            label: `[SubDL] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
+            name: `[SubDL] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
           });
         } else {
           // Coincidencia de framerate nativo: NO se estira en la opción 1 (evita drift artificial)
@@ -941,7 +983,7 @@ async function handleSubsource(
         const baseId = `mshub-subsrc-${i}-${imdbId}`;
         const encoded = encodeURIComponent(s.downloadUrl);
         const cleanName = s.name.replace(/\.(srt|zip)$/i, "").slice(0, 70);
-        const syncDecision = resolveSmartSync(parsed.filename, s.name);
+        const syncDecision = resolveSmartSync(parsed.filename, s.name, imdbId);
 
         if (syncDecision.needsRescale) {
           subtitles.push({
@@ -955,8 +997,8 @@ async function handleSubsource(
             id: baseId,
             url: `${mountBase}/srt/${encoded}`,
             lang: "spa",
-            label: `[SubSource] 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
-            name: `[SubSource] 📺 Original (${detectFramerate(s.name).tag}) ${cleanName}`,
+            label: `[SubSource] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
+            name: `[SubSource] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
           });
         } else {
           subtitles.push({
@@ -1254,7 +1296,7 @@ async function handleOpenSubtitles(
         const baseId = `${idTag}-${subs.indexOf(s)}-${imdbId}`;
         const disp = `[${nameTag}]`;
 
-        const syncDecision = resolveSmartSync(parsed.filename, s.name);
+        const syncDecision = resolveSmartSync(parsed.filename, s.name, imdbId);
 
         if (syncDecision.needsRescale) {
           // El Hub detecta discrepancia estructural de framerate y APLICA AUTOMÁTICAMENTE
@@ -1272,8 +1314,8 @@ async function handleOpenSubtitles(
             id: baseId,
             url: `${mountBase}/srt/${s.fileId}`,
             lang: "spa",
-            label: `${disp} 📺 Original (${detectFramerate(s.name).tag}) ${s.name}`,
-            name: `${disp} 📺 Original (${detectFramerate(s.name).tag}) ${s.name}`,
+            label: `${disp} 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${s.name}`,
+            name: `${disp} 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${s.name}`,
           });
         } else {
           // Coincidencia de framerate nativo: NO se estira en la opción 1 (evita drift artificial)
@@ -1465,7 +1507,7 @@ async function handleSubdivx(
       for (let i = 0; i < subs.length && i < 15; i++) {
         const s = subs[i];
         const subName = s.label || s.name || `Subdivx ${i + 1}`;
-        const syncDecision = resolveSmartSync(filename, subName);
+        const syncDecision = resolveSmartSync(filename, subName, imdbId);
         const encodedUrl = encodeURIComponent(s.url);
         const baseId = `mshub-subdivx-${i}-${imdbId}`;
 
@@ -1481,8 +1523,8 @@ async function handleSubdivx(
             id: baseId,
             url: `${mountBase}/srt/${encodedUrl}`,
             lang: "spa",
-            label: `[Subdivx] 📺 Original (${detectFramerate(subName).tag}) ${subName}`,
-            name: `[Subdivx] 📺 Original (${detectFramerate(subName).tag}) ${subName}`,
+            label: `[Subdivx] 📺 Original (${detectFramerate(subName, imdbId).tag}) ${subName}`,
+            name: `[Subdivx] 📺 Original (${detectFramerate(subName, imdbId).tag}) ${subName}`,
           });
         } else {
           subtitles.push({
@@ -3207,45 +3249,82 @@ function serializeSrt(cues: Cue[]): string {
     .join("\n\n") + "\n";
 }
 
-const TRANSLATE_SYS =
-  "Sos traductor profesional de subtÃ­tulos. TraducÃ­ del alemÃ¡n (o inglÃ©s) al ESPAÃ‘OL " +
-  "LATINOAMERICANO NEUTRO â€” el registro de doblaje: nada de 'vosotros', nada de 'coger' " +
-  "por agarrar, trato 'usted'/'tÃº' segÃºn la formalidad, modismos neutros (ni argentino, " +
-  "ni mexicano, ni espaÃ±ol de EspaÃ±a). Es una serie policial alemana (Tatort). ConservÃ¡ " +
-  "el tono y las malas palabras. RecibÃ­s lÃ­neas numeradas '<n>â–¸ <texto>'. DevolvÃ© " +
-  "EXACTAMENTE las mismas lÃ­neas numeradas '<n>â–¸ <traducciÃ³n>', una por lÃ­nea, mismo n, " +
-  `misma cantidad, sin texto extra. El sÃ­mbolo ${NL} es un salto de lÃ­nea interno: dejalo donde estÃ¡.`;
+export function cleanCueForTranslation(text: string): string {
+  if (!text) return "";
+  let t = text;
+  // 1. Eliminar etiquetas HTML y estilos
+  t = t.replace(/<[^>]+>/g, "");
+  t = t.replace(/\{[^}]+\}/g, "");
+  // 2. Eliminar acotaciones sonoras entre corchetes o paréntesis
+  t = t.replace(/\[[^\]\n]*\]/g, "");
+  t = t.replace(/\([^\)\n]*\)/g, "");
+  // 3. Eliminar prefijos de hablante en mayúsculas (ej: LUDWIG:, JOHN:, MAN 1:, NARRATOR:)
+  t = t.replace(/^[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/gm, "");
+  // 4. Eliminar símbolos musicales
+  t = t.replace(/[♪♫#*]+/g, "");
+  return t.split("\n").map((l) => l.trim()).filter(Boolean).join("\n");
+}
+
+const LANG_NAMES: Record<string, string> = {
+  fr: "idioma francés (fr)",
+  en: "idioma inglés (en)",
+  de: "idioma alemán (de)",
+  it: "idioma italiano (it)",
+  pt: "idioma portugués (pt)",
+  es: "idioma español (es)",
+};
+
+export function buildTranslateSystemPrompt(titleName?: string, sourceLang: string = "inglés"): string {
+  const langLabel = LANG_NAMES[sourceLang.toLowerCase()] || `idioma ${sourceLang}`;
+  const showInfo = titleName
+    ? `Estás traduciendo la serie/película "${titleName}".`
+    : "Estás traduciendo una producción audiovisual de cine o televisión.";
+
+  return (
+    `Sos un traductor y adaptador profesional de subtítulos para cine y series de televisión. ` +
+    `Tu tarea es traducir del ${langLabel} al ESPAÑOL LATINOAMERICANO NEUTRO (estilo doblaje profesional latinoamericano).\n\n` +
+    `${showInfo}\n\n` +
+    `DIRECTIVAS ESTRICTAS DE CALIDAD:\n` +
+    `1. REGLA INVIOLABLE DE NOMBRES PROPIOS: NUNCA traduzcas nombres propios ni locaciones: NUNCA traduzcas, adaptes ni alteres nombres de personajes (ej: Ludwig, John, James, Holly, Lucy, etc.), apellidos, apodos, nombres de calles, marcas ni topónimos (ej: Cambridge). Deben permanecer EXACTAMENTE en su forma y grafía original.\n` +
+    `2. INTERPRETACIÓN CINEMATOGRÁFICA Y SENTIDO DRAMÁTICO: Queda terminantemente prohibida la traducción literal palabra por palabra. Interpreta con naturalidad el humor, la ironía, los dobles sentidos y el registro conversacional, adaptándolo a un español neutro fluido, coloquial y elegante (sin modismos peninsulares como 'vosotros', ni 'coger' por agarrar, ni modismos regionales excesivos).\n` +
+    `3. HIGIENE ANTI-SDH: NUNCA generes ni incluyas descripciones de sonido, ruidos entre corchetes o paréntesis ni etiquetas de hablantes (ej: NADA de [Música], (Risas) ni NOMBRE:). Traduce exclusivamente el diálogo humano hablado.\n` +
+    `4. CONSERVACIÓN DE FORMATO: Recibís líneas numeradas '<n>▸ <texto>'. Devolvé EXACTAMENTE las mismas líneas numeradas '<n>▸ <traducción>', una por línea, mismo n, misma cantidad, sin texto introductorio ni explicaciones adicionales. El símbolo ${NL} es un salto de línea interno: conservalo en el lugar exacto donde corresponda en la traducción.`
+  );
+}
+
+const TRANSLATE_SYS = buildTranslateSystemPrompt();
 
 // Parsea la respuesta numerada del modelo. Devuelve map n->texto.
 function parseNumbered(raw: string): Map<number, string> {
   const out = new Map<number, string>();
-  const re = /(^|\n)\s*(\d+)\s*â–¸\s*([\s\S]*?)(?=\n\s*\d+\s*â–¸|\s*$)/g;
+  const re = /(^|\n)\s*(\d+)\s*▸\s*([\s\S]*?)(?=\n\s*\d+\s*▸|\s*$)/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(raw))) out.set(parseInt(m[2], 10), m[3].trim());
   return out;
 }
 
 // Traduce un lote. Devuelve el mapa n->texto (con fallback al original en las
-// lÃ­neas que la IA no devolviÃ³) y `ok` = si la IA cubriÃ³ â‰¥90% del lote (para
-// decidir si vale cachearlo). OpenRouter free quedÃ³ descartado del camino de
-// subtÃ­tulos: su router tarda >40s por request. Gemini flash-lite hace 80
-// lÃ­neas en ~5s y aguanta rÃ¡fagas paralelas sin rate-limit.
+// líneas que la IA no devolvió) y `ok` = si la IA cubrió ≥90% del lote (para
+// decidir si vale cachearlo). OpenRouter free quedó descartado del camino de
+// subtítulos: su router tarda >40s por request. Gemini flash-lite hace 80
+// líneas en ~5s y aguanta ráfagas paralelas sin rate-limit.
 async function translateBatch(
   items: { n: number; text: string }[],
   signal: AbortSignal,
+  sysPrompt: string = TRANSLATE_SYS,
 ): Promise<{ map: Map<number, string>; ok: boolean }> {
-  const payload = items.map((it) => `${it.n}â–¸ ${it.text.replace(/\n/g, NL)}`).join("\n");
-  const prompt = `${TRANSLATE_SYS}\n\n${payload}`;
+  const payload = items.map((it) => `${it.n}▸ ${it.text.replace(/\n/g, NL)}`).join("\n");
+  const prompt = `${sysPrompt}\n\n${payload}`;
 
   const merged = new Map<number, string>();
   for (let attempt = 0; attempt < 4 && merged.size < items.length; attempt++) {
-    // Tras el primer intento, se re-piden SOLO las lÃ­neas que faltan â€” un lote
-    // mÃ¡s chico parsea mejor y no re-gasta tiempo en lo ya traducido.
+    // Tras el primer intento, se re-piden SOLO las líneas que faltan — un lote
+    // más chico parsea mejor y no re-gasta tiempo en lo ya traducido.
     const todo = attempt === 0 ? items : items.filter((it) => !merged.has(it.n));
     if (!todo.length) break;
     const p = attempt === 0
       ? prompt
-      : `${TRANSLATE_SYS}\n\n${todo.map((it) => `${it.n}â–¸ ${it.text.replace(/\n/g, NL)}`).join("\n")}`;
+      : `${sysPrompt}\n\n${todo.map((it) => `${it.n}▸ ${it.text.replace(/\n/g, NL)}`).join("\n")}`;
     try {
       const parsed = parseNumbered(await callGemini(p, GEMINI_API_KEY, signal));
       for (const it of todo) {
@@ -3255,7 +3334,7 @@ async function translateBatch(
       const msg = (e as Error).message;
       // 429 (cuota) / 503 (sobrecarga) de Gemini: esperar y reintentar.
       if (/429|503/.test(msg) && attempt < 3) await sleep(3500 + attempt * 3500);
-      else if (attempt >= 3) console.log(`[translate] batch n0=${items[0]?.n} agotÃ³ reintentos: ${msg}`);
+      else if (attempt >= 3) console.log(`[translate] batch n0=${items[0]?.n} agotó reintentos: ${msg}`);
     }
   }
 
@@ -3264,12 +3343,12 @@ async function translateBatch(
     const t = merged.get(it.n);
     map.set(it.n, t ? t.replace(new RegExp(NL, "g"), "\n") : it.text);
   }
-  // â‰¥80% traducido = se acepta y se cachea (el resto queda en alemÃ¡n). Un puÃ±ado
-  // de lÃ­neas sueltas sin traducir no justifica que cada apertura rehaga 30s.
+  // ≥80% traducido = se acepta y se cachea (el resto queda en alemán). Un puñado
+  // de líneas sueltas sin traducir no justifica que cada apertura rehaga 30s.
   return { map, ok: merged.size >= items.length * 0.8 };
 }
 
-// Traduce solo las cues de diÃ¡logo, con cache por-lote en KV para que un
+// Traduce solo las cues de diálogo, con cache por-lote en KV para que un
 // reintento (o el pre-warm) no rehaga lo ya hecho. cacheRef identifica la
 // pista base (url ARD o os-<fileId>).
 async function translateCues(
@@ -3277,9 +3356,11 @@ async function translateCues(
   cacheRef: string,
   kv: Deno.Kv | null,
   deadline: number,
+  sysPrompt: string = TRANSLATE_SYS,
 ): Promise<{ texts: string[]; done: boolean }> {
-  const texts = cues.map((c) => c.text);
-  const dialogueIdx = cues.map((c, i) => (isSoundOnly(c.text) ? -1 : i)).filter((i) => i >= 0);
+  // Pre-limpiar cada cue de diálogo antes de traducir
+  const texts = cues.map((c) => cleanCueForTranslation(c.text));
+  const dialogueIdx = cues.map((c, i) => (isSoundOnly(c.text) || !texts[i].trim() ? -1 : i)).filter((i) => i >= 0);
 
   // Dividir en lotes: Lote 0 es Fast-Window (primeras 70 cues / ~10 min), el resto en lotes de 100
   const batches: number[][] = [];
@@ -3318,7 +3399,7 @@ async function translateCues(
     const remaining = Math.max(1000, deadline - Date.now());
     const batchIdxs = batches[0];
     const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
-    const { map, ok } = await translateBatch(items, AbortSignal.timeout(remaining));
+    const { map, ok } = await translateBatch(items, AbortSignal.timeout(remaining), sysPrompt);
     for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
     if (ok) {
       pending.delete(0);
@@ -3335,7 +3416,7 @@ async function translateCues(
     const remaining = Math.max(800, deadline - Date.now());
     const batchIdxs = batches[bi];
     const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
-    const { map, ok } = await translateBatch(items, AbortSignal.timeout(remaining));
+    const { map, ok } = await translateBatch(items, AbortSignal.timeout(remaining), sysPrompt);
     for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
     if (ok) {
       pending.delete(bi);
@@ -3359,7 +3440,7 @@ async function translateCues(
           await Promise.all(wave.map(async (bi) => {
             const batchIdxs = batches[bi];
             const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
-            const { map, ok } = await translateBatch(items, AbortSignal.timeout(18000));
+            const { map, ok } = await translateBatch(items, AbortSignal.timeout(18000), sysPrompt);
             for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
             if (ok && kv) {
               const obj: Record<string, string> = {};
@@ -3369,8 +3450,11 @@ async function translateCues(
           }));
         }
         // Cachear el subtítulo completo en KV para subsecuentes consultas / seeks
-        const outCues = cues.map((c, i) => ({ ...c, text: texts[i] })).filter((c) => !isSoundOnly(c.text));
-        const finalSrt = serializeSrt(outCues);
+        const outCues = cues
+          .map((c, i) => ({ ...c, text: texts[i] }))
+          .filter((c) => !isSoundOnly(c.text) && c.text.trim().length > 0);
+        let finalSrt = serializeSrt(outCues);
+        finalSrt = cleanSrt(finalSrt); // Doble pasada Anti-SDH en background
         await kv.set(["translate-srt", "v8", cacheRef], finalSrt, { expireIn: TRANSLATE_CACHE_TTL_MS });
       } catch { /* background fallback silencioso */ }
     };
@@ -3414,7 +3498,7 @@ async function fetchBaseCues(src: { t: string; u?: string; f?: number }): Promis
 // Marcadores de SDH a nivel nombre de archivo / release — barato, sin descargar nada.
 const SDH_NAME_RE = /\b(sdh|hearing[\s._-]*impaired|for the deaf|\[cc\]|\bcc\b|forced\s*sdh)\b/i;
 
-async function hasViableSpanishSub(
+export async function hasViableSpanishSub(
   imdbId: string,
   season: number | null,
   episode: number | null,
@@ -3422,7 +3506,8 @@ async function hasViableSpanishSub(
 ): Promise<{ viable: boolean; reason: string }> {
   if (!OPENSUBTITLES_API_KEY) return { viable: false, reason: "sin OPENSUBTITLES_API_KEY" };
 
-  const p = new URLSearchParams({ languages: "es,sp,ea", hearing_impaired: "exclude" });
+  // Buscar estrictamente subtítulos en español latinoamericano ("ea")
+  const p = new URLSearchParams({ languages: "ea", hearing_impaired: "exclude" });
   if (season != null && episode != null) {
     p.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
     p.set("season_number", String(season));
@@ -3435,7 +3520,7 @@ async function hasViableSpanishSub(
   }).then((x) => x.json()).catch(() => null);
 
   const data = Array.isArray(r?.data) ? r.data : [];
-  if (!data.length) return { viable: false, reason: "cero subtítulos en español en upstream" };
+  if (!data.length) return { viable: false, reason: "cero subtítulos en español latino ('ea') en upstream" };
 
   // Nivel 1: filtrar SDH
   // deno-lint-ignore no-explicit-any
@@ -3446,21 +3531,21 @@ async function hasViableSpanishSub(
     return !SDH_NAME_RE.test(hay);
   });
 
-  if (!cleanSubs.length) return { viable: false, reason: "todos los subtítulos en español son SDH" };
+  if (!cleanSubs.length) return { viable: false, reason: "todos los subtítulos latinos son SDH" };
 
   // Nivel 2: Si Stremio envió el filename real del video, verificar si algún subtítulo ES coincide en framerate y corte
   if (videoFilename) {
-    const videoFps = detectFramerate(videoFilename);
+    const videoFps = detectFramerate(videoFilename, imdbId);
     let hasFramerateAndReleaseMatch = false;
 
     for (const d of cleanSubs) {
       const a = (d as { attributes?: { release?: string; files?: Array<{ file_name?: string }> } })?.attributes ?? {};
       const subName = `${a.release ?? ""} ${a.files?.[0]?.file_name ?? ""}`;
-      const subFps = detectFramerate(subName);
+      const subFps = detectFramerate(subName, imdbId);
       const sim = releaseSimilarity(videoFilename, subName);
 
       // Si hay coincidencia de framerate estructural y similitud de release
-      if (Math.abs(videoFps.fps - subFps.fps) < 0.05 && sim > 0.15) {
+      if (Math.abs(videoFps.fps - subFps.fps) < 0.05 && sim > 0.25) {
         hasFramerateAndReleaseMatch = true;
         break;
       }
@@ -3469,13 +3554,13 @@ async function hasViableSpanishSub(
     if (!hasFramerateAndReleaseMatch) {
       return {
         viable: false,
-        reason: `Discrepancia insalvable: Video es ${videoFps.tag} pero subtítulos ES son de framerate dispar o corte incompatible`,
+        reason: `Discrepancia insalvable: Video es ${videoFps.tag} pero subtítulos ES son de framerate dispar o baja similitud`,
       };
     }
   }
 
   // Título cubierto si sobrevivieron opciones limpias compatibles
-  return { viable: true, reason: "cobertura ES adecuada" };
+  return { viable: true, reason: "cobertura ES latino adecuada" };
 }
 
 interface BaseSubMatch {
@@ -3560,7 +3645,7 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
   // ── listar: /subtitles/:type/:id.json ──────────────────────────────
   const listM = subPath.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
   if (listM) {
-    const [, , rawId] = listM;
+    const [, mediaType, rawId] = listM;
     const { imdbId, season, episode, filename, videoHash, videoSize } = parseStremioSubId(rawId);
     try {
       // Detonante IA: se activa si no hay subtítulos ES o si los existentes presentan
@@ -3571,7 +3656,13 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
       }
       console.log(`[translate] Detonando fallback IA para ${imdbId}: ${spanCheck.reason}`);
 
-      const bases: { t: string; u?: string; f?: number; label: string; keyRef: string; matchType?: string }[] = [];
+      let showTitle = imdbId;
+      try {
+        const meta = await fetchCinemetaMeta(mediaType || "series", imdbId);
+        if (meta?.name) showTitle = meta.name;
+      } catch { /* fallback a imdbId */ }
+
+      const bases: { t: string; u?: string; f?: number; label: string; keyRef: string; matchType?: string; srcLang?: string }[] = [];
 
       const mvwShow = MEDIATHEK_SHOWS[imdbId];
       if (mvwShow && season != null && episode != null) {
@@ -3581,28 +3672,32 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         const ct = showCaseTitle(vid?.name ?? "", mvwShow.topic);
         if (ct) {
           const films = matchMvwFilms(await loadMvwShow(mvwShow.topic, mvwShow.minDur), ct).filter((f) => f.urlSub);
-          if (films[0]) bases.push({ t: "ard", u: films[0].urlSub, label: "base DE oficial", keyRef: films[0].urlSub, matchType: "oficial" });
+          if (films[0]) bases.push({ t: "ard", u: films[0].urlSub, label: "base DE oficial", keyRef: films[0].urlSub, matchType: "oficial", srcLang: "de" });
         }
       }
       if (!bases.length) {
-        // Capturar subtítulo en inglés que empareje 100% con el hash o release del video
+        // 1. Probar base en inglés que empareje con el hash o release del video
         const en = await osBaseFileId(imdbId, season, episode, "en", filename, videoHash, videoSize);
         if (en) {
           const badge = en.matchType === "hash" ? "🎯 100% Hash Match" : en.matchType === "release" ? "✨ Release Match" : "Base EN";
-          bases.push({ t: "os", f: en.fileId, label: `${badge} (${en.releaseName})`, keyRef: `os-${en.fileId}`, matchType: en.matchType });
+          bases.push({ t: "os", f: en.fileId, label: `${badge} (${en.releaseName})`, keyRef: `os-${en.fileId}`, matchType: en.matchType, srcLang: "en" });
         } else {
-          // Si no hay inglés, probar base alemana
-          const de = await osBaseFileId(imdbId, season, episode, "de", filename, videoHash, videoSize);
-          if (de) {
-            const badge = de.matchType === "hash" ? "🎯 100% Hash Match" : "Base DE";
-            bases.push({ t: "os", f: de.fileId, label: `${badge} (${de.releaseName})`, keyRef: `os-${de.fileId}`, matchType: de.matchType });
+          // 2. Si no hay inglés, probar bases europeas originales (Francés para Balthazar/HPI, Alemán para Tatort/Ludwig, etc.)
+          for (const lang of ["fr", "de", "it", "pt"]) {
+            const match = await osBaseFileId(imdbId, season, episode, lang, filename, videoHash, videoSize);
+            if (match) {
+              const langBadge = lang.toUpperCase();
+              const badge = match.matchType === "hash" ? `🎯 100% Hash Match (${langBadge})` : `Base ${langBadge}`;
+              bases.push({ t: "os", f: match.fileId, label: `${badge} (${match.releaseName})`, keyRef: `os-${match.fileId}`, matchType: match.matchType, srcLang: lang });
+              break;
+            }
           }
         }
       }
 
       const subtitles = bases.map((b, i) => ({
         id: `ia-es-${i}`,
-        url: `${mountBase}/gen/${b64u.enc(JSON.stringify({ t: b.t, u: b.u, f: b.f, r: b.keyRef }))}.srt`,
+        url: `${mountBase}/gen/${b64u.enc(JSON.stringify({ t: b.t, u: b.u, f: b.f, r: b.keyRef, name: showTitle, lang: b.srcLang || "en" }))}.srt`,
         lang: "spa",
         label: `[IA→ES latino] ${b.label}`,
         name: `[IA→ES latino] ${b.label}`,
@@ -3613,20 +3708,20 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
     }
   }
 
-  // â”€â”€ generar: /gen/<token>.srt  y  /x/<b64 url ARD>.srt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── generar: /gen/<token>.srt  y  /x/<b64 url ARD>.srt ───────────────────
   const genM = subPath.match(/^\/gen\/([^/]+?)(?:\.srt)?$/);
   const xM = subPath.match(/^\/x\/([^/]+?)(?:\.srt)?$/);
   if (genM || xM) {
-    let src: { t: string; u?: string; f?: number; r: string };
+    let src: { t: string; u?: string; f?: number; r: string; name?: string; lang?: string };
     try {
       if (xM) {
         const u = b64u.dec(xM[1]);
-        src = { t: "ard", u, r: u };
+        src = { t: "ard", u, r: u, name: "Mediathek DE", lang: "de" };
       } else {
         src = JSON.parse(b64u.dec(genM![1]));
       }
     } catch {
-      return new Response("token invÃ¡lido", { status: 400, headers: cors });
+      return new Response("token inválido", { status: 400, headers: cors });
     }
 
     const cacheKey = ["translate-srt", "v8", src.r];
@@ -3641,19 +3736,18 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
 
     try {
       const baseCues = await fetchBaseCues(src);
-      if (!baseCues.length) return new Response("subtÃ­tulo base vacÃ­o", { status: 502, headers: cors });
+      if (!baseCues.length) return new Response("subtítulo base vacío", { status: 502, headers: cors });
 
-      const { texts, done } = await translateCues(baseCues, src.r, kv, Date.now() + FAST_WINDOW_BUDGET_MS);
-      // El SRT final descarta las cues de puro sonido (ruido para quien mira en alemÃ¡n).
+      const sysPrompt = buildTranslateSystemPrompt(src.name || "Contenido Audiovisual", src.lang || "en");
+      const { texts, done } = await translateCues(baseCues, src.r, kv, Date.now() + FAST_WINDOW_BUDGET_MS, sysPrompt);
+      // El SRT final descarta las cues de puro sonido (ruido para quien mira en idioma original).
       const outCues = baseCues
         .map((c, i) => ({ ...c, text: texts[i] }))
-        .filter((c) => !isSoundOnly(c.text));
-      const srt = serializeSrt(outCues);
+        .filter((c) => !isSoundOnly(c.text) && c.text.trim().length > 0);
+      let srt = serializeSrt(outCues);
+      srt = cleanSrt(srt); // Doble pasada Anti-SDH y normalización
 
-      // Completa â†’ cache 90 dÃ­as. Parcial (algÃºn lote nunca parseÃ³ â€” tÃ­pico:
-      // una escena que la IA se niega a devolver) â†’ igual se cachea el SRT pero
-      // 2 dÃ­as, asÃ­ las aperturas repetidas son instantÃ¡neas mientras el resto
-      // ya estÃ¡ traducido; se re-genera solo pasado ese plazo por si mejora.
+      // Completa → cache 90 días. Parcial (algún lote nunca parseó) → cache 2 días.
       if (kv) {
         const ttl = done ? TRANSLATE_CACHE_TTL_MS : 2 * 24 * 60 * 60 * 1000;
         try { await kv.set(cacheKey, srt, { expireIn: ttl }); } catch { /* sin cache */ }
@@ -3668,7 +3762,7 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         },
       });
     } catch (e) {
-      return new Response("Error generando traducciÃ³n: " + (e as Error).message, { status: 502, headers: cors });
+      return new Response("Error generando traducción: " + (e as Error).message, { status: 502, headers: cors });
     }
   }
 
@@ -3708,8 +3802,16 @@ export const STREAMS_MANIFEST = {
   catalogs: [],
 };
 
-export const LATINO_STREAM_REGEX =
-  /\b(latino|latina|dual|spa|spanish|espanol|español|castellano|latinoamericano|doblaje latino|audio latino|audio-latino|lat-eng|eng-lat|multi-lat|es-la|es-419)\b|cinecalidad|hackstore|dontorrent|estrenosdtl|grantorrent|mejortorrent|dual[-_.]?lat|\[lat\]|\(lat\)|[-_.]lat[-_.]|\blat\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
+export type StreamAudioCategory = "latino" | "original" | "castellano" | "portuguese";
+
+export const PT_STREAM_REGEX =
+  /\b(dublado|legendado|pt[-_]?br|portugu[eê]s|bludv|comando|micoleaodublado|starckfilmes|homem[-_]?aranha|audio[-_ ]?pt)\b|🇧🇷|🇵🇹/i;
+
+export const CASTELLANO_STREAM_REGEX =
+  /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|mejortorrent|wolfmax4k|dontorrent|estrenosdtl|grantorrent|castellana|dual[-_ ]?esp)\b|🇪🇸/i;
+
+export const LATINO_EXCLUSIVE_REGEX =
+  /\b(cinecalidad|hackstore|latino|latina|latam|es[-_]?419|doblaje[-_ ]?latino|audio[-_ ]?latino|dual[-_ ]?lat|multi[-_ ]?lat|lat[-_ ]?eng|eng[-_ ]?lat|es[-_]?la)\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
 
 export const LATIN_TOKENS = [
   "latino", "latina", "latam", "eslatam", "es419", "419", "esla",
@@ -3730,11 +3832,18 @@ export function cleanReleaseName(text: string): string {
     .toLowerCase();
 }
 
-export function isLatinoStream(stream: { name?: string; title?: string; description?: string }): boolean {
+export function classifyStreamAudio(stream: { name?: string; title?: string; description?: string }): StreamAudioCategory {
   const rawText = `${stream.name || ""} ${stream.title || ""} ${stream.description || ""}`;
-  if (LATINO_STREAM_REGEX.test(rawText)) return true;
+  if (PT_STREAM_REGEX.test(rawText)) return "portuguese";
+  if (CASTELLANO_STREAM_REGEX.test(rawText)) return "castellano";
+  if (LATINO_EXCLUSIVE_REGEX.test(rawText)) return "latino";
   const cleaned = cleanReleaseName(rawText);
-  return LATIN_TOKENS.some((t) => cleaned.includes(t));
+  if (LATIN_TOKENS.some((t) => cleaned.includes(t))) return "latino";
+  return "original";
+}
+
+export function isLatinoStream(stream: { name?: string; title?: string; description?: string }): boolean {
+  return classifyStreamAudio(stream) === "latino";
 }
 
 const ALLOWED_TORRENTIO_HOSTS = new Set(["torrentio.strem.fun"]);
@@ -3780,28 +3889,45 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
   if (!Array.isArray(streams) || streams.length === 0) return [];
 
   const latinoCached: T[] = [];
-  const otherCached: T[] = [];
+  const originalCached: T[] = [];
   const latinoBuffer: T[] = [];
-  const otherBuffer: T[] = [];
+  const originalBuffer: T[] = [];
+  const castellanoCached: T[] = [];
+  const portugueseCached: T[] = [];
+  const castellanoBuffer: T[] = [];
+  const portugueseBuffer: T[] = [];
 
   for (const s of streams) {
-    const isLat = isLatinoStream(s);
+    const cat = classifyStreamAudio(s);
     const isFast = isCachedOrInstantStream(s);
 
-    if (isLat && isFast) latinoCached.push(s);
-    else if (!isLat && isFast) otherCached.push(s);
-    else if (isLat && !isFast) latinoBuffer.push(s);
-    else otherBuffer.push(s);
+    if (cat === "latino") {
+      if (isFast) latinoCached.push(s);
+      else latinoBuffer.push(s);
+    } else if (cat === "original") {
+      if (isFast) originalCached.push(s);
+      else originalBuffer.push(s);
+    } else if (cat === "castellano") {
+      if (isFast) castellanoCached.push(s);
+      else castellanoBuffer.push(s);
+    } else {
+      // portuguese
+      if (isFast) portugueseCached.push(s);
+      else portugueseBuffer.push(s);
+    }
   }
 
-  const badge = (s: T, isLat: boolean, isFast: boolean): T => {
+  const badge = (s: T, cat: StreamAudioCategory, isFast: boolean): T => {
     const raw = (s.name || "Torrentio")
       .replace(/^\[(⚡ INSTANTÁNEO|⏳ REQUIERE BUFFER)\]\s*/g, "")
-      .replace(/^\[(🇪🇸 LATINO|🌎 LATINO|⚠️ SOLO INGLÉS)\]\s*/g, "")
+      .replace(/^\[(🌎 LATINO|🎧 ORIGINAL|🇪🇸 CASTELLANO|🇧🇷 PORTUGUÉS|⚠️ SOLO INGLÉS|🇪🇸 LATINO)\]\s*/g, "")
       .trim();
 
     const speedPrefix = isFast ? "[⚡ INSTANTÁNEO]" : "[⏳ REQUIERE BUFFER]";
-    const langPrefix = isLat ? "[🌎 LATINO]" : "[⚠️ SOLO INGLÉS]";
+    let langPrefix = "[🎧 ORIGINAL]";
+    if (cat === "latino") langPrefix = "[🌎 LATINO]";
+    else if (cat === "castellano") langPrefix = "[🇪🇸 CASTELLANO]";
+    else if (cat === "portuguese") langPrefix = "[🇧🇷 PORTUGUÉS]";
 
     return {
       ...s,
@@ -3810,10 +3936,14 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
   };
 
   return [
-    ...latinoCached.map((s) => badge(s, true, true)),
-    ...latinoBuffer.map((s) => badge(s, true, false)),
-    ...otherCached.map((s) => badge(s, false, true)),
-    ...otherBuffer.map((s) => badge(s, false, false)),
+    ...latinoCached.map((s) => badge(s, "latino", true)),
+    ...originalCached.map((s) => badge(s, "original", true)),
+    ...latinoBuffer.map((s) => badge(s, "latino", false)),
+    ...originalBuffer.map((s) => badge(s, "original", false)),
+    ...castellanoCached.map((s) => badge(s, "castellano", true)),
+    ...portugueseCached.map((s) => badge(s, "portuguese", true)),
+    ...castellanoBuffer.map((s) => badge(s, "castellano", false)),
+    ...portugueseBuffer.map((s) => badge(s, "portuguese", false)),
   ];
 }
 
@@ -4052,7 +4182,7 @@ export async function handleHubRequest(req: Request): Promise<Response> {
   return res;
 }
 
-if (typeof Deno !== "undefined" && typeof Deno.serve === "function") {
+if (typeof Deno !== "undefined" && typeof Deno.serve === "function" && import.meta.main) {
   const port = parseInt(Deno.env.get("PORT") || "8000", 10);
   Deno.serve({ port }, handleHubRequest);
 }

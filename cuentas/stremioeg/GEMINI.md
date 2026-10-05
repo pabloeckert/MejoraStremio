@@ -112,6 +112,27 @@ Para garantizar una experiencia fluida sin judder ni parpadeos en Android TV:
 3. **Audio Passthrough**: Seleccionar modo **Direct / Passthrough** si la TV Box está conectada a soundbar o receptor AV para decodificación nativa de Dolby Atmos / DTS-HD.
 4. **Tunneled Playback**: En TV Boxes con procesadores Amlogic, alternar si se presentan desfasajes entre audio y video en streams 4K HDR.
 5. **SubSource Provider**: Integrado en el Hub (`/subsource`) como proveedor comunitario complementario con filtrado nativo anti-SDH y Smart Audio Sync.
+6. **Traducción IA (Gemini Flash)**: Integrado en el Hub (`/translate`) e instalado en la cuenta Stremio (`com.mejorastremio.translate`) como fallback inteligente con soporte multi-idioma (en, fr, de, it, pt), interpretación cinematográfica neutra y preservación de nombres propios.
+
+---
+
+## Sesión 2026-10-05: Auditoría y Resolución de los 6 Casos Críticos
+
+1. **HCI (HPI) — Sincronización PAL 25 ➔ 23.976fps en Opción 1**:
+   - `detectFramerate` infiere PAL 25fps en producciones europeas cuando el release carece de tags WEB-DL.
+   - La pista reescalada se presenta como Opción 1 por defecto en la TV Box, eliminando la deriva de 2.28 min/h.
+2. **Ludwig — Purgado SDH y Preservación de Nombres Propios**:
+   - `cleanCueForTranslation` elimina acotaciones sonoras y etiquetas de hablante antes de la invocación a Gemini.
+   - El prompt dinámico (`buildTranslateSystemPrompt`) prohíbe la traducción literal y protege nombres propios como Ludwig, John o Cambridge.
+3. **Balthazar — Soporte de Bases en Francés para IA**:
+   - Soporte para bases `fr` en OpenSubtitles permitiendo traducción directa de series francesas sin subtítulo en inglés previo.
+4. **The Greatest American Hero — Filtro Estricto 'ea'**:
+   - `hasViableSpanishSub` consulta exclusivamente `languages: "ea"` (latinoamericano), eliminando falsos positivos por subtítulos peninsulares de baja calidad.
+5. **Spider-Man: Brand New Day — Aislamiento de Portugués**:
+   - Detección exhaustiva de releases brasileños (`BLUDV`, `Comando.to`, `FULLHD DUAL`) clasificándolos como `[🇧🇷 PORTUGUÉS]` y relegándolos al final, manteniendo el stream de Cinecalidad como `[🌎 LATINO]` en el puesto #1.
+6. **Regular Show: The Lost Tapes — Prioridad de Audio Original**:
+   - Priorización del Audio Original (`[🎧 ORIGINAL]`) en el puesto #1 cuando no existe versión en latino cacheada en TorBox, relegando el doblaje castellano de España a última opción.
+
 
 
 

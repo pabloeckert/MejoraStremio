@@ -307,6 +307,19 @@ export function ensureHubSubtitleAddons(addons) {
         catalogs: [],
       },
     },
+    {
+      transportUrl: 'https://mejorastremio-hub.pabloeckert.deno.net/translate/manifest.json',
+      manifest: {
+        id: 'com.mejorastremio.translate',
+        version: '1.0.0',
+        name: 'Traducción IA (Gemini Flash)',
+        description: 'Traducción automática bajo demanda de subtítulos a español latino cuando no existen subtítulos oficiales.',
+        resources: ['subtitles'],
+        types: ['movie', 'series'],
+        idPrefixes: ['tt'],
+        catalogs: [],
+      },
+    },
   ];
 
   const existingIds = new Set(addons.map((a) => a.manifest?.id || a.id));
@@ -509,6 +522,7 @@ export async function handleRollback(authKey, rollbackLast, rollbackFile, dryRun
     'com.mejorastremio.subdl',
     'com.mejorastremio.opensubtitles',
     'com.mejorastremio.subsource',
+    'com.mejorastremio.translate',
     'com.mejorastremio.streams',
     'aio-metadata',
   ]);
@@ -681,6 +695,7 @@ async function runProfileManager() {
         'com.mejorastremio.subdl',
         'com.mejorastremio.opensubtitles',
         'com.mejorastremio.subsource',
+        'com.mejorastremio.translate',
         'com.mejorastremio.streams',
       ];
       if (aioRes.changed) guardExempt.push('aio-metadata');

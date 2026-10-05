@@ -35,7 +35,7 @@ export function isRealStream(s) {
 // hecho; no cuenta como cobertura real hasta que alguien la pida y se genere.
 export function isSpanishLang(lang) {
   const s = String(lang || '').toLowerCase();
-  return s === 'spa' || s.startsWith('es');
+  return s === 'spa' || s === 'spl' || s.startsWith('es');
 }
 
 // ── Blindaje Anti-SDH y Sanitización de Subtítulos ─────────────────────────

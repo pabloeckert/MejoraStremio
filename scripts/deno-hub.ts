@@ -540,6 +540,49 @@ export function cleanSrt(srtContent: string): string {
   return serializeCuesToSrt(clamped);
 }
 
+export interface SubtitleTrackPayload {
+  id: string;
+  url: string;
+  label: string;
+  name?: string;
+  lang?: string;
+}
+
+/**
+ * Emite pistas de subtítulos con compatibilidad dual ('spl' y 'spa').
+ * Stremio maneja dos códigos de idioma independientes:
+ * - 'spl': "Español (América Latina)" (IETF es-419)
+ * - 'spa': "Español" estándar (ISO 639-2 / IETF es-ES)
+ * Al emitir ambas variantes con IDs únicos, el reproductor de Stremio auto-selecciona
+ * la pista latina sin importar cuál de las dos opciones tenga configurada el usuario.
+ */
+export function pushDualSubtitles(
+  target: SubtitleTrackPayload[],
+  track: SubtitleTrackPayload,
+  isLatino: boolean = true,
+): void {
+  if (isLatino) {
+    // 1. Pista SPL: seleccionada automáticamente si el usuario tiene "Español (América Latina)"
+    target.push({
+      ...track,
+      id: `${track.id}-spl`,
+      lang: "spl",
+    });
+    // 2. Pista SPA: seleccionada automáticamente si el usuario tiene "Español" estándar
+    target.push({
+      ...track,
+      id: `${track.id}-spa`,
+      lang: "spa",
+    });
+  } else {
+    target.push({
+      ...track,
+      id: `${track.id}-spa`,
+      lang: "spa",
+    });
+  }
+}
+
 async function extractSrtFromZip(buf: Uint8Array): Promise<string | null> {
   const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
   let i = 0;
@@ -777,41 +820,37 @@ async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Pr
         if (syncDecision.needsRescale) {
           // El Hub detecta discrepancia estructural de framerate y APLICA AUTOMÁTICAMENTE
           // el time-stretch como opción número 1 preferente.
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: `${baseId}-${syncDecision.fpsParam}`,
             url: `${mountBase}/srt/${encoded}?fps=${syncDecision.fpsParam}&smart=1&${metaParams}`,
-            lang: "spa",
             label: `[SubDL] ${syncDecision.badge} ${cleanName}`,
             name: `[SubDL] ${syncDecision.badge} ${cleanName}`,
-          });
+          }, true);
 
           // Opción secundaria: pista sin estirar (original)
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${encoded}?${metaParams}`,
-            lang: "spa",
             label: `[SubDL] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
             name: `[SubDL] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
-          });
+          }, true);
         } else {
           // Coincidencia de framerate nativo: NO se estira en la opción 1 (evita drift artificial)
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${encoded}?${metaParams}`,
-            lang: "spa",
             label: `[SubDL] ${syncDecision.badge} ${cleanName}`,
             name: `[SubDL] ${syncDecision.badge} ${cleanName}`,
-          });
+          }, true);
 
           // Opción secundaria: alternativa forzada si los metadatos upstream venían mal etiquetados
           // (Especialmente crucial en series europeas/PAL como HPI, Tatort, etc.)
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: `${baseId}-pal-web`,
             url: `${mountBase}/srt/${encoded}?fps=25to23976&${metaParams}`,
-            lang: "spa",
             label: `[SubDL] ⏱️ Forzar PAL 25->23.976fps ${cleanName}`,
             name: `[SubDL] ⏱️ Forzar PAL 25->23.976fps ${cleanName}`,
-          });
+          }, true);
         }
       }
       return jsonResponse({ subtitles });
@@ -976,7 +1015,7 @@ async function handleSubsource(
 
     try {
       const candidates = await fetchSubSourceSubs(imdbId, season, episode);
-      const subtitles = [];
+      const subtitles: SubtitleTrackPayload[] = [];
 
       for (let i = 0; i < candidates.length; i++) {
         const s = candidates[i];
@@ -986,28 +1025,25 @@ async function handleSubsource(
         const syncDecision = resolveSmartSync(parsed.filename, s.name, imdbId);
 
         if (syncDecision.needsRescale) {
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: `${baseId}-${syncDecision.fpsParam}`,
             url: `${mountBase}/srt/${encoded}?fps=${syncDecision.fpsParam}&smart=1`,
-            lang: "spa",
             label: `[SubSource] ${syncDecision.badge} ${cleanName}`,
             name: `[SubSource] ${syncDecision.badge} ${cleanName}`,
-          });
-          subtitles.push({
+          }, true);
+          pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${encoded}`,
-            lang: "spa",
             label: `[SubSource] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
             name: `[SubSource] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
-          });
+          }, true);
         } else {
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${encoded}`,
-            lang: "spa",
             label: `[SubSource] ${syncDecision.badge} ${cleanName}`,
             name: `[SubSource] ${syncDecision.badge} ${cleanName}`,
-          });
+          }, true);
         }
       }
 
@@ -1298,43 +1334,41 @@ async function handleOpenSubtitles(
 
         const syncDecision = resolveSmartSync(parsed.filename, s.name, imdbId);
 
+        const isLatino = lang === "ea" || !(/\b(castellano|españa|spain|peninsular)\b/i.test(s.name));
+
         if (syncDecision.needsRescale) {
           // El Hub detecta discrepancia estructural de framerate y APLICA AUTOMÁTICAMENTE
           // el time-stretch como opción número 1 preferente.
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: `${baseId}-${syncDecision.fpsParam}`,
             url: `${mountBase}/srt/${s.fileId}?fps=${syncDecision.fpsParam}&smart=1`,
-            lang: "spa",
             label: `${disp} ${syncDecision.badge} ${s.name}`,
             name: `${disp} ${syncDecision.badge} ${s.name}`,
-          });
+          }, isLatino);
 
           // Opción secundaria: pista sin estirar (original)
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${s.fileId}`,
-            lang: "spa",
             label: `${disp} 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${s.name}`,
             name: `${disp} 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${s.name}`,
-          });
+          }, isLatino);
         } else {
           // Coincidencia de framerate nativo: NO se estira en la opción 1 (evita drift artificial)
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${s.fileId}`,
-            lang: "spa",
             label: `${disp} ${syncDecision.badge} ${s.name}`,
             name: `${disp} ${syncDecision.badge} ${s.name}`,
-          });
+          }, isLatino);
 
           // Opción secundaria: alternativa forzada PAL 25->23.976fps para series europeas (HPI, Tatort, etc.)
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: `${baseId}-pal-web`,
             url: `${mountBase}/srt/${s.fileId}?fps=25to23976`,
-            lang: "spa",
             label: `${disp} ⏱️ Forzar PAL 25->23.976fps ${s.name}`,
             name: `${disp} ⏱️ Forzar PAL 25->23.976fps ${s.name}`,
-          });
+          }, isLatino);
         }
       }
       return jsonResponse({ subtitles });
@@ -1512,37 +1546,33 @@ async function handleSubdivx(
         const baseId = `mshub-subdivx-${i}-${imdbId}`;
 
         if (syncDecision.needsRescale) {
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: `${baseId}-${syncDecision.fpsParam}`,
             url: `${mountBase}/srt/${encodedUrl}?fps=${syncDecision.fpsParam}&smart=1`,
-            lang: "spa",
             label: `[Subdivx] ${syncDecision.badge} ${subName}`,
             name: `[Subdivx] ${syncDecision.badge} ${subName}`,
-          });
-          subtitles.push({
+          }, true);
+          pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${encodedUrl}`,
-            lang: "spa",
             label: `[Subdivx] 📺 Original (${detectFramerate(subName, imdbId).tag}) ${subName}`,
             name: `[Subdivx] 📺 Original (${detectFramerate(subName, imdbId).tag}) ${subName}`,
-          });
+          }, true);
         } else {
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${encodedUrl}`,
-            lang: "spa",
             label: `[Subdivx] ${syncDecision.badge} ${subName}`,
             name: `[Subdivx] ${syncDecision.badge} ${subName}`,
-          });
+          }, true);
           const altFps = Math.abs(detectFramerate(subName).fps - 25.0) < 0.1 ? "25to23976" : "23976to25";
           const altBadge = altFps === "25to23976" ? "⏱️ Forzar 25->23.976fps" : "⏱️ Forzar 23.976->25fps";
-          subtitles.push({
+          pushDualSubtitles(subtitles, {
             id: `${baseId}-alt`,
             url: `${mountBase}/srt/${encodedUrl}?fps=${altFps}`,
-            lang: "spa",
             label: `[Subdivx] ${altBadge} ${subName}`,
             name: `[Subdivx] ${altBadge} ${subName}`,
-          });
+          }, true);
         }
       }
 
@@ -3086,7 +3116,12 @@ async function handleMediathek(subPath: string, _mountBase: string, translateMou
       if (f.urlSub) {
         subs.push({ id: "de-oficial", url: f.urlSub, lang: "ger" });
         subs.push({
-          id: "es-latino-ia",
+          id: "es-latino-ia-spl",
+          url: `${translateMount}/x/${b64u.enc(f.urlSub)}.srt`,
+          lang: "spl",
+        });
+        subs.push({
+          id: "es-latino-ia-spa",
           url: `${translateMount}/x/${b64u.enc(f.urlSub)}.srt`,
           lang: "spa",
         });
@@ -3711,13 +3746,15 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
         }
       }
 
-      const subtitles = bases.map((b, i) => ({
-        id: `ia-es-${i}`,
-        url: `${mountBase}/gen/${b64u.enc(JSON.stringify({ t: b.t, u: b.u, f: b.f, r: b.keyRef, name: showTitle, lang: b.srcLang || "en" }))}.srt`,
-        lang: "spa",
-        label: `[IA→ES latino] ${b.label}`,
-        name: `[IA→ES latino] ${b.label}`,
-      }));
+      const subtitles: SubtitleTrackPayload[] = [];
+      bases.forEach((b, i) => {
+        pushDualSubtitles(subtitles, {
+          id: `ia-es-${i}`,
+          url: `${mountBase}/gen/${b64u.enc(JSON.stringify({ t: b.t, u: b.u, f: b.f, r: b.keyRef, name: showTitle, lang: b.srcLang || "en" }))}.srt`,
+          label: `[IA→ES latino] ${b.label}`,
+          name: `[IA→ES latino] ${b.label}`,
+        }, true);
+      });
       return jsonResponse({ subtitles });
     } catch (e) {
       return jsonResponse({ subtitles: [], error: (e as Error).message }, { status: 500 });

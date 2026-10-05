@@ -3577,6 +3577,7 @@ async function osBaseFileId(
   videoFilename?: string | null,
   videoHash?: string | null,
   _videoSize?: number | null,
+  showTitle?: string | null,
 ): Promise<BaseSubMatch | null> {
   if (!OPENSUBTITLES_API_KEY) return null;
 
@@ -3601,8 +3602,8 @@ async function osBaseFileId(
     } catch { /* continuar a búsqueda por release */ }
   }
 
-  // 2. Búsqueda por IMDb ID y emparejamiento por similitud de release
-  const p = new URLSearchParams({ languages: lang, hearing_impaired: "exclude", order_by: "download_count" });
+  // 2. Búsqueda por IMDb ID y emparejamiento por similitud de release (sin exclude para bases de traducción)
+  const p = new URLSearchParams({ languages: lang, order_by: "download_count" });
   if (season != null && episode != null) {
     p.set("parent_imdb_id", imdbId.replace(/^tt0*/, ""));
     p.set("season_number", String(season));
@@ -3615,7 +3616,22 @@ async function osBaseFileId(
   }).then((x) => x.json()).catch(() => null);
 
   // deno-lint-ignore no-explicit-any
-  const data: any[] = Array.isArray(r?.data) ? r.data : [];
+  let data: any[] = Array.isArray(r?.data) ? r.data : [];
+
+  // 3. Fallback: búsqueda por título textual si la consulta por ID no arrojó subtítulos
+  if (!data.length && showTitle) {
+    const qp = new URLSearchParams({ languages: lang, query: showTitle, order_by: "download_count" });
+    if (season != null && episode != null) {
+      qp.set("season_number", String(season));
+      qp.set("episode_number", String(episode));
+    }
+    const qr = await fetch(`${OPENSUBTITLES_API}/subtitles?${qp}`, {
+      headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA },
+      signal: AbortSignal.timeout(10000),
+    }).then((x) => x.json()).catch(() => null);
+    if (Array.isArray(qr?.data)) data = qr.data;
+  }
+
   if (!data.length) return null;
 
   if (videoFilename) {
@@ -3677,14 +3693,14 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
       }
       if (!bases.length) {
         // 1. Probar base en inglés que empareje con el hash o release del video
-        const en = await osBaseFileId(imdbId, season, episode, "en", filename, videoHash, videoSize);
+        const en = await osBaseFileId(imdbId, season, episode, "en", filename, videoHash, videoSize, showTitle);
         if (en) {
           const badge = en.matchType === "hash" ? "🎯 100% Hash Match" : en.matchType === "release" ? "✨ Release Match" : "Base EN";
           bases.push({ t: "os", f: en.fileId, label: `${badge} (${en.releaseName})`, keyRef: `os-${en.fileId}`, matchType: en.matchType, srcLang: "en" });
         } else {
           // 2. Si no hay inglés, probar bases europeas originales (Francés para Balthazar/HPI, Alemán para Tatort/Ludwig, etc.)
           for (const lang of ["fr", "de", "it", "pt"]) {
-            const match = await osBaseFileId(imdbId, season, episode, lang, filename, videoHash, videoSize);
+            const match = await osBaseFileId(imdbId, season, episode, lang, filename, videoHash, videoSize, showTitle);
             if (match) {
               const langBadge = lang.toUpperCase();
               const badge = match.matchType === "hash" ? `🎯 100% Hash Match (${langBadge})` : `Base ${langBadge}`;

@@ -153,8 +153,8 @@
               "params": {
                 "sort_by": "popularity.desc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-07-21",
-                "primary_release_date.lte": "2026-10-04",
+                "primary_release_date.gte": "2026-07-22",
+                "primary_release_date.lte": "2026-10-05",
                 "with_runtime.gte": 45,
                 "without_keywords": "210024,10292,221355,11001,348144,6075",
                 "vote_count.gte": 1,
@@ -221,8 +221,8 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-07-21",
-                "primaryReleaseTo": "2026-10-04",
+                "primaryReleaseFrom": "2026-07-22",
+                "primaryReleaseTo": "2026-10-05",
                 "firstAirFrom": "",
                 "firstAirTo": "",
                 "airDateFrom": "",
@@ -249,8 +249,8 @@
               "params": {
                 "sort_by": "first_air_date.desc",
                 "include_adult": false,
-                "first_air_date.gte": "2026-07-21",
-                "first_air_date.lte": "2026-10-04",
+                "first_air_date.gte": "2026-07-22",
+                "first_air_date.lte": "2026-10-05",
                 "with_runtime.gte": 15,
                 "without_keywords": "210024,10292,221355,11001,348144,6075",
                 "without_genres": "10764,10766,10767,10763",
@@ -335,8 +335,8 @@
                 ],
                 "primaryReleaseFrom": "",
                 "primaryReleaseTo": "",
-                "firstAirFrom": "2026-07-21",
-                "firstAirTo": "2026-10-04",
+                "firstAirFrom": "2026-07-22",
+                "firstAirTo": "2026-10-05",
                 "airDateFrom": "",
                 "airDateTo": "",
                 "releaseRegion": ""
@@ -361,7 +361,7 @@
               "params": {
                 "sort_by": "primary_release_date.asc",
                 "include_adult": false,
-                "primary_release_date.gte": "2026-10-04",
+                "primary_release_date.gte": "2026-10-05",
                 "with_runtime.gte": 45,
                 "without_keywords": "210024,10292,221355,11001,348144,6075"
               },
@@ -425,7 +425,7 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-10-04",
+                "primaryReleaseFrom": "2026-10-05",
                 "primaryReleaseTo": "",
                 "firstAirFrom": "",
                 "firstAirTo": "",
@@ -453,7 +453,7 @@
               "params": {
                 "sort_by": "first_air_date.asc",
                 "include_adult": false,
-                "first_air_date.gte": "2026-10-04",
+                "first_air_date.gte": "2026-10-05",
                 "with_runtime.gte": 15,
                 "without_keywords": "210024,10292,221355,11001,348144,6075",
                 "without_genres": "10764,10766,10767,10763"
@@ -537,7 +537,7 @@
                 ],
                 "primaryReleaseFrom": "",
                 "primaryReleaseTo": "",
-                "firstAirFrom": "2026-10-04",
+                "firstAirFrom": "2026-10-05",
                 "firstAirTo": "",
                 "airDateFrom": "",
                 "airDateTo": "",
@@ -14873,7 +14873,7 @@
         }
       ]
     },
-    "instanceId": "e4329338-151b-4d78-94ff-d7d10f86d479"
+    "instanceId": "2c880855-bfff-49d5-b913-14217be5660b"
   },
   "nuvioCollectionsConfig": [
     {

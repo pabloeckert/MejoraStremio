@@ -157,3 +157,26 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   1. Variante `${id}-spl` (`lang: "spl"`): Enlace automático cuando el cliente busca "Español (América Latina)".
   2. Variante `${id}-spa` (`lang: "spa"`): Enlace automático cuando el cliente busca "Español".
 - Verificado y deployado en vivo a producción en `mejorastremio-hub.pabloeckert.deno.net` mediante workflow `deploy-deno-hub.yml`.
+
+---
+
+## 11. Sesión 2026-10-06: Poda Leanback de Subtítulos y Blindaje Anti-Caché TV Box (Wild Cards & ExoPlayer UI)
+
+### 11.1 Causa Raíz de Desincronización en Wild Cards (`tt29780951`)
+- **Falla en Subtítulo Comunitario**: El único subtítulo en español en OpenSubtitles (`8552294`) terminaba prematuramente en el cue 585 (minuto 29:37), faltando 14 minutos para el final de 43:09.
+- **Traducción IA Completa**: La base oficial en inglés (`8552293`) contiene los 835 cues completos sincronizados. La traducción de Gemini generada por el Hub cubre el 100% del episodio, pero quedaba inaccesible al fondo de una lista de más de 60 opciones duplicadas.
+
+### 11.2 Poda Leanback de Subtítulos y Etiquetas Cortas (<20 Caracteres)
+- **Limitación en UI de Android TV**: El selector lateral de ExoPlayer tiene ancho fijo (~25 caracteres). Las etiquetas que comenzaban con `[OpenSubtitles Latino (sin SDH)]...` se truncaban idénticas, impidiendo distinguir sincronizaciones y proveedores.
+- **Poda Quirúrgica a 2 Opciones por Addon**:
+  - `⚡ 1. Latino (Sincro) · ...` (con time-stretch automático si hay desfasaje)
+  - `📺 Original · ...` (sin alterar, como resguardo)
+  - `✅ 1. Latino (Nativo) · ...` (coincidencia nativa)
+  - `🤖 1. IA Latino (Completo) · ...` (traducción generativa cuando la base en español es incompleta)
+- **Eliminación de Redundancia en la Cuenta**: Se desinstaló `com.mejorastremio.opensubtitles` de la cuenta de Stremio, conservando exclusivamente `com.mejorastremio.opensubtitles-latino` para evitar duplicación 2x de consultas al mismo backend.
+
+### 11.3 Blindaje Anti-Caché y Protocolo de Recarga Inmediata
+- **Header HTTP Global**: Se inyectó `"Cache-Control": "no-cache, no-store, must-revalidate"` en las cabeceras `cors` de todas las respuestas JSON y SRT del Hub Deno.
+- **Salto de Versión en Manifiestos**: Manifiestos elevados a versión `1.2.0` (`SUBDL_MANIFEST`, `SUBSOURCE_MANIFEST`, `OPENSUBTITLES_LATINO_MANIFEST`, `TRANSLATE_MANIFEST`, `STREAMS_MANIFEST`) para que el motor `stremio-core` detecte actualización de esquema y purgue la caché local de add-ons.
+- **Ciclo de Vida de Android TV**: Al apagar la TV o presionar "Home", Android TV suspende la app en RAM sin destruirla. Para forzar la recarga de manifiestos y la nueva colección de add-ons en la nube, se debe hacer **"Forzar detención"** en Ajustes ➔ Aplicaciones ➔ Stremio o reiniciar la TV Box.
+

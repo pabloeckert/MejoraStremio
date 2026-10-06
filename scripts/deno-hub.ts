@@ -1255,7 +1255,7 @@ async function handleOpenSubtitles(
   manifest: any = OPENSUBTITLES_MANIFEST,
   lang: string = "es",
   idTag: string = "mshub-os",
-  nameTag: string = "OpenSubtitles",
+  _nameTag: string = "OpenSubtitles",
   reqUrl?: URL,
 ): Promise<Response> {
   if (subPath === "/manifest.json") {

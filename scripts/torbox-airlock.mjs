@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * torbox-airlock.mjs â€” Marca en TorBox como "airlocked" (no se purga a los 30 dÃ­as de inactividad)
  * los episodios cacheados de shows que Pablo estÃ¡ mirando despacio (Continue Watching en MyTrakt
@@ -88,15 +88,28 @@ async function fetchCatalog(type, id) {
 }
 
 const continueWatching = await fetchCatalog('series', 'continue_watching_shows');
+
+// Detección semántica de expiración de sesión Trakt (OAuth requerido)
+const traktAuthExpired = continueWatching.some(
+  (m) => String(m?.id || '').startsWith('trakt_auth_required') || /trakt authentication required/i.test(m?.name || '')
+);
+
+if (traktAuthExpired) {
+  console.warn('\n::warning:: [TRAKT_AUTH_REQUIRED] La sesión de Trakt.tv ha expirado en MyTrakt Sync.');
+  console.warn('⚠️ Se requiere re-autenticar la cuenta en: https://mytrakt.elfhosted.com');
+  console.warn('ℹ️ TorBox AirLock pausado hasta renovar la autenticación.\n');
+  process.exit(0);
+}
+
 const shows = new Map();
 for (const m of continueWatching) if (m.imdb_id && !shows.has(m.imdb_id)) shows.set(m.imdb_id, m.name);
 if (shows.size === 0) {
-  // MyTrakt devolviÃ³ 0 shows: casi seguro un fallo transitorio del endpoint (Pablo siempre tiene
-  // algo en progreso). A diferencia de premiere-radar.mjs, este script NO persiste estado â€” no hay
+  // MyTrakt devolvió 0 shows: casi seguro un fallo transitorio del endpoint (Pablo siempre tiene
+  // algo en progreso). A diferencia de premiere-radar.mjs, este script NO persiste estado — no hay
   // nada que un fallo silencioso pueda corromper. Salir limpio (exit 0) en vez de marcar el job en
-  // rojo por un hipo de un servicio de terceros: la corrida de maÃ±ana reintenta sola.
-  console.log('âš  MyTrakt Sync devolviÃ³ 0 shows en Continue Watching â€” probable fallo transitorio ' +
-              'del endpoint. No hay nada que airlockear en esta corrida; se reintenta maÃ±ana.');
+  // rojo por un hipo de un servicio de terceros: la corrida de mañana reintenta sola.
+  console.log('⚠ MyTrakt Sync devolvió 0 shows en Continue Watching — probable fallo transitorio ' +
+              'del endpoint. No hay nada que airlockear en esta corrida; se reintenta mañana.');
   process.exit(0);
 }
 console.log(`${shows.size} show(s) en Continue Watching en MyTrakt Sync.\n`);

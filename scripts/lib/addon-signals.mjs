@@ -11,7 +11,7 @@ export function isUtilityStream(s) {
 }
 
 export function seedCount(text) {
-  const m = String(text || '').match(/ðŸ‘¤\s*([\d,.]+)/);
+  const m = String(text || '').match(/(?:👤|ðŸ‘¤)\s*([\d,.]+)/);
   return m ? parseInt(m[1].replace(/[,.]/g, ''), 10) : null;
 }
 
@@ -19,7 +19,8 @@ export function seedCount(text) {
 // no depende del swarm P2P vivo â€” un torrent con ðŸ‘¤ 0 hoy igual reproduce si ya estÃ¡ cacheado.
 // [TB download] / [TBâ¬‡ï¸] = TorBox todavÃ­a no lo tiene, necesita bajarlo del swarm primero.
 export function isCachedStream(s) {
-  return /\[TB\+\]|\[TBâš¡\]/.test(s.name || '');
+  const text = `${s?.name || ''} ${s?.title || ''}`;
+  return /\[TB\+\]|\[TB⚡\]|\[TBâš¡\]|\[(?:tb|torbox)\+\]|\b(?:cached|instant[aá]neo)\b/i.test(text);
 }
 
 export function isRealStream(s) {

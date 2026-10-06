@@ -1,4 +1,4 @@
-﻿/**
+/**
  * collection-guard.mjs â€” Guard compartido contra manifests con catÃ¡logos congelados en 0.
  *
  * Causa raÃ­z real encontrada el 2026-07-11: varios scripts de escritura (apply-torbox-profile.mjs,
@@ -53,24 +53,50 @@ export async function assertNoFrozenEmptyCatalogs(addons, modifiedIds) {
   if (!candidates.length) return true;
 
   const broken = [];
+  const unreachable = [];
   for (const a of candidates) {
-    const live = await getJson(manifestUrlOf(a.transportUrl));
+    const url = manifestUrlOf(a.transportUrl);
+    let live = await getJson(url);
+    if (live === null) {
+      // Reintento breve para no abortar ante un blip puntual de red
+      await new Promise((r) => setTimeout(r, 1500));
+      live = await getJson(url);
+    }
+    if (live === null) {
+      unreachable.push(a);
+      continue;
+    }
     const liveCatalogs = live?.catalogs?.length ?? 0;
     if (liveCatalogs > 0) broken.push({ addon: a, liveCatalogs });
   }
-  if (!broken.length) return true;
 
-  console.error('\nâœ— ABORTADO â€” guard anti-manifest-congelado:');
-  for (const { addon: a, liveCatalogs } of broken) {
-    console.error(
-      `  "${a.manifest?.name}" (${a.manifest?.id}): storage tiene catalogs=[] pero el manifest ` +
-        `EN VIVO responde con ${liveCatalogs} catÃ¡logos â€” esta corrida NO lo estÃ¡ modificando, asÃ­ ` +
-        `que escribir esto congelarÃ­a el manifest roto.`
-    );
+  if (unreachable.length > 0) {
+    console.error('\n✗ ABORTADO POR PRECAUCIÓN (Fail-Closed) — guard anti-manifest-congelado:');
+    for (const a of unreachable) {
+      console.error(
+        `  "${a.manifest?.name}" (${a.manifest?.id}): storage tiene catalogs=[] pero el manifest EN VIVO ` +
+          `no respondió (${manifestUrlOf(a.transportUrl)}). Por precaución Zero-Trust se aborta la escritura ` +
+          `para no congelar catálogos vacíos.`
+      );
+    }
+    return false;
   }
-  console.error(
-    '  Ver GEMINI.md â†’ "Bug real: catalogs:[] indiscriminado". ArreglÃ¡ esos addons primero ' +
-      '(ej. regenerate-aiometadata.mjs --apply para AIOMetadata) antes de correr este script.'
-  );
-  return false;
+
+  if (broken.length > 0) {
+    console.error('\n✗ ABORTADO — guard anti-manifest-congelado:');
+    for (const { addon: a, liveCatalogs } of broken) {
+      console.error(
+        `  "${a.manifest?.name}" (${a.manifest?.id}): storage tiene catalogs=[] pero el manifest ` +
+          `EN VIVO responde con ${liveCatalogs} catálogos — esta corrida NO lo está modificando, así ` +
+          `que escribir esto congelaría el manifest roto.`
+      );
+    }
+    console.error(
+      '  Ver GEMINI.md → "Bug real: catalogs:[] indiscriminado". Arreglá esos addons primero ' +
+        '(ej. regenerate-aiometadata.mjs --apply para AIOMetadata) antes de correr este script.'
+    );
+    return false;
+  }
+
+  return true;
 }

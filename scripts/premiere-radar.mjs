@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * premiere-radar.mjs â€” Para cada show en progreso/watchlist en MyTrakt Sync, calcula el prÃ³ximo
  * episodio no visto y avisa por email la PRIMERA vez que ese episodio puntual estÃ¡ realmente listo
@@ -95,19 +95,34 @@ const [continueWatching, watchlist] = await Promise.all([
   fetchCatalog('series', 'watchlist_shows'),
 ]);
 
+const allMetas = [...continueWatching, ...watchlist];
+
+// Detección semántica de expiración de sesión Trakt (OAuth requerido)
+const traktAuthExpired = allMetas.some(
+  (m) => String(m?.id || '').startsWith('trakt_auth_required') || /trakt authentication required/i.test(m?.name || '')
+);
+
+if (traktAuthExpired) {
+  console.warn('\n::warning:: [TRAKT_AUTH_REQUIRED] La sesión de Trakt.tv ha expirado en MyTrakt Sync.');
+  console.warn('⚠️ Se requiere re-autenticar la cuenta en: https://mytrakt.elfhosted.com');
+  console.warn('ℹ️ No se modifica data/premiere-radar-state.json para preservar el historial previo.\n');
+  process.exit(0);
+}
+
 const shows = new Map();
-for (const m of [...continueWatching, ...watchlist]) {
+for (const m of allMetas) {
   if (m.imdb_id && !shows.has(m.imdb_id)) shows.set(m.imdb_id, m.name);
 }
 
 // Guard: si MyTrakt devuelve 0 shows es casi siempre un fallo transitorio del endpoint
-// (getJson â†’ null â†’ metas:[]), no que Pablo se haya quedado sin nada en progreso. Sin este
+// (getJson → null → metas:[]), no que Pablo se haya quedado sin nada en progreso. Sin este
 // guard, saveState([]) borraba todo el estado y la corrida siguiente re-"notificaba" cada
-// episodio desde cero (pasÃ³ el 2026-09-02, ver GEMINI.md sesiÃ³n 2026-09-03 dev 2). Abortamos
-// sin tocar el archivo de estado.
+// episodio desde cero (pasó el 2026-09-02, ver GEMINI.md sesión 2026-09-03 dev 2). Abortamos
+// sin tocar el archivo de estado y sin romper el build en CI.
 if (shows.size === 0) {
-  die('MyTrakt Sync devolviÃ³ 0 shows (continue_watching + watchlist vacÃ­os) â€” probable fallo ' +
-      'transitorio del endpoint. No se toca data/premiere-radar-state.json.');
+  console.warn('⚠️ MyTrakt Sync devolvió 0 shows (continue_watching + watchlist vacíos) — probable fallo transitorio del endpoint.');
+  console.warn('ℹ️ No se toca data/premiere-radar-state.json. Saliendo de forma controlada.');
+  process.exit(0);
 }
 console.log(`${shows.size} show(s) en progreso/watchlist en MyTrakt Sync.\n`);
 

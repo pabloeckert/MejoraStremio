@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * Registro "antifrustraciÃ³n": cuando un tÃ­tulo "no abre" (streams que cargan sin
  * fin o no aparecen), lo registra en data/anti-frustration-log.json con su
@@ -35,7 +35,7 @@ const LOG_PATH = join(ROOT, 'data', 'anti-frustration-log.json');
 const CINEMETA = 'https://v3-cinemeta.strem.io';
 
 const RESOLVED_THRESHOLD = 3; // streams "reales" mÃ­nimos para considerar resuelto
-const LATINO_RE = /latino|ðŸ‡²ðŸ‡½|ðŸ‡¦ðŸ‡·|ðŸ‡¨ðŸ‡´/i;
+const LATINO_RE = /latino|🇲🇽|🇦🇷|🇨🇴|🌎|ðŸ‡²ðŸ‡½|ðŸ‡¦ðŸ‡·|ðŸ‡¨ðŸ‡´/i;
 const FAMILY_GENRES = new Set(['Animation', 'Family']);
 // Meteor no expone contador de seeds en el tÃ­tulo (a diferencia de Torrentio) y
 // tiene fama documentada de dar torrents sin seeds que "cargan y nunca arrancan"

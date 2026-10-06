@@ -43,25 +43,18 @@
           "priority": 2
         },
         {
-          "id": "com.mejorastremio.opensubtitles",
-          "name": "OpenSubtitles ES (sin SDH)",
-          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/opensubtitles/manifest.json",
-          "filterHearingImpaired": true,
-          "priority": 3
-        },
-        {
           "id": "com.mejorastremio.subsource",
           "name": "SubSource ES (sin SDH)",
           "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/subsource/manifest.json",
           "filterHearingImpaired": true,
-          "priority": 4
+          "priority": 3
         },
         {
           "id": "com.mejorastremio.translate",
           "name": "Traducción IA (Gemini Flash)",
           "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/translate/manifest.json",
           "filterHearingImpaired": true,
-          "priority": 5
+          "priority": 4
         }
       ]
     },

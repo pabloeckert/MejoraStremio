@@ -50,6 +50,7 @@
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "*",
+  "Cache-Control": "no-cache, no-store, must-revalidate",
 };
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
@@ -151,7 +152,7 @@ const SUBDL_DL = "https://dl.subdl.com";
 
 const SUBDL_MANIFEST = {
   id: "com.mejorastremio.subdl",
-  version: "1.0.0",
+  version: "1.2.0",
   name: "SubDL ES (sin SDH)",
   description:
     "SubtÃ­tulos en espaÃ±ol de SubDL. Filtra hearing-impaired (SDH) automÃ¡ticamente.",
@@ -806,50 +807,41 @@ async function handleSubdl(subPath: string, mountBase: string, reqUrl?: URL): Pr
 
       const sortedClean = sortRegionalPriority([...clean, ...restClean]);
       const allSdh = [...sdhTagged, ...restSdh];
-      // deno-lint-ignore no-explicit-any
-      const subtitles: any[] = [];
-      for (const s of [...sortedClean, ...allSdh]) {
-        const cleanName = s.name.replace(/\.(zip|srt)$/i, "");
+      // PODA LEANBACK: máximo 2 mejores candidatos para evitar saturación en Android TV
+      const candidates = sortedClean.length ? sortedClean.slice(0, 2) : allSdh.slice(0, 2);
+
+      const subtitles: SubtitleTrackPayload[] = [];
+      for (let i = 0; i < candidates.length; i++) {
+        const s = candidates[i];
+        const cleanName = s.name.replace(/\.(zip|srt)$/i, "").slice(0, 25);
         const baseId = `mshub-subdl-${subs.indexOf(s)}-${imdbId}`;
         const encoded = encodeURIComponent(s.subdlPath);
 
         const syncDecision = resolveSmartSync(parsed.filename, s.name, imdbId);
-
         const metaParams = `imdb=${encodeURIComponent(imdbId)}${season != null ? `&season=${season}` : ""}${episode != null ? `&episode=${episode}` : ""}`;
 
         if (syncDecision.needsRescale) {
-          // El Hub detecta discrepancia estructural de framerate y APLICA AUTOMÁTICAMENTE
-          // el time-stretch como opción número 1 preferente.
           pushDualSubtitles(subtitles, {
             id: `${baseId}-${syncDecision.fpsParam}`,
             url: `${mountBase}/srt/${encoded}?fps=${syncDecision.fpsParam}&smart=1&${metaParams}`,
-            label: `[SubDL] ${syncDecision.badge} ${cleanName}`,
-            name: `[SubDL] ${syncDecision.badge} ${cleanName}`,
+            label: `⚡ ${i + 1}. Latino (Sincro) · ${cleanName}`,
+            name: `⚡ ${i + 1}. Latino (Sincro) · ${cleanName}`,
           }, true);
 
-          // Opción secundaria: pista sin estirar (original)
-          pushDualSubtitles(subtitles, {
-            id: baseId,
-            url: `${mountBase}/srt/${encoded}?${metaParams}`,
-            label: `[SubDL] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
-            name: `[SubDL] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
-          }, true);
+          if (i === 0) {
+            pushDualSubtitles(subtitles, {
+              id: baseId,
+              url: `${mountBase}/srt/${encoded}?${metaParams}`,
+              label: `📺 Original · ${cleanName}`,
+              name: `📺 Original · ${cleanName}`,
+            }, true);
+          }
         } else {
-          // Coincidencia de framerate nativo: NO se estira en la opción 1 (evita drift artificial)
           pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${encoded}?${metaParams}`,
-            label: `[SubDL] ${syncDecision.badge} ${cleanName}`,
-            name: `[SubDL] ${syncDecision.badge} ${cleanName}`,
-          }, true);
-
-          // Opción secundaria: alternativa forzada si los metadatos upstream venían mal etiquetados
-          // (Especialmente crucial en series europeas/PAL como HPI, Tatort, etc.)
-          pushDualSubtitles(subtitles, {
-            id: `${baseId}-pal-web`,
-            url: `${mountBase}/srt/${encoded}?fps=25to23976&${metaParams}`,
-            label: `[SubDL] ⏱️ Forzar PAL 25->23.976fps ${cleanName}`,
-            name: `[SubDL] ⏱️ Forzar PAL 25->23.976fps ${cleanName}`,
+            label: `✅ ${i + 1}. Latino (Nativo) · ${cleanName}`,
+            name: `✅ ${i + 1}. Latino (Nativo) · ${cleanName}`,
           }, true);
         }
       }
@@ -927,7 +919,7 @@ const SUBSOURCE_API = "https://api.subsource.net/api/v1";
 
 const SUBSOURCE_MANIFEST = {
   id: "com.mejorastremio.subsource",
-  version: "1.0.0",
+  version: "1.2.0",
   name: "SubSource ES (sin SDH)",
   description:
     "Subtítulos en español de SubSource con filtrado hearing-impaired (sin SDH) y smart audio sync.",
@@ -1017,32 +1009,34 @@ async function handleSubsource(
       const candidates = await fetchSubSourceSubs(imdbId, season, episode);
       const subtitles: SubtitleTrackPayload[] = [];
 
-      for (let i = 0; i < candidates.length; i++) {
+      for (let i = 0; i < Math.min(candidates.length, 2); i++) {
         const s = candidates[i];
         const baseId = `mshub-subsrc-${i}-${imdbId}`;
         const encoded = encodeURIComponent(s.downloadUrl);
-        const cleanName = s.name.replace(/\.(srt|zip)$/i, "").slice(0, 70);
+        const cleanName = s.name.replace(/\.(srt|zip)$/i, "").slice(0, 25);
         const syncDecision = resolveSmartSync(parsed.filename, s.name, imdbId);
 
         if (syncDecision.needsRescale) {
           pushDualSubtitles(subtitles, {
             id: `${baseId}-${syncDecision.fpsParam}`,
             url: `${mountBase}/srt/${encoded}?fps=${syncDecision.fpsParam}&smart=1`,
-            label: `[SubSource] ${syncDecision.badge} ${cleanName}`,
-            name: `[SubSource] ${syncDecision.badge} ${cleanName}`,
+            label: `⚡ ${i + 1}. Latino (Sincro) · ${cleanName}`,
+            name: `⚡ ${i + 1}. Latino (Sincro) · ${cleanName}`,
           }, true);
-          pushDualSubtitles(subtitles, {
-            id: baseId,
-            url: `${mountBase}/srt/${encoded}`,
-            label: `[SubSource] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
-            name: `[SubSource] 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${cleanName}`,
-          }, true);
+          if (i === 0) {
+            pushDualSubtitles(subtitles, {
+              id: baseId,
+              url: `${mountBase}/srt/${encoded}`,
+              label: `📺 Original · ${cleanName}`,
+              name: `📺 Original · ${cleanName}`,
+            }, true);
+          }
         } else {
           pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${encoded}`,
-            label: `[SubSource] ${syncDecision.badge} ${cleanName}`,
-            name: `[SubSource] ${syncDecision.badge} ${cleanName}`,
+            label: `✅ ${i + 1}. Latino (Nativo) · ${cleanName}`,
+            name: `✅ ${i + 1}. Latino (Nativo) · ${cleanName}`,
           }, true);
         }
       }
@@ -1112,10 +1106,10 @@ const OPENSUBTITLES_SRT_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 dÃ­as �
 
 const OPENSUBTITLES_MANIFEST = {
   id: "com.mejorastremio.opensubtitles",
-  version: "1.0.0",
+  version: "1.2.0",
   name: "OpenSubtitles ES (sin SDH)",
   description:
-    "SubtÃ­tulos en espaÃ±ol de OpenSubtitles (API moderna). Filtra hearing-impaired " +
+    "Subtítulos en español de OpenSubtitles (API moderna). Filtra hearing-impaired " +
     "(SDH) server-side con el campo real de la API, no por nombre de archivo.",
   resources: ["subtitles"],
   types: ["movie", "series"],
@@ -1123,15 +1117,15 @@ const OPENSUBTITLES_MANIFEST = {
   catalogs: [],
 };
 
-// "ea" = Spanish (LA), cÃ³digo separado de "es" (genÃ©rico) y "sp" (Spanish EU) â€” confirmado
+// "ea" = Spanish (LA), código separado de "es" (genérico) y "sp" (Spanish EU) — confirmado
 // contra GET /api/v1/infos/languages de la API real el 2026-09-02 (nunca antes verificado; las
 // pruebas viejas con es-419/es-MX/es-AR/lat contra SubSense no aplicaban a esta API). Primera
-// fuente de subtÃ­tulos del proyecto que puede filtrar la variante latina de verdad, en vez de
+// fuente de subtítulos del proyecto que puede filtrar la variante latina de verdad, en vez de
 // depender de que el uploader la haya mencionado en el nombre del archivo (ver GEMINI.md,
-// "SubtÃ­tulos, variante latino vs. EspaÃ±a").
+// "Subtítulos, variante latino vs. España").
 const OPENSUBTITLES_LATINO_MANIFEST = {
   id: "com.mejorastremio.opensubtitles-latino",
-  version: "1.0.0",
+  version: "1.2.0",
   name: "OpenSubtitles Latino (sin SDH)",
   description:
     "SubtÃ­tulos en espaÃ±ol LATINOAMERICANO real de OpenSubtitles (API moderna, cÃ³digo de " +
@@ -1326,48 +1320,40 @@ async function handleOpenSubtitles(
 
       const sortedClean = sortRegionalPriority([...clean, ...restClean]);
       const allSdh = [...sdhTagged, ...restSdh];
-      // deno-lint-ignore no-explicit-any
-      const subtitles: any[] = [];
-      for (const s of [...sortedClean, ...allSdh]) {
+      // PODA LEANBACK: máximo 2 mejores candidatos para evitar saturación en Android TV
+      const candidates = sortedClean.length ? sortedClean.slice(0, 2) : allSdh.slice(0, 2);
+
+      const subtitles: SubtitleTrackPayload[] = [];
+      for (let i = 0; i < candidates.length; i++) {
+        const s = candidates[i];
         const baseId = `${idTag}-${subs.indexOf(s)}-${imdbId}`;
-        const disp = `[${nameTag}]`;
-
         const syncDecision = resolveSmartSync(parsed.filename, s.name, imdbId);
-
+        const cleanName = s.name.replace(/\.(zip|srt)$/i, "").slice(0, 25);
         const isLatino = lang === "ea" || !(/\b(castellano|españa|spain|peninsular)\b/i.test(s.name));
+        const prefix = isLatino ? "Latino" : "España";
 
         if (syncDecision.needsRescale) {
-          // El Hub detecta discrepancia estructural de framerate y APLICA AUTOMÁTICAMENTE
-          // el time-stretch como opción número 1 preferente.
           pushDualSubtitles(subtitles, {
             id: `${baseId}-${syncDecision.fpsParam}`,
             url: `${mountBase}/srt/${s.fileId}?fps=${syncDecision.fpsParam}&smart=1`,
-            label: `${disp} ${syncDecision.badge} ${s.name}`,
-            name: `${disp} ${syncDecision.badge} ${s.name}`,
+            label: `⚡ ${i + 1}. ${prefix} (Sincro) · ${cleanName}`,
+            name: `⚡ ${i + 1}. ${prefix} (Sincro) · ${cleanName}`,
           }, isLatino);
 
-          // Opción secundaria: pista sin estirar (original)
-          pushDualSubtitles(subtitles, {
-            id: baseId,
-            url: `${mountBase}/srt/${s.fileId}`,
-            label: `${disp} 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${s.name}`,
-            name: `${disp} 📺 Original (${detectFramerate(s.name, imdbId).tag}) ${s.name}`,
-          }, isLatino);
+          if (i === 0) {
+            pushDualSubtitles(subtitles, {
+              id: baseId,
+              url: `${mountBase}/srt/${s.fileId}`,
+              label: `📺 Original · ${cleanName}`,
+              name: `📺 Original · ${cleanName}`,
+            }, isLatino);
+          }
         } else {
-          // Coincidencia de framerate nativo: NO se estira en la opción 1 (evita drift artificial)
           pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${s.fileId}`,
-            label: `${disp} ${syncDecision.badge} ${s.name}`,
-            name: `${disp} ${syncDecision.badge} ${s.name}`,
-          }, isLatino);
-
-          // Opción secundaria: alternativa forzada PAL 25->23.976fps para series europeas (HPI, Tatort, etc.)
-          pushDualSubtitles(subtitles, {
-            id: `${baseId}-pal-web`,
-            url: `${mountBase}/srt/${s.fileId}?fps=25to23976`,
-            label: `${disp} ⏱️ Forzar PAL 25->23.976fps ${s.name}`,
-            name: `${disp} ⏱️ Forzar PAL 25->23.976fps ${s.name}`,
+            label: `✅ ${i + 1}. ${prefix} (Nativo) · ${cleanName}`,
+            name: `✅ ${i + 1}. ${prefix} (Nativo) · ${cleanName}`,
           }, isLatino);
         }
       }
@@ -1536,11 +1522,10 @@ async function handleSubdivx(
         return jsonResponse({ subtitles: [] });
       }
 
-      // deno-lint-ignore no-explicit-any
-      const subtitles: any[] = [];
-      for (let i = 0; i < subs.length && i < 15; i++) {
+      const subtitles: SubtitleTrackPayload[] = [];
+      for (let i = 0; i < Math.min(subs.length, 2); i++) {
         const s = subs[i];
-        const subName = s.label || s.name || `Subdivx ${i + 1}`;
+        const subName = (s.label || s.name || `Subdivx ${i + 1}`).slice(0, 25);
         const syncDecision = resolveSmartSync(filename, subName, imdbId);
         const encodedUrl = encodeURIComponent(s.url);
         const baseId = `mshub-subdivx-${i}-${imdbId}`;
@@ -1549,29 +1534,23 @@ async function handleSubdivx(
           pushDualSubtitles(subtitles, {
             id: `${baseId}-${syncDecision.fpsParam}`,
             url: `${mountBase}/srt/${encodedUrl}?fps=${syncDecision.fpsParam}&smart=1`,
-            label: `[Subdivx] ${syncDecision.badge} ${subName}`,
-            name: `[Subdivx] ${syncDecision.badge} ${subName}`,
+            label: `⚡ ${i + 1}. Latino (Sincro) · ${subName}`,
+            name: `⚡ ${i + 1}. Latino (Sincro) · ${subName}`,
           }, true);
-          pushDualSubtitles(subtitles, {
-            id: baseId,
-            url: `${mountBase}/srt/${encodedUrl}`,
-            label: `[Subdivx] 📺 Original (${detectFramerate(subName, imdbId).tag}) ${subName}`,
-            name: `[Subdivx] 📺 Original (${detectFramerate(subName, imdbId).tag}) ${subName}`,
-          }, true);
+          if (i === 0) {
+            pushDualSubtitles(subtitles, {
+              id: baseId,
+              url: `${mountBase}/srt/${encodedUrl}`,
+              label: `📺 Original · ${subName}`,
+              name: `📺 Original · ${subName}`,
+            }, true);
+          }
         } else {
           pushDualSubtitles(subtitles, {
             id: baseId,
             url: `${mountBase}/srt/${encodedUrl}`,
-            label: `[Subdivx] ${syncDecision.badge} ${subName}`,
-            name: `[Subdivx] ${syncDecision.badge} ${subName}`,
-          }, true);
-          const altFps = Math.abs(detectFramerate(subName).fps - 25.0) < 0.1 ? "25to23976" : "23976to25";
-          const altBadge = altFps === "25to23976" ? "⏱️ Forzar 25->23.976fps" : "⏱️ Forzar 23.976->25fps";
-          pushDualSubtitles(subtitles, {
-            id: `${baseId}-alt`,
-            url: `${mountBase}/srt/${encodedUrl}?fps=${altFps}`,
-            label: `[Subdivx] ${altBadge} ${subName}`,
-            name: `[Subdivx] ${altBadge} ${subName}`,
+            label: `✅ ${i + 1}. Latino (Nativo) · ${subName}`,
+            name: `✅ ${i + 1}. Latino (Nativo) · ${subName}`,
           }, true);
         }
       }
@@ -3157,8 +3136,8 @@ async function handleMediathek(subPath: string, _mountBase: string, translateMou
 
 const TRANSLATE_MANIFEST = {
   id: "com.mejorastremio.translate",
-  version: "1.0.0",
-  name: "TraducciÃ³n IA â†’ ES latino",
+  version: "1.2.0",
+  name: "Traducción IA → ES latino",
   description:
     "Genera un subtÃ­tulo en espaÃ±ol latino traduciendo con IA la mejor pista alemana o " +
     "inglesa disponible. Pensado para contenido alemÃ¡n sin subs ES (Tatort y similares). " +
@@ -3747,12 +3726,12 @@ async function handleTranslate(subPath: string, mountBase: string): Promise<Resp
       }
 
       const subtitles: SubtitleTrackPayload[] = [];
-      bases.forEach((b, i) => {
+      bases.slice(0, 2).forEach((b, i) => {
         pushDualSubtitles(subtitles, {
           id: `ia-es-${i}`,
           url: `${mountBase}/gen/${b64u.enc(JSON.stringify({ t: b.t, u: b.u, f: b.f, r: b.keyRef, name: showTitle, lang: b.srcLang || "en" }))}.srt`,
-          label: `[IA→ES latino] ${b.label}`,
-          name: `[IA→ES latino] ${b.label}`,
+          label: `🤖 ${i + 1}. IA Latino (Completo) · ${b.label.slice(0, 20)}`,
+          name: `🤖 ${i + 1}. IA Latino (Completo) · ${b.label.slice(0, 20)}`,
         }, true);
       });
       return jsonResponse({ subtitles });
@@ -3845,7 +3824,7 @@ export interface StremioStreamItem {
 
 export const STREAMS_MANIFEST = {
   id: "com.mejorastremio.streams",
-  version: "1.0.0",
+  version: "1.2.0",
   name: "MejoraStremio Streams (Latino Priority)",
   description:
     "Smart Stream Interceptor: proxy inteligente de Torrentio con reordenamiento prioritario a audio latino y etiquetado visual para TV.",

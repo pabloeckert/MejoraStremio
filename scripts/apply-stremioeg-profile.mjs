@@ -226,6 +226,7 @@ export const COMPETING_SUBTITLE_ADDON_IDS = new Set([
   'community.podnapisi',
   'community.yifysubtitles',
   'com.subtito.ai',
+  'com.mejorastremio.opensubtitles',
 ]);
 
 export function filterCompetingSubtitleAddons(addons) {
@@ -277,18 +278,6 @@ export function ensureHubSubtitleAddons(addons) {
         version: '1.0.0',
         name: 'SubDL ES (sin SDH)',
         description: 'Subtítulos en español de SubDL sin hearing-impaired',
-        resources: ['subtitles'],
-        types: ['movie', 'series'],
-        idPrefixes: ['tt'],
-      },
-    },
-    {
-      transportUrl: 'https://mejorastremio-hub.pabloeckert.deno.net/opensubtitles/manifest.json',
-      manifest: {
-        id: 'com.mejorastremio.opensubtitles',
-        version: '1.0.0',
-        name: 'OpenSubtitles ES (sin SDH)',
-        description: 'Subtítulos en español estándar sin SDH',
         resources: ['subtitles'],
         types: ['movie', 'series'],
         idPrefixes: ['tt'],

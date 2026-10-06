@@ -110,18 +110,6 @@ jobs:
           HEALTH_CHECK_SEARCH_PROBE="cars" \
           node scripts/health-check.mjs 2>&1 | tee -a /tmp/summary.txt
 
-      - name: Commitear preset.json / instancia solotveg si cambiaron (Solo si regeneración fue exitosa)
-        if: (steps.regen.outcome == 'success' || steps.regen.outcome == 'skipped') && (steps.regen_teen.outcome == 'success' || steps.regen_teen.outcome == 'skipped')
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/preset.json cuentas/solotveg/aiometadata-instance.json
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(preset): refresh diario de fechas/catálogos"
-            git pull --rebase origin main
-            git push
-          fi
-
       - name: Subir backup como artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -142,13 +130,26 @@ jobs:
           [ "${{ steps.health_teen.outcome }}" = "failure" ] && FAIL="true"
           echo "failed=$FAIL" >> "$GITHUB_OUTPUT"
 
-      - name: Registrar en el log interno
+      - name: Consolidar commit atómico y registrar en el log interno
         if: always()
         run: |
           STATUS="ok"; [ "${{ steps.meta.outputs.failed }}" = "true" ] && STATUS="error"
+          FILES_TO_COMMIT=()
+          COMMIT_MSG="chore(daily-catalog-refresh): refresh diario $(date -u +%Y-%m-%dT%H:%MZ)"
+
+          # Solo persistir preset.json e instancia solotveg si la regeneración fue exitosa o no requerida
+          if [ "${{ steps.regen.outcome }}" != "failure" ] && [ "${{ steps.regen_teen.outcome }}" != "failure" ]; then
+            [ -f "data/preset.json" ] && FILES_TO_COMMIT+=("data/preset.json")
+            [ -f "cuentas/solotveg/aiometadata-instance.json" ] && FILES_TO_COMMIT+=("cuentas/solotveg/aiometadata-instance.json")
+            if [ "${{ steps.diff.outputs.changed }}" = "true" ]; then
+              COMMIT_MSG="chore(catalog): refresh diario de fechas y catálogos $(date -u +%Y-%m-%d)"
+            fi
+          fi
+
           bash scripts/lib/ci-commit-push.sh \
-            "chore(log): daily-catalog-refresh $(date -u +%Y-%m-%dT%H:%MZ)" \
-            daily-catalog-refresh "$STATUS" /tmp/summary.txt
+            "$COMMIT_MSG" \
+            daily-catalog-refresh "$STATUS" /tmp/summary.txt \
+            "${FILES_TO_COMMIT[@]}"
 
       - name: Fallar el job si algo salió mal
         if: always() && steps.meta.outputs.failed == 'true'

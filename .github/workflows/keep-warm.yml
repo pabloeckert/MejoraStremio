@@ -1,26 +1,40 @@
 name: keep-warm-aiometadata
 
+# NOTA ARQUITECTURAL (Fase 3 - Higiene de CI y Poda de Git):
+# El cron periódico cada 20 minutos (72 ejecuciones/día = ~2.160 runs/mes) fue DESACTIVADO
+# en GitHub Actions para eliminar el despilfarro de cuota de runners de Ubuntu.
+#
+# DELEGACIÓN SERVERLESS RECOMENDADA:
+# El ping keep-warm debe delegarse a un cron serverless gratuito externo con cero consumo de CI:
+# 1. Deno.cron ("*/20 * * * *") en Deno Deploy (scripts/deno-hub.ts).
+# 2. Cloudflare Worker Cron Trigger o monitor externo (ej. cron-job.org / BetterStack).
+#
+# Se mantiene 'workflow_dispatch' para diagnósticos manuales on-demand.
 on:
-  schedule:
-    # Cada 20 minutos. GitHub Actions garantiza ejecución pero con margen de ~1-2 min.
-    - cron: '*/20 * * * *'
-  workflow_dispatch: # permite lanzar manualmente desde el tab Actions
+  # schedule:
+  #   - cron: '*/20 * * * *' # Desactivado: Delegado a cron serverless externo
+  workflow_dispatch: # Ejecución manual on-demand desde GitHub Actions UI
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Ping instancias de AIOMetadata (compartida + por cuenta)
+      # PING ULTRALIGERO: Sin actions/checkout@v4 para no clonar el repositorio ni consumir disco/tiempo.
+      - name: Ping instancias de AIOMetadata (ultraligero sin clonar repo)
         run: |
+          set -euo pipefail
           FAILED=0
+
           ping_instance() {
             local LABEL="$1" ID="$2"
+            if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+              echo "ADVERTENCIA: ${LABEL} sin instanceId válido, omitiendo..."
+              return
+            fi
             local URL="https://aiometadata.elfhosted.com/stremio/${ID}/manifest.json"
             echo "Pinging (${LABEL}): $URL"
             START_MS=$(date +%s%3N)
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "$URL")
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$URL" || echo "000")
             END_MS=$(date +%s%3N)
             echo "HTTP ${HTTP_STATUS} en $((END_MS - START_MS))ms"
             if [ "$HTTP_STATUS" != "200" ]; then
@@ -29,14 +43,26 @@ jobs:
             fi
           }
 
-          SHARED_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('data/preset.json','utf8')).aioMetadataConfig.instanceId)")
-          ping_instance "compartida (stremioeg/stremiojn)" "$SHARED_ID"
+          # 1. Obtener instanceId compartido directamente desde la API Raw de GitHub (sin checkout)
+          PRESET_RAW=$(curl -fsSL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://raw.githubusercontent.com/${{ github.repository }}/main/data/preset.json" || true)
 
-          # Instancias propias por cuenta: cuentas/*/aiometadata-instance.json (ver cuentas/solotveg/)
-          for f in cuentas/*/aiometadata-instance.json; do
-            [ -f "$f" ] || continue
-            ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$f','utf8')).instanceId)")
-            ping_instance "$(dirname "$f")" "$ID"
-          done
+          if [ -n "$PRESET_RAW" ]; then
+            SHARED_ID=$(echo "$PRESET_RAW" | jq -r '.aioMetadataConfig.instanceId // empty')
+            if [ -n "$SHARED_ID" ]; then
+              ping_instance "compartida (stremioeg/stremiojn)" "$SHARED_ID"
+            fi
+          fi
 
-          [ "$FAILED" = "0" ] && echo "OK — todas las instancias calientes" || exit 1
+          # 2. Obtener instanceId de solotveg directamente desde la API Raw de GitHub
+          SOLOTVEG_RAW=$(curl -fsSL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://raw.githubusercontent.com/${{ github.repository }}/main/cuentas/solotveg/aiometadata-instance.json" || true)
+
+          if [ -n "$SOLOTVEG_RAW" ]; then
+            SOLOTVEG_ID=$(echo "$SOLOTVEG_RAW" | jq -r '.instanceId // empty')
+            if [ -n "$SOLOTVEG_ID" ]; then
+              ping_instance "solotveg" "$SOLOTVEG_ID"
+            fi
+          fi
+
+          [ "$FAILED" = "0" ] && echo "OK — todas las instancias verificadas" || exit 1

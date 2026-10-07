@@ -1,9 +1,10 @@
 /**
  * tmdb.ts — Catálogos basados en TMDB: Miniseries, Comedias Cortas y Descubrir Maestro.
- * Incorpora caché LRU bounded para la resolución de IDs IMDb (máximo 500 entradas).
+ * Incorpora arquitectura de dos niveles (L1 RAM LRU + L2 Deno KV persistente) para resolución
+ * inmutable de IDs IMDb, batching controlado anti-burst y mitigación total de cascada N+1.
  */
 
-import { cors, jsonResponse } from "../utils/common.ts";
+import { cors, getKv, jsonResponse } from "../utils/common.ts";
 import { BoundedLruCache } from "../utils/lru-cache.ts";
 
 export const TMDB_KEY = Deno.env.get("TMDB_API_KEY_AISEARCH") ?? "";
@@ -112,6 +113,12 @@ export async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[
         append_to_response: "external_ids",
       });
       const imdbId = detail?.external_ids?.imdb_id;
+      if (imdbId) {
+        imdbIdLruCache.set(`tv:${tmdbId}`, imdbId);
+        safeGetKv().then((kv) => {
+          if (kv) kv.set(["tmdb_imdb_v2", "tv", tmdbId], imdbId, { expireIn: IMDB_MAP_KV_TTL_POSITIVE_MS }).catch(() => {});
+        }).catch(() => {});
+      }
       if (
         imdbId &&
         detail.number_of_seasons === 1 &&
@@ -260,6 +267,12 @@ export async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMet
     ));
     for (const detail of details) {
       const imdbId = detail?.external_ids?.imdb_id;
+      if (detail?.id && imdbId) {
+        imdbIdLruCache.set(`tv:${detail.id}`, imdbId);
+        safeGetKv().then((kv) => {
+          if (kv) kv.set(["tmdb_imdb_v2", "tv", detail.id], imdbId, { expireIn: IMDB_MAP_KV_TTL_POSITIVE_MS }).catch(() => {});
+        }).catch(() => {});
+      }
       // deno-lint-ignore no-explicit-any
       const runtimes = (detail?.episode_run_time ?? []) as any[];
       const maxRuntime = runtimes.length ? Math.max(...runtimes) : null;
@@ -417,33 +430,172 @@ export const DISCOVER_MANIFEST = {
   ],
 };
 
-// Bounded LRU Cache: máximo 500 resoluciones en RAM (~100KB), TTL 7 días
-const imdbIdCache = new BoundedLruCache<number, string | null>(500, 7 * 24 * 60 * 60 * 1000);
+// Bounded LRU Cache L1: hasta 3000 resoluciones en RAM (~300KB), TTL 30 días
+const imdbIdLruCache = new BoundedLruCache<string, string | null>(3000, 30 * 24 * 60 * 60 * 1000);
 
-export async function resolveImdbId(tmdbId: number): Promise<string | null> {
-  const cached = imdbIdCache.get(tmdbId);
-  if (cached !== undefined) return cached;
+// Bounded LRU Cache L1 para páginas completas de Discover: hasta 100 páginas, TTL 1 hora
+interface DiscoverPageCacheEntry {
+  // deno-lint-ignore no-explicit-any
+  metas: any[];
+  cachedAt: number;
+}
+const discoverPageLruCache = new BoundedLruCache<string, DiscoverPageCacheEntry>(100, 60 * 60 * 1000);
+
+const IMDB_MAP_KV_TTL_POSITIVE_MS = 180 * 24 * 60 * 60 * 1000; // 180 días (IDs de IMDb inmutables)
+const IMDB_MAP_KV_TTL_NEGATIVE_MS = 7 * 24 * 60 * 60 * 1000;   // 7 días (reintentar por si se asigna luego)
+const DISCOVER_PAGE_KV_TTL_MS = 2 * 60 * 60 * 1000;           // 2 horas en KV
+
+async function safeGetKv(): Promise<Deno.Kv | null> {
   try {
-    const d = await tmdbGet(`/movie/${tmdbId}/external_ids`, {});
-    const id = d?.imdb_id ?? null;
-    imdbIdCache.set(tmdbId, id);
-    return id;
+    if (typeof Deno !== "undefined" && typeof Deno.openKv === "function") {
+      return await getKv();
+    }
+  } catch {
+    // Si no está disponible Deno KV en este runtime, opera exclusivamente con L1 LRU
+  }
+  return null;
+}
+
+/**
+ * Resuelve un ID de IMDb a partir de un TMDB ID con estrategia L1 (RAM) + L2 (Deno KV).
+ * No vuelve a consultar a la red si ya fue resuelto previamente.
+ */
+export async function resolveImdbIdCached(
+  tmdbId: number,
+  type: "movie" | "tv"
+): Promise<string | null> {
+  const cacheKey = `${type}:${tmdbId}`;
+
+  // 1. Revisar L1 (RAM)
+  const memCached = imdbIdLruCache.get(cacheKey);
+  if (memCached !== undefined) {
+    return memCached;
+  }
+
+  // 2. Revisar L2 (Deno KV)
+  const kv = await safeGetKv();
+  if (kv) {
+    try {
+      const entry = await kv.get<string>(["tmdb_imdb_v2", type, tmdbId]);
+      if (entry && entry.value !== null) {
+        const val = entry.value === "" ? null : entry.value;
+        imdbIdLruCache.set(cacheKey, val);
+        return val;
+      }
+    } catch {
+      // Continuar al fetch de red
+    }
+  }
+
+  // 3. Fallback de Red a TMDB
+  try {
+    const path = type === "movie" ? `/movie/${tmdbId}/external_ids` : `/tv/${tmdbId}/external_ids`;
+    const d = await tmdbGet(path, {});
+    const imdbId: string | null = d?.imdb_id ?? null;
+
+    // Guardar en L1
+    imdbIdLruCache.set(cacheKey, imdbId);
+
+    // Persistir en L2 (Deno KV de larga duración)
+    if (kv) {
+      const expireIn = imdbId ? IMDB_MAP_KV_TTL_POSITIVE_MS : IMDB_MAP_KV_TTL_NEGATIVE_MS;
+      kv.set(["tmdb_imdb_v2", type, tmdbId], imdbId ?? "", { expireIn }).catch(() => {});
+    }
+
+    return imdbId;
   } catch {
     return null;
   }
 }
 
+export async function resolveImdbId(tmdbId: number): Promise<string | null> {
+  return await resolveImdbIdCached(tmdbId, "movie");
+}
+
 export async function resolveImdbIdTv(tmdbId: number): Promise<string | null> {
-  const cached = imdbIdCache.get(tmdbId);
-  if (cached !== undefined) return cached;
-  try {
-    const d = await tmdbGet(`/tv/${tmdbId}/external_ids`, {});
-    const id = d?.imdb_id ?? null;
-    imdbIdCache.set(tmdbId, id);
-    return id;
-  } catch {
-    return null;
+  return await resolveImdbIdCached(tmdbId, "tv");
+}
+
+/**
+ * Erradica la cascada N+1 resolviendo una lista de IDs TMDB en batch:
+ * 1. Filtra primero por L1 (RAM) -> 0 latencia.
+ * 2. Consulta en lote a L2 (Deno KV via getMany) en 1 sola operación -> 0 peticiones HTTP.
+ * 3. Para los items que realmente requieran red, procesa en chunks controlados (tamaño 4) anti-burst.
+ */
+export async function resolveBatchImdb(
+  tmdbIds: number[],
+  type: "movie" | "tv"
+): Promise<Map<number, string | null>> {
+  const result = new Map<number, string | null>();
+  const missingInMem: number[] = [];
+
+  // Paso 1: L1 en memoria (RAM)
+  for (const id of tmdbIds) {
+    const memVal = imdbIdLruCache.get(`${type}:${id}`);
+    if (memVal !== undefined) {
+      result.set(id, memVal);
+    } else {
+      missingInMem.push(id);
+    }
   }
+
+  if (missingInMem.length === 0) {
+    return result; // 100% hits en L1 RAM -> 0 peticiones de red
+  }
+
+  // Paso 2: L2 Deno KV (Batch getMany en 1 sola operación atómica)
+  const missingNet: number[] = [];
+  const kv = await safeGetKv();
+  if (kv) {
+    try {
+      const kvKeys = missingInMem.map((id) => ["tmdb_imdb_v2", type, id] as const);
+      const entries = await kv.getMany<string[]>(kvKeys);
+      for (let i = 0; i < missingInMem.length; i++) {
+        const id = missingInMem[i];
+        const entry = entries[i];
+        if (entry && entry.value !== null) {
+          const val = entry.value === "" ? null : entry.value;
+          imdbIdLruCache.set(`${type}:${id}`, val);
+          result.set(id, val);
+        } else {
+          missingNet.push(id);
+        }
+      }
+    } catch {
+      missingNet.push(...missingInMem);
+    }
+  } else {
+    missingNet.push(...missingInMem);
+  }
+
+  if (missingNet.length === 0) {
+    return result; // Todos los restantes encontrados en L2 KV -> 0 peticiones HTTP a TMDB
+  }
+
+  // Paso 3: Para los items que realmente requieren red, procesar en chunks controlados (anti-burst)
+  const CHUNK_SIZE = 4;
+  for (let i = 0; i < missingNet.length; i += CHUNK_SIZE) {
+    const chunk = missingNet.slice(i, i + CHUNK_SIZE);
+    await Promise.all(chunk.map(async (id) => {
+      try {
+        const path = type === "movie" ? `/movie/${id}/external_ids` : `/tv/${id}/external_ids`;
+        const d = await tmdbGet(path, {});
+        const imdbId: string | null = d?.imdb_id ?? null;
+
+        imdbIdLruCache.set(`${type}:${id}`, imdbId);
+        result.set(id, imdbId);
+
+        if (kv) {
+          const expireIn = imdbId ? IMDB_MAP_KV_TTL_POSITIVE_MS : IMDB_MAP_KV_TTL_NEGATIVE_MS;
+          kv.set(["tmdb_imdb_v2", type, id], imdbId ?? "", { expireIn }).catch(() => {});
+        }
+      } catch {
+        result.set(id, null);
+      }
+    }));
+  }
+
+  return result;
 }
 
 export async function handleDiscover(subPath: string, url: URL): Promise<Response> {
@@ -509,6 +661,30 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
   const skip = parseInt(extra.get("skip") ?? "0", 10);
   const page = Math.floor(skip / 20) + 1;
 
+  // Clave determinista para caché de página completa
+  const pageCacheKey = `${type}:${service || "all"}:${region || "all"}:${country || "all"}:${language || "all"}:${genre || "all"}:${page}`;
+
+  // 1. Revisar caché de página en L1 (RAM)
+  const memPage = discoverPageLruCache.get(pageCacheKey);
+  if (memPage) {
+    return jsonResponse({ metas: memPage.metas });
+  }
+
+  // 2. Revisar caché de página en L2 (Deno KV)
+  const kv = await safeGetKv();
+  if (kv) {
+    try {
+      // deno-lint-ignore no-explicit-any
+      const kvPage = await kv.get<any[]>(["discover_page_v2", type, pageCacheKey]);
+      if (kvPage?.value && Array.isArray(kvPage.value)) {
+        discoverPageLruCache.set(pageCacheKey, { metas: kvPage.value, cachedAt: Date.now() });
+        return jsonResponse({ metas: kvPage.value });
+      }
+    } catch {
+      // Continuar a resolución
+    }
+  }
+
   const dateField = type === "movie" ? "primary_release_date" : "first_air_date";
   const params: Record<string, string> = {
     sort_by: `${dateField}.desc`,
@@ -539,10 +715,15 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     // deno-lint-ignore no-explicit-any
     const results = (d?.results ?? []) as any[];
 
-    const resolved = await Promise.all(results.map(async (r) => {
-      const imdbId = type === "movie"
-        ? await resolveImdbId(r.id)
-        : await resolveImdbIdTv(r.id);
+    // Erradicación de Cascada N+1: resolución en lote con L1 + L2 Deno KV + chunks controlados
+    const tmdbType = type === "movie" ? "movie" : "tv";
+    // deno-lint-ignore no-explicit-any
+    const tmdbIds = results.map((r: any) => r.id as number).filter(Boolean);
+    const imdbIdMap = await resolveBatchImdb(tmdbIds, tmdbType);
+
+    // deno-lint-ignore no-explicit-any
+    const resolved = results.map((r: any) => {
+      const imdbId = imdbIdMap.get(r.id);
       if (!imdbId) return null;
       const d0 = (r.release_date ?? r.first_air_date ?? "") as string;
       return {
@@ -554,13 +735,23 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
         releaseInfo: d0 ? d0.slice(0, 4) : undefined,
         _d: d0,
       };
-    }));
+    });
 
     const metas = resolved
       .filter((m) => m !== null)
-      .sort((a, b) => (b!._d).localeCompare(a!._d))
+      // deno-lint-ignore no-explicit-any
+      .sort((a: any, b: any) => (b._d).localeCompare(a._d))
       // deno-lint-ignore no-explicit-any
       .map(({ _d, ...m }: any) => m);
+
+    // Guardar en caché L1 y L2 si tiene resultados válidos
+    if (metas.length > 0) {
+      discoverPageLruCache.set(pageCacheKey, { metas, cachedAt: Date.now() });
+      if (kv) {
+        kv.set(["discover_page_v2", type, pageCacheKey], metas, { expireIn: DISCOVER_PAGE_KV_TTL_MS }).catch(() => {});
+      }
+    }
+
     return jsonResponse({ metas });
   } catch (e) {
     return jsonResponse({ metas: [], error: (e as Error).message }, { status: 500 });

@@ -115,31 +115,6 @@ export async function handleHubRequest(req: Request): Promise<Response> {
     } else if (path === "/health") {
       route = "health";
       res = handleHealth();
-    } else if (path === "/diag/gemini") {
-      try {
-        const { callGemini, GEMINI_API_KEY, GEMINI_MODEL, buildTranslateSystemPrompt, NL } = await import("./deno-hub/translate/gemini.ts");
-        const { parseNumbered } = await import("./deno-hub/translate/translate.ts");
-        const t0 = Date.now();
-        const testItems = [
-          { n: 1, text: "Ca va ?\nTu crois qu'il y en a assez ?" },
-          { n: 2, text: "C'est la confiture de ma tante ?" },
-          { n: 3, text: "Raphaël Balthazar" },
-        ];
-        const sysPrompt = buildTranslateSystemPrompt("Balthazar", "fr");
-        const payload = testItems.map((it) => `${it.n}▸ ${it.text.replace(/\n/g, NL)}`).join("\n");
-        const prompt = `${sysPrompt}\n\n${payload}`;
-        const raw = await callGemini(prompt, GEMINI_API_KEY, AbortSignal.timeout(6000));
-        const parsed = parseNumbered(raw);
-        res = jsonResponse({
-          ok: true,
-          durationMs: Date.now() - t0,
-          model: GEMINI_MODEL,
-          raw,
-          parsed: Array.from(parsed.entries()),
-        });
-      } catch (e) {
-        res = jsonResponse({ ok: false, error: (e as Error).message }, { status: 500 });
-      }
     } else if (path.startsWith("/subtitles/proxy")) {
       route = "subtitles-proxy";
       res = await handleSubtitleProxy(url);

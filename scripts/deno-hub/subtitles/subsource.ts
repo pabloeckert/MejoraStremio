@@ -93,6 +93,9 @@ export async function handleSubsource(
   if (subMatch) {
     const [, type, rawId] = subMatch;
     const parsed = parseStremioSubId(rawId);
+    if (!parsed.filename && reqUrl) {
+      parsed.filename = reqUrl.searchParams.get("filename");
+    }
     const imdbId = parsed.imdbId;
     const season = type === "series" ? parsed.season : null;
     const episode = type === "series" ? parsed.episode : null;

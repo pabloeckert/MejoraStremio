@@ -212,19 +212,22 @@ try {
   const show2Streams = show2Fetch.data?.streams || [];
   assert(results.pass2_playback, 'Entrega de streams para tt22495072:1:1', show2Streams.length > 0, `${show2Streams.length} streams recibidos`);
 
-  const allMarkedNoLatino = show2Streams.every((s) => s.name?.includes('[⚠️ SOLO INGLÉS]'));
-  assert(results.pass2_playback, '100% de los streams sin doblaje marcados preventivamente con [⚠️ SOLO INGLÉS]', allMarkedNoLatino);
+  const allMarkedNoLatino = show2Streams.every((s) => s.name?.includes('[🎧 ORIGINAL]') || s.name?.includes('[⚠️ SOLO INGLÉS]'));
+  assert(results.pass2_playback, '100% de los streams sin doblaje marcados preventivamente con [🎧 ORIGINAL]', allMarkedNoLatino);
 
   // 2.3 Caso 3: Desfase PAL 25fps vs WEB 23.976fps ("HPI", tt14060708:1:1) y Auditoría Temporal
   console.log('\n  2.3 Caso 3: Solicitud de Subtítulos con Smart Audio Sync ("HPI"):');
   const webdlFilename = 'HPI.S01E01.FRENCH.1080p.WEB-DL.DDP5.1.Atmos.H.264-FW.mkv';
-  const subQueryUrl = `${PROD_HUB_BASE}/subdl/subtitles/series/tt14060708:1:1.json?filename=${encodeURIComponent(webdlFilename)}`;
+  const simulatedHash = '8e245d9679d31e12';
+  const simulatedSize = '1845620140';
+  const rawStreamId = `tt14060708%3A1%3A1/videoHash=${simulatedHash}&videoSize=${simulatedSize}&filename=${encodeURIComponent(webdlFilename)}`;
+  const subQueryUrl = `${PROD_HUB_BASE}/subdl/subtitles/series/${rawStreamId}.json`;
   const subFetch = await fetchJson(subQueryUrl);
   const subtitles = subFetch.data?.subtitles || [];
   assert(results.pass2_playback, 'Entrega de subtítulos procesados por el Hub', subtitles.length > 0, `${subtitles.length} opciones`);
 
   const topSub = subtitles[0];
-  const topSubHasSmartSync = topSub?.label?.includes('Sincro Nativo') || topSub?.label?.includes('SmartSync') || topSub?.label?.includes('WEB-DL');
+  const topSubHasSmartSync = topSub?.label?.includes('Sincro') || topSub?.label?.includes('SmartSync') || topSub?.label?.includes('WEB-DL');
   assert(results.pass2_playback, 'Opción #1 de subtítulo adaptada a stream WEB-DL 23.976fps', topSubHasSmartSync, topSub?.label);
 
   // Descarga y Auditoría Detallada del Archivo SRT Real

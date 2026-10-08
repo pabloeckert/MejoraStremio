@@ -33,7 +33,10 @@ export async function handleSubdivx(
   if (subMatch) {
     const [, type, rawId] = subMatch;
     const parsed = parseStremioSubId(rawId);
-    const { imdbId, season, episode, filename } = parsed;
+    let { imdbId, season, episode, filename } = parsed;
+    if (!filename && reqUrl) {
+      filename = reqUrl.searchParams.get("filename");
+    }
 
     try {
       const proxyBase = SUBDIVX_PROXY_URL.replace(/\/+$/, "");

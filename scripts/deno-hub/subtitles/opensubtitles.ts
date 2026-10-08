@@ -154,6 +154,9 @@ export async function handleOpenSubtitles(
   if (subMatch) {
     const [, , rawId] = subMatch;
     const parsed = parseStremioSubId(rawId);
+    if (!parsed.filename && reqUrl) {
+      parsed.filename = reqUrl.searchParams.get("filename");
+    }
     const { imdbId, season, episode } = parsed;
 
     try {

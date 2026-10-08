@@ -74,15 +74,21 @@ assert(!cleanedDe.includes("[Hintergrundmusik]"), "Marcas alemanas [Hintergrundm
 assert(!cleanedDe.includes("KOMMISSAR:"), "Prefijo 'KOMMISSAR:' eliminado");
 assert(cleanedDe.includes("Guten Abend, Herr Müller!"), "Diálogo en alemán preservado");
 
-const rawHpiCue = "[soupirs]\nMORGANE: Je pense qu'il y a un problème.\nKARADEC: Quel problème ?\n(sonnerie d'alarme)\n♪ générique ♪\nC'est évident !";
+const rawHpiCue = "[soupirs]\nMORGANE: Je pense qu'il y a un problème.\nKARADEC: Quel problème ?\nGILLES: Le suspect s'enfuit vers le port !\nCÉLINE: Arrêtez-le tout de suite !\nDAPHNÉ: J'appelle du renfort !\n(sonnerie d'alarme)\n♪ générique ♪\nC'est évident !";
 const cleanedHpi = cleanCueForTranslation(rawHpiCue);
 assert(!cleanedHpi.includes("[soupirs]"), "HPI: Corchetes [soupirs] eliminados");
 assert(!cleanedHpi.includes("MORGANE:"), "HPI: Prefijo MORGANE: eliminado");
 assert(!cleanedHpi.includes("KARADEC:"), "HPI: Prefijo KARADEC: eliminado");
+assert(!cleanedHpi.includes("GILLES:"), "HPI: Prefijo GILLES: eliminado");
+assert(!cleanedHpi.includes("CÉLINE:"), "HPI: Prefijo CÉLINE: eliminado");
+assert(!cleanedHpi.includes("DAPHNÉ:"), "HPI: Prefijo DAPHNÉ: eliminado");
 assert(!cleanedHpi.includes("(sonnerie d'alarme)"), "HPI: Paréntesis (sonnerie d'alarme) eliminados");
 assert(!cleanedHpi.includes("♪"), "HPI: Símbolos musicales ♪ eliminados");
 assert(cleanedHpi.includes("Je pense qu'il y a un problème."), "HPI: Diálogo de Morgane preservado");
 assert(cleanedHpi.includes("Quel problème ?"), "HPI: Diálogo de Karadec preservado");
+assert(cleanedHpi.includes("Le suspect s'enfuit vers le port !"), "HPI: Diálogo de Gilles preservado");
+assert(cleanedHpi.includes("Arrêtez-le tout de suite !"), "HPI: Diálogo de Céline preservado");
+assert(cleanedHpi.includes("J'appelle du renfort !"), "HPI: Diálogo de Daphné preservado");
 assert(cleanedHpi.includes("C'est évident !"), "HPI: Remate de diálogo preservado");
 
 // 3. Robustez del Parseador (parseNumbered) y Centinelas §Z
@@ -182,18 +188,28 @@ const dataSerieRara = await resSerieRara.json();
 assert(dataSerieRara.subtitles.length > 0, `Cobertura garantizada al 100% para serie no estándar (${dataSerieRara.subtitles.length} tracks)`);
 assert(dataSerieRara.subtitles[0].name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]", "Opción #1 liderada por IA Gemini en 100% de los casos");
 
-// Caso Extremo 3: HPI / ACI con ID alternativo tt13000282
-const resHpi = await handleTranslate(
-  "/subtitles/series/tt13000282:1:1.json",
-  "http://127.0.0.1:8787/translate",
-);
-assert(resHpi.status === 200, "HTTP 200 para HPI con ID alternativo (tt13000282:1:1)");
-const dataHpi = await resHpi.json();
-assert(dataHpi.subtitles.length > 0, `Subtítulos IA entregados para HPI tt13000282 (${dataHpi.subtitles.length} tracks)`);
-assert(dataHpi.subtitles[0].name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]", "HPI: Opción #1 es ⚡ 1. Latino (IA Gemini) · [Traducción Automática]");
-const hpiSpl = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "spl");
-const hpiSpa = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "spa");
-assert(hpiSpl && hpiSpa, "HPI: Entrega dual obligatoria spl + spa para Android TV");
+// Caso Extremo 3: HPI / ACI con ID alternativo tt13000282 para todas las temporadas (S01 a S04)
+const hpiSeasonCheck = [
+  { season: 1, ep: 1 },
+  { season: 2, ep: 8 },
+  { season: 3, ep: 1 },
+  { season: 4, ep: 8 },
+];
+
+for (const { season, ep } of hpiSeasonCheck) {
+  const epKey = `S0${season}E0${ep}`.replace(/0(\d{2})/, "$1");
+  const resHpi = await handleTranslate(
+    `/subtitles/series/tt13000282:${season}:${ep}.json`,
+    "http://127.0.0.1:8787/translate",
+  );
+  assert(resHpi.status === 200, `HTTP 200 para HPI ${epKey} con ID alternativo (tt13000282)`);
+  const dataHpi = await resHpi.json();
+  assert(dataHpi.subtitles.length > 0, `Subtítulos IA entregados para HPI ${epKey} (${dataHpi.subtitles.length} tracks)`);
+  assert(dataHpi.subtitles[0].name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]", `HPI ${epKey}: Opción #1 es ⚡ 1. Latino (IA Gemini) · [Traducción Automática]`);
+  const hpiSpl = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "spl");
+  const hpiSpa = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "spa");
+  assert(hpiSpl && hpiSpa, `HPI ${epKey}: Entrega dual obligatoria spl + spa para Android TV`);
+}
 
 // Resumen Final
 console.log("\n══════════════════════════════════════════════════════════════════════");

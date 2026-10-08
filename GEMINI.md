@@ -250,9 +250,21 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Sanitización de Cues (`cleanCueForTranslation`)**: Eliminación del 100% de acotaciones SDH/CC, corchetes `[...]` (ej. `[soupirs]`), paréntesis `(...)`, notas musicales `♪` y prefijos de interlocutores en mayúsculas (ej. `MORGANE:`, `KARADEC:`).
 - **Entrega Dual ISO (`spl` + `spa`)**: El endpoint `/translate/subtitles/series/tt13000282:1:1.json` garantiza la entrega de `⚡ 1. Latino (IA Gemini) · [Traducción Automática]` en códigos `spl` (América Latina) y `spa` (Español estándar).
 
-### 14.5 Suite E2E de Doble Pasada y Certificación (65/65 PASS)
-- **100% PASS**: `scripts/test-translation-engine.ts` (50/50 pruebas OK) y `scripts/test-tvbox-deep-e2e.mjs` (65/65 verificaciones OK).
+### 14.5 Suite E2E de Doble Pasada y Certificación Ampliada (81/81 PASS)
+- **100% PASS**: `scripts/test-translation-engine.ts` (68/68 pruebas OK) y `scripts/test-tvbox-deep-e2e.mjs` (81/81 verificaciones OK).
 - **Higiene de Tipado**: 100% limpio en `deno check` y `deno lint` (20 archivos Deno Hub).
+
+### 14.6 Barrido Integral de Calibración en 32 Episodios (S01 a S04 Completo)
+- **Ejecución de `audit-hpi-all-seasons.mjs`**: Cobertura exhaustiva de las 4 temporadas (32/32 episodios auditados):
+  - Temporada 1: 8/8 episodios (9 a 13 streams/ep, 100% original en francés y doblajes identificados, subtítulos IA duales `spl`+`spa`).
+  - Temporada 2: 8/8 episodios (7 a 9 streams/ep, 100% original en francés y subtítulos IA duales).
+  - Temporada 3: 8/8 episodios (7 a 11 streams/ep, 100% streams identificados y subtítulos IA duales).
+  - Temporada 4: 8/8 episodios (8 a 10 streams/ep, 100% de streams Debrid instantáneos y subtítulos IA duales).
+- **Métricas Globales de Producción**:
+  - 32 de 32 episodios con entrega de streams y resolución de alias `tt13000282` ➔ `tt14060708` (298 streams catalogados).
+  - 32 de 32 episodios con subtítulos IA `⚡ 1. Latino (IA Gemini) · [Traducción Automática]` en códigos duales `spl` + `spa`.
+  - SmartSync PAL 25.0 ➔ WEB-DL 23.976 fps: calibración matemática certificada a ratio $R = 1.042709$ con monotonicidad estricta y 0 colisiones en todas las temporadas.
+
 
 
 

@@ -222,6 +222,8 @@ try {
     assert(results.pass2_playback, 'Puesto #1 de "En la cuerda floja" con insignia [🌎 LATINO]', topWalkHasLatinoBadge, topWalk?.name?.replace(/\n/g, ' '));
     assert(results.pass2_playback, 'Clasificador LATINO_RE de addon-signals identifica stream #1', LATINO_RE.test(`${topWalk?.name || ''} ${topWalk?.title || ''}`));
     assert(results.pass2_playback, 'isLatinoStream valida puesto #1 como Latino genuino', isLatinoStream(topWalk));
+    assert(results.pass2_playback, 'classifyStreamAudio categoriza stream #1 como latino', classifyStreamAudio(topWalk) === 'latino');
+    assert(results.pass2_playback, 'isCachedStream resuelve disponibilidad debrid/buffer del stream #1', typeof isCachedStream(topWalk) === 'boolean');
   }
 
   // Verificación de Subtítulos Traducidos por IA para tt3488720

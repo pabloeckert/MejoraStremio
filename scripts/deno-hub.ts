@@ -115,6 +115,14 @@ export async function handleHubRequest(req: Request): Promise<Response> {
     } else if (path === "/health") {
       route = "health";
       res = handleHealth();
+    } else if (path === "/diag/gemini") {
+      try {
+        const { callGemini, GEMINI_API_KEY, GEMINI_MODEL, OPENROUTER_API_KEY } = await import("./deno-hub/translate/gemini.ts");
+        const txt = await callGemini("Di exactamente: 'HOLA_MUNDO'", GEMINI_API_KEY, AbortSignal.timeout(10000));
+        res = jsonResponse({ ok: true, model: GEMINI_MODEL, keyLen: GEMINI_API_KEY.length, openRouterLen: OPENROUTER_API_KEY.length, txt });
+      } catch (e) {
+        res = jsonResponse({ ok: false, error: (e as Error).message }, { status: 500 });
+      }
     } else if (path.startsWith("/subtitles/proxy")) {
       route = "subtitles-proxy";
       res = await handleSubtitleProxy(url);

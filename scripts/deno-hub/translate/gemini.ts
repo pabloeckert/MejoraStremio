@@ -19,6 +19,7 @@ export const GEMINI_SAFETY_OFF = [
 ].map((category) => ({ category, threshold: "BLOCK_NONE" }));
 
 export async function callGemini(prompt: string, apiKey: string, signal: AbortSignal): Promise<string> {
+  const cleanKey = apiKey.trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "");
   const modelsToTry = [
     GEMINI_MODEL || "gemini-2.5-flash",
     "gemini-2.0-flash",
@@ -27,33 +28,23 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
   const candidates = [...new Set(modelsToTry.filter(Boolean))];
 
   let lastError: Error | null = null;
-  for (const model of candidates) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-      const generationConfig: Record<string, unknown> = {
-        temperature: 0.2,
-        maxOutputTokens: 8192,
-      };
-      if (/2\.5|2\.0/.test(model)) {
-        generationConfig.thinkingConfig = { thinkingBudget: 0 };
-      }
-      let r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          safetySettings: GEMINI_SAFETY_OFF,
-          generationConfig,
-        }),
-        signal,
-      });
-
-      // Si falló por thinkingConfig no soportado (HTTP 400), reintentar sin thinkingConfig
-      if (r.status === 400 && generationConfig.thinkingConfig) {
-        delete generationConfig.thinkingConfig;
-        r = await fetch(url, {
+  if (cleanKey) {
+    for (const model of candidates) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(cleanKey)}`;
+        const generationConfig: Record<string, unknown> = {
+          temperature: 0.2,
+          maxOutputTokens: 8192,
+        };
+        if (/2\.5|2\.0/.test(model)) {
+          generationConfig.thinkingConfig = { thinkingBudget: 0 };
+        }
+        let r = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": cleanKey,
+          },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             safetySettings: GEMINI_SAFETY_OFF,
@@ -61,47 +52,90 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
           }),
           signal,
         });
-      }
 
-      if (r.ok) {
-        const d = await r.json();
-        const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return String(text).trim();
-        lastError = new Error(`Gemini (${model}): sin texto (${d?.candidates?.[0]?.finishReason || "empty"})`);
-      } else {
-        const errTxt = await r.text().catch(() => "");
-        lastError = new Error(`Gemini (${model}) respondió ${r.status}: ${errTxt.slice(0, 100)}`);
+        // Si falló por thinkingConfig no soportado (HTTP 400), reintentar sin thinkingConfig
+        if (r.status === 400 && generationConfig.thinkingConfig) {
+          delete generationConfig.thinkingConfig;
+          r = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": cleanKey,
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              safetySettings: GEMINI_SAFETY_OFF,
+              generationConfig,
+            }),
+            signal,
+          });
+        }
+
+        if (r.ok) {
+          const d = await r.json();
+          const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) return String(text).trim();
+          lastError = new Error(`Gemini (${model}): sin texto (${d?.candidates?.[0]?.finishReason || "empty"})`);
+        } else {
+          const errTxt = await r.text().catch(() => "");
+          lastError = new Error(`Gemini (${model}) respondió ${r.status}: ${errTxt.slice(0, 100)}`);
+        }
+      } catch (e) {
+        lastError = e as Error;
+        if (signal.aborted) throw e;
       }
-    } catch (e) {
-      lastError = e as Error;
-      if (signal.aborted) throw e;
     }
   }
 
-  // Fallback a OpenRouter si todos los modelos de Gemini fallaron
+  // Fallback a OpenRouter si todos los modelos de Gemini fallaron o no hay key válida
   if (OPENROUTER_API_KEY && !signal.aborted) {
     try {
       return await callOpenRouter(prompt, OPENROUTER_API_KEY, signal);
-    } catch {
-      // Ignorar para propagar lastError
+    } catch (e) {
+      if (!lastError) lastError = e as Error;
     }
   }
 
-  throw lastError || new Error("Gemini: todos los modelos fallaron");
+  throw lastError || new Error("Gemini/OpenRouter: todos los proveedores fallaron");
 }
 
 export async function callOpenRouter(prompt: string, apiKey: string, signal: AbortSignal): Promise<string> {
-  const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: OPENROUTER_MODEL, messages: [{ role: "user", content: prompt }] }),
-    signal,
-  });
-  if (!r.ok) throw new Error(`OpenRouter respondió ${r.status}`);
-  const d = await r.json();
-  const text = d?.choices?.[0]?.message?.content;
-  if (!text) throw new Error("OpenRouter: sin texto en la respuesta");
-  return String(text).trim();
+  const models = [
+    OPENROUTER_MODEL,
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
+    "google/gemini-2.0-flash-exp:free",
+    "qwen/qwen-2.5-72b-instruct:free",
+  ].filter(Boolean);
+
+  let lastErr: Error | null = null;
+  for (const model of [...new Set(models)]) {
+    try {
+      const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey.trim()}` },
+        body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }] }),
+        signal,
+      });
+      if (!r.ok) {
+        lastErr = new Error(`OpenRouter (${model}) respondió ${r.status}`);
+        continue;
+      }
+      const d = await r.json();
+      const text = d?.choices?.[0]?.message?.content;
+      if (!text) continue;
+      const trimmed = String(text).trim();
+      // Descartar respuestas de clasificadores de seguridad como Nemotron
+      if (/^user\s*safety:\s*safe$/i.test(trimmed)) {
+        continue;
+      }
+      return trimmed;
+    } catch (e) {
+      lastErr = e as Error;
+      if (signal.aborted) throw e;
+    }
+  }
+  throw lastErr || new Error("OpenRouter: sin respuesta válida de ninguno de los modelos");
 }
 
 export function cleanCueForTranslation(text: string): string {

@@ -117,30 +117,26 @@ export async function handleHubRequest(req: Request): Promise<Response> {
       res = handleHealth();
     } else if (path === "/diag/gemini") {
       try {
-        const { callGemini, GEMINI_API_KEY, GEMINI_MODEL, OPENROUTER_API_KEY } = await import("./deno-hub/translate/gemini.ts");
-        const cleanKey = GEMINI_API_KEY.trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "");
-        const info = {
-          rawLen: GEMINI_API_KEY.length,
-          cleanLen: cleanKey.length,
-          prefix: cleanKey.slice(0, 6),
-          suffix: cleanKey.slice(-4),
-          hasWhitespace: /\s/.test(GEMINI_API_KEY),
-          hasQuotes: /["']/.test(GEMINI_API_KEY),
+        const { callGemini, GEMINI_API_KEY, GEMINI_MODEL, buildTranslateSystemPrompt, NL } = await import("./deno-hub/translate/gemini.ts");
+        const { parseNumbered } = await import("./deno-hub/translate/translate.ts");
+        const t0 = Date.now();
+        const testItems = [
+          { n: 1, text: "Ca va ?\nTu crois qu'il y en a assez ?" },
+          { n: 2, text: "C'est la confiture de ma tante ?" },
+          { n: 3, text: "Raphaël Balthazar" },
+        ];
+        const sysPrompt = buildTranslateSystemPrompt("Balthazar", "fr");
+        const payload = testItems.map((it) => `${it.n}▸ ${it.text.replace(/\n/g, NL)}`).join("\n");
+        const prompt = `${sysPrompt}\n\n${payload}`;
+        const raw = await callGemini(prompt, GEMINI_API_KEY, AbortSignal.timeout(6000));
+        const parsed = parseNumbered(raw);
+        res = jsonResponse({
+          ok: true,
+          durationMs: Date.now() - t0,
           model: GEMINI_MODEL,
-        };
-        // Probar fetch directo a Gemini con cleanKey y ?key=
-        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleanKey}`;
-        const r = await fetch(testUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: "Di: OK" }] }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 20, thinkingConfig: { thinkingBudget: 0 } },
-          }),
-          signal: AbortSignal.timeout(5000),
+          raw,
+          parsed: Array.from(parsed.entries()),
         });
-        const rTxt = await r.text();
-        res = jsonResponse({ ok: r.ok, status: r.status, info, resp: rTxt.slice(0, 300) });
       } catch (e) {
         res = jsonResponse({ ok: false, error: (e as Error).message }, { status: 500 });
       }

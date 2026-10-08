@@ -28,8 +28,8 @@ export function parseStremioSubId(rawId: string): {
   let core = segs[0];
   try { core = decodeURIComponent(core); } catch { /* dejar como está si no decodifica */ }
   let [imdbId, s, e] = core.split(":");
-  if (imdbId === "tt13854128") {
-    imdbId = "tt14060708"; // Alias canónico para HPI: Haut Potentiel Intellectuel
+  if (imdbId === "tt13854128" || imdbId === "tt13000282" || core.toLowerCase().includes("haut-potentiel") || core.toLowerCase().includes("alta-capacidad")) {
+    imdbId = "tt14060708"; // Alias canónico para HPI: Haut Potentiel Intellectuel / ACI
   }
   if (imdbId === "tt0081871" || core.toLowerCase().includes("heroe-americano")) {
     imdbId = "tt0081871"; // "El gran héroe americano" / "The Greatest American Hero" (1981)

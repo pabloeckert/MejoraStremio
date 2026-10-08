@@ -5,7 +5,7 @@
 export const CINEMETA_BASE = "https://v3-cinemeta.strem.io";
 
 export function canonicalImdbId(rawId: string): string {
-  if (rawId === "tt13854128") return "tt14060708";
+  if (rawId === "tt13854128" || rawId === "tt13000282") return "tt14060708";
   if (rawId === "tt3488720") return "tt3488710"; // Alias: "The Walk" / "En la cuerda floja" (2015)
   return rawId;
 }

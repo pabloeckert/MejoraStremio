@@ -74,6 +74,17 @@ assert(!cleanedDe.includes("[Hintergrundmusik]"), "Marcas alemanas [Hintergrundm
 assert(!cleanedDe.includes("KOMMISSAR:"), "Prefijo 'KOMMISSAR:' eliminado");
 assert(cleanedDe.includes("Guten Abend, Herr Müller!"), "Diálogo en alemán preservado");
 
+const rawHpiCue = "[soupirs]\nMORGANE: Je pense qu'il y a un problème.\nKARADEC: Quel problème ?\n(sonnerie d'alarme)\n♪ générique ♪\nC'est évident !";
+const cleanedHpi = cleanCueForTranslation(rawHpiCue);
+assert(!cleanedHpi.includes("[soupirs]"), "HPI: Corchetes [soupirs] eliminados");
+assert(!cleanedHpi.includes("MORGANE:"), "HPI: Prefijo MORGANE: eliminado");
+assert(!cleanedHpi.includes("KARADEC:"), "HPI: Prefijo KARADEC: eliminado");
+assert(!cleanedHpi.includes("(sonnerie d'alarme)"), "HPI: Paréntesis (sonnerie d'alarme) eliminados");
+assert(!cleanedHpi.includes("♪"), "HPI: Símbolos musicales ♪ eliminados");
+assert(cleanedHpi.includes("Je pense qu'il y a un problème."), "HPI: Diálogo de Morgane preservado");
+assert(cleanedHpi.includes("Quel problème ?"), "HPI: Diálogo de Karadec preservado");
+assert(cleanedHpi.includes("C'est évident !"), "HPI: Remate de diálogo preservado");
+
 // 3. Robustez del Parseador (parseNumbered) y Centinelas §Z
 console.log("\n3. Robustez de Parseo y Manejo de Delimitadores §Z:");
 
@@ -170,6 +181,19 @@ assert(resSerieRara.status === 200, "HTTP 200 para serie con hash y nombre de re
 const dataSerieRara = await resSerieRara.json();
 assert(dataSerieRara.subtitles.length > 0, `Cobertura garantizada al 100% para serie no estándar (${dataSerieRara.subtitles.length} tracks)`);
 assert(dataSerieRara.subtitles[0].name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]", "Opción #1 liderada por IA Gemini en 100% de los casos");
+
+// Caso Extremo 3: HPI / ACI con ID alternativo tt13000282
+const resHpi = await handleTranslate(
+  "/subtitles/series/tt13000282:1:1.json",
+  "http://127.0.0.1:8787/translate",
+);
+assert(resHpi.status === 200, "HTTP 200 para HPI con ID alternativo (tt13000282:1:1)");
+const dataHpi = await resHpi.json();
+assert(dataHpi.subtitles.length > 0, `Subtítulos IA entregados para HPI tt13000282 (${dataHpi.subtitles.length} tracks)`);
+assert(dataHpi.subtitles[0].name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]", "HPI: Opción #1 es ⚡ 1. Latino (IA Gemini) · [Traducción Automática]");
+const hpiSpl = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "spl");
+const hpiSpa = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "spa");
+assert(hpiSpl && hpiSpa, "HPI: Entrega dual obligatoria spl + spa para Android TV");
 
 // Resumen Final
 console.log("\n══════════════════════════════════════════════════════════════════════");

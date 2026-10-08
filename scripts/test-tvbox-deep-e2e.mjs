@@ -30,6 +30,7 @@ import { spawn } from 'node:child_process';
 import {
   msToSrtTime,
   parseSrtToCues,
+  resolveSmartSync,
   LATINO_RE,
   classifyStreamAudio,
   isLatinoStream,
@@ -245,8 +246,41 @@ try {
   const allMarkedNoLatino = show2Streams.every((s) => s.name?.includes('[🎧 ORIGINAL]') || s.name?.includes('[⚠️ SOLO INGLÉS]'));
   assert(results.pass2_playback, '100% de los streams sin doblaje marcados preventivamente con [🎧 ORIGINAL]', allMarkedNoLatino);
 
-  // 2.3 Caso 3: Desfase PAL 25fps vs WEB 23.976fps ("HPI", tt14060708:1:1) y Auditoría Temporal
+  // 2.3 Caso 3: Desfase PAL 25fps vs WEB 23.976fps ("HPI", tt14060708 / tt13000282) y Auditoría Temporal
   console.log('\n  2.3 Caso 3: Solicitud de Subtítulos con Smart Audio Sync ("HPI"):');
+
+  // 2.3.0 Calibración de Deriva Lineal PAL 25 -> 23.976 WEB-DL (R = 1.042709)
+  const syncDecision = resolveSmartSync('HPI.S01E01.FRENCH.1080p.WEB-DL.mkv', 'HPI.S01E01.HDTV.25fps.srt');
+  assert(results.pass2_playback, 'Detección automática de discrepancia de framerate PAL vs WEB-DL', syncDecision.needsRescale);
+  const ratioDelta = Math.abs(syncDecision.ratio - (25.0 / 23.976));
+  assert(results.pass2_playback, 'Ratio matemático de corrección temporal estricto (R = 1.042709 [+153.75s/h])', ratioDelta < 0.0001, `Ratio: ${syncDecision.ratio.toFixed(6)}`);
+  assert(results.pass2_playback, 'Parámetro de time-stretch calibrado a 25to23976', syncDecision.fpsParam === '25to23976');
+
+  // 2.3.0.1 Verificación de Streams para HPI vía alias tt13000282
+  const hpiStreamsFetch = await fetchJson(`${LOCAL_HUB_BASE}/streams/series/tt13000282:1:1.json`);
+  const hpiStreams = hpiStreamsFetch.data?.streams || [];
+  assert(results.pass2_playback, 'Entrega de streams para HPI bajo alias tt13000282 (S01E01)', hpiStreams.length > 0, `${hpiStreams.length} streams recibidos`);
+  const originalStreams = hpiStreams.filter((s) => classifyStreamAudio(s) === 'original');
+  assert(results.pass2_playback, 'Fuentes originales en francés identificadas y marcadas con [🎧 ORIGINAL]', originalStreams.length > 0 && originalStreams.every((s) => s.name?.includes('[🎧 ORIGINAL]')));
+  const castellanoStreams = hpiStreams.filter((s) => classifyStreamAudio(s) === 'castellano');
+  if (castellanoStreams.length > 0) {
+    assert(results.pass2_playback, 'Fuentes en castellano identificadas y marcadas con [🇪🇸 CASTELLANO]', castellanoStreams.every((s) => s.name?.includes('[🇪🇸 CASTELLANO]')));
+  }
+  const latinoStreams = hpiStreams.filter((s) => isLatinoStream(s));
+  if (latinoStreams.length > 0) {
+    assert(results.pass2_playback, 'Stream con Audio Latino elevado al PUESTO #1', isLatinoStream(hpiStreams[0]) && hpiStreams[0].name?.includes('[🌎 LATINO]'));
+  }
+
+  // 2.3.0.2 Verificación de Subtítulos IA Gemini para tt13000282
+  const hpiTranslateFetch = await fetchJson(`${LOCAL_HUB_BASE}/translate/subtitles/series/tt13000282:1:1.json`);
+  const hpiSubs = hpiTranslateFetch.data?.subtitles || [];
+  assert(results.pass2_playback, 'Entrega de subtítulos IA para HPI tt13000282', hpiSubs.length > 0, `${hpiSubs.length} opciones`);
+  const hpiAiSub = hpiSubs.find((s) => s.name?.includes('⚡ 1. Latino (IA Gemini) · [Traducción Automática]'));
+  assert(results.pass2_playback, 'Inyección de subtítulo IA Gemini para HPI (tt13000282)', !!hpiAiSub, hpiAiSub?.name);
+  const hpiHasSpl = hpiSubs.some((s) => s.lang === 'spl');
+  const hpiHasSpa = hpiSubs.some((s) => s.lang === 'spa');
+  assert(results.pass2_playback, 'Inyección dual obligatoria de códigos ISO (spl + spa) para HPI en TV Box', hpiHasSpl && hpiHasSpa);
+
   const webdlFilename = 'HPI.S01E01.FRENCH.1080p.WEB-DL.DDP5.1.Atmos.H.264-FW.mkv';
   const simulatedHash = '8e245d9679d31e12';
   const simulatedSize = '1845620140';

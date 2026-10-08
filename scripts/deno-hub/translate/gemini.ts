@@ -146,7 +146,7 @@ export function cleanCueForTranslation(text: string): string {
   t = t.replace(/\{[^}]+\}/g, "");
   // 2. Eliminar acotaciones sonoras entre corchetes o paréntesis
   t = t.replace(/\[[^\]\n]*\]/g, "");
-  t = t.replace(/\([^\)\n]*\)/g, "");
+  t = t.replace(/\([^)\n]*\)/g, "");
   // 3. Eliminar prefijos de hablante en mayúsculas
   t = t.replace(/^[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/gm, "");
   // 4. Eliminar símbolos musicales

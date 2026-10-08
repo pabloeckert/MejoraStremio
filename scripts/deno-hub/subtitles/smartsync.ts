@@ -10,6 +10,7 @@ import { srtTimeToMs, msToSrtTime } from "../utils/common.ts";
 export const EUROPEAN_SHOW_IDS = new Set([
   "tt14060708", // HPI: Haut Potentiel Intellectuel
   "tt13854128", // HPI alias
+  "tt13000282", // HPI / ACI alias terciario
   "tt9293466",  // Balthazar
   "tt0806910",  // Tatort
   "tt28491873", // Ludwig
@@ -35,7 +36,7 @@ export const EUROPEAN_SHOW_IDS = new Set([
 export function isEuropeanShowOrContext(imdbId?: string | null, name?: string | null): boolean {
   if (imdbId && EUROPEAN_SHOW_IDS.has(imdbId)) return true;
   if (!name) return false;
-  return /\b(hpi|balthazar|tatort|ludwig|tf1|ard|zdf|orf|bbc|itv|channel4|rte|french|deutsch|german)\b/i.test(name);
+  return /\b(hpi|aci|balthazar|tatort|ludwig|tf1|ard|zdf|orf|bbc|itv|channel4|rte|french|deutsch|german)\b/i.test(name);
 }
 
 export interface FramerateInfo {

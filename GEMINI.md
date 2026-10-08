@@ -222,5 +222,38 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Caso 1.1 en `test-tvbox-deep-e2e.mjs`**: Integración de pruebas específicas para `tt3488720`, validando entrega de streams, adjudicación de puesto #1 con badge `[🌎 LATINO]`, validación de señales en `addon-signals.mjs` y disponibilidad de subtítulos generativos IA.
 - **Validación Estricta de Código**: 100% limpio en `deno check` y `deno lint` (20 archivos de Deno Hub auditados).
 
+---
+
+## 14. Sesión 2026-10-08 (Parte 2): Calibración, Blindaje y Certificación Integral de HPI / ACI (tt13000282 ➔ tt14060708) para Todas las Temporadas
+
+### 14.1 Resolución Transparente de Alias Canónico (tt13000282 ➔ tt14060708)
+- **Diagnóstico Empírico**: Se constató que `tt13000282` es un ID alternativo/no canónico para *HPI: Haut Potentiel Intellectuel* (*ACI: Alta Capacidad Intelectual*), mientras que el ID canónico de IMDb en Cinemeta y Torrentio es **`tt14060708`**.
+- **Mapeo Universal Transparente**: Se incorporó resolución de alias bidireccional en:
+  - `parseStremioSubId` (`scripts/deno-hub/utils/common.ts`)
+  - `canonicalImdbId` (`scripts/deno-hub/utils/cinemeta.ts`)
+  - `handleStreams` (`scripts/deno-hub/streams/streams.ts`)
+  - `EUROPEAN_SHOW_IDS` e `isEuropeanShowOrContext` (`scripts/deno-hub/subtitles/smartsync.ts`)
+- Cualquier solicitud bajo `tt13000282` (S01 a S04) resuelve instantáneamente hacia los metadatos, streams y subtítulos de la serie.
+
+### 14.2 Clasificación y Ordenación de Streams (Audio Francés Original, Castellano y Latino)
+- **Forzado de directiva `language=latino`**: En `handleStreams`, se asegura la consulta con soporte hispano/latinoamericano para capturar fuentes Dual Audio (Francés / Latino).
+- **Jerarquía y Badges Leanback**:
+  - `classifyStreamAudio` y `LATINO_RE` elevan cualquier stream con audio latino al Puesto #1 con `[🌎 LATINO]`.
+  - Las fuentes en francés original se identifican y marcan con `[🎧 ORIGINAL]`.
+  - Las fuentes en castellano peninsular se identifican y marcan con `[🇪🇸 CASTELLANO]`, relegadas ordenadamente.
+
+### 14.3 Corrección de Deriva Temporal PAL 25 ➔ 23.976 fps (SmartSync)
+- **Ratio Matemático Estricto**: Para transmisiones de origen europeo (PAL 25.0 fps) reproducidas sobre rips WEB-DL (23.976 fps), `resolveSmartSync` aplica factor $R = 25.0 / 23.976 \approx 1.042709$ (+153.75s/h) con parámetro `25to23976`.
+- **Certificación de Timeline**: Monotonicidad estricta (100% de cues con inicio < fin), duración humana válida (100ms - 15000ms), 0 solapamientos consecutivos y 5/5 saltos de seek sin bloqueo.
+
+### 14.4 Purga Estricta Anti-SDH y Subtítulos IA Gemini Flash
+- **Sanitización de Cues (`cleanCueForTranslation`)**: Eliminación del 100% de acotaciones SDH/CC, corchetes `[...]` (ej. `[soupirs]`), paréntesis `(...)`, notas musicales `♪` y prefijos de interlocutores en mayúsculas (ej. `MORGANE:`, `KARADEC:`).
+- **Entrega Dual ISO (`spl` + `spa`)**: El endpoint `/translate/subtitles/series/tt13000282:1:1.json` garantiza la entrega de `⚡ 1. Latino (IA Gemini) · [Traducción Automática]` en códigos `spl` (América Latina) y `spa` (Español estándar).
+
+### 14.5 Suite E2E de Doble Pasada y Certificación (65/65 PASS)
+- **100% PASS**: `scripts/test-translation-engine.ts` (50/50 pruebas OK) y `scripts/test-tvbox-deep-e2e.mjs` (65/65 verificaciones OK).
+- **Higiene de Tipado**: 100% limpio en `deno check` y `deno lint` (20 archivos Deno Hub).
+
+
 
 

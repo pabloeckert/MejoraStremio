@@ -159,6 +159,9 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
   }
 
   let cleanId = decodeURIComponent(rawId).split("/")[0];
+  if (cleanId.startsWith("tt13854128") || cleanId.startsWith("tt13000282")) {
+    cleanId = cleanId.replace(/^tt(?:13854128|13000282)/, "tt14060708");
+  }
   if (cleanId === "tt3488720") {
     cleanId = "tt3488710"; // Alias canónico: "The Walk" / "En la cuerda floja" (2015)
   }

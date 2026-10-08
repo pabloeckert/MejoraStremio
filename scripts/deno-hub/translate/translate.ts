@@ -54,7 +54,7 @@ export const TRANSLATE_MANIFEST = {
 
 export const TRANSLATE_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 export const FAST_WINDOW_BUDGET_MS = 4000;
-export const FAST_WINDOW_CUES = 70; // Primeros ~10 minutos de diálogo
+export const FAST_WINDOW_CUES = 45; // Primeros ~5-7 minutos de diálogo (Fast-Window <3s)
 export const TRANSLATE_BATCH = 100;
 export const TRANSLATE_PARALLEL = 3;
 
@@ -138,7 +138,7 @@ export async function translateBatch(
   const prompt = `${sysPrompt}\n\n${payload}`;
 
   const merged = new Map<number, string>();
-  for (let attempt = 0; attempt < 4 && merged.size < items.length; attempt++) {
+  for (let attempt = 0; attempt < 3 && merged.size < items.length; attempt++) {
     const todo = attempt === 0 ? items : items.filter((it) => !merged.has(it.n));
     if (!todo.length) break;
     const p = attempt === 0
@@ -151,8 +151,8 @@ export async function translateBatch(
       }
     } catch (e) {
       const msg = (e as Error).message;
-      if (/429|503/.test(msg) && attempt < 3) await sleep(3500 + attempt * 3500);
-      else if (attempt >= 3) console.log(`[translate] batch n0=${items[0]?.n} agotó reintentos: ${msg}`);
+      if (/429|503/.test(msg) && attempt < 2) await sleep(2000 + attempt * 2000);
+      else if (attempt >= 2) console.log(`[translate] batch n0=${items[0]?.n} agotó reintentos: ${msg}`);
     }
   }
 
@@ -161,7 +161,7 @@ export async function translateBatch(
     const t = merged.get(it.n);
     map.set(it.n, t ? t.replace(new RegExp(NL, "g"), "\n") : it.text);
   }
-  return { map, ok: merged.size >= items.length * 0.8 };
+  return { map, ok: merged.size >= Math.min(items.length, Math.max(1, Math.floor(items.length * 0.7))) };
 }
 
 export async function translateCues(
@@ -189,7 +189,7 @@ export async function translateCues(
   if (kv) {
     await Promise.all([...pending].map(async (bi) => {
       try {
-        const hit = await kv.get<Record<string, string>>(["tr-batch", "v8", cacheRef, bi]);
+        const hit = await kv.get<Record<string, string>>(["tr-batch", "v9", cacheRef, bi]);
         if (hit.value) {
           for (const idx of batches[bi]) texts[idx] = hit.value[idx] ?? texts[idx];
           pending.delete(bi);
@@ -208,13 +208,13 @@ export async function translateCues(
     const batchIdxs = batches[0];
     const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
     const { map, ok } = await translateBatch(items, AbortSignal.timeout(remaining), sysPrompt);
-    for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
     if (ok) {
+      for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
       pending.delete(0);
       if (kv) {
         const obj: Record<string, string> = {};
         for (const idx of batchIdxs) obj[idx] = texts[idx];
-        try { await kv.set(["tr-batch", "v8", cacheRef, 0], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+        try { await kv.set(["tr-batch", "v9", cacheRef, 0], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
       }
     }
   }
@@ -225,13 +225,13 @@ export async function translateCues(
     const batchIdxs = batches[bi];
     const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
     const { map, ok } = await translateBatch(items, AbortSignal.timeout(remaining), sysPrompt);
-    for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
     if (ok) {
+      for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
       pending.delete(bi);
       if (kv) {
         const obj: Record<string, string> = {};
         for (const idx of batchIdxs) obj[idx] = texts[idx];
-        try { await kv.set(["tr-batch", "v8", cacheRef, bi], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+        try { await kv.set(["tr-batch", "v9", cacheRef, bi], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
       }
     }
   }
@@ -249,11 +249,13 @@ export async function translateCues(
             const batchIdxs = batches[bi];
             const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
             const { map, ok } = await translateBatch(items, AbortSignal.timeout(18000), sysPrompt);
-            for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
-            if (ok && kv) {
-              const obj: Record<string, string> = {};
-              for (const idx of batchIdxs) obj[idx] = texts[idx];
-              try { await kv.set(["tr-batch", "v8", cacheRef, bi], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+            if (ok) {
+              for (const idx of batchIdxs) texts[idx] = map.get(idx) ?? texts[idx];
+              if (kv) {
+                const obj: Record<string, string> = {};
+                for (const idx of batchIdxs) obj[idx] = texts[idx];
+                try { await kv.set(["tr-batch", "v9", cacheRef, bi], obj, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+              }
             }
           }));
         }
@@ -262,7 +264,7 @@ export async function translateCues(
           .filter((c) => !isSoundOnly(c.text) && c.text.trim().length > 0);
         let finalSrt = serializeSrt(outCues);
         finalSrt = cleanSrt(finalSrt);
-        await kv.set(["translate-srt", "v8", cacheRef], finalSrt, { expireIn: TRANSLATE_CACHE_TTL_MS });
+        await kv.set(["translate-srt", "v9", cacheRef], finalSrt, { expireIn: TRANSLATE_CACHE_TTL_MS });
       } catch { /* background fallback */ }
     };
 
@@ -531,7 +533,7 @@ export async function handleTranslate(subPath: string, mountBase: string): Promi
       return new Response("token inválido", { status: 400, headers: cors });
     }
 
-    const cacheKey = ["translate-srt", "v8", src.r];
+    const cacheKey = ["translate-srt", "v9", src.r];
     let kv: Deno.Kv | null = null;
     try {
       kv = await getKv();
@@ -553,9 +555,8 @@ export async function handleTranslate(subPath: string, mountBase: string): Promi
       let srt = serializeSrt(outCues);
       srt = cleanSrt(srt);
 
-      if (kv) {
-        const ttl = done ? TRANSLATE_CACHE_TTL_MS : 2 * 24 * 60 * 60 * 1000;
-        try { await kv.set(cacheKey, srt, { expireIn: ttl }); } catch { /* sin cache */ }
+      if (kv && done) {
+        try { await kv.set(cacheKey, srt, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
       }
       return new Response(srt, {
         headers: {

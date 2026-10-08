@@ -19,22 +19,18 @@ export const GEMINI_SAFETY_OFF = [
 ].map((category) => ({ category, threshold: "BLOCK_NONE" }));
 
 export async function callGemini(prompt: string, apiKey: string, signal: AbortSignal): Promise<string> {
-  const model = GEMINI_MODEL || "gemini-2.5-flash";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-  const r = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      safetySettings: GEMINI_SAFETY_OFF,
-      generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
-    }),
-    signal,
-  });
-  if (!r.ok) {
-    if (r.status === 404 && model !== "gemini-1.5-flash") {
-      const fbUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
-      const fb = await fetch(fbUrl, {
+  const modelsToTry = [
+    GEMINI_MODEL || "gemini-2.0-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+  ];
+  const candidates = [...new Set(modelsToTry.filter(Boolean))];
+
+  let lastError: Error | null = null;
+  for (const model of candidates) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+      const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
@@ -44,18 +40,32 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
         }),
         signal,
       });
-      if (fb.ok) {
-        const d = await fb.json();
+
+      if (r.ok) {
+        const d = await r.json();
         const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) return String(text).trim();
+        lastError = new Error(`Gemini (${model}): sin texto (${d?.candidates?.[0]?.finishReason || "empty"})`);
+      } else {
+        const errTxt = await r.text().catch(() => "");
+        lastError = new Error(`Gemini (${model}) respondió ${r.status}: ${errTxt.slice(0, 100)}`);
       }
+    } catch (e) {
+      lastError = e as Error;
+      if (signal.aborted) throw e;
     }
-    throw new Error(`Gemini respondió ${r.status}`);
   }
-  const d = await r.json();
-  const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini: sin texto (" + (d?.candidates?.[0]?.finishReason || JSON.stringify(d).slice(0, 120)) + ")");
-  return String(text).trim();
+
+  // Fallback a OpenRouter si todos los modelos de Gemini fallaron
+  if (OPENROUTER_API_KEY && !signal.aborted) {
+    try {
+      return await callOpenRouter(prompt, OPENROUTER_API_KEY, signal);
+    } catch {
+      // Ignorar para propagar lastError
+    }
+  }
+
+  throw lastError || new Error("Gemini: todos los modelos fallaron");
 }
 
 export async function callOpenRouter(prompt: string, apiKey: string, signal: AbortSignal): Promise<string> {

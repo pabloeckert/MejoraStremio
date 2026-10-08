@@ -98,8 +98,10 @@ export async function fetchSubdlSubs(
   imdbId: string,
   season: number | null,
   episode: number | null,
+  lang = "ES",
 ): Promise<SubdlSub[]> {
-  let url = `${SUBDL_API}?api_key=${SUBDL_KEY}&imdb_id=${imdbId}&languages=ES&subs_per_page=20`;
+  const langUpper = (lang || "ES").toUpperCase();
+  let url = `${SUBDL_API}?api_key=${SUBDL_KEY}&imdb_id=${imdbId}&languages=${encodeURIComponent(langUpper)}&subs_per_page=20`;
   if (season != null) url += `&season_number=${season}`;
   if (episode != null) url += `&episode_number=${episode}`;
 
@@ -109,9 +111,9 @@ export async function fetchSubdlSubs(
 
   // deno-lint-ignore no-explicit-any
   return ((d?.subtitles ?? []) as any[])
-    .filter((s) => (s.language ?? "").toUpperCase() === "ES" && s.hi === false)
+    .filter((s) => (s.language ?? "").toUpperCase() === langUpper && s.hi === false)
     .map((s) => ({
-      name: s.name || s.release_name || "SubDL ES",
+      name: s.name || s.release_name || `SubDL ${langUpper}`,
       subdlPath: s.url as string,
     }));
 }

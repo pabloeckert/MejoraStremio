@@ -31,10 +31,11 @@ export async function fetchSubSourceSubs(
   imdbId: string,
   season: number | null,
   episode: number | null,
+  language = "spanish",
 ): Promise<SubSourceCandidate[]> {
   if (!SUBSOURCE_API_KEY) return [];
   try {
-    let url = `${SUBSOURCE_API}/subtitles?imdb_id=${imdbId}&language=spanish`;
+    let url = `${SUBSOURCE_API}/subtitles?imdb_id=${imdbId}&language=${encodeURIComponent(language)}`;
     if (season != null) url += `&season=${season}`;
     if (episode != null) url += `&episode=${episode}`;
 

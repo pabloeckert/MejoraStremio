@@ -123,6 +123,54 @@ const cleanedFinalSrt = cleanSrt(srtGenerated);
 const parsedBack = parseSrt(cleanedFinalSrt);
 assert(parsedBack.length === 70, `70/70 cues serializadas y saneadas limpiamente (longitud SRT: ${cleanedFinalSrt.length} bytes)`);
 
+// 6. Garantizador de Fallback Universal de Traducción por IA (Última Instancia)
+console.log("\n6. Garantizador de Fallback Universal de Traducción por IA (IDs Inexistentes/Raros):");
+
+const { handleTranslate } = await import("./deno-hub/translate/translate.ts");
+
+// Caso Extremo 1: ID de película totalmente inexistente (tt999999999)
+const resInexistente = await handleTranslate(
+  "/subtitles/movie/tt999999999.json",
+  "http://127.0.0.1:8787/translate",
+);
+assert(resInexistente.status === 200, "HTTP 200 en consulta de subtítulos para ID inexistente (tt999999999)");
+
+const dataInexistente = await resInexistente.json();
+assert(Array.isArray(dataInexistente.subtitles), "Respuesta contiene arreglo de subtítulos");
+assert(dataInexistente.subtitles.length > 0, `NUNCA devuelve array vacío (recibidos: ${dataInexistente.subtitles.length} tracks)`);
+
+const topSub = dataInexistente.subtitles[0];
+assert(
+  topSub.name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]",
+  `Label estricto de última instancia: ${topSub.name}`,
+);
+
+// Verificación de compatibilidad dual de códigos ISO (spl y spa)
+const hasSpl = dataInexistente.subtitles.some((s: { lang: string }) => s.lang === "spl");
+const hasSpa = dataInexistente.subtitles.some((s: { lang: string }) => s.lang === "spa");
+assert(hasSpl && hasSpa, "Entrega de tracks duales requeridos por Stremio TV Box (spl + spa)");
+
+// Descarga del subtítulo sintético de fallback generado
+const synthUrl = new URL(topSub.url);
+const synthSubPath = synthUrl.pathname.replace(/^\/translate/, "");
+const resSynthSrt = await handleTranslate(synthSubPath, "http://127.0.0.1:8787/translate");
+assert(resSynthSrt.status === 200, `Descarga de SRT sintético exitosa (HTTP ${resSynthSrt.status})`);
+
+const srtBody = await resSynthSrt.text();
+assert(srtBody.length > 100, `Contenido SRT válido entregado (${srtBody.length} bytes)`);
+const parsedSynthCues = parseSrt(srtBody);
+assert(parsedSynthCues.length >= 2, `Cues de diálogo informativos válidos detectados (${parsedSynthCues.length} cues)`);
+
+// Caso Extremo 2: Serie con hashes raros sin cobertura comunitaria
+const resSerieRara = await handleTranslate(
+  "/subtitles/series/custom_show_987654:2:5/videoHash=abc123456789&filename=Obscure.Show.S02E05.720p.mkv.json",
+  "http://127.0.0.1:8787/translate",
+);
+assert(resSerieRara.status === 200, "HTTP 200 para serie con hash y nombre de release no estándar");
+const dataSerieRara = await resSerieRara.json();
+assert(dataSerieRara.subtitles.length > 0, `Cobertura garantizada al 100% para serie no estándar (${dataSerieRara.subtitles.length} tracks)`);
+assert(dataSerieRara.subtitles[0].name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]", "Opción #1 liderada por IA Gemini en 100% de los casos");
+
 // Resumen Final
 console.log("\n══════════════════════════════════════════════════════════════════════");
 console.log(` RESULTADO: ${passed} verificaciones superadas, ${failed} fallidas`);

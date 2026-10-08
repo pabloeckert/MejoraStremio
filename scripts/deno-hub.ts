@@ -193,7 +193,7 @@ export async function handleHubRequest(req: Request): Promise<Response> {
     } else if (path.startsWith("/translate")) {
       route = "translate";
       const subPath = path.slice("/translate".length) || "/";
-      res = await handleTranslate(subPath, `${url.origin}/translate`);
+      res = await handleTranslate(subPath, `${url.origin}/translate`, url);
     } else if (path.startsWith("/streams") || path.startsWith("/stream/")) {
       route = "streams";
       const subPath = path.startsWith("/streams")

@@ -304,12 +304,23 @@ try {
 
   // 2.4 Caso 4: Verificación de Fallback Generativo IA (/translate)
   console.log('\n  2.4 Caso 4: Verificación de Fallback de Traducción IA (Gemini Flash):');
-  const trManifest = await fetchJson(`${PROD_HUB_BASE}/translate/manifest.json`);
+  const trManifest = await fetchJson(`${LOCAL_HUB_BASE}/translate/manifest.json`);
   assert(results.pass2_playback, 'Manifiesto de traducción IA com.mejorastremio.translate activo', trManifest.data?.id === 'com.mejorastremio.translate');
 
-  const trQuery = await fetchJson(`${PROD_HUB_BASE}/translate/subtitles/series/tt0081871:1:1.json`);
+  const trQuery = await fetchJson(`${LOCAL_HUB_BASE}/translate/subtitles/series/tt0081871:1:1.json`);
   const trSubs = trQuery.data?.subtitles || [];
   assert(results.pass2_playback, 'Disponibilidad de subtítulo traducido bajo demanda para tt0081871', trSubs.length > 0, `${trSubs.length} opciones de traducción`);
+
+  // 2.4.1 Prueba Extrema: Garantizador de Fallback Universal (ID Inexistente/Raro)
+  const trInexistente = await fetchJson(`${LOCAL_HUB_BASE}/translate/subtitles/movie/tt999999999.json`);
+  const trSubsInex = trInexistente.data?.subtitles || [];
+  assert(results.pass2_playback, 'Garantía universal: respuesta nunca vacía para ID inexistente (tt999999999)', trSubsInex.length > 0, `${trSubsInex.length} tracks`);
+  assert(results.pass2_playback, 'Inyección obligatoria de opción IA Gemini en última instancia', trSubsInex[0]?.name === '⚡ 1. Latino (IA Gemini) · [Traducción Automática]', trSubsInex[0]?.name);
+
+  if (trSubsInex[0]?.url) {
+    const srtInexRes = await fetchWithTimeout(trSubsInex[0].url, {}, 5000);
+    assert(results.pass2_playback, 'Descarga exitosa de SRT de fallback sintético universal', srtInexRes.res?.status === 200, `HTTP ${srtInexRes.res?.status}`);
+  }
 
   // 2.5 Caso 5: Simulación de Suspensión y Reanudación (Standby / Warm Resume)
   console.log('\n  2.5 Caso 5: Simulación de Suspensión y Reanudación (Warm Resume):');

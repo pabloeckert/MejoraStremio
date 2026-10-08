@@ -20,7 +20,7 @@ export const GEMINI_SAFETY_OFF = [
 
 export async function callGemini(prompt: string, apiKey: string, signal: AbortSignal): Promise<string> {
   const modelsToTry = [
-    GEMINI_MODEL || "gemini-2.0-flash",
+    GEMINI_MODEL || "gemini-2.5-flash",
     "gemini-2.0-flash",
     "gemini-1.5-flash",
   ];
@@ -30,16 +30,38 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
   for (const model of candidates) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-      const r = await fetch(url, {
+      const generationConfig: Record<string, unknown> = {
+        temperature: 0.2,
+        maxOutputTokens: 8192,
+      };
+      if (/2\.5|2\.0/.test(model)) {
+        generationConfig.thinkingConfig = { thinkingBudget: 0 };
+      }
+      let r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           safetySettings: GEMINI_SAFETY_OFF,
-          generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
+          generationConfig,
         }),
         signal,
       });
+
+      // Si falló por thinkingConfig no soportado (HTTP 400), reintentar sin thinkingConfig
+      if (r.status === 400 && generationConfig.thinkingConfig) {
+        delete generationConfig.thinkingConfig;
+        r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            safetySettings: GEMINI_SAFETY_OFF,
+            generationConfig,
+          }),
+          signal,
+        });
+      }
 
       if (r.ok) {
         const d = await r.json();

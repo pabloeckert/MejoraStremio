@@ -54,7 +54,7 @@ export const TRANSLATE_MANIFEST = {
 
 export const TRANSLATE_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 export const FAST_WINDOW_BUDGET_MS = 4000;
-export const FAST_WINDOW_CUES = 45; // Primeros ~5-7 minutos de diálogo (Fast-Window <3s)
+export const FAST_WINDOW_CUES = 70; // Fast-Window cinematográfica (<4s con thinkingBudget: 0)
 export const TRANSLATE_BATCH = 100;
 export const TRANSLATE_PARALLEL = 3;
 
@@ -123,9 +123,14 @@ export const TRANSLATE_SYS = buildTranslateSystemPrompt();
 
 export function parseNumbered(raw: string): Map<number, string> {
   const out = new Map<number, string>();
-  const re = /(^|\n)\s*(\d+)\s*▸\s*([\s\S]*?)(?=\n\s*\d+\s*▸|\s*$)/g;
+  const clean = raw.replace(/^```[a-z]*\s*/gim, "").replace(/```\s*$/gim, "");
+  const re = /(?:^|\n)\s*(\d+)\s*(?:[▸\.:\-])\s*([\s\S]*?)(?=(?:\n\s*\d+\s*[▸\.:\-])|\s*$)/g;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(raw))) out.set(parseInt(m[2], 10), m[3].trim());
+  while ((m = re.exec(clean))) out.set(parseInt(m[1], 10), m[2].trim());
+  if (out.size === 0) {
+    const classicRe = /(^|\n)\s*(\d+)\s*▸\s*([\s\S]*?)(?=\n\s*\d+\s*▸|\s*$)/g;
+    while ((m = classicRe.exec(raw))) out.set(parseInt(m[2], 10), m[3].trim());
+  }
   return out;
 }
 
@@ -204,7 +209,7 @@ export async function translateCues(
 
   // Fase 1: Fast Window síncrona
   if (pending.has(0)) {
-    const remaining = Math.max(1000, deadline - Date.now());
+    const remaining = Math.max(3800, deadline - Date.now());
     const batchIdxs = batches[0];
     const items = batchIdxs.map((idx) => ({ n: idx, text: texts[idx] }));
     const { map, ok } = await translateBatch(items, AbortSignal.timeout(remaining), sysPrompt);

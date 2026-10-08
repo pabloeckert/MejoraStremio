@@ -117,9 +117,22 @@ export async function handleHubRequest(req: Request): Promise<Response> {
       res = handleHealth();
     } else if (path === "/diag/gemini") {
       try {
-        const { callGemini, GEMINI_API_KEY, GEMINI_MODEL, OPENROUTER_API_KEY } = await import("./deno-hub/translate/gemini.ts");
-        const txt = await callGemini("Di exactamente: 'HOLA_MUNDO'", GEMINI_API_KEY, AbortSignal.timeout(10000));
-        res = jsonResponse({ ok: true, model: GEMINI_MODEL, keyLen: GEMINI_API_KEY.length, openRouterLen: OPENROUTER_API_KEY.length, txt });
+        const { GEMINI_MODEL, buildTranslateSystemPrompt } = await import("./deno-hub/translate/gemini.ts");
+        const { translateBatch } = await import("./deno-hub/translate/translate.ts");
+        const t0 = Date.now();
+        const testItems = [
+          { n: 1, text: "Ca va ?\nTu crois qu'il y en a assez ?" },
+          { n: 2, text: "C'est la confiture de ma tante ?" },
+          { n: 3, text: "Raphaël Balthazar" },
+        ];
+        const sysPrompt = buildTranslateSystemPrompt("Balthazar", "fr");
+        const batchRes = await translateBatch(testItems, AbortSignal.timeout(6000), sysPrompt);
+        res = jsonResponse({
+          ok: true,
+          durationMs: Date.now() - t0,
+          model: GEMINI_MODEL,
+          batchRes: { ok: batchRes.ok, map: Array.from(batchRes.map.entries()) },
+        });
       } catch (e) {
         res = jsonResponse({ ok: false, error: (e as Error).message }, { status: 500 });
       }

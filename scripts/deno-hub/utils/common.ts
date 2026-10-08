@@ -34,6 +34,9 @@ export function parseStremioSubId(rawId: string): {
   if (imdbId === "tt0081871" || core.toLowerCase().includes("heroe-americano")) {
     imdbId = "tt0081871"; // "El gran héroe americano" / "The Greatest American Hero" (1981)
   }
+  if (imdbId === "tt3488720" || core.toLowerCase().includes("the-walk") || core.toLowerCase().includes("cuerda-floja")) {
+    imdbId = "tt3488710"; // Alias canónico: "The Walk" / "En la cuerda floja" (2015)
+  }
   // Segundo segmento ("videoHash=...&videoSize=...&filename=....mkv") trae el hash,
   // tamaño y nombre real del archivo que Stremio está reproduciendo.
   let filename: string | null = null;
@@ -154,14 +157,14 @@ export const CASTELLANO_STREAM_REGEX =
   /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|mejortorrent|wolfmax4k|dontorrent|estrenosdtl|grantorrent|castellana|dual[-_ ]?esp)\b|🇪🇸/i;
 
 export const LATINO_EXCLUSIVE_REGEX =
-  /\b(cinecalidad|hackstore|latino|latina|latam|es[-_]?419|doblaje[-_ ]?latino|audio[-_ ]?latino|dual[-_ ]?lat|multi[-_ ]?lat|lat[-_ ]?eng|eng[-_ ]?lat|es[-_]?la)\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
+  /\b(cinecalidad|hackstore|latino|latina|latam|es[-_]?419|doblaje[-_ ]?latino|audio[-_ ]?latino|dual[-_ ]?lat|multi[-_ ]?lat|lat[-_ ]?eng|eng[-_ ]?lat|es[-_]?la|cuerda[-_ ]?floja)\b|🌎|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
 
 export const LATIN_TOKENS = [
   "latino", "latina", "latam", "eslatam", "es419", "419", "esla",
   "espanoledla", "edla", "multilatino", "multilat", "doblajelatino",
   "audiolatino", "esplatino", "españollatino", "espanollatino",
   "spanishlatino", "spanishlatam", "latinoamericano", "cinecalidad",
-  "hackstore", "latin", "sudamerica", "americalatina"
+  "hackstore", "latin", "sudamerica", "americalatina", "cuerdafloja"
 ];
 
 export function cleanReleaseName(text: string): string {

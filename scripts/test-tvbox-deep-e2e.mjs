@@ -30,6 +30,10 @@ import { spawn } from 'node:child_process';
 import {
   msToSrtTime,
   parseSrtToCues,
+  LATINO_RE,
+  classifyStreamAudio,
+  isLatinoStream,
+  isCachedStream,
 } from './lib/addon-signals.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -205,6 +209,30 @@ try {
   const top1Title = `${topStream1?.name || ''} ${topStream1?.title || ''}`;
   const hasCastellanoInTop1 = /castellano|spanish spain|españa/i.test(top1Title) && !/latino|cinecalidad|dual/i.test(top1Title);
   assert(results.pass2_playback, 'Doblaje peninsular (Castellano) estrictamente vetado del puesto #1', !hasCastellanoInTop1);
+
+  // 2.1.1 Caso 1.1: Película "En la cuerda floja" (2015) / "The Walk" (tt3488720) — Audio Latino #1 & IA Subtitles
+  console.log('\n  2.1.1 Caso 1.1: Auditoría Integral para "En la cuerda floja" (tt3488720 / tt3488710):');
+  const walkStreamsFetch = await fetchJson(`${LOCAL_HUB_BASE}/streams/movie/tt3488720.json`);
+  const walkStreams = walkStreamsFetch.data?.streams || [];
+  assert(results.pass2_playback, 'Entrega de streams para tt3488720 (The Walk 2015)', walkStreams.length > 0, `${walkStreams.length} streams recibidos`);
+
+  if (walkStreams.length > 0) {
+    const topWalk = walkStreams[0];
+    const topWalkHasLatinoBadge = topWalk?.name?.includes('[🌎 LATINO]');
+    assert(results.pass2_playback, 'Puesto #1 de "En la cuerda floja" con insignia [🌎 LATINO]', topWalkHasLatinoBadge, topWalk?.name?.replace(/\n/g, ' '));
+    assert(results.pass2_playback, 'Clasificador LATINO_RE de addon-signals identifica stream #1', LATINO_RE.test(`${topWalk?.name || ''} ${topWalk?.title || ''}`));
+    assert(results.pass2_playback, 'isLatinoStream valida puesto #1 como Latino genuino', isLatinoStream(topWalk));
+  }
+
+  // Verificación de Subtítulos Traducidos por IA para tt3488720
+  const walkTranslateFetch = await fetchJson(`${LOCAL_HUB_BASE}/translate/subtitles/movie/tt3488720.json`);
+  const walkSubs = walkTranslateFetch.data?.subtitles || [];
+  assert(results.pass2_playback, 'Entrega de subtítulos IA para tt3488720', walkSubs.length > 0, `${walkSubs.length} opciones`);
+  const walkAiSub = walkSubs.find((s) => s.name?.includes('⚡ 1. Latino (IA Gemini) · [Traducción Automática]'));
+  assert(results.pass2_playback, 'Inyección de subtítulo IA Gemini para "En la cuerda floja"', !!walkAiSub, walkAiSub?.name);
+  const walkHasSpl = walkSubs.some((s) => s.lang === 'spl');
+  const walkHasSpa = walkSubs.some((s) => s.lang === 'spa');
+  assert(results.pass2_playback, 'Inyección dual obligatoria de códigos ISO (spl + spa) para ExoPlayer Leanback', walkHasSpl && walkHasSpa);
 
   // 2.2 Caso 2: Título Exclusivamente en Inglés ("The Really Loud House", tt22495072:1:1)
   console.log('\n  2.2 Caso 2: Advertencia Preventiva en Contenido Solo Inglés ("The Really Loud House"):');

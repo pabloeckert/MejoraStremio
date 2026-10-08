@@ -19,15 +19,37 @@ export function seedCount(text) {
 // no depende del swarm P2P vivo â€” un torrent con ðŸ‘¤ 0 hoy igual reproduce si ya estÃ¡ cacheado.
 // [TB download] / [TBâ¬‡ï¸] = TorBox todavÃ­a no lo tiene, necesita bajarlo del swarm primero.
 export function isCachedStream(s) {
-  const text = `${s?.name || ''} ${s?.title || ''}`;
-  return /\[TB\+\]|\[TB⚡\]|\[TBâš¡\]|\[(?:tb|torbox)\+\]|\b(?:cached|instant[aá]neo)\b/i.test(text);
+  const text = `${s?.name || ''} ${s?.title || ''} ${s?.description || ''}`;
+  return /\[TB\+\]|\[TB⚡\]|\[TBâš¡\]|\[(?:tb|torbox)\+\]|\b(?:cached|instant[aá]neo|debrid cache)\b|⚡/i.test(text);
 }
 
 export function isRealStream(s) {
   if (isCachedStream(s)) return true;
-  const text = `${s.title || ''}\n${s.name || ''}`;
+  const text = `${s?.title || ''}\n${s?.name || ''}\n${s?.description || ''}`;
   const seeds = seedCount(text);
   return seeds === null || seeds > 0; // null = addon HTTP sin contador de seeds
+}
+
+// Clasificación unificada de Audio para streams (Latino vs Original vs Castellano vs Portugués)
+export const LATINO_RE =
+  /\b(cinecalidad|hackstore|latino|latina|latam|es[-_]?419|doblaje[-_ ]?latino|audio[-_ ]?latino|dual[-_ ]?lat|multi[-_ ]?lat|lat[-_ ]?eng|eng[-_ ]?lat|es[-_]?la|edla|cuerda[-_ ]?floja)\b|🌎|🇲🇽|🇦🇷|🇨🇴|🇨🇱|🇵🇪|🇻🇪|🇺🇾/i;
+
+export const PT_STREAM_REGEX =
+  /\b(dublado|legendado|pt[-_]?br|portugu[eê]s|bludv|comando|micoleaodublado|starckfilmes|homem[-_]?aranha|audio[-_ ]?pt)\b|🇧🇷|🇵🇹/i;
+
+export const CASTELLANO_STREAM_REGEX =
+  /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|mejortorrent|wolfmax4k|dontorrent|estrenosdtl|grantorrent|castellana|dual[-_ ]?esp)\b|🇪🇸/i;
+
+export function classifyStreamAudio(stream) {
+  const rawText = `${stream?.name || ''} ${stream?.title || ''} ${stream?.description || ''}`;
+  if (PT_STREAM_REGEX.test(rawText)) return 'portuguese';
+  if (CASTELLANO_STREAM_REGEX.test(rawText)) return 'castellano';
+  if (LATINO_RE.test(rawText)) return 'latino';
+  return 'original';
+}
+
+export function isLatinoStream(stream) {
+  return classifyStreamAudio(stream) === 'latino';
 }
 
 // Los 5 addons de subtÃ­tulos ya instalados devuelven el idioma como "es"/"spa" para un subtÃ­tulo

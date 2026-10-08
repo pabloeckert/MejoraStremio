@@ -14,6 +14,7 @@
     { "name": "Machos Alfa", "altName": "Alpha Males", "id": "tt18482892", "type": "series", "country": "ES", "year": "2022", "note": "Audio en español." },
     { "name": "Reina Roja", "altName": "Red Queen", "id": "tt20883126", "type": "series", "country": "ES", "year": "2024", "note": "Audio en español." },
     { "name": "Sky Rojo", "altName": "", "id": "tt8690776", "type": "series", "country": "ES", "year": "2021", "note": "Audio en español." },
-    { "name": "Políticamente incorrectos", "altName": "", "id": "tt28272350", "type": "movie", "country": "ES", "year": "2024", "note": "Película. Audio en español." }
+    { "name": "Políticamente incorrectos", "altName": "", "id": "tt28272350", "type": "movie", "country": "ES", "year": "2024", "note": "Película. Audio en español." },
+    { "name": "En la cuerda floja", "altName": "The Walk", "id": "tt3488710", "type": "movie", "country": "US", "year": "2015", "note": "Prioridad Audio Latino y subtítulos IA (alias tt3488720)." }
   ]
 }

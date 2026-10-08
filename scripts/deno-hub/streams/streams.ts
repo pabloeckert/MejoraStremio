@@ -28,19 +28,27 @@ export const STREAMS_MANIFEST = {
 export const ALLOWED_TORRENTIO_HOSTS = new Set(["torrentio.strem.fun"]);
 
 export function sanitizeTorrentioBase(rawUrl: string): string {
-  let candidate = (rawUrl || "https://torrentio.strem.fun/").trim();
+  let candidate = (rawUrl || "https://torrentio.strem.fun/language=latino/").trim();
   try {
     const parsed = new URL(candidate);
     if (!ALLOWED_TORRENTIO_HOSTS.has(parsed.hostname.toLowerCase())) {
-      candidate = "https://torrentio.strem.fun/";
+      candidate = "https://torrentio.strem.fun/language=latino/";
     }
   } catch {
-    candidate = "https://torrentio.strem.fun/";
+    candidate = "https://torrentio.strem.fun/language=latino/";
   }
   let u = candidate;
   if (!u.endsWith("/")) u += "/";
   u = u.replace(/\/manifest\.json.*$/, "/");
-  u = u.replace(/([/|])language=[^|/]+/gi, "$1");
+  if (u.includes("language=spanish")) {
+    u = u.replace(/language=spanish/g, "language=latino");
+  } else if (!u.includes("language=")) {
+    const m = u.match(/^https:\/\/torrentio\.strem\.fun\/([^/]*)\/$/);
+    if (m) {
+      const seg = m[1] ? `${m[1]}|language=latino` : "language=latino";
+      u = `https://torrentio.strem.fun/${seg}/`;
+    }
+  }
   u = u.replace(/\|+/g, "|").replace(/\/\|/g, "/").replace(/\|\//g, "/");
   return u;
 }
@@ -137,15 +145,23 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
   const envTorrentio =
     (typeof Deno !== "undefined" && Deno.env?.get?.("TORRENTIO_URL")) ||
     (typeof process !== "undefined" && process.env?.TORRENTIO_URL) ||
-    "https://torrentio.strem.fun/";
+    "https://torrentio.strem.fun/language=latino/";
 
   let upstreamBase = sanitizeTorrentioBase(url.searchParams.get("torrentio") || envTorrentio);
   if (configSegment) {
-    const safeSegment = configSegment.replace(/[^a-zA-Z0-9_=,|%.-]/g, "");
+    let safeSegment = configSegment.replace(/[^a-zA-Z0-9_=,|%.-]/g, "");
+    if (safeSegment.includes("language=spanish")) {
+      safeSegment = safeSegment.replace(/language=spanish/g, "language=latino");
+    } else if (!safeSegment.includes("language=")) {
+      safeSegment = safeSegment ? `${safeSegment}|language=latino` : "language=latino";
+    }
     upstreamBase = `https://torrentio.strem.fun/${safeSegment}/`;
   }
 
-  const cleanId = decodeURIComponent(rawId).split("/")[0];
+  let cleanId = decodeURIComponent(rawId).split("/")[0];
+  if (cleanId === "tt3488720") {
+    cleanId = "tt3488710"; // Alias canónico: "The Walk" / "En la cuerda floja" (2015)
+  }
   const targetUrl = `${upstreamBase}stream/${type}/${cleanId}.json`;
 
   try {

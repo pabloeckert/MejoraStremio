@@ -1,0 +1,31 @@
+# Antigravity Rules (.agyrules) — MejoraStremio
+# Configuración de Auto-Aprobación y Silenciamiento de Diagnósticos
+
+# Comandos de Diagnóstico y Validación Automatizada (Non-Interactive Auto-Approve)
+allow_commands:
+  - "deno lint"
+  - "deno lint scripts/**"
+  - "deno lint scripts/deno-hub.ts"
+  - "deno lint scripts/deno-hub/**"
+  - "deno check scripts/**"
+  - "deno check scripts/deno-hub.ts"
+  - "deno check scripts/deno-hub/**"
+  - "deno task lint"
+  - "deno task check"
+  - "node scripts/**"
+  - "deno run *scripts/**"
+
+# Reglas de ejecución silenciosa en subrutas de scripts/
+auto_approve:
+  deno_lint:
+    paths:
+      - "scripts/deno-hub.ts"
+      - "scripts/deno-hub/**"
+    action: "approve"
+    interactive: false
+  deno_check:
+    paths:
+      - "scripts/deno-hub.ts"
+      - "scripts/deno-hub/**"
+    action: "approve"
+    interactive: false

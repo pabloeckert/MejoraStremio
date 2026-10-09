@@ -316,46 +316,76 @@ export function ensureHubSubtitleAddons(addons) {
   return [...toAdd, ...addons];
 }
 
+export const CANONICAL_TORBOX_CONFIG =
+  'providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino';
+
+export const CANONICAL_HUB_URL =
+  `https://mejorastremio-hub.pabloeckert.deno.net/${CANONICAL_TORBOX_CONFIG}/manifest.json`;
+
+export const UNIFIED_HUB_ADDON_ENTRY = {
+  transportUrl: CANONICAL_HUB_URL,
+  manifest: {
+    id: 'com.mejorastremio.hub',
+    version: '1.3.0',
+    name: 'MejoraStremio Hub',
+    description: 'Addon Unificado de MejoraStremio: Streams prioritarios TorBox + Audio Latino, Subtítulos sin SDH y Traducción IA (Gemini Flash).',
+    resources: ['stream', 'subtitles'],
+    types: ['movie', 'series'],
+    idPrefixes: ['tt'],
+    catalogs: [],
+  },
+};
+
 export function ensureStreamsInterceptor(addons) {
-  const torrentioAddon = addons.find((a) => a.manifest?.id === 'com.stremio.torrentio.addon');
-  let torConfig = '';
-  if (torrentioAddon?.transportUrl) {
-    const m = torrentioAddon.transportUrl.match(/torrentio\.strem\.fun\/([^/]+)\/manifest\.json/);
-    if (m) torConfig = m[1];
-  }
-  const streamsUrl = torConfig
-    ? `https://mejorastremio-hub.pabloeckert.deno.net/streams/${torConfig}/manifest.json`
-    : 'https://mejorastremio-hub.pabloeckert.deno.net/streams/manifest.json';
+  let changed = false;
 
-  const existingIdx = addons.findIndex((a) => a.manifest?.id === 'com.mejorastremio.streams');
-  const interceptorEntry = {
-    transportUrl: streamsUrl,
-    manifest: {
-      id: 'com.mejorastremio.streams',
-      version: '1.0.0',
-      name: 'MejoraStremio Streams (TorBox Latino)',
-      description: 'Smart Stream Interceptor: proxy inteligente de Torrentio con reordenamiento prioritario a audio latino y etiquetado visual para TV.',
-      resources: ['stream'],
-      types: ['movie', 'series'],
-      idPrefixes: ['tt'],
-      catalogs: [],
-    },
-  };
-
-  if (existingIdx >= 0) {
-    if (addons[existingIdx].transportUrl !== streamsUrl) {
-      const copy = [...addons];
-      copy[existingIdx] = interceptorEntry;
-      return { addons: copy, changed: true };
+  // 1. Purgar Torrentio directo (torrentio.strem.fun) para eliminar cualquier bypass sobre el Edge
+  const filtered = addons.filter((a) => {
+    const isDirectTorrentio =
+      a.manifest?.id === 'com.stremio.torrentio.addon' &&
+      String(a.transportUrl || '').includes('torrentio.strem.fun');
+    if (isDirectTorrentio) {
+      changed = true;
+      return false;
     }
-    return { addons, changed: false };
+    return true;
+  });
+
+  // 2. Localizar o reordenar el Addon Unificado com.mejorastremio.hub al puesto #1 de streams
+  const cinemetaIdx = filtered.findIndex((a) => a.manifest?.id === 'cinemeta');
+  const targetPos = cinemetaIdx >= 0 ? cinemetaIdx + 1 : 6;
+  const hubIdx = filtered.findIndex((a) => a.manifest?.id === 'com.mejorastremio.hub');
+  let resultList = [...filtered];
+
+  if (hubIdx >= 0) {
+    const entry = {
+      ...resultList[hubIdx],
+      transportUrl: CANONICAL_HUB_URL,
+      manifest: UNIFIED_HUB_ADDON_ENTRY.manifest,
+    };
+    if (resultList[hubIdx].transportUrl !== CANONICAL_HUB_URL || hubIdx !== targetPos) {
+      resultList.splice(hubIdx, 1);
+      const insertAt = Math.min(targetPos, resultList.length);
+      resultList.splice(insertAt, 0, entry);
+      changed = true;
+    }
+  } else {
+    resultList.splice(targetPos, 0, UNIFIED_HUB_ADDON_ENTRY);
+    changed = true;
   }
 
-  const torIdx = addons.findIndex((a) => a.manifest?.id === 'com.stremio.torrentio.addon');
-  const insertAt = torIdx >= 0 ? torIdx : 6;
-  const copy = [...addons];
-  copy.splice(insertAt, 0, interceptorEntry);
-  return { addons: copy, changed: true };
+  // 3. Garantizar también com.mejorastremio.streams como endpoint auxiliar
+  const streamStreamsUrl = `https://mejorastremio-hub.pabloeckert.deno.net/streams/${CANONICAL_TORBOX_CONFIG}/manifest.json`;
+  const existingStreamsIdx = resultList.findIndex((a) => a.manifest?.id === 'com.mejorastremio.streams');
+  if (existingStreamsIdx >= 0 && resultList[existingStreamsIdx].transportUrl !== streamStreamsUrl) {
+    resultList[existingStreamsIdx] = {
+      ...resultList[existingStreamsIdx],
+      transportUrl: streamStreamsUrl,
+    };
+    changed = true;
+  }
+
+  return { addons: resultList, changed };
 }
 
 export async function syncAioMetadataInstance(addons) {
@@ -678,6 +708,8 @@ async function runProfileManager() {
     if (APPLY && !DRY_RUN && changesCount > 0) {
       console.log('\n  Aplicando cambios con guard anti-catálogos-congelados...');
       const guardExempt = [
+        'com.mejorastremio.hub',
+        'com.mejorastremio.streams',
         'com.stremio.torrentio.addon',
         'stremio.comet.fast',
         'com.mejorastremio.opensubtitles-latino',
@@ -685,7 +717,6 @@ async function runProfileManager() {
         'com.mejorastremio.opensubtitles',
         'com.mejorastremio.subsource',
         'com.mejorastremio.translate',
-        'com.mejorastremio.streams',
       ];
       if (aioRes.changed) guardExempt.push('aio-metadata');
 

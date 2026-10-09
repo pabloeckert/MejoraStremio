@@ -76,8 +76,8 @@
         "description": "Prefiere audio latino ('la') y original ('en'), cacheados en TorBox primero"
       },
       "streamAddonOrder": [
+        "com.mejorastremio.hub",
         "com.mejorastremio.streams",
-        "com.stremio.torrentio.addon",
         "stremio.comet.fast",
         "com.notorrent.addon",
         "webstreamr-mbg",

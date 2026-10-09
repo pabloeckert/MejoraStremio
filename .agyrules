@@ -4,16 +4,21 @@
 # Comandos de Diagnóstico y Validación Automatizada (Non-Interactive Auto-Approve)
 allow_commands:
   - "deno lint"
+  - "deno lint *"
   - "deno lint scripts/**"
   - "deno lint scripts/deno-hub.ts"
   - "deno lint scripts/deno-hub/**"
+  - "deno check"
+  - "deno check *"
   - "deno check scripts/**"
   - "deno check scripts/deno-hub.ts"
   - "deno check scripts/deno-hub/**"
   - "deno task lint"
   - "deno task check"
+  - "deno test *"
+  - "deno run *"
   - "node scripts/**"
-  - "deno run *scripts/**"
+  - "node *"
 
 # Reglas de ejecución silenciosa en subrutas de scripts/
 auto_approve:

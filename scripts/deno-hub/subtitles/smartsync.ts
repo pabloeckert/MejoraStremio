@@ -48,12 +48,15 @@ export interface FramerateInfo {
 
 export function detectFramerate(name: string | null | undefined, imdbId?: string | null): FramerateInfo {
   if (!name) {
-    if (isEuropeanShowOrContext(imdbId)) {
-      return { fps: 25.0, standard: "PAL_25", tag: "PAL/HDTV 25fps (Europeo)", confidence: "medium" };
-    }
-    return { fps: 23.976, standard: "NTSC_WEB", tag: "WEB-DL (asumido)", confidence: "low" };
+    // En Stremio, los streams reproducidos en TV Box son WEB-DL a 23.976 fps por omisión.
+    return { fps: 23.976, standard: "NTSC_WEB", tag: "WEB-DL (estándar Stremio)", confidence: "medium" };
   }
   const s = String(name).toLowerCase();
+
+  // Para HPI, los subtítulos comunitarios hispanos provienen de emisión TF1 a 25.0 fps
+  if (imdbId === "tt14060708" || imdbId === "tt13000282" || imdbId === "tt13854128") {
+    return { fps: 25.0, standard: "PAL_25", tag: "PAL/HDTV 25fps (Europeo HPI)", confidence: "high" };
+  }
 
   // Señales explícitas de 25 fps (PAL / transmisiones de TV europea/británica)
   if (/\b(pal|hdtv|pdtv|dvb|dvb-t|dvb-s|tf1|ard|zdf|orf|bbc|itv|channel4|rte|25fps|25\.000|50fps|50i)\b/i.test(s)) {
@@ -94,6 +97,20 @@ export interface SmartSyncDecision {
 }
 
 export function resolveSmartSync(videoName?: string | null, subName?: string | null, imdbId?: string | null): SmartSyncDecision {
+  const isHpi = imdbId === "tt14060708" || imdbId === "tt13000282" || imdbId === "tt13854128";
+  if (isHpi) {
+    // Para HPI (todas las temporadas): estiramiento temporal obligatorio R = 25.0 / 23.976 ≈ 1.042709
+    return {
+      needsRescale: true,
+      fromFps: 25.0,
+      toFps: 23.976,
+      ratio: 25.0 / 23.976,
+      actionDescription: "Estiramiento temporal HDTV/PAL (25fps) -> WEB-DL (23.976fps) [+153.75s/h]",
+      badge: "⚡ SmartSync (PAL 25->23.976 WEB)",
+      fpsParam: "25to23976",
+    };
+  }
+
   const v = detectFramerate(videoName, imdbId);
   const s = detectFramerate(subName, imdbId);
 
@@ -276,7 +293,7 @@ export function cleanSrt(srtContent: string): string {
         let l = line;
         l = l.replace(/\[.*?\]/g, "");
         l = l.replace(/\(.*?\)/g, "");
-        l = l.replace(/^[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/, "");
+        l = l.replace(/^[-–—•]?\s*[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/, "");
         l = l.replace(/[♪♫#*]+/g, "");
         l = l.replace(/<[^>]+>/g, "");
         l = l.replace(/^[•\s\-_=~*|]+|[•\s\-_=~*|]+$/g, "");

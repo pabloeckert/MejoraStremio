@@ -162,28 +162,45 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
   if (cleanId.startsWith("tt13854128") || cleanId.startsWith("tt13000282")) {
     cleanId = cleanId.replace(/^tt(?:13854128|13000282)/, "tt14060708");
   }
-  if (cleanId === "tt3488720") {
-    cleanId = "tt3488710"; // Alias canónico: "The Walk" / "En la cuerda floja" (2015)
-  }
-  const targetUrl = `${upstreamBase}stream/${type}/${cleanId}.json`;
+
+  // Para "The Walk" / "En la cuerda floja", consultar en paralelo ambos alias:
+  // tt3488710 (canónico internacional / TorBox cached) y tt3488720 (trackers hispanos DameTorrents/Cinecalidad)
+  const isTheWalk = cleanId.startsWith("tt3488710") || cleanId.startsWith("tt3488720");
+  const targetIds = isTheWalk ? ["tt3488710", "tt3488720"] : [cleanId];
 
   try {
-    const upstreamRes = await fetch(targetUrl, {
-      signal: AbortSignal.timeout(15000),
-      headers: {
-        "User-Agent": "MejoraStremio-SmartInterceptor/1.0",
-        "Accept": "application/json",
-      },
-    });
+    const responses = await Promise.allSettled(
+      targetIds.map(async (tid) => {
+        const targetUrl = `${upstreamBase}stream/${type}/${tid}.json`;
+        const res = await fetch(targetUrl, {
+          signal: AbortSignal.timeout(15000),
+          headers: {
+            "User-Agent": "MejoraStremio-SmartInterceptor/1.0",
+            "Accept": "application/json",
+          },
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data?.streams) ? (data.streams as StremioStreamItem[]) : [];
+      })
+    );
 
-    if (!upstreamRes.ok) {
-      return jsonResponse({ streams: [] });
+    const rawStreams: StremioStreamItem[] = [];
+    const seen = new Set<string>();
+
+    for (const r of responses) {
+      if (r.status === "fulfilled") {
+        for (const s of r.value) {
+          const key = s.infoHash || s.url || `${s.title}-${s.name}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            rawStreams.push(s);
+          }
+        }
+      }
     }
 
-    const data = await upstreamRes.json();
-    const rawStreams: StremioStreamItem[] = Array.isArray(data?.streams) ? data.streams : [];
     const ranked = rankAndBadgeStreams(rawStreams);
-
     return jsonResponse({ streams: ranked });
   } catch (err) {
     console.error(`[streams] Error fetching upstream torrentio: ${(err as Error).message}`);

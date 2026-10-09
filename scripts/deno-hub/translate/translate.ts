@@ -184,7 +184,7 @@ export async function translateCues(
   kv: Deno.Kv | null,
   deadline: number,
   sysPrompt: string = TRANSLATE_SYS,
-): Promise<{ texts: string[]; done: boolean }> {
+): Promise<{ texts: string[]; done: boolean; batch0Ok: boolean }> {
   const texts = cues.map((c) => cleanCueForTranslation(c.text));
   const dialogueIdx = cues.map((c, i) => (isSoundOnly(c.text) || !texts[i].trim() ? -1 : i)).filter((i) => i >= 0);
 
@@ -213,7 +213,7 @@ export async function translateCues(
   }
 
   if (pending.size === 0) {
-    return { texts, done: true };
+    return { texts, done: true, batch0Ok: true };
   }
 
   // Fase 1: Fast Window síncrona
@@ -291,7 +291,7 @@ export async function translateCues(
     }
   }
 
-  return { texts, done: isDone };
+  return { texts, done: isDone, batch0Ok: !pending.has(0) };
 }
 
 export function createSyntheticBaseCues(showTitle?: string): Cue[] {
@@ -712,7 +712,22 @@ export async function handleTranslate(
       }
 
       const sysPrompt = buildTranslateSystemPrompt(src.name || "Contenido Audiovisual", src.lang || "en");
-      const { texts, done } = await translateCues(baseCues, src.r, kv, Date.now() + FAST_WINDOW_BUDGET_MS, sysPrompt);
+      const { texts, done, batch0Ok } = await translateCues(baseCues, src.r, kv, Date.now() + FAST_WINDOW_BUDGET_MS, sysPrompt);
+      if (!batch0Ok) {
+        console.warn(`[translate] Batch 0 no pudo traducirse en el presupuesto de FastWindow (${src.r}), entregando fallback informativo`);
+        const synthCues = createSyntheticBaseCues(src.name);
+        const srt = cleanSrt(serializeSrt(synthCues));
+        return new Response(srt, {
+          headers: {
+            ...cors,
+            "Content-Type": "text/plain; charset=utf-8",
+            "Content-Disposition": 'attachment; filename="es-latino.srt"',
+            "X-Translate-FastWindow": "true",
+            "X-Translate-Complete": "false",
+            "X-Translate-Pending": "true",
+          },
+        });
+      }
       const outCues = baseCues
         .map((c, i) => ({ ...c, text: texts[i] }))
         .filter((c) => !isSoundOnly(c.text) && c.text.trim().length > 0);

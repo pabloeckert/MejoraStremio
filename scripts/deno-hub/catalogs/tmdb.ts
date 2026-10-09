@@ -742,7 +742,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
   if (kv) {
     try {
       // deno-lint-ignore no-explicit-any
-      const kvPage = await kv.get<any[]>(["discover_page_v2", type, pageCacheKey]);
+      const kvPage = await kv.get<any[]>(["discover_page_v3", type, pageCacheKey]);
       if (kvPage?.value && Array.isArray(kvPage.value)) {
         discoverPageLruCache.set(pageCacheKey, { metas: kvPage.value, cachedAt: Date.now(), isFresh });
         return jsonResponse({ metas: kvPage.value });
@@ -875,7 +875,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     if (metas.length > 0) {
       discoverPageLruCache.set(pageCacheKey, { metas, cachedAt: Date.now(), isFresh });
       if (kv) {
-        kv.set(["discover_page_v2", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
+        kv.set(["discover_page_v3", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
       }
     }
 

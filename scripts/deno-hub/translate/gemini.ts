@@ -3,7 +3,7 @@
  * Preserva las directivas estrictas de traducción cinematográfica, nombres propios y anti-SDH.
  */
 
-export const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+export const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
 export const OPENROUTER_MODEL = Deno.env.get("OPENROUTER_MODEL") ?? "openrouter/free";
 export const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 export const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") ?? "";
@@ -21,9 +21,9 @@ export const GEMINI_SAFETY_OFF = [
 export async function callGemini(prompt: string, apiKey: string, signal: AbortSignal): Promise<string> {
   const cleanKey = apiKey.trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "");
   const modelsToTry = [
-    GEMINI_MODEL || "gemini-2.5-flash",
-    "gemini-2.0-flash",
+    GEMINI_MODEL || "gemini-2.0-flash",
     "gemini-1.5-flash",
+    "gemini-2.0-flash-lite",
   ];
   const candidates = [...new Set(modelsToTry.filter(Boolean))];
 
@@ -36,7 +36,7 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
           temperature: 0.2,
           maxOutputTokens: 8192,
         };
-        if (/2\.5|2\.0/.test(model)) {
+        if (model.includes("thinking")) {
           generationConfig.thinkingConfig = { thinkingBudget: 0 };
         }
         let r = await fetch(url, {

@@ -265,7 +265,30 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - 32 de 32 episodios con subtítulos IA `⚡ 1. Latino (IA Gemini) · [Traducción Automática]` en códigos duales `spl` + `spa`.
   - SmartSync PAL 25.0 ➔ WEB-DL 23.976 fps: calibración matemática certificada a ratio $R = 1.042709$ con monotonicidad estricta y 0 colisiones en todas las temporadas.
 
+---
 
+## 15. Sesión 2026-10-08 (Parte 3): Resolución Crítica del Fallo de Sincronización en TV Box (`stremioeg@gmail.com`) y Lanzamiento del Addon Unificado MejoraStremio Hub
 
+### 15.1 Diagnóstico de Causa Raíz de Producción
+- **Ausencia de Endpoints Raíz en Edge**: `https://mejorastremio-hub.pabloeckert.deno.net/manifest.json`, `/:config/manifest.json` y `/configure` devolvían **HTTP 404 Not Found**. El Hub solo exponía endpoints fragmentados de sub-servicios (`/subdl`, `/streams`, `/translate`), impidiendo la instalación del Hub como Addon nativo o parametrizado en Stremio.
+- **Bypass de Addons Directos en TV Box**: La cuenta `stremioeg@gmail.com` mantenía `com.stremio.torrentio.addon` apuntando directamente a `https://torrentio.strem.fun/`, lo que provocaba que la aplicación Android TV ejecutara solicitudes sin pasar por el middleware del Hub.
+- **Congelamiento de Memoria en Android TV**: Stremio en Android TV suspende su ciclo de vida en memoria RAM al apagar el televisor, manteniendo la colección de addons y la caché de esquemas obsoleta hasta forzar la detención de la aplicación o reiniciar el dispositivo.
 
+### 15.2 Arquitectura del Addon Unificado (`unified-hub.ts`)
+- **Manifiesto Canónico (`com.mejorastremio.hub` v1.3.0)**: Consolida en un único addon de Stremio la intercepción de streams (`resource: stream`) y subtítulos (`resource: subtitles`).
+- **Interfaz Web Interactiva `/configure`**: Desarrollada con diseño Leanback glassmorphism para generar URLs de instalación en formato `stremio://` y `https://`.
+- **Canal Agregado de Subtítulos**: Agrupa SubDL, SubSource y traducción generativa Gemini Flash (`⚡ 1. Latino (IA Gemini) · [Traducción Automática]`) con compatibilidad dual `spl` (América Latina) y `spa` (Español estándar).
+- **Enmascaramiento y Prevención de Bypass**: Enrutador parametrizado `/:config/manifest.json`, `/:config/stream/...` y `/:config/subtitles/...` con protección estricta de rutas reservadas (`RESERVED_PREFIXES`).
 
+### 15.3 URLs Canónicas para la Cuenta `stremioeg@gmail.com`
+- **Configuración Web Leanback**:
+  `https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/configure`
+- **Manifest HTTPS**:
+  `https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json`
+- **Protocolo de Instalación Directa (`stremio://`)**:
+  `stremio://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json`
+
+### 15.4 Certificación de Despliegue y Validación Empírica en Vivo
+- **Despliegue Serverless**: Deployado en producción (`mejorastremio-hub.pabloeckert.deno.net`) mediante workflow `deploy-deno-hub.yml` (Run ID: 37867193807, 100% SUCCESS).
+- **Suite de Pruebas E2E (92/92 PASS)**: 100% de éxito en cold-boot, verificación de streams Regular Show (`[⚡ INSTANTÁNEO] [🌎 LATINO]`), The Walk en Debrid, SmartSync de HPI (650 cues, monotonicidad estricta y seek en 5 anclas) y fallback IA universal.
+- **Suite de Traducción IA**: 68 de 68 pruebas unitarias y de integración aprobadas (`scripts/test-translation-engine.ts`).

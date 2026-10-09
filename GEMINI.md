@@ -292,3 +292,31 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Despliegue Serverless**: Deployado en producción (`mejorastremio-hub.pabloeckert.deno.net`) mediante workflow `deploy-deno-hub.yml` (Run ID: 37867193807, 100% SUCCESS).
 - **Suite de Pruebas E2E (92/92 PASS)**: 100% de éxito en cold-boot, verificación de streams Regular Show (`[⚡ INSTANTÁNEO] [🌎 LATINO]`), The Walk en Debrid, SmartSync de HPI (650 cues, monotonicidad estricta y seek en 5 anclas) y fallback IA universal.
 - **Suite de Traducción IA**: 68 de 68 pruebas unitarias y de integración aprobadas (`scripts/test-translation-engine.ts`).
+
+---
+
+## 16. Sesión 2026-10-09: Directiva "Estrenos al Día 1 & Orden Cronológico de Lanzamiento" en Catálogos, TTL Dinámico L2 y Blindaje de Radar
+
+### 16.1 Configuración de Catálogos por Orden de Estreno Estricto
+- **Corrección de "En Cartelera" en `data/preset.json` y `scripts/prune-home-catalogs.mjs`**: Se modificó `tmdb.discover.movie.now_playing.pablo007` sustituyendo `popularity.desc` por `primary_release_date.desc` (en `params` y `formState`). Se sincronizaron las ventanas temporales a la fecha actual (`2026-10-09`).
+- **Nuevas Listas de Estrenos en `scripts/deno-hub/catalogs/tmdb.ts`**:
+  - `nuevos-estrenos-cine`: Cine en cartelera (`with_release_type: "2|3"`, `region: "AR"`, `vote_count.gte: 1`), ordenado por `primary_release_date.desc`.
+  - `nuevas-temporadas`: Series recientemente emitidas (`vote_count.gte: 1`), ordenadas por `first_air_date.desc`.
+  - `estrenos-streaming`: Estrenos en las principales plataformas (Netflix, Prime, Disney+, Max, Apple TV+), ordenados por fecha de estreno descendente.
+  - `discover-master`: Soporte explícito de `sort=released`, `sort=premiere_date` y `sort=year_desc`, forzando la entrega desde la fecha de lanzamiento más reciente hacia la más antigua.
+- **Garantía Cronológica Universal en Metadatos**: En todos los interceptores, `metas.sort((a, b) => String(b._d ?? "").localeCompare(String(a._d ?? "")))` asegura que los elementos se entreguen ordenados cronológicamente descendente.
+
+### 16.2 Frescura de Contenidos Día 1 y Caché L2 Dinámica
+- **TTL Dinámico en Deno KV y LRU (`tmdb.ts`)**: Se introdujo `DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS = 15 * 60 * 1000` (15 min) y `DISCOVER_PAGE_LRU_TTL_FRESH_MS = 10 * 60 * 1000` (10 min en RAM) para consultas de estrenos recientes (`/recent`, `nuevos-estrenos-cine`, `nuevas-temporadas`, `estrenos-streaming`, `sort=released`), evitando catálogos obsoletos o congelados en días de estreno mientras se preservan 2 horas para consultas estáticas.
+- **Blindaje del Radar de Estrenos (`scripts/premiere-radar.mjs`)**: Actualizado para reconocer `com.mejorastremio.hub` y `com.mejorastremio.streams` como proveedores primarios de streams TorBox, tolerar la ausencia de Comet secundario y ejecutar comprobaciones de forma segura sin mutar la colección remota de addons de la cuenta.
+
+### 16.3 Soporte de Catálogos en el Addon Unificado (`scripts/deno-hub/unified-hub.ts`)
+- **Ampliación de Recursos**: `MEJORASTREMIO_HUB_MANIFEST` elevado a versión `1.4.0` declarando `resources: ["stream", "subtitles", "catalog"]` y exponiendo los catálogos de estreno (`nuevos-estrenos-cine`, `nuevas-temporadas`, `estrenos-streaming`).
+- **Enrutamiento Transparente**: Despacho de `/catalog/...` y `/:config/catalog/...` hacia `handleDiscover`.
+- **Utilidades en `scripts/deno-hub/utils/cinemeta.ts`**: Incorporación de `sortMetasChronologicalDesc` y `fetchCinemetaCatalogSorted` para fallback ordenado cronológicamente.
+
+### 16.4 Certificación de la Suite de Pruebas (100/100 PASS)
+- **Suite E2E TV Box (`scripts/test-tvbox-deep-e2e.mjs`)**: 100 de 100 verificaciones aprobadas (100% PASS), incluyendo validación de ordenación por fecha de estreno sobre catálogos del Hub, streams con audio latino en puesto #1 (`[🌎 LATINO]`), fallback garantizado a Gemini Flash (`⚡ 1. Latino (IA Gemini) · [Traducción Automática]`), SmartSync y seek tests.
+- **Suite de Traducción (`scripts/test-translation-engine.ts`)**: 68 de 68 pruebas superadas (100% PASS).
+- **Higiene de Código**: `deno check` y `deno lint` 100% limpios sin advertencias ni errores.
+

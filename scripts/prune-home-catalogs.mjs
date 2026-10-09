@@ -73,17 +73,17 @@ if (nowPlayingMovie && nowPlayingMovie.metadata?.discover?.params) {
   const p = nowPlayingMovie.metadata.discover.params;
   const fs = nowPlayingMovie.metadata.discover.formState;
 
-  p.sort_by = 'popularity.desc';
+  p.sort_by = 'primary_release_date.desc';
   p.with_release_type = '2|3';
   p.region = 'AR';
   p['vote_count.gte'] = 1;
 
   if (fs) {
-    fs.sortBy = 'popularity.desc';
+    fs.sortBy = 'primary_release_date.desc';
     fs.releaseRegion = 'AR';
     fs.voteCountMin = 1;
   }
-  console.log('✓ Calibrados parámetros TMDB Discover de "En Cartelera" (Cine): release_type=2|3, region=AR, sort_by=popularity.desc');
+  console.log('✓ Calibrados parámetros TMDB Discover de "En Cartelera" (Cine): release_type=2|3, region=AR, sort_by=primary_release_date.desc');
 }
 
 preset.aioMetadataConfig.catalogs.standard = [...homeCatalogs, ...otherCatalogs];

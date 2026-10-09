@@ -194,6 +194,67 @@ try {
     assert(results.pass1_coldboot, 'Integridad de catálogos AIOMetadata en preset.json', false, e.message);
   }
 
+  // 1.5 Directiva de Estrenos al Día 1 y Orden Cronológico de Lanzamiento
+  console.log('\n  1.5 Directiva de Estrenos al Día 1 y Orden Cronológico de Lanzamiento:');
+  const catCinemaFetch = await fetchJson(`${LOCAL_HUB_BASE}/discover/catalog/movie/nuevos-estrenos-cine.json`);
+  const cinemaMetas = catCinemaFetch.data?.metas || [];
+  assert(results.pass1_coldboot, 'Entrega de catálogo Nuevos Estrenos Cine en Hub', cinemaMetas.length > 0, `${cinemaMetas.length} títulos`);
+
+  let cinemaSorted = true;
+  for (let i = 0; i < cinemaMetas.length - 1; i++) {
+    const y1 = parseInt(String(cinemaMetas[i].releaseInfo || cinemaMetas[i].year || 0), 10);
+    const y2 = parseInt(String(cinemaMetas[i + 1].releaseInfo || cinemaMetas[i + 1].year || 0), 10);
+    if (y1 > 0 && y2 > 0 && y1 < y2) {
+      cinemaSorted = false;
+      break;
+    }
+  }
+  assert(results.pass1_coldboot, 'Nuevos Estrenos Cine ordenados cronológicamente descendente (año/estreno)', cinemaSorted);
+
+  const catSeriesFetch = await fetchJson(`${LOCAL_HUB_BASE}/discover/catalog/series/nuevas-temporadas.json`);
+  const seriesMetas = catSeriesFetch.data?.metas || [];
+  assert(results.pass1_coldboot, 'Entrega de catálogo Nuevas Temporadas en Hub', seriesMetas.length > 0, `${seriesMetas.length} títulos`);
+
+  let seriesSorted = true;
+  for (let i = 0; i < seriesMetas.length - 1; i++) {
+    const y1 = parseInt(String(seriesMetas[i].releaseInfo || seriesMetas[i].year || 0), 10);
+    const y2 = parseInt(String(seriesMetas[i + 1].releaseInfo || seriesMetas[i + 1].year || 0), 10);
+    if (y1 > 0 && y2 > 0 && y1 < y2) {
+      seriesSorted = false;
+      break;
+    }
+  }
+  assert(results.pass1_coldboot, 'Nuevas Temporadas ordenadas cronológicamente descendente', seriesSorted);
+
+  const recentFetch = await fetchJson(`${LOCAL_HUB_BASE}/discover/recent?type=movie&days=30`);
+  const recentItems = recentFetch.data?.items || [];
+  assert(results.pass1_coldboot, 'Feed de estrenos recientes (/discover/recent) responde con items', recentItems.length > 0, `${recentItems.length} items`);
+  let recentSorted = true;
+  for (let i = 0; i < recentItems.length - 1; i++) {
+    const d1 = recentItems[i].date || '';
+    const d2 = recentItems[i + 1].date || '';
+    if (d1 && d2 && d1 < d2) {
+      recentSorted = false;
+      break;
+    }
+  }
+  assert(results.pass1_coldboot, 'Feed de estrenos recientes ordenado estrictamente por fecha descendente', recentSorted);
+
+  // Verificación en preset.json: "En Cartelera" configurado en primary_release_date.desc
+  try {
+    const pData = JSON.parse(readFileSync(presetPath, 'utf8'));
+    const cartelera = pData.aioMetadataConfig?.catalogs?.standard?.find((c) => c.id === 'tmdb.discover.movie.now_playing.pablo007');
+    const sortField = cartelera?.metadata?.discover?.params?.sort_by;
+    assert(results.pass1_coldboot, '"En Cartelera" en preset.json configurado con primary_release_date.desc', sortField === 'primary_release_date.desc', sortField);
+  } catch (e) {
+    assert(results.pass1_coldboot, 'Verificación de En Cartelera en preset.json', false, e.message);
+  }
+
+  // Verificación de catálogos a través del addon unificado parametrizado
+  const uniCatFetch = await fetchJson(`${LOCAL_HUB_BASE}/test-cfg/catalog/movie/nuevos-estrenos-cine.json`);
+  const uniCatMetas = uniCatFetch.data?.metas || [];
+  assert(results.pass1_coldboot, 'Addon unificado enruta catálogo de estreno (/test-cfg/catalog/...)', uniCatMetas.length > 0, `${uniCatMetas.length} títulos`);
+
   // ═════════════════════════════════════════════════════════════════════════════
   // ── PASADA 2: PLAYBACK STRESS, MULTI-TITLE DRIFT & TIMELINE AUDIT ─────────────
   // ═════════════════════════════════════════════════════════════════════════════

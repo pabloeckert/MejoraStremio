@@ -6,9 +6,11 @@
 
 import { cors, getKv, jsonResponse } from "../utils/common.ts";
 import { BoundedLruCache } from "../utils/lru-cache.ts";
+import { fetchCinemetaCatalogSorted } from "../utils/cinemeta.ts";
 
 export const TMDB_KEY = Deno.env.get("TMDB_API_KEY_AISEARCH") ?? "";
 export const TMDB_API = "https://api.themoviedb.org/3";
+export const PROD_HUB_UPSTREAM = "https://mejorastremio-hub.pabloeckert.deno.net";
 
 export const MINISERIES_MANIFEST = {
   id: "com.mejorastremio.miniseries",
@@ -409,41 +411,86 @@ export function discoverExtra(genreMap: Record<string, number>) {
     { name: "country", options: ["Todos", ...Object.keys(COUNTRY_IDS)], isRequired: false },
     { name: "language", options: ["Todos", ...Object.keys(LANGUAGE_IDS)], isRequired: false },
     { name: "genre", options: ["Todos", ...Object.keys(genreMap)], isRequired: false },
+    { name: "sort", options: ["released", "premiere_date", "year_desc", "popularity.desc"], isRequired: false },
     { name: "skip" },
   ];
 }
 
 export const DISCOVER_MANIFEST = {
   id: "com.mejorastremio.discover-master",
-  version: "1.0.0",
-  name: "Descubrir Maestro",
+  version: "1.2.0",
+  name: "Descubrir Maestro & Estrenos",
   description:
-    "Catálogo único con servicio de streaming, región, país, idioma y género " +
-    "combinables como filtros simultáneos (TMDB Discover) — a diferencia de " +
-    "AIOMetadata, donde cada eje es un catálogo fijo separado.",
+    "Catálogos de TMDB Discover y Estrenos al Día 1 ordenados cronológicamente por fecha de lanzamiento. Incluye Nuevos Estrenos Cine, Nuevas Temporadas, Estrenos Streaming y filtros combinados.",
   resources: ["catalog"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
   catalogs: [
-    { type: "movie", id: "discover-master", name: "Descubrir Maestro", extra: discoverExtra(GENRE_IDS_MOVIE) },
-    { type: "series", id: "discover-master", name: "Descubrir Maestro", extra: discoverExtra(GENRE_IDS_SERIES) },
+    {
+      type: "movie",
+      id: "nuevos-estrenos-cine",
+      name: "Nuevos Estrenos Cine",
+      extra: [
+        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
+      type: "series",
+      id: "nuevas-temporadas",
+      name: "Nuevas Temporadas",
+      extra: [
+        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
+      type: "movie",
+      id: "estrenos-streaming",
+      name: "Estrenos Streaming (Cine)",
+      extra: [
+        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
+      type: "series",
+      id: "estrenos-streaming",
+      name: "Estrenos Streaming (Series)",
+      extra: [
+        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    { type: "movie", id: "discover-master", name: "Descubrir Maestro (Cine)", extra: discoverExtra(GENRE_IDS_MOVIE) },
+    { type: "series", id: "discover-master", name: "Descubrir Maestro (Series)", extra: discoverExtra(GENRE_IDS_SERIES) },
   ],
 };
 
 // Bounded LRU Cache L1: hasta 3000 resoluciones en RAM (~300KB), TTL 30 días
 const imdbIdLruCache = new BoundedLruCache<string, string | null>(3000, 30 * 24 * 60 * 60 * 1000);
 
-// Bounded LRU Cache L1 para páginas completas de Discover: hasta 100 páginas, TTL 1 hora
+// Bounded LRU Cache L1 para páginas completas de Discover: hasta 100 páginas, TTL dinámico
 interface DiscoverPageCacheEntry {
   // deno-lint-ignore no-explicit-any
   metas: any[];
   cachedAt: number;
+  isFresh?: boolean;
 }
 const discoverPageLruCache = new BoundedLruCache<string, DiscoverPageCacheEntry>(100, 60 * 60 * 1000);
 
 const IMDB_MAP_KV_TTL_POSITIVE_MS = 180 * 24 * 60 * 60 * 1000; // 180 días (IDs de IMDb inmutables)
 const IMDB_MAP_KV_TTL_NEGATIVE_MS = 7 * 24 * 60 * 60 * 1000;   // 7 días (reintentar por si se asigna luego)
-const DISCOVER_PAGE_KV_TTL_MS = 2 * 60 * 60 * 1000;           // 2 horas en KV
+export const DISCOVER_PAGE_KV_TTL_DEFAULT_MS = 2 * 60 * 60 * 1000; // 2 horas en KV para catálogos estáticos
+export const DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS = 15 * 60 * 1000; // 15 minutos en KV para estrenos Día 1
+export const DISCOVER_PAGE_LRU_TTL_FRESH_MS = 10 * 60 * 1000; // 10 minutos en memoria RAM para estrenos frescos
+
+export function isRecentPremiereQuery(catalogId: string, subPath: string, extraStr?: string): boolean {
+  if (subPath.startsWith("/recent")) return true;
+  if (/nuevos-estrenos|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|cartelera|now_playing|upcoming/i.test(catalogId)) return true;
+  if (extraStr && /sort=(?:released|premiere_date|year_desc)/i.test(extraStr)) return true;
+  return false;
+}
 
 async function safeGetKv(): Promise<Deno.Kv | null> {
   try {
@@ -599,18 +646,24 @@ export async function resolveBatchImdb(
 }
 
 export async function handleDiscover(subPath: string, url: URL): Promise<Response> {
-  if (!TMDB_KEY) {
-    return new Response(
-      "TMDB_API_KEY_AISEARCH no configurada. Setear como Secret en Deno Deploy.",
-      { status: 503, headers: cors },
-    );
-  }
-
   if (subPath === "/manifest.json") {
     return jsonResponse(DISCOVER_MANIFEST);
   }
 
   if (subPath.startsWith("/recent")) {
+    if (!TMDB_KEY) {
+      try {
+        const upstreamUrl = `${PROD_HUB_UPSTREAM}/discover${subPath}${url.search}`;
+        const r = await fetch(upstreamUrl, { signal: AbortSignal.timeout(6000) });
+        if (r.ok) {
+          const data = await r.json();
+          return jsonResponse(data);
+        }
+      } catch {
+        // fallback
+      }
+    }
+
     const qs = url.searchParams;
     const type = qs.get("type") === "series" ? "series" : "movie";
     const country = qs.get("country");
@@ -623,7 +676,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     const params: Record<string, string> = {
       sort_by: `${queryDateField}.desc`,
       language: "es-ES",
-      "vote_count.gte": "5",
+      "vote_count.gte": "1",
       [`${queryDateField}.gte`]: since,
       [`${queryDateField}.lte`]: new Date().toISOString().slice(0, 10),
     };
@@ -639,17 +692,24 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
         date: r[responseDateField] ?? null,
         overview: (r.overview ?? "").slice(0, 160),
       }));
+      // Ordenación cronológica estricta: de más reciente a más antigua
+      items.sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")));
       return jsonResponse({ type, country: country ?? null, genre: genre ?? null, items });
     } catch (e) {
       return jsonResponse({ items: [], error: (e as Error).message }, { status: 500 });
     }
   }
 
-  const catalogMatch = subPath.match(/^\/catalog\/(movie|series)\/discover-master(?:\/([^/]+))?\.json$/);
+  const catalogMatch = subPath.match(/^\/catalog\/(movie|series)\/([^/]+)(?:\/([^/]+))?\.json$/);
   if (!catalogMatch) {
     return new Response("Not found", { status: 404, headers: cors });
   }
-  const [, type, extraStr] = catalogMatch;
+  const [, type, catalogId, extraStr] = catalogMatch;
+  const isRecognizedCatalog = /^(discover-master|nuevos-estrenos-cine|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres)$/.test(catalogId);
+  if (!isRecognizedCatalog) {
+    return new Response("Not found", { status: 404, headers: cors });
+  }
+
   const genreMap = type === "movie" ? GENRE_IDS_MOVIE : GENRE_IDS_SERIES;
 
   const extra = new URLSearchParams(extraStr ?? "");
@@ -658,16 +718,23 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
   const country = extra.get("country");
   const language = extra.get("language");
   const genre = extra.get("genre");
+  const sortParam = extra.get("sort") || url.searchParams.get("sort") || "";
   const skip = parseInt(extra.get("skip") ?? "0", 10);
   const page = Math.floor(skip / 20) + 1;
 
-  // Clave determinista para caché de página completa
-  const pageCacheKey = `${type}:${service || "all"}:${region || "all"}:${country || "all"}:${language || "all"}:${genre || "all"}:${page}`;
+  const isFresh = isRecentPremiereQuery(catalogId, subPath, extraStr);
+  const dynamicKvTtl = isFresh ? DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS : DISCOVER_PAGE_KV_TTL_DEFAULT_MS;
 
-  // 1. Revisar caché de página en L1 (RAM)
+  // Clave determinista para caché de página completa
+  const pageCacheKey = `${catalogId}:${type}:${service || "all"}:${region || "all"}:${country || "all"}:${language || "all"}:${genre || "all"}:${sortParam || "default"}:${page}`;
+
+  // 1. Revisar caché de página en L1 (RAM) con validación de caducidad para feeds frescos
   const memPage = discoverPageLruCache.get(pageCacheKey);
   if (memPage) {
-    return jsonResponse({ metas: memPage.metas });
+    const isMemStale = isFresh && (Date.now() - memPage.cachedAt > DISCOVER_PAGE_LRU_TTL_FRESH_MS);
+    if (!isMemStale) {
+      return jsonResponse({ metas: memPage.metas });
+    }
   }
 
   // 2. Revisar caché de página en L2 (Deno KV)
@@ -677,7 +744,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       // deno-lint-ignore no-explicit-any
       const kvPage = await kv.get<any[]>(["discover_page_v2", type, pageCacheKey]);
       if (kvPage?.value && Array.isArray(kvPage.value)) {
-        discoverPageLruCache.set(pageCacheKey, { metas: kvPage.value, cachedAt: Date.now() });
+        discoverPageLruCache.set(pageCacheKey, { metas: kvPage.value, cachedAt: Date.now(), isFresh });
         return jsonResponse({ metas: kvPage.value });
       }
     } catch {
@@ -686,27 +753,87 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
   }
 
   const dateField = type === "movie" ? "primary_release_date" : "first_air_date";
+  const today = new Date().toISOString().slice(0, 10);
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+
   const params: Record<string, string> = {
     sort_by: `${dateField}.desc`,
     language: "es-ES",
     page: String(page),
-    "vote_count.gte": "20",
+    "vote_count.gte": "1",
   };
-  if (type === "series") params.without_genres = "10763,10767";
-  if (service && service !== "Todos" && SERVICE_IDS[service]) {
-    params.with_watch_providers = String(SERVICE_IDS[service]);
+
+  if (catalogId === "nuevos-estrenos-cine" || catalogId === "new-movies") {
+    params[`${dateField}.lte`] = today;
+    params[`${dateField}.gte`] = ninetyDaysAgo;
+    params.with_release_type = "2|3"; // Cines
+    params.region = "AR";
+    params.sort_by = "primary_release_date.desc";
+  } else if (catalogId === "nuevas-temporadas" || catalogId === "new-seasons") {
+    params[`${dateField}.lte`] = today;
+    params[`${dateField}.gte`] = ninetyDaysAgo;
+    params.sort_by = "first_air_date.desc";
+  } else if (catalogId === "estrenos-streaming" || catalogId === "streaming-premieres") {
+    params[`${dateField}.lte`] = today;
+    params[`${dateField}.gte`] = ninetyDaysAgo;
+    params.with_watch_providers = "8|9|337|1899|350"; // Netflix, Prime, Disney+, Max, Apple TV+
     params.watch_region = DISCOVER_WATCH_REGION;
+    params.sort_by = `${dateField}.desc`;
+  } else {
+    // discover-master
+    if (type === "series") params.without_genres = "10763,10767";
+    if (service && service !== "Todos" && SERVICE_IDS[service]) {
+      params.with_watch_providers = String(SERVICE_IDS[service]);
+      params.watch_region = DISCOVER_WATCH_REGION;
+    }
+    if (country && country !== "Todos" && COUNTRY_IDS[country]) {
+      params.with_origin_country = COUNTRY_IDS[country];
+    } else if (region && region !== "Todos" && REGION_IDS[region]) {
+      params.with_origin_country = REGION_IDS[region];
+    }
+    if (language && language !== "Todos" && LANGUAGE_IDS[language]) {
+      params.with_original_language = LANGUAGE_IDS[language];
+    }
+    if (genre && genre !== "Todos" && genreMap[genre]) {
+      params.with_genres = String(genreMap[genre]);
+    }
+    // Directiva de ordenación: sort=released / sort=premiere_date / sort=year_desc
+    if (!sortParam || sortParam === "released" || sortParam === "premiere_date" || sortParam === "year_desc") {
+      params.sort_by = `${dateField}.desc`;
+    } else if (sortParam === "popularity.desc" || sortParam === "Popularidad") {
+      params.sort_by = "popularity.desc";
+      params["vote_count.gte"] = "20";
+    } else {
+      params.sort_by = `${dateField}.desc`;
+    }
   }
-  if (country && country !== "Todos" && COUNTRY_IDS[country]) {
-    params.with_origin_country = COUNTRY_IDS[country];
-  } else if (region && region !== "Todos" && REGION_IDS[region]) {
-    params.with_origin_country = REGION_IDS[region];
-  }
-  if (language && language !== "Todos" && LANGUAGE_IDS[language]) {
-    params.with_original_language = LANGUAGE_IDS[language];
-  }
-  if (genre && genre !== "Todos" && genreMap[genre]) {
-    params.with_genres = String(genreMap[genre]);
+
+  if (!TMDB_KEY) {
+    try {
+      const upstreamUrl = `${PROD_HUB_UPSTREAM}/discover${subPath}${url.search}`;
+      const r = await fetch(upstreamUrl, { signal: AbortSignal.timeout(6000) });
+      if (r.ok) {
+        const data = await r.json();
+        return jsonResponse(data);
+      }
+    } catch {
+      // fallback
+    }
+
+    try {
+      const cinType = type === "series" ? "series" : "movie";
+      const cinData = await fetchCinemetaCatalogSorted(cinType, "top");
+      if (cinData.metas.length > 0) {
+        return jsonResponse(cinData);
+      }
+    } catch {
+      // fallback
+    }
+
+    return new Response(
+      "TMDB_API_KEY_AISEARCH no configurada. Setear como Secret en Deno Deploy.",
+      { status: 503, headers: cors },
+    );
   }
 
   try {
@@ -740,15 +867,15 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     const metas = resolved
       .filter((m) => m !== null)
       // deno-lint-ignore no-explicit-any
-      .sort((a: any, b: any) => (b._d).localeCompare(a._d))
+      .sort((a: any, b: any) => String(b._d ?? "").localeCompare(String(a._d ?? "")))
       // deno-lint-ignore no-explicit-any
       .map(({ _d, ...m }: any) => m);
 
-    // Guardar en caché L1 y L2 si tiene resultados válidos
+    // Guardar en caché L1 y L2 con TTL dinámico adaptado a frescura Día 1
     if (metas.length > 0) {
-      discoverPageLruCache.set(pageCacheKey, { metas, cachedAt: Date.now() });
+      discoverPageLruCache.set(pageCacheKey, { metas, cachedAt: Date.now(), isFresh });
       if (kv) {
-        kv.set(["discover_page_v2", type, pageCacheKey], metas, { expireIn: DISCOVER_PAGE_KV_TTL_MS }).catch(() => {});
+        kv.set(["discover_page_v2", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
       }
     }
 

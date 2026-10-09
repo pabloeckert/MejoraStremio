@@ -61,17 +61,21 @@ const addons = col?.result?.addons || [];
 
 const myTrakt = addons.find((a) => (a.manifest?.id || '').startsWith('trakt.addon.v3.'));
 if (!myTrakt) die('No se encontrÃ³ MyTrakt Sync en la colecciÃ³n instalada.');
-const torrentio = addons.find((a) => a.manifest?.id === 'com.stremio.torrentio.addon');
+const torrentio = addons.find((a) =>
+  a.manifest?.id === 'com.mejorastremio.hub' ||
+  a.manifest?.id === 'com.mejorastremio.streams' ||
+  a.manifest?.id === 'com.stremio.torrentio.addon'
+);
 const comet = addons.find((a) => a.manifest?.id === 'stremio.comet.fast');
-if (!torrentio || !comet) die('Torrentio y/o Comet no estÃ¡n instalados â€” no se puede chequear cache TorBox.');
+if (!torrentio && !comet) die('Ni MejoraStremio/Torrentio ni Comet están instalados — no se puede chequear cache TorBox.');
 // MyTrakt Sync declara el recurso "subtitles" en su manifest pero no lo implementa de verdad
-// (siempre devuelve []) â€” no es una de las 5 fuentes de subs reales, se excluye explÃ­citamente.
+// (siempre devuelve []) — no es una de las 5 fuentes de subs reales, se excluye explícitamente.
 const subAddons = addons.filter((a) => hasRes(a.manifest, 'subtitles') && a.manifest?.id !== myTrakt.manifest.id);
-if (!subAddons.length) die('No hay addons de subtÃ­tulos instalados.');
+if (!subAddons.length) die('No hay addons de subtítulos instalados.');
 
 const traktBase = baseOf(myTrakt.transportUrl);
-const torrentioBase = baseOf(torrentio.transportUrl);
-const cometBase = baseOf(comet.transportUrl);
+const torrentioBase = torrentio ? baseOf(torrentio.transportUrl) : null;
+const cometBase = comet ? baseOf(comet.transportUrl) : null;
 
 console.log('â•'.repeat(60));
 console.log(' MejoraStremio â€” Radar de estrenos listos');
@@ -135,11 +139,11 @@ function nextUnwatched(videos) {
 
 async function checkCached(imdbId, season, episode) {
   const streamId = `${imdbId}:${season}:${episode}`;
-  const [t, c] = await Promise.all([
-    getJson(`${torrentioBase}stream/series/${streamId}.json`),
-    getJson(`${cometBase}stream/series/${streamId}.json`),
-  ]);
-  const streams = [...(t?.streams || []), ...(c?.streams || [])];
+  const proms = [];
+  if (torrentioBase) proms.push(getJson(`${torrentioBase}stream/series/${streamId}.json`));
+  if (cometBase) proms.push(getJson(`${cometBase}stream/series/${streamId}.json`));
+  const results = await Promise.all(proms);
+  const streams = results.flatMap((r) => r?.streams || []);
   return streams.some(isCachedStream);
 }
 

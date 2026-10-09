@@ -87,6 +87,19 @@ export {
 export { SUBSOURCE_MANIFEST } from "./deno-hub/subtitles/subsource.ts";
 export { TRANSLATE_MANIFEST } from "./deno-hub/translate/translate.ts";
 export { handleHealth } from "./deno-hub/health.ts";
+export {
+  fetchCinemetaMeta,
+  canonicalImdbId,
+  sortMetasChronologicalDesc,
+  fetchCinemetaCatalogSorted,
+} from "./deno-hub/utils/cinemeta.ts";
+export {
+  DISCOVER_MANIFEST,
+  handleDiscover,
+  isRecentPremiereQuery,
+  DISCOVER_PAGE_KV_TTL_DEFAULT_MS,
+  DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS,
+} from "./deno-hub/catalogs/tmdb.ts";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // ── Router Central Ultraligero ──────────────────────────────────────────────

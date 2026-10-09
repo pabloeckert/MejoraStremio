@@ -13,17 +13,55 @@ import { handleStreams } from "./streams/streams.ts";
 import { handleSubdl } from "./subtitles/subdl.ts";
 import { handleTranslate } from "./translate/translate.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./subtitles/smartsync.ts";
+import { handleDiscover } from "./catalogs/tmdb.ts";
 
 export const MEJORASTREMIO_HUB_MANIFEST = {
   id: "com.mejorastremio.hub",
-  version: "1.3.0",
+  version: "1.4.0",
   name: "MejoraStremio Hub (TorBox Latino + Subtítulos IA)",
   description:
-    "Suite integral de MejoraStremio para TV Box: Streams con prioridad absoluta de Audio Latino [🌎 LATINO] y TorBox instantáneo, subtítulos sin SDH, SmartSync PAL 25->23.976fps y traducción IA Gemini Flash bajo demanda.",
-  resources: ["stream", "subtitles"],
+    "Suite integral de MejoraStremio para TV Box: Streams con prioridad absoluta de Audio Latino [🌎 LATINO] y TorBox instantáneo, subtítulos sin SDH, SmartSync PAL 25->23.976fps, traducción IA Gemini Flash bajo demanda y catálogos de estreno Día 1 en orden cronológico estricto.",
+  resources: ["stream", "subtitles", "catalog"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
-  catalogs: [],
+  catalogs: [
+    {
+      type: "movie",
+      id: "nuevos-estrenos-cine",
+      name: "Nuevos Estrenos Cine",
+      extra: [
+        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
+      type: "series",
+      id: "nuevas-temporadas",
+      name: "Nuevas Temporadas",
+      extra: [
+        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
+      type: "movie",
+      id: "estrenos-streaming",
+      name: "Estrenos Streaming (Cine)",
+      extra: [
+        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
+      type: "series",
+      id: "estrenos-streaming",
+      name: "Estrenos Streaming (Series)",
+      extra: [
+        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+  ],
   behaviorHints: {
     configurable: true,
     configurationRequired: false,
@@ -318,7 +356,7 @@ export async function handleUnifiedHub(
     "subdl", "opensubtitles", "opensubtitles-latino", "subdivx",
     "subsource", "latino", "synopsis", "miniseries", "short-series",
     "discover", "ufc", "livetv", "iptv", "mediathek", "translate",
-    "streams", "stream", "subtitles", "health", "configure", "manifest.json",
+    "streams", "stream", "subtitles", "catalog", "health", "configure", "manifest.json",
   ]);
 
   // 3. Manifest parametrizado: /:config/manifest.json
@@ -379,6 +417,25 @@ export async function handleUnifiedHub(
   const directSubsMatch = path.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
   if (directSubsMatch) {
     return await handleUnifiedSubtitles(path, `${origin}/subtitles`, reqUrl);
+  }
+
+  // 9. Catálogos parametrizados: /:config/catalog/:type/:id.json
+  const configCatMatch = path.match(/^\/([^/]+)\/catalog\/(movie|series)\/([^/]+)(?:\/([^/]+))?\.json$/);
+  if (configCatMatch) {
+    const configSegment = configCatMatch[1];
+    if (!RESERVED_PREFIXES.has(configSegment)) {
+      const type = configCatMatch[2];
+      const catId = configCatMatch[3];
+      const extra = configCatMatch[4] ? `/${configCatMatch[4]}` : "";
+      const subPath = `/catalog/${type}/${catId}${extra}.json`;
+      return await handleDiscover(subPath, reqUrl);
+    }
+  }
+
+  // 10. Catálogos directos en raíz: /catalog/:type/:id.json
+  const directCatMatch = path.match(/^\/catalog\/(movie|series)\/([^/]+)(?:\/([^/]+))?\.json$/);
+  if (directCatMatch) {
+    return await handleDiscover(path, reqUrl);
   }
 
   return null;

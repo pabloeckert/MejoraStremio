@@ -165,6 +165,7 @@ try {
     { name: 'Smart Stream Interceptor', path: '/streams/manifest.json', id: 'com.mejorastremio.streams', resource: 'stream' },
     { name: 'Traducción IA (Gemini)', path: '/translate/manifest.json', id: 'com.mejorastremio.translate', resource: 'subtitles' },
     { name: 'Audio Latino Catálogo', path: '/latino/manifest.json', id: 'com.mejorastremio.latino-catalog', resource: 'catalog' },
+    { name: 'MejoraStremio Hub Unificado', path: '/manifest.json', id: 'com.mejorastremio.hub', resource: 'stream' },
   ];
 
   for (const m of manifestsToCheck) {
@@ -173,6 +174,9 @@ try {
     const ok = mf && mf.id === m.id && (mf.resources?.includes(m.resource) || mf.catalogs !== undefined);
     assert(results.pass1_coldboot, `Manifiesto válido: ${m.name}`, ok, mf ? `v${mf.version} [${mf.id}]` : `HTTP ${mfFetch.status}`);
   }
+
+  const configureFetch = await fetchWithTimeout(`${LOCAL_HUB_BASE}/configure`);
+  assert(results.pass1_coldboot, 'Endpoint /configure responde HTTP 200 con interfaz Leanback', configureFetch.res?.status === 200);
 
   // 1.4 Simulación de Carga del Home Screen de Android TV
   console.log('\n  1.4 Carga del Home Screen (Catálogos y Portadas):');
@@ -196,6 +200,37 @@ try {
   console.log('\n' + '┌' + '─'.repeat(80) + '┐');
   console.log('│ [PASADA 2] PLAYBACK STRESS, MULTI-TITLE DRIFT & TIMELINE AUDIT                  │');
   console.log('└' + '─'.repeat(80) + '┘');
+
+  // 2.0 Prueba de Instalación y Resistencia de Addon Unificado (MejoraStremio Hub)
+  console.log('\n  2.0 Prueba de Instalación y Resistencia de Addon Unificado (MejoraStremio Hub):');
+  const testTorConfig = 'providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino';
+
+  const uniMfFetch = await fetchJson(`${LOCAL_HUB_BASE}/${testTorConfig}/manifest.json`);
+  const uniMf = uniMfFetch.data;
+  assert(results.pass2_playback, 'Manifest parametrizado responde HTTP 200 con ID com.mejorastremio.hub', uniMf?.id === 'com.mejorastremio.hub', uniMf?.id);
+  assert(results.pass2_playback, 'Manifest unificado expone recursos de streams y subtítulos', uniMf?.resources?.includes('stream') && uniMf?.resources?.includes('subtitles'));
+
+  const cfgFetch = await fetchWithTimeout(`${LOCAL_HUB_BASE}/${testTorConfig}/configure`);
+  const cfgHtml = (await cfgFetch.res?.text()) || '';
+  assert(results.pass2_playback, 'Página /configure responde HTTP 200 con UI interactiva', cfgFetch.res?.status === 200);
+  assert(results.pass2_playback, 'Página /configure contiene enlace de instalación stremio://', cfgHtml.includes('stremio://'));
+
+  const uniStreamFetch = await fetchJson(`${LOCAL_HUB_BASE}/${testTorConfig}/stream/series/tt32604054:1:1.json`);
+  const uniStreams = uniStreamFetch.data?.streams || [];
+  assert(results.pass2_playback, 'Addon unificado entrega streams para Regular Show (tt32604054:1:1)', uniStreams.length > 0, `${uniStreams.length} streams recibidos`);
+  const uniTopStream = uniStreams[0];
+  assert(results.pass2_playback, 'Puesto #1 en addon unificado incluye insignia [🌎 LATINO] y [⚡ INSTANTÁNEO]', uniTopStream?.name?.includes('[🌎 LATINO]') && uniTopStream?.name?.includes('[⚡ INSTANTÁNEO]'), uniTopStream?.name);
+
+  const uniWalkFetch = await fetchJson(`${LOCAL_HUB_BASE}/${testTorConfig}/stream/movie/tt3488710.json`);
+  const uniWalkStreams = uniWalkFetch.data?.streams || [];
+  assert(results.pass2_playback, 'Addon unificado entrega streams cacheados en Debrid para The Walk', uniWalkStreams.length > 0 && uniWalkStreams[0]?.name?.includes('[⚡ INSTANTÁNEO]'));
+
+  const uniSubFetch = await fetchJson(`${LOCAL_HUB_BASE}/${testTorConfig}/subtitles/series/tt14060708:1:1.json`);
+  const uniSubs = uniSubFetch.data?.subtitles || [];
+  assert(results.pass2_playback, 'Addon unificado entrega subtítulos agregados para HPI', uniSubs.length > 0, `${uniSubs.length} opciones`);
+  const uniHasSpl = uniSubs.some((s) => s.lang === 'spl');
+  const uniHasSpa = uniSubs.some((s) => s.lang === 'spa');
+  assert(results.pass2_playback, 'Addon unificado entrega códigos duales spl + spa para Android TV', uniHasSpl && uniHasSpa);
 
   // 2.1 Caso 1: Título con Doblaje Latino Disponible ("Un show más", tt32604054:1:1)
   console.log('\n  2.1 Caso 1: Solicitud de Streams para Contenido Latino ("Un show más"):');
@@ -296,7 +331,7 @@ try {
   const simulatedHash = '8e245d9679d31e12';
   const simulatedSize = '1845620140';
   const rawStreamId = `tt14060708%3A1%3A1/videoHash=${simulatedHash}&videoSize=${simulatedSize}&filename=${encodeURIComponent(webdlFilename)}`;
-  const subQueryUrl = `${PROD_HUB_BASE}/subdl/subtitles/series/${rawStreamId}.json`;
+  const subQueryUrl = `${LOCAL_HUB_BASE}/subdl/subtitles/series/${rawStreamId}.json`;
   const subFetch = await fetchJson(subQueryUrl);
   const subtitles = subFetch.data?.subtitles || [];
   assert(results.pass2_playback, 'Entrega de subtítulos procesados por el Hub', subtitles.length > 0, `${subtitles.length} opciones`);

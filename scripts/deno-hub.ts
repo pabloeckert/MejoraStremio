@@ -33,8 +33,20 @@ import { handleLivetv, handleIptv } from "./deno-hub/catalogs/iptv.ts";
 import { handleMediathek } from "./deno-hub/catalogs/mediathek.ts";
 import { handleTranslate } from "./deno-hub/translate/translate.ts";
 import { handleStreams } from "./deno-hub/streams/streams.ts";
+import {
+  MEJORASTREMIO_HUB_MANIFEST,
+  renderConfigureHtml,
+  handleUnifiedSubtitles,
+  handleUnifiedHub,
+} from "./deno-hub/unified-hub.ts";
 
 // Re-exportaciones públicas canónicas para compatibilidad con tests y suites
+export {
+  MEJORASTREMIO_HUB_MANIFEST,
+  renderConfigureHtml,
+  handleUnifiedSubtitles,
+  handleUnifiedHub,
+};
 export {
   cors,
   jsonResponse,
@@ -88,11 +100,17 @@ export async function handleHubRequest(req: Request): Promise<Response> {
   let res: Response;
 
   try {
-    if (path === "/" || path === "") {
+    const unifiedRes = await handleUnifiedHub(path, url.origin, url);
+    if (unifiedRes) {
+      route = "unified-hub";
+      res = unifiedRes;
+    } else if (path === "/" || path === "") {
       route = "root";
       res = jsonResponse({
         hub: "mejorastremio-hub",
         routes: [
+          "/manifest.json",
+          "/configure",
           "/subdl/manifest.json",
           "/opensubtitles/manifest.json",
           "/opensubtitles-latino/manifest.json",

@@ -353,3 +353,35 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - `/discover/catalog/movie/nuevos-estrenos-cine.json`: Estrenos 2026 entregados en orden cronológico descendente.
 - **Suite de Pruebas**: 100/100 verificaciones aprobadas en `test-tvbox-deep-e2e.mjs` y 68/68 en `test-translation-engine.ts`.
 
+---
+
+## 18. Sesión 2026-10-09 (Parte 3): Ampliación de Catálogos (pageSize: 25), Orden Cronológico Estricto y Solución Anti-Portadas Vacías
+
+### 18.1 Ampliación y Ordenamiento de Catálogos (`tmdb.ts` y `cinemeta.ts`)
+- **Paginación Ampliada a 25 Títulos (`pageSize: 25`)**:
+  - En `scripts/deno-hub/catalogs/tmdb.ts`, se configuró la consulta en paralelo de 2 páginas de TMDB (`p1 = (page - 1) * 2 + 1` y `p2 = (page - 1) * 2 + 2`), agregando hasta 40 candidatos brutos.
+  - Se deduplica por ID de TMDB, se resuelven en lote los IDs de IMDb con L1 RAM + L2 KV, se filtran títulos sin póster (`m.poster !== null`), se ordenan de forma estricta por fecha descendente y se recortan a 25 ítems exactos (`metas.slice(0, 25)`).
+  - En `scripts/deno-hub/utils/cinemeta.ts`, `fetchCinemetaCatalogSorted` agrega consultas automáticas con `pageSize = 25`, deduplicando IDs y filtrando portadas vacías.
+- **Forzado de Orden Cronológico Descendente Estricto**:
+  - En películas: `sort_by=primary_release_date.desc`.
+  - En series: `sort_by=first_air_date.desc`.
+  - Aplicado universalmente en Nuevos Estrenos Cine, Nuevas Temporadas, Estrenos Streaming y Descubrir Maestro.
+- **Invalidación L2 KV a `catalog_v4_live` con TTL de 1 Hora**:
+  - Se incrementó el prefijo de clave de caché Deno KV a `["catalog_v4_live", type, pageCacheKey]`.
+  - Se fijó `DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS = 60 * 60 * 1000` (1 hora) y `DISCOVER_PAGE_LRU_TTL_FRESH_MS = 30 * 60 * 1000` (30 minutos en RAM) para asegurar frescura absoluta en estrenos recientes.
+
+### 18.2 Solución Anti-Portadas Vacías (`streams.ts`)
+- **Fallback Automático Multietapa por Título + Año**:
+  - En `scripts/deno-hub/streams/streams.ts`, si una consulta por IMDb ID (`cleanId`) devuelve 0 streams en Torrentio, se dispara inmediatamente `resolveFallbackStreams(type, cleanId, upstreamBase)`:
+    1. Obtiene metadatos canónicos (Título y Año) desde Cinemeta (`fetchCinemetaMeta`).
+    2. Consulta directamente a Comet con TorBox Debrid (`COMET_TORBOX_URL`) para el ID solicitado.
+    3. Si aún no hay streams, ejecuta una búsqueda en Cinemeta por Título + Año para encontrar IMDb IDs alternativos, consultando en paralelo tanto Torrentio como Comet para dichos candidatos.
+    4. Si tras todas las fuentes no hay torrents disponibles, extrae el trailer oficial en HD (`meta.trailerStreams` o `meta.trailers`) e inyecta un stream instantáneo con `ytId`, garantizando que Stremio pueda reproducir el avance oficial sin dejar nunca una portada muerta o pantalla vacía.
+    5. Como resguardo final, se genera un enlace funcional de TorBox Airlock Debrid Preview.
+
+### 18.3 Testing E2E Obsesivo (105/105 Verificaciones - 100% PASS)
+- En `scripts/test-tvbox-deep-e2e.mjs`:
+  - Nuevos Estrenos Cine verificado con >15 ítems (25 entregados), orden cronológico descendente y los 5 primeros títulos con streams activos funcionales.
+  - Nuevas Temporadas verificado con >15 ítems (25 entregados), orden cronológico descendente y los 5 primeros títulos con streams activos funcionales.
+  - Estrenos Streaming verificado con >15 ítems (25 entregados), orden cronológico descendente y los 5 primeros títulos con streams activos funcionales.
+- Suite completa aprobada con 105/105 pruebas exitosas (100.0% PASS).

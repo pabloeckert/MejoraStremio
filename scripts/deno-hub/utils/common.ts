@@ -142,6 +142,7 @@ export interface StremioStreamItem {
   title?: string;
   description?: string;
   url?: string;
+  ytId?: string;
   infoHash?: string;
   fileIdx?: number;
   behaviorHints?: Record<string, unknown>;

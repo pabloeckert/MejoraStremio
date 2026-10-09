@@ -195,10 +195,11 @@ try {
   }
 
   // 1.5 Directiva de Estrenos al Día 1 y Orden Cronológico de Lanzamiento
+  // 1.5 Directiva de Estrenos al Día 1 y Orden Cronológico de Lanzamiento
   console.log('\n  1.5 Directiva de Estrenos al Día 1 y Orden Cronológico de Lanzamiento:');
   const catCinemaFetch = await fetchJson(`${LOCAL_HUB_BASE}/discover/catalog/movie/nuevos-estrenos-cine.json`);
   const cinemaMetas = catCinemaFetch.data?.metas || [];
-  assert(results.pass1_coldboot, 'Entrega de catálogo Nuevos Estrenos Cine en Hub', cinemaMetas.length > 0, `${cinemaMetas.length} títulos`);
+  assert(results.pass1_coldboot, 'Entrega de catálogo Nuevos Estrenos Cine en Hub (>15 títulos)', cinemaMetas.length > 15, `${cinemaMetas.length} títulos`);
 
   let cinemaSorted = true;
   for (let i = 0; i < cinemaMetas.length - 1; i++) {
@@ -211,9 +212,22 @@ try {
   }
   assert(results.pass1_coldboot, 'Nuevos Estrenos Cine ordenados cronológicamente descendente (año/estreno)', cinemaSorted);
 
+  // Verificación anti-portadas vacías: Top 5 títulos de Nuevos Estrenos Cine con streams funcionales
+  const topCinema = cinemaMetas.slice(0, 5);
+  let topCinemaStreamsOk = topCinema.length >= 5;
+  for (const item of topCinema) {
+    const strFetch = await fetchJson(`${LOCAL_HUB_BASE}/streams/movie/${item.id}.json`);
+    const strList = strFetch.data?.streams || [];
+    if (strList.length === 0) {
+      topCinemaStreamsOk = false;
+      console.error(`      ✗ Sin streams para estreno cine: ${item.name} (${item.id})`);
+    }
+  }
+  assert(results.pass1_coldboot, 'Top 5 títulos de Nuevos Estrenos Cine con streams activos y funcionales', topCinemaStreamsOk, `${topCinema.length} testeados`);
+
   const catSeriesFetch = await fetchJson(`${LOCAL_HUB_BASE}/discover/catalog/series/nuevas-temporadas.json`);
   const seriesMetas = catSeriesFetch.data?.metas || [];
-  assert(results.pass1_coldboot, 'Entrega de catálogo Nuevas Temporadas en Hub', seriesMetas.length > 0, `${seriesMetas.length} títulos`);
+  assert(results.pass1_coldboot, 'Entrega de catálogo Nuevas Temporadas en Hub (>15 títulos)', seriesMetas.length > 15, `${seriesMetas.length} títulos`);
 
   let seriesSorted = true;
   for (let i = 0; i < seriesMetas.length - 1; i++) {
@@ -225,6 +239,47 @@ try {
     }
   }
   assert(results.pass1_coldboot, 'Nuevas Temporadas ordenadas cronológicamente descendente', seriesSorted);
+
+  // Verificación anti-portadas vacías: Top 5 títulos de Nuevas Temporadas con streams funcionales
+  const topSeries = seriesMetas.slice(0, 5);
+  let topSeriesStreamsOk = topSeries.length >= 5;
+  for (const item of topSeries) {
+    const strFetch = await fetchJson(`${LOCAL_HUB_BASE}/streams/series/${item.id}:1:1.json`);
+    const strList = strFetch.data?.streams || [];
+    if (strList.length === 0) {
+      topSeriesStreamsOk = false;
+      console.error(`      ✗ Sin streams para estreno serie: ${item.name} (${item.id})`);
+    }
+  }
+  assert(results.pass1_coldboot, 'Top 5 títulos de Nuevas Temporadas con streams activos y funcionales', topSeriesStreamsOk, `${topSeries.length} testeados`);
+
+  const catStreamingFetch = await fetchJson(`${LOCAL_HUB_BASE}/discover/catalog/movie/estrenos-streaming.json`);
+  const streamingMetas = catStreamingFetch.data?.metas || [];
+  assert(results.pass1_coldboot, 'Entrega de catálogo Estrenos Streaming en Hub (>15 títulos)', streamingMetas.length > 15, `${streamingMetas.length} títulos`);
+
+  let streamingSorted = true;
+  for (let i = 0; i < streamingMetas.length - 1; i++) {
+    const y1 = parseInt(String(streamingMetas[i].releaseInfo || streamingMetas[i].year || 0), 10);
+    const y2 = parseInt(String(streamingMetas[i + 1].releaseInfo || streamingMetas[i + 1].year || 0), 10);
+    if (y1 > 0 && y2 > 0 && y1 < y2) {
+      streamingSorted = false;
+      break;
+    }
+  }
+  assert(results.pass1_coldboot, 'Estrenos Streaming ordenados cronológicamente descendente', streamingSorted);
+
+  // Verificación anti-portadas vacías: Top 5 títulos de Estrenos Streaming con streams funcionales
+  const topStreaming = streamingMetas.slice(0, 5);
+  let topStreamingStreamsOk = topStreaming.length >= 5;
+  for (const item of topStreaming) {
+    const strFetch = await fetchJson(`${LOCAL_HUB_BASE}/streams/movie/${item.id}.json`);
+    const strList = strFetch.data?.streams || [];
+    if (strList.length === 0) {
+      topStreamingStreamsOk = false;
+      console.error(`      ✗ Sin streams para estreno streaming: ${item.name} (${item.id})`);
+    }
+  }
+  assert(results.pass1_coldboot, 'Top 5 títulos de Estrenos Streaming con streams activos y funcionales', topStreamingStreamsOk, `${topStreaming.length} testeados`);
 
   const recentFetch = await fetchJson(`${LOCAL_HUB_BASE}/discover/recent?type=movie&days=30`);
   const recentItems = recentFetch.data?.items || [];

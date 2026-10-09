@@ -70,8 +70,8 @@ export interface MiniseriesMeta {
 let miniseriesCache: { at: number; metas: MiniseriesMeta[]; partial: boolean } | null = null;
 export const MINISERIES_FULL_TTL_MS = 12 * 60 * 60 * 1000;
 export const MINISERIES_PARTIAL_TTL_MS = 60 * 60 * 1000;
-export const MINISERIES_BUDGET_MS = 20000;
-export const MINISERIES_DISCOVER_PAGES = 2;
+export const MINISERIES_BUDGET_MS = 25000;
+export const MINISERIES_DISCOVER_PAGES = 4;
 
 // deno-lint-ignore no-explicit-any
 export async function tmdbGet(path: string, params: Record<string, string>): Promise<any> {
@@ -482,8 +482,8 @@ const discoverPageLruCache = new BoundedLruCache<string, DiscoverPageCacheEntry>
 const IMDB_MAP_KV_TTL_POSITIVE_MS = 180 * 24 * 60 * 60 * 1000; // 180 días (IDs de IMDb inmutables)
 const IMDB_MAP_KV_TTL_NEGATIVE_MS = 7 * 24 * 60 * 60 * 1000;   // 7 días (reintentar por si se asigna luego)
 export const DISCOVER_PAGE_KV_TTL_DEFAULT_MS = 2 * 60 * 60 * 1000; // 2 horas en KV para catálogos estáticos
-export const DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS = 15 * 60 * 1000; // 15 minutos en KV para estrenos Día 1
-export const DISCOVER_PAGE_LRU_TTL_FRESH_MS = 10 * 60 * 1000; // 10 minutos en memoria RAM para estrenos frescos
+export const DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS = 60 * 60 * 1000; // 1 hora en KV para estrenos Día 1
+export const DISCOVER_PAGE_LRU_TTL_FRESH_MS = 30 * 60 * 1000; // 30 minutos en memoria RAM para estrenos frescos
 
 export function isRecentPremiereQuery(catalogId: string, subPath: string, extraStr?: string): boolean {
   if (subPath.startsWith("/recent")) return true;
@@ -719,13 +719,14 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
   const language = extra.get("language");
   const genre = extra.get("genre");
   const sortParam = extra.get("sort") || url.searchParams.get("sort") || "";
+  const PAGE_SIZE = 25;
   const skip = parseInt(extra.get("skip") ?? "0", 10);
-  const page = Math.floor(skip / 20) + 1;
+  const page = Math.floor(skip / PAGE_SIZE) + 1;
 
   const isFresh = isRecentPremiereQuery(catalogId, subPath, extraStr);
   const dynamicKvTtl = isFresh ? DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS : DISCOVER_PAGE_KV_TTL_DEFAULT_MS;
 
-  // Clave determinista para caché de página completa
+  // Clave determinista para caché de página completa v4 (invalidación instantánea)
   const pageCacheKey = `${catalogId}:${type}:${service || "all"}:${region || "all"}:${country || "all"}:${language || "all"}:${genre || "all"}:${sortParam || "default"}:${page}`;
 
   // 1. Revisar caché de página en L1 (RAM) con validación de caducidad para feeds frescos
@@ -737,12 +738,12 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     }
   }
 
-  // 2. Revisar caché de página en L2 (Deno KV)
+  // 2. Revisar caché de página en L2 (Deno KV catalog_v4_live)
   const kv = await safeGetKv();
   if (kv) {
     try {
       // deno-lint-ignore no-explicit-any
-      const kvPage = await kv.get<any[]>(["discover_page_v3", type, pageCacheKey]);
+      const kvPage = await kv.get<any[]>(["catalog_v4_live", type, pageCacheKey]);
       if (kvPage?.value && Array.isArray(kvPage.value)) {
         discoverPageLruCache.set(pageCacheKey, { metas: kvPage.value, cachedAt: Date.now(), isFresh });
         return jsonResponse({ metas: kvPage.value });
@@ -759,7 +760,6 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
   const params: Record<string, string> = {
     sort_by: `${dateField}.desc`,
     language: "es-ES",
-    page: String(page),
     "vote_count.gte": "1",
   };
 
@@ -778,7 +778,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     params[`${dateField}.gte`] = ninetyDaysAgo;
     params.with_watch_providers = "8|9|337|1899|350"; // Netflix, Prime, Disney+, Max, Apple TV+
     params.watch_region = DISCOVER_WATCH_REGION;
-    params.sort_by = `${dateField}.desc`;
+    params.sort_by = type === "movie" ? "primary_release_date.desc" : "first_air_date.desc";
   } else {
     // discover-master
     if (type === "series") params.without_genres = "10763,10767";
@@ -797,14 +797,14 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     if (genre && genre !== "Todos" && genreMap[genre]) {
       params.with_genres = String(genreMap[genre]);
     }
-    // Directiva de ordenación: sort=released / sort=premiere_date / sort=year_desc
+    // Directiva de ordenación estricta por fecha descendente
     if (!sortParam || sortParam === "released" || sortParam === "premiere_date" || sortParam === "year_desc") {
-      params.sort_by = `${dateField}.desc`;
+      params.sort_by = type === "movie" ? "primary_release_date.desc" : "first_air_date.desc";
     } else if (sortParam === "popularity.desc" || sortParam === "Popularidad") {
       params.sort_by = "popularity.desc";
       params["vote_count.gte"] = "20";
     } else {
-      params.sort_by = `${dateField}.desc`;
+      params.sort_by = type === "movie" ? "primary_release_date.desc" : "first_air_date.desc";
     }
   }
 
@@ -814,7 +814,9 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       const r = await fetch(upstreamUrl, { signal: AbortSignal.timeout(6000) });
       if (r.ok) {
         const data = await r.json();
-        return jsonResponse(data);
+        if (Array.isArray(data?.metas) && data.metas.length >= 20) {
+          return jsonResponse(data);
+        }
       }
     } catch {
       // fallback
@@ -822,9 +824,9 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
 
     try {
       const cinType = type === "series" ? "series" : "movie";
-      const cinData = await fetchCinemetaCatalogSorted(cinType, "top");
+      const cinData = await fetchCinemetaCatalogSorted(cinType, "top", undefined, PAGE_SIZE);
       if (cinData.metas.length > 0) {
-        return jsonResponse(cinData);
+        return jsonResponse({ metas: cinData.metas.slice(0, PAGE_SIZE) });
       }
     } catch {
       // fallback
@@ -838,9 +840,30 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
 
   try {
     const path = type === "movie" ? "/discover/movie" : "/discover/tv";
-    const d = await tmdbGet(path, params);
+    // Consultar 2 páginas de TMDB en paralelo para entregar entre 20 y 30 títulos tras filtrado
+    const p1 = (page - 1) * 2 + 1;
+    const p2 = (page - 1) * 2 + 2;
+    const [d1, d2] = await Promise.all([
+      tmdbGet(path, { ...params, page: String(p1) }).catch(() => null),
+      tmdbGet(path, { ...params, page: String(p2) }).catch(() => null),
+    ]);
+
     // deno-lint-ignore no-explicit-any
-    const results = (d?.results ?? []) as any[];
+    const results1 = (d1?.results ?? []) as any[];
+    // deno-lint-ignore no-explicit-any
+    const results2 = (d2?.results ?? []) as any[];
+    const combinedResults = [...results1, ...results2];
+
+    // Deduplicar resultados brutos por TMDB ID
+    const seenTmdbIds = new Set<number>();
+    // deno-lint-ignore no-explicit-any
+    const results: any[] = [];
+    for (const r of combinedResults) {
+      if (r && r.id && !seenTmdbIds.has(r.id)) {
+        seenTmdbIds.add(r.id);
+        results.push(r);
+      }
+    }
 
     // Erradicación de Cascada N+1: resolución en lote con L1 + L2 Deno KV + chunks controlados
     const tmdbType = type === "movie" ? "movie" : "tv";
@@ -864,18 +887,21 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       };
     });
 
+    // Filtrar portadas vacías y ordenar cronológicamente de forma estricta descendente
     const metas = resolved
-      .filter((m) => m !== null)
+      // deno-lint-ignore no-explicit-any
+      .filter((m: any) => m !== null && !!m.poster)
       // deno-lint-ignore no-explicit-any
       .sort((a: any, b: any) => String(b._d ?? "").localeCompare(String(a._d ?? "")))
+      .slice(0, PAGE_SIZE)
       // deno-lint-ignore no-explicit-any
       .map(({ _d, ...m }: any) => m);
 
-    // Guardar en caché L1 y L2 con TTL dinámico adaptado a frescura Día 1
+    // Guardar en caché L1 y L2 (catalog_v4_live) con TTL de refresco dinámico
     if (metas.length > 0) {
       discoverPageLruCache.set(pageCacheKey, { metas, cachedAt: Date.now(), isFresh });
       if (kv) {
-        kv.set(["discover_page_v3", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
+        kv.set(["catalog_v4_live", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
       }
     }
 

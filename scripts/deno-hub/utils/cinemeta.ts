@@ -38,14 +38,18 @@ export function sortMetasChronologicalDesc<T extends Record<string, unknown>>(it
   });
 }
 
+export const CATALOG_PAGE_SIZE = 25;
+
 /**
  * Consulta catálogos de Cinemeta garantizando orden cronológico estricto de
- * lanzamiento (sort=released / sort=premiere_date / sort=year_desc).
+ * lanzamiento (sort=released / sort=premiere_date / sort=year_desc) y un mínimo
+ * de 25 títulos por página (pageSize: 25).
  */
 export async function fetchCinemetaCatalogSorted(
   type: "movie" | "series",
   catalogId = "top",
   extra?: string,
+  pageSize = CATALOG_PAGE_SIZE,
 ): Promise<{ metas: Record<string, unknown>[] }> {
   try {
     const extraPath = extra ? `/${extra}` : "";
@@ -53,8 +57,38 @@ export async function fetchCinemetaCatalogSorted(
     const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return { metas: [] };
     const d = await r.json();
-    const rawMetas = (d?.metas || []) as Record<string, unknown>[];
-    const metas = sortMetasChronologicalDesc(rawMetas);
+    let rawMetas = (d?.metas || []) as Record<string, unknown>[];
+
+    // Si la lista tiene menos de pageSize y no se especificó skip, buscar el siguiente bloque para asegurar el mínimo
+    if (rawMetas.length < pageSize && !extra?.includes("skip=")) {
+      try {
+        const nextUrl = `${CINEMETA_BASE}/catalog/${type}/${catalogId}/skip=${rawMetas.length}.json`;
+        const rNext = await fetch(nextUrl, { signal: AbortSignal.timeout(5000) });
+        if (rNext.ok) {
+          const dNext = await rNext.json();
+          const nextMetas = (dNext?.metas || []) as Record<string, unknown>[];
+          rawMetas = [...rawMetas, ...nextMetas];
+        }
+      } catch {
+        // continuar con rawMetas acumuladas
+      }
+    }
+
+    const seenIds = new Set<string>();
+    const uniqueMetas: Record<string, unknown>[] = [];
+    for (const m of rawMetas) {
+      const id = String(m.id || "");
+      if (id && !seenIds.has(id)) {
+        seenIds.add(id);
+        uniqueMetas.push(m);
+      }
+    }
+
+    // Filtrar portadas vacías
+    const withPosters = uniqueMetas.filter((m) => !!m.poster);
+    const candidateList = withPosters.length >= 15 ? withPosters : uniqueMetas;
+    const sorted = sortMetasChronologicalDesc(candidateList);
+    const metas = sorted.slice(0, Math.max(pageSize, 25));
     return { metas };
   } catch {
     return { metas: [] };

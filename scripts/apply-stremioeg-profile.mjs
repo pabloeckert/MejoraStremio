@@ -649,58 +649,93 @@ async function runProfileManager() {
     }
 
     let changesCount = 0;
+    let updatedAddons = addons;
 
-    // 1. Neutralizar addons de subtítulos competidores
-    const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(addons);
-    if (removedAddons.length > 0) {
-      changesCount += removedAddons.length;
-      console.log(`  ✓ Neutralizados ${removedAddons.length} add-ons competidores de subtítulos:`);
-      removedAddons.forEach((ra) => console.log(`     - [${ra.manifest?.id || ra.id}] ${ra.manifest?.name || ra.name}`));
-    }
+    if (profile.rules?.subtitles?.unifiedHub) {
+      // Arquitectura Unificada: Monopolio exclusivo de MejoraStremio Hub + Cinemeta
+      const targetHubUrl = profile.rules.subtitles.unifiedHub.transportUrl || CANONICAL_HUB_URL;
+      const hubAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
+      const cinemetaAddon = addons.find((a) => a.manifest?.id === 'com.linvo.cinemeta' || a.manifest?.id === 'com.stremio.cinemeta');
 
-    // 2. Garantizar presencia de los addons de subtítulos del Hub (incluyendo SubSource)
-    const withHub = ensureHubSubtitleAddons(cleanedAddons);
-    if (withHub.length > cleanedAddons.length) {
-      changesCount += (withHub.length - cleanedAddons.length);
-      console.log(`  ✓ Instalados ${withHub.length - cleanedAddons.length} add-ons del Hub para monopolio de subtítulos sin SDH`);
-    }
+      const finalHub = hubAddon ? { ...hubAddon, transportUrl: targetHubUrl } : {
+        transportUrl: targetHubUrl,
+        transportName: '',
+        manifest: UNIFIED_HUB_ADDON_ENTRY.manifest,
+        flags: { official: false, protected: false },
+      };
 
-    // 3. Smart Stream Interceptor (MejoraStremio Streams en puesto #1 de streams)
-    const streamRes = ensureStreamsInterceptor(withHub);
-    let currentAddonsList = streamRes.addons;
-    if (streamRes.changed) {
-      changesCount++;
-      console.log('  ✓ Smart Stream Interceptor (com.mejorastremio.streams) configurado como stream prioritario');
-    }
+      const finalCinemeta = cinemetaAddon || {
+        transportUrl: 'https://v3-cinemeta.strem.io/manifest.json',
+        transportName: '',
+        manifest: { id: 'com.linvo.cinemeta', name: 'Cinemeta', version: '3.0.14' },
+        flags: { official: true, protected: true },
+      };
 
-    // 4. Sincronización de instancia AIOMetadata contra preset.json
-    const aioRes = await syncAioMetadataInstance(currentAddonsList);
-    currentAddonsList = aioRes.addons;
-    if (aioRes.changed) {
-      changesCount++;
-      console.log(`  ✓ AIOMetadata sincronizado con preset.json: ${aioRes.oldId} ➔ ${aioRes.newId}`);
-    }
-
-    // 5. Ajustar configuración de streams (Torrentio, Comet)
-    const updatedAddons = currentAddonsList.map((a) => {
-      if (a.manifest?.id === 'com.stremio.torrentio.addon') {
-        const tRes = configureTorrentio(a);
-        if (tRes.changed) {
-          changesCount++;
-          console.log(`  ✓ Torrentio actualizado: ${tRes.oldSegment} ➔ ${tRes.newSegment}`);
-          return { ...a, transportUrl: tRes.url };
-        }
+      const targetList = [finalHub, finalCinemeta];
+      
+      // Contar cambios
+      const idsCurrent = addons.map((a) => a.manifest?.id);
+      const idsTarget = targetList.map((a) => a.manifest?.id);
+      const isIdentical = idsCurrent.length === idsTarget.length && idsCurrent.every((id, i) => id === idsTarget[i]);
+      
+      if (!isIdentical || (hubAddon && hubAddon.transportUrl !== targetHubUrl)) {
+        changesCount = Math.max(1, Math.abs(addons.length - targetList.length));
+        console.log(`  ✓ Unificación activada: purga de addons secundarios y consolidación en Hub Unificado (#0) + Cinemeta (#1)`);
       }
-      if (a.manifest?.id === 'stremio.comet.fast') {
-        const cRes = configureComet(a);
-        if (cRes.changed) {
-          changesCount++;
-          console.log(`  ✓ Comet actualizado: languages.preferred = ${JSON.stringify(cRes.after.languages.preferred)}`);
-          return { ...a, transportUrl: cRes.url };
-        }
+      updatedAddons = targetList;
+    } else {
+      // 1. Neutralizar addons de subtítulos competidores
+      const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(addons);
+      if (removedAddons.length > 0) {
+        changesCount += removedAddons.length;
+        console.log(`  ✓ Neutralizados ${removedAddons.length} add-ons competidores de subtítulos:`);
+        removedAddons.forEach((ra) => console.log(`     - [${ra.manifest?.id || ra.id}] ${ra.manifest?.name || ra.name}`));
       }
-      return a;
-    });
+
+      // 2. Garantizar presencia de los addons de subtítulos del Hub (incluyendo SubSource)
+      const withHub = ensureHubSubtitleAddons(cleanedAddons);
+      if (withHub.length > cleanedAddons.length) {
+        changesCount += (withHub.length - cleanedAddons.length);
+        console.log(`  ✓ Instalados ${withHub.length - cleanedAddons.length} add-ons del Hub para monopolio de subtítulos sin SDH`);
+      }
+
+      // 3. Smart Stream Interceptor (MejoraStremio Streams en puesto #1 de streams)
+      const streamRes = ensureStreamsInterceptor(withHub);
+      let currentAddonsList = streamRes.addons;
+      if (streamRes.changed) {
+        changesCount++;
+        console.log('  ✓ Smart Stream Interceptor (com.mejorastremio.streams) configurado como stream prioritario');
+      }
+
+      // 4. Sincronización de instancia AIOMetadata contra preset.json
+      const aioRes = await syncAioMetadataInstance(currentAddonsList);
+      currentAddonsList = aioRes.addons;
+      if (aioRes.changed) {
+        changesCount++;
+        console.log(`  ✓ AIOMetadata sincronizado con preset.json: ${aioRes.oldId} ➔ ${aioRes.newId}`);
+      }
+
+      // 5. Ajustar configuración de streams (Torrentio, Comet)
+      updatedAddons = currentAddonsList.map((a) => {
+        if (a.manifest?.id === 'com.stremio.torrentio.addon') {
+          const tRes = configureTorrentio(a);
+          if (tRes.changed) {
+            changesCount++;
+            console.log(`  ✓ Torrentio actualizado: ${tRes.oldSegment} ➔ ${tRes.newSegment}`);
+            return { ...a, transportUrl: tRes.url };
+          }
+        }
+        if (a.manifest?.id === 'stremio.comet.fast') {
+          const cRes = configureComet(a);
+          if (cRes.changed) {
+            changesCount++;
+            console.log(`  ✓ Comet actualizado: languages.preferred = ${JSON.stringify(cRes.after.languages.preferred)}`);
+            return { ...a, transportUrl: cRes.url };
+          }
+        }
+        return a;
+      });
+    }
 
     // Renderizar Diff Visual Estructurado
     renderVisualDiff(addons, updatedAddons);

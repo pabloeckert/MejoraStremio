@@ -27,36 +27,13 @@
         "para sordos",
         "sordos"
       ],
-      "requiredAddons": [
-        {
-          "id": "com.mejorastremio.opensubtitles-latino",
-          "name": "OpenSubtitles Latino (sin SDH)",
-          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/opensubtitles-latino/manifest.json",
-          "filterHearingImpaired": true,
-          "priority": 1
-        },
-        {
-          "id": "com.mejorastremio.subdl",
-          "name": "SubDL ES (sin SDH)",
-          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/subdl/manifest.json",
-          "filterHearingImpaired": true,
-          "priority": 2
-        },
-        {
-          "id": "com.mejorastremio.subsource",
-          "name": "SubSource ES (sin SDH)",
-          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/subsource/manifest.json",
-          "filterHearingImpaired": true,
-          "priority": 3
-        },
-        {
-          "id": "com.mejorastremio.translate",
-          "name": "Traducción IA (Gemini Flash)",
-          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/translate/manifest.json",
-          "filterHearingImpaired": true,
-          "priority": 4
-        }
-      ]
+      "unifiedHub": {
+        "id": "com.mejorastremio.hub",
+        "name": "MejoraStremio Hub (TorBox Latino + Subtítulos IA)",
+        "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json",
+        "canonicalStremioUrl": "stremio://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json",
+        "position": 0
+      }
     },
     "audio": {
       "priorityHierarchy": [
@@ -68,21 +45,8 @@
         "language": "latino",
         "description": "Filtra/ordena con prioridad audio latino (flag 'latino')"
       },
-      "comet": {
-        "languages": {
-          "preferred": ["la", "en"]
-        },
-        "sortCachedUncachedTogether": false,
-        "description": "Prefiere audio latino ('la') y original ('en'), cacheados en TorBox primero"
-      },
       "streamAddonOrder": [
-        "com.mejorastremio.hub",
-        "com.mejorastremio.streams",
-        "stremio.comet.fast",
-        "com.notorrent.addon",
-        "webstreamr-mbg",
-        "org.nuvio.streams",
-        "community.meteor"
+        "com.mejorastremio.hub"
       ]
     },
     "catalogs": {

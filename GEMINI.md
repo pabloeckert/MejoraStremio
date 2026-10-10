@@ -385,3 +385,35 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - Nuevas Temporadas verificado con >15 ítems (25 entregados), orden cronológico descendente y los 5 primeros títulos con streams activos funcionales.
   - Estrenos Streaming verificado con >15 ítems (25 entregados), orden cronológico descendente y los 5 primeros títulos con streams activos funcionales.
 - Suite completa aprobada con 105/105 pruebas exitosas (100.0% PASS).
+
+---
+
+## 19. Sesión 2026-10-10: Purga Atómica Total en Producción y Consolidación Monolítica en Addon Unificado Exclusivo (stremioeg@gmail.com)
+
+### 19.1 Diagnóstico Forense y Estado Crítico de Dispersión
+- **Causa Raíz**: La cuenta `stremioeg@gmail.com` acumulaba 23 addons secundarios instalados en paralelo (SubSource ES, OpenSubtitles Latino, SubDL ES, Traducción IA, AIOMetadata, Cinemeta, MejoraStremio Hub, MejoraStremio Streams, Comet, Mediathek DE, NoTorrent, WebStreamMBG, Nuvio Streams, Streailer, MyTrakt Sync, Mubi Catalog, Streaming Catalogs, Descubrir Maestro, Miniseries, Comedias Cortas, TV en Vivo, MejoraStremio Synopsis IA, Trakt Integration).
+- **Impacto Leanback TV Box**:
+  - Triplicación y desorden en el selector lateral de ExoPlayer de Android TV por inyección concurrente de múltiples proveedores de subtítulos.
+  - Bypass de la traducción generativa IA Gemini Flash, sepultada bajo decenas de pistas duplicadas.
+  - Pérdida de la prioridad #1 de audio latino por competencia entre scrapers desordenados.
+
+### 19.2 Purga Atómica y Monopolio del Addon Unificado (`scripts/purge-and-unify-account.mjs`)
+- **Desinstalación del 100% de Addons Secundarios**: Se desinstalaron 21 addons secundarios, dejando la cuenta con **exactamente 2 addons**:
+  1. **Posición #0 (Puesto #1 Primario Exclusivo)**: Addon Unificado MejoraStremio Hub (`com.mejorastremio.hub` v1.4.0) con transportUrl canónica parametrizada de TorBox Debrid (`language=latino`).
+  2. **Posición #1**: Cinemeta (`com.linvo.cinemeta` v3.0.14) como proveedor esencial oficial de metadatos del catálogo base.
+- **Snapshot Atómico Previo**: Generado en `.backups/backup-stremioeg-pre-purge-atomic-2026-10-10T22-56-48.json` con soporte nativo de rollback (`--rollback-last`).
+- **Verificación Cruda en Vivo en la API de Stremio**: Se verificó vía `addonCollectionGet` confirmando exactamente 2 addons instalados en la nube de Stremio.
+
+### 19.3 Certificación de Endpoints del Hub Unificado en Producción (HTTP 200)
+- **Streams con Audio Latino en Puesto #1**: `/providers=.../stream/series/tt32604054:1:1.json` entrega en puesto #1 `[⚡ INSTANTÁNEO] [🌎 LATINO] [TB+] Torrentio 1080p`.
+- **Subtítulos Unificados sin Duplicados**: `/providers=.../subtitles/series/tt14060708:1:1.json` entrega exactamente 3 pares (6 tracks) consolidados sin solapamientos.
+- **Traducción IA Gemini Flash**: Entrega dual obligatoria `spl` y `spa` con label `⚡ 1. Latino (IA Gemini) · [Traducción Automática]` y purga total de acotaciones acústicas SDH/CC.
+- **SmartSync PAL 25 ➔ 23.976fps para HPI / ACI (`tt14060708`)**: Calibración matemática estricta con ratio $R = 25.0 / 23.976 \approx 1.042709$ (`fps=25to23976&smart=1`).
+- **Catálogos de 25 Ítems Ordenados por Estreno Reciente**: `/catalog/series/nuevas-temporadas.json` y `/catalog/movie/nuevos-estrenos-cine.json` entregan 25 títulos de 2026 ordenados de forma cronológica descendente estricta.
+
+### 19.4 Certificación de la Suite E2E (100% PASS)
+- `scripts/test-translation-engine.ts`: 68 de 68 verificaciones superadas (100% PASS).
+- `scripts/test-tvbox-deep-e2e.mjs`: 105 de 105 verificaciones superadas (100% PASS).
+- `scripts/test-stremioeg-tvbox.mjs`: 28 de 28 verificaciones superadas (100% PASS).
+- `deno lint` y `deno check`: 22 archivos auditados sin advertencias ni errores.
+

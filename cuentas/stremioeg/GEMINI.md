@@ -135,6 +135,26 @@ Para garantizar una experiencia fluida sin judder ni parpadeos en Android TV:
 6. **Regular Show: The Lost Tapes — Prioridad de Audio Original**:
    - Priorización del Audio Original (`[🎧 ORIGINAL]`) en el puesto #1 cuando no existe versión en latino cacheada en TorBox, relegando el doblaje castellano de España a última opción.
 
+---
+
+## Sesión 2026-10-10: Purga Atómica Total y Consolidación Monolítica en Addon Unificado
+
+### 1. Contexto y Diagnóstico Forense
+* **Problema crítico de dispersión**: La cuenta `stremioeg@gmail.com` acumulaba 23 addons secundarios instalados en paralelo (SubSource, OpenSubtitles Latino, SubDL, Traducción IA, MejoraStremio Streams, Comet, Mediathek DE, NoTorrent, WebStreamMBG, Nuvio Streams, Streailer, MyTrakt Sync, Mubi Catalog, Streaming Catalogs, Descubrir Maestro, Miniseries, Comedias Cortas, TV en Vivo, Synopsis IA, Trakt Integration, AIOMetadata).
+* **Impacto en Leanback TV Box**:
+  - Triplicación y desorden en el selector de subtítulos de ExoPlayer.
+  - Sobrescritura y bypass del fallback de Traducción IA Gemini Flash.
+  - Conflictos en el ranking de audio latino provocados por scrapers concurrentes no coordinados.
+
+### 2. Ejecución Quirúrgica de Purga Atómica (`scripts/purge-and-unify-account.mjs`)
+* Se removieron el 100% de los 21 addons secundarios.
+* Se estableció la colección mínima y autosuficiente de **exactamente 2 addons**:
+  1. **Posición #0 (Puesto #1 Primario Exclusivo)**: `com.mejorastremio.hub` (v1.4.0) con URL canónica parametrizada de TorBox Debrid y preferencia Latino.
+  2. **Posición #1**: `com.linvo.cinemeta` (Cinemeta Oficial de Stremio v3.0.14) como proveedor esencial de metadatos del catálogo base.
+* Se generó snapshot de respaldo atómico en `.backups/backup-stremioeg-pre-purge-atomic-2026-10-10T22-56-48.json` con soporte nativo de rollback.
+* Verificación cruda post-mutación en la API de Stremio confirmó paridad 1:1 (2 addons activos).
+
+
 
 
 

@@ -144,7 +144,7 @@ export function parseNumbered(raw: string): Map<number, string> {
   return out;
 }
 
-export async function translateBatch(
+async function translateSingleBatch(
   items: { n: number; text: string }[],
   signal: AbortSignal,
   sysPrompt: string = TRANSLATE_SYS,
@@ -166,7 +166,7 @@ export async function translateBatch(
       }
     } catch (e) {
       const msg = (e as Error).message;
-      if (/429|503/.test(msg) && attempt < 2) await sleep(2000 + attempt * 2000);
+      if (/429|503/.test(msg) && attempt < 2) await sleep(1000 + attempt * 1000);
       else if (attempt >= 2) console.log(`[translate] batch n0=${items[0]?.n} agotó reintentos: ${msg}`);
     }
   }
@@ -177,6 +177,42 @@ export async function translateBatch(
     map.set(it.n, t ? t.replace(new RegExp(NL, "g"), "\n") : it.text);
   }
   return { map, ok: merged.size >= Math.min(items.length, Math.max(1, Math.floor(items.length * 0.7))) };
+}
+
+export async function translateBatch(
+  items: { n: number; text: string }[],
+  signal: AbortSignal,
+  sysPrompt: string = TRANSLATE_SYS,
+): Promise<{ map: Map<number, string>; ok: boolean }> {
+  const CHUNK_SIZE = 35;
+  if (items.length > CHUNK_SIZE) {
+    const chunks: Array<typeof items> = [];
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      chunks.push(items.slice(i, i + CHUNK_SIZE));
+    }
+    const settled = await Promise.allSettled(
+      chunks.map((c) => translateSingleBatch(c, signal, sysPrompt))
+    );
+    const combinedMap = new Map<number, string>();
+    let totalTranslated = 0;
+    for (let ci = 0; ci < chunks.length; ci++) {
+      const s = settled[ci];
+      if (s.status === "fulfilled") {
+        for (const [k, v] of s.value.map.entries()) {
+          combinedMap.set(k, v);
+        }
+        if (s.value.ok) totalTranslated += chunks[ci].length;
+      } else {
+        for (const it of chunks[ci]) {
+          combinedMap.set(it.n, it.text);
+        }
+      }
+    }
+    const ok = combinedMap.size > 0 && totalTranslated >= Math.floor(items.length * 0.5);
+    return { map: combinedMap, ok };
+  }
+
+  return translateSingleBatch(items, signal, sysPrompt);
 }
 
 export async function translateCues(

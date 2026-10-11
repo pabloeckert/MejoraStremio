@@ -199,6 +199,7 @@ export interface AiProbeResult {
     model?: string;
     reply?: string;
     error?: string;
+    attempts?: Array<{ model: string; status: number; message: string }>;
   };
 }
 
@@ -233,18 +234,58 @@ export async function runAiProbeTest(): Promise<AiProbeResult> {
     const cleanKey = OPENROUTER_API_KEY.trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "");
     result.openrouter.keyPrefix = cleanKey.slice(0, 6) + "...";
     result.openrouter.keyLength = cleanKey.length;
+    result.openrouter.attempts = [];
+
+    const modelsToProbe = [
+      OPENROUTER_MODEL,
+      "google/gemini-2.0-flash-001",
+      "google/gemini-2.5-flash",
+      "google/gemini-2.0-flash-lite-001",
+      "google/gemini-2.0-flash-lite-preview-02-05:free",
+      "meta-llama/llama-3.2-3b-instruct:free",
+    ];
+
     const t0 = Date.now();
-    try {
-      const reply = await callOpenRouter(testPrompt, cleanKey, AbortSignal.timeout(5000));
-      result.openrouter.latencyMs = Date.now() - t0;
-      result.openrouter.status = 200;
-      result.openrouter.model = OPENROUTER_MODEL;
-      result.openrouter.reply = reply.slice(0, 100);
-    } catch (e) {
-      result.openrouter.latencyMs = Date.now() - t0;
-      result.openrouter.error = (e as Error).message;
-      const m = (e as Error).message.match(/respondió\s*(\d{3})/);
-      if (m) result.openrouter.status = parseInt(m[1], 10);
+    for (const m of [...new Set(modelsToProbe)]) {
+      try {
+        const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${cleanKey}` },
+          body: JSON.stringify({
+            model: m,
+            messages: [{ role: "user", content: testPrompt }],
+            max_tokens: 30,
+          }),
+          signal: AbortSignal.timeout(4000),
+        });
+        const txt = await r.text().catch(() => "");
+        result.openrouter.attempts.push({
+          model: m,
+          status: r.status,
+          message: txt.slice(0, 120),
+        });
+        if (r.ok && !result.openrouter.reply) {
+          result.openrouter.status = 200;
+          result.openrouter.model = m;
+          result.openrouter.latencyMs = Date.now() - t0;
+          try {
+            const d = JSON.parse(txt);
+            result.openrouter.reply = d?.choices?.[0]?.message?.content?.slice(0, 100);
+          } catch {
+            result.openrouter.reply = txt.slice(0, 100);
+          }
+        }
+      } catch (e) {
+        result.openrouter.attempts.push({
+          model: m,
+          status: 0,
+          message: (e as Error).message.slice(0, 120),
+        });
+      }
+    }
+    if (!result.openrouter.reply && result.openrouter.attempts.length > 0) {
+      result.openrouter.status = result.openrouter.attempts[0].status;
+      result.openrouter.error = result.openrouter.attempts[0].message;
     }
   }
 

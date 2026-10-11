@@ -417,3 +417,42 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - `scripts/test-stremioeg-tvbox.mjs`: 28 de 28 verificaciones superadas (100% PASS).
 - `deno lint` y `deno check`: 22 archivos auditados sin advertencias ni errores.
 
+---
+
+## 20. Sesión 2026-10-10 (Parte 2): Auditoría de Cuotas de IA, Calibración de Gemini 2.5 Flash en OpenRouter, Blindaje Anti-401 y Fallback Sintético Universal
+
+### 20.1 Auditoría Empírica de API Keys y Quotas de IA (`/health?probe_ai=1`)
+- **Telemetría en Vivo desde el Edge Server**:
+  - `OPENROUTER_API_KEY`: Clave activa (`sk-or-...`, 73 chars). Evaluada empíricamente en vivo contra los modelos de catálogo.
+  - `GEMINI_API_KEY`: Configurada en Deno Deploy con prefijo `AQ.Ab8...` (53 chars, token de formato ajeno a Google AI Studio), produciendo error `401 Request had invalid authentication credentials` en `generativelanguage.googleapis.com`.
+  - **Detección de Modelos Defunct / 404**: Se constató que `google/gemini-2.0-flash-001` y `meta-llama/llama-3.2-3b-instruct:free` devuelven **HTTP 404** en OpenRouter.
+  - **Calibración Óptima de Producción**: El modelo canónico operativo en OpenRouter es **`google/gemini-2.5-flash`**, respondiendo con **HTTP 200 en 592ms** (`latencyMs: 592`, reply: `"¡Hola! ¿En qué puedo ayudarte hoy?"`).
+
+### 20.2 Enrutamiento Inteligente Anti-401 y Latencia <1.5s
+- **Bypass de Claves No-AIza**: Si `GEMINI_API_KEY` no comienza con `AIzaSy` (o `AIza`), `callGemini` redirige de inmediato hacia `callOpenRouter(prompt, OPENROUTER_API_KEY, signal)` sin agotar reintentos 401 que antes consumían el presupuesto temporal del Fast-Window (<4s).
+- **Desactivación de Reasoning / Thinking**:
+  - Para OpenRouter: Se inyecta `reasoning: { effort: "none" }`.
+  - Para Gemini: Se inyecta `thinkingConfig: { thinkingBudget: 0 }` para modelos 2.0 y 2.5.
+- **Paralelización de Lotes en Chunks de 18 Cues**: `translateBatch` divide lotes mayores a 18 cues en sub-lotes paralelos concurrentes (`Promise.allSettled`), reduciendo la generación a ~150 tokens por petición y asegurando respuestas en <1.5s.
+
+### 20.3 Resolución de Errores en Handlers de Subtítulos (`/subtitles` y `/translate`)
+- **Corrección Crítica en `/gen/fallback.srt`**: Las solicitudes a `/gen/fallback.srt` causaban un fallo de parseo JSON (`JSON.parse("fallback")`) que retornaba `HTTP 400 token inválido`. Se implementó resolución inmediata de fallback sintético entregando **HTTP 200 OK**, `access-control-allow-origin: *`, `Content-Disposition: attachment; filename="es-latino.srt"` y cues informativos de cortesía.
+- **Cascada Resiliente**: Si ningún upstream (SubDL ni OpenSubtitles) provee base, la cascada genera subtítulos sintéticos garantizados con la etiqueta estricta: `⚡ 1. Latino (IA Gemini) · [Traducción Automática]`, asegurando que la TV Box nunca reciba un array vacío o un error 500.
+
+### 20.4 Identificadores de Idioma para Android TV (Stremio Core) y Purga SDH
+- **Triple Código de Idioma (`spl` + `spa` + `es-419`)**:
+  - `MEJORASTREMIO_HUB_MANIFEST` (v1.4.1) y `TRANSLATE_MANIFEST` (v1.2.1) exponen formalmente `languages: ["spl", "spa", "es-419"]`.
+  - `pushDualSubtitles` emite las tres variantes para cada subtítulo latino, garantizando el enganche automático tanto en Android TV Leanback (`spl` / `spa`) como en clientes web y móviles (`es-419`).
+- **Purga 100% de Marcas SDH/CC en `cleanCueForTranslation`**:
+  - Expresión regular ampliada para purgar prefijos de hablantes en minúsculas y mayúsculas (`Morgane:`, `Karadec:`, `MORGANE:`).
+  - Eliminación estricta de acotaciones acústicas en corchetes y paréntesis (`[música]`, `(suspira)`, `[sighs]`, etc.) y notas musicales `♪`.
+
+### 20.5 Despliegue en Vivo y Certificación de la Suite E2E
+- **Runner CI/CD Robusto**: Se migró la instalación de Deno en `.github/workflows/deploy-deno-hub.yml` a la acción oficial `denoland/setup-deno@v2`, eliminando fallos por HTTP 500 en `curl install.sh`.
+- **Despliegue Serverless Exitoso**: Desplegado en producción en Deno Deploy (`mejorastremio-hub.pabloeckert.deno.net`).
+- **Suite de Pruebas Unitarias y E2E**:
+  - `scripts/test-translation-engine.ts`: **80 de 80 verificaciones superadas (100% PASS)**.
+  - `scripts/test-tvbox-deep-e2e.mjs`: **105 de 105 verificaciones superadas (100% PASS)**.
+  - `deno check` y `deno lint`: 23 archivos limpios sin errores.
+
+

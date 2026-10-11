@@ -176,7 +176,7 @@ async function translateSingleBatch(
     const t = merged.get(it.n);
     map.set(it.n, t ? t.replace(new RegExp(NL, "g"), "\n") : it.text);
   }
-  return { map, ok: merged.size >= Math.min(items.length, Math.max(1, Math.floor(items.length * 0.7))) };
+  return { map, ok: merged.size >= Math.min(items.length, Math.max(1, Math.floor(items.length * 0.5))) };
 }
 
 export async function translateBatch(
@@ -184,7 +184,7 @@ export async function translateBatch(
   signal: AbortSignal,
   sysPrompt: string = TRANSLATE_SYS,
 ): Promise<{ map: Map<number, string>; ok: boolean }> {
-  const CHUNK_SIZE = 35;
+  const CHUNK_SIZE = 18;
   if (items.length > CHUNK_SIZE) {
     const chunks: Array<typeof items> = [];
     for (let i = 0; i < items.length; i += CHUNK_SIZE) {
@@ -208,7 +208,7 @@ export async function translateBatch(
         }
       }
     }
-    const ok = combinedMap.size > 0 && totalTranslated >= Math.floor(items.length * 0.5);
+    const ok = combinedMap.size > 0 && totalTranslated >= Math.min(items.length, 12);
     return { map: combinedMap, ok };
   }
 

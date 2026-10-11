@@ -7,10 +7,13 @@ import { SUBDL_KEY } from "./subtitles/subdl.ts";
 import { OPENSUBTITLES_API_KEY } from "./subtitles/opensubtitles.ts";
 import { SUBDIVX_PROXY_URL } from "./subtitles/subdivx.ts";
 import { SUBSOURCE_API_KEY } from "./subtitles/subsource.ts";
-import { GEMINI_API_KEY, OPENROUTER_API_KEY } from "./translate/gemini.ts";
+import { GEMINI_API_KEY, OPENROUTER_API_KEY, runAiProbeTest } from "./translate/gemini.ts";
 import { TMDB_KEY } from "./catalogs/tmdb.ts";
 
-export function handleHealth(): Response {
+export async function handleHealth(reqUrl?: URL): Promise<Response> {
+  const probeAi = reqUrl?.searchParams?.has("probe_ai");
+  const aiProbe = probeAi ? await runAiProbeTest() : undefined;
+
   return jsonResponse({
     hub: "mejorastremio-hub",
     timestamp: new Date().toISOString(),
@@ -39,5 +42,6 @@ export function handleHealth(): Response {
       baseSource: !!OPENSUBTITLES_API_KEY,
       engine: "gemini-flash",
     },
+    ...(aiProbe ? { aiProbe } : {}),
   });
 }

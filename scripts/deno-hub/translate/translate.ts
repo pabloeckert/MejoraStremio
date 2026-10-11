@@ -51,7 +51,7 @@ import {
 
 export const TRANSLATE_MANIFEST = {
   id: "com.mejorastremio.translate",
-  version: "1.2.0",
+  version: "1.2.1",
   name: "Traducción IA (Gemini Flash)",
   description:
     "Traducción automática al español latino (vía IA Gemini Flash) para series alemanas y contenido sin subtítulos en español.",
@@ -59,6 +59,7 @@ export const TRANSLATE_MANIFEST = {
   types: ["series", "movie"],
   idPrefixes: ["tt"],
   catalogs: [],
+  languages: ["spl", "spa", "es-419"],
 };
 
 export const TRANSLATE_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
@@ -660,6 +661,22 @@ export async function handleTranslate(
   const genM = subPath.match(/^\/gen\/([^/]+?)(?:\.srt)?$/);
   const xM = subPath.match(/^\/x\/([^/]+?)(?:\.srt)?$/);
   if (genM || xM) {
+    // Si la ruta es directamente /gen/fallback.srt, servir los cues sintéticos de inmediato
+    if (genM && (genM[1] === "fallback" || genM[1] === "fallback.srt")) {
+      const synthCues = createSyntheticBaseCues("MejoraStremio");
+      const srt = cleanSrt(serializeSrt(synthCues));
+      return new Response(srt, {
+        headers: {
+          ...cors,
+          "Content-Type": "text/plain; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="es-latino.srt"',
+          "X-Translate-FastWindow": "true",
+          "X-Translate-Complete": "true",
+          "X-Translate-Synthetic": "true",
+        },
+      });
+    }
+
     let src: { t: string; u?: string; f?: number; r: string; name?: string; lang?: string };
     try {
       if (xM) {
@@ -669,7 +686,19 @@ export async function handleTranslate(
         src = JSON.parse(b64u.dec(genM![1]));
       }
     } catch {
-      return new Response("token inválido", { status: 400, headers: cors });
+      console.warn(`[translate] Token de subtítulo no decodificable (${genM?.[1] || xM?.[1]}), entregando fallback sintético`);
+      const synthCues = createSyntheticBaseCues("MejoraStremio");
+      const srt = cleanSrt(serializeSrt(synthCues));
+      return new Response(srt, {
+        headers: {
+          ...cors,
+          "Content-Type": "text/plain; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="es-latino.srt"',
+          "X-Translate-FastWindow": "true",
+          "X-Translate-Complete": "true",
+          "X-Translate-Synthetic": "true",
+        },
+      });
     }
 
     // Si es token sintético universal, entregar cues informativos instantáneamente (<5ms)

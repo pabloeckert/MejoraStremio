@@ -145,7 +145,7 @@ export async function handleHubRequest(req: Request): Promise<Response> {
       });
     } else if (path === "/health") {
       route = "health";
-      res = handleHealth();
+      res = await handleHealth(url);
     } else if (path.startsWith("/subtitles/proxy")) {
       route = "subtitles-proxy";
       res = await handleSubtitleProxy(url);

@@ -4,7 +4,9 @@
  */
 
 export const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
-export const OPENROUTER_MODEL = Deno.env.get("OPENROUTER_MODEL") ?? "openrouter/free";
+export const OPENROUTER_MODEL = (Deno.env.get("OPENROUTER_MODEL") && Deno.env.get("OPENROUTER_MODEL") !== "openrouter/free")
+  ? Deno.env.get("OPENROUTER_MODEL")!
+  : "google/gemini-2.0-flash-001";
 export const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 export const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") ?? "";
 
@@ -20,10 +22,17 @@ export const GEMINI_SAFETY_OFF = [
 
 export async function callGemini(prompt: string, apiKey: string, signal: AbortSignal): Promise<string> {
   const cleanKey = apiKey.trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "");
+
+  // Si la clave provista es formato OpenRouter/OpenAI (sk-...), redirigir de inmediato a OpenRouter
+  if (cleanKey.startsWith("sk-")) {
+    return await callOpenRouter(prompt, cleanKey, signal);
+  }
+
   const modelsToTry = [
     GEMINI_MODEL || "gemini-2.0-flash",
-    "gemini-1.5-flash",
+    "gemini-2.5-flash",
     "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
   ];
   const candidates = [...new Set(modelsToTry.filter(Boolean))];
 
@@ -36,7 +45,8 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
           temperature: 0.2,
           maxOutputTokens: 8192,
         };
-        if (model.includes("thinking")) {
+        // Para modelos 2.0 y 2.5, forzar thinkingBudget: 0 para garantizar respuestas en <1.5s
+        if (/2\.0|2\.5|thinking/i.test(model)) {
           generationConfig.thinkingConfig = { thinkingBudget: 0 };
         }
         let r = await fetch(url, {
@@ -100,12 +110,20 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
 }
 
 export async function callOpenRouter(prompt: string, apiKey: string, signal: AbortSignal): Promise<string> {
+  const cleanKey = apiKey.trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "");
+
+  // Si la clave provista es formato Google (AIza...), redirigir a callGemini
+  if (cleanKey.startsWith("AIza")) {
+    return await callGemini(prompt, cleanKey, signal);
+  }
+
   const models = [
     OPENROUTER_MODEL,
+    "google/gemini-2.0-flash-001",
+    "google/gemini-2.5-flash",
+    "google/gemini-2.0-flash-lite-001",
+    "google/gemini-flash-1.5",
     "meta-llama/llama-3.3-70b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
-    "google/gemini-2.0-flash-exp:free",
-    "qwen/qwen-2.5-72b-instruct:free",
   ].filter(Boolean);
 
   let lastErr: Error | null = null;
@@ -113,12 +131,19 @@ export async function callOpenRouter(prompt: string, apiKey: string, signal: Abo
     try {
       const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey.trim()}` },
-        body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }] }),
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${cleanKey}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.2,
+          max_tokens: 8192,
+          reasoning: { effort: "none" },
+        }),
         signal,
       });
       if (!r.ok) {
-        lastErr = new Error(`OpenRouter (${model}) respondió ${r.status}`);
+        const errTxt = await r.text().catch(() => "");
+        lastErr = new Error(`OpenRouter (${model}) respondió ${r.status}: ${errTxt.slice(0, 100)}`);
         continue;
       }
       const d = await r.json();
@@ -144,14 +169,86 @@ export function cleanCueForTranslation(text: string): string {
   // 1. Eliminar etiquetas HTML y estilos
   t = t.replace(/<[^>]+>/g, "");
   t = t.replace(/\{[^}]+\}/g, "");
-  // 2. Eliminar acotaciones sonoras entre corchetes o paréntesis
+  // 2. Eliminar acotaciones sonoras entre corchetes o paréntesis ([música], (suspira), [sighs], etc.)
   t = t.replace(/\[[^\]\n]*\]/g, "");
   t = t.replace(/\([^)\n]*\)/g, "");
-  // 3. Eliminar prefijos de hablante en mayúsculas
-  t = t.replace(/^[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/gm, "");
-  // 4. Eliminar símbolos musicales
+  // 3. Eliminar prefijos de hablante en mayúsculas o mixtas seguidos de dos puntos (MORGANE:, Morgane:, etc.)
+  t = t.replace(/^[-–—•]?\s*[A-Za-zÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸáéíóúñàâçèêëîïôùûüÿ0-9\s._-]{2,30}:\s*/gm, "");
+  // 4. Eliminar símbolos musicales y ruidos
   t = t.replace(/[♪♫#*]+/g, "");
   return t.split("\n").map((l) => l.trim()).filter(Boolean).join("\n");
+}
+
+export interface AiProbeResult {
+  gemini: {
+    configured: boolean;
+    keyPrefix?: string;
+    keyLength?: number;
+    status?: number;
+    latencyMs?: number;
+    model?: string;
+    reply?: string;
+    error?: string;
+  };
+  openrouter: {
+    configured: boolean;
+    keyPrefix?: string;
+    keyLength?: number;
+    status?: number;
+    latencyMs?: number;
+    model?: string;
+    reply?: string;
+    error?: string;
+  };
+}
+
+export async function runAiProbeTest(): Promise<AiProbeResult> {
+  const result: AiProbeResult = {
+    gemini: { configured: !!GEMINI_API_KEY },
+    openrouter: { configured: !!OPENROUTER_API_KEY },
+  };
+
+  const testPrompt = "1▸ Hola";
+
+  if (GEMINI_API_KEY) {
+    const cleanKey = GEMINI_API_KEY.trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "");
+    result.gemini.keyPrefix = cleanKey.slice(0, 6) + "...";
+    result.gemini.keyLength = cleanKey.length;
+    const t0 = Date.now();
+    try {
+      const reply = await callGemini(testPrompt, cleanKey, AbortSignal.timeout(5000));
+      result.gemini.latencyMs = Date.now() - t0;
+      result.gemini.status = 200;
+      result.gemini.model = GEMINI_MODEL;
+      result.gemini.reply = reply.slice(0, 100);
+    } catch (e) {
+      result.gemini.latencyMs = Date.now() - t0;
+      result.gemini.error = (e as Error).message;
+      const m = (e as Error).message.match(/respondió\s*(\d{3})/);
+      if (m) result.gemini.status = parseInt(m[1], 10);
+    }
+  }
+
+  if (OPENROUTER_API_KEY) {
+    const cleanKey = OPENROUTER_API_KEY.trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "");
+    result.openrouter.keyPrefix = cleanKey.slice(0, 6) + "...";
+    result.openrouter.keyLength = cleanKey.length;
+    const t0 = Date.now();
+    try {
+      const reply = await callOpenRouter(testPrompt, cleanKey, AbortSignal.timeout(5000));
+      result.openrouter.latencyMs = Date.now() - t0;
+      result.openrouter.status = 200;
+      result.openrouter.model = OPENROUTER_MODEL;
+      result.openrouter.reply = reply.slice(0, 100);
+    } catch (e) {
+      result.openrouter.latencyMs = Date.now() - t0;
+      result.openrouter.error = (e as Error).message;
+      const m = (e as Error).message.match(/respondió\s*(\d{3})/);
+      if (m) result.openrouter.status = parseInt(m[1], 10);
+    }
+  }
+
+  return result;
 }
 
 export const LANG_NAMES: Record<string, string> = {

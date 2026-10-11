@@ -340,6 +340,11 @@ export function pushDualSubtitles(
       id: `${track.id}-spa`,
       lang: "spa",
     });
+    target.push({
+      ...track,
+      id: `${track.id}-es419`,
+      lang: "es-419",
+    });
   } else {
     target.push({
       ...track,

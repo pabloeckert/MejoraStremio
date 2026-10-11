@@ -17,7 +17,7 @@ import { handleDiscover } from "./catalogs/tmdb.ts";
 
 export const MEJORASTREMIO_HUB_MANIFEST = {
   id: "com.mejorastremio.hub",
-  version: "1.4.0",
+  version: "1.4.1",
   name: "MejoraStremio Hub (TorBox Latino + Subtítulos IA)",
   description:
     "Suite integral de MejoraStremio para TV Box: Streams con prioridad absoluta de Audio Latino [🌎 LATINO] y TorBox instantáneo, subtítulos sin SDH, SmartSync PAL 25->23.976fps, traducción IA Gemini Flash bajo demanda y catálogos de estreno Día 1 en orden cronológico estricto.",
@@ -62,6 +62,7 @@ export const MEJORASTREMIO_HUB_MANIFEST = {
       ],
     },
   ],
+  languages: ["spl", "spa", "es-419"],
   behaviorHints: {
     configurable: true,
     configurationRequired: false,

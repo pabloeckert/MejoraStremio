@@ -91,6 +91,16 @@ assert(cleanedHpi.includes("Arrêtez-le tout de suite !"), "HPI: Diálogo de Cé
 assert(cleanedHpi.includes("J'appelle du renfort !"), "HPI: Diálogo de Daphné preservado");
 assert(cleanedHpi.includes("C'est évident !"), "HPI: Remate de diálogo preservado");
 
+// 2.1 Verificación extendida de marcas SDH en Español y Prefijos en Minúsculas/Mixtas
+const rawSpanishCue = "[música]\nMorgane: Creo que tenemos una pista.\n(suspira)\nKaradec: ¿Qué encontraste?";
+const cleanedEs = cleanCueForTranslation(rawSpanishCue);
+assert(!cleanedEs.includes("[música]"), "SDH: Corchetes [música] purgados al 100%");
+assert(!cleanedEs.includes("(suspira)"), "SDH: Paréntesis (suspira) purgados al 100%");
+assert(!cleanedEs.includes("Morgane:"), "Prefijo de hablante mixto 'Morgane:' purgado");
+assert(!cleanedEs.includes("Karadec:"), "Prefijo de hablante mixto 'Karadec:' purgado");
+assert(cleanedEs.includes("Creo que tenemos una pista."), "Diálogo en español de Morgane preservado");
+assert(cleanedEs.includes("¿Qué encontraste?"), "Diálogo en español de Karadec preservado");
+
 // 3. Robustez del Parseador (parseNumbered) y Centinelas §Z
 console.log("\n3. Robustez de Parseo y Manejo de Delimitadores §Z:");
 
@@ -143,7 +153,24 @@ assert(parsedBack.length === 70, `70/70 cues serializadas y saneadas limpiamente
 // 6. Garantizador de Fallback Universal de Traducción por IA (Última Instancia)
 console.log("\n6. Garantizador de Fallback Universal de Traducción por IA (IDs Inexistentes/Raros):");
 
-const { handleTranslate } = await import("./deno-hub/translate/translate.ts");
+const { handleTranslate, TRANSLATE_MANIFEST } = await import("./deno-hub/translate/translate.ts");
+const { MEJORASTREMIO_HUB_MANIFEST } = await import("./deno-hub/unified-hub.ts");
+
+// Verificación de manifiestos y soporte de códigos de idioma para Android TV
+assert(
+  Array.isArray(TRANSLATE_MANIFEST.languages) &&
+  TRANSLATE_MANIFEST.languages.includes("spl") &&
+  TRANSLATE_MANIFEST.languages.includes("spa") &&
+  TRANSLATE_MANIFEST.languages.includes("es-419"),
+  "TRANSLATE_MANIFEST expone lenguajes 'spl', 'spa' y 'es-419'",
+);
+assert(
+  Array.isArray(MEJORASTREMIO_HUB_MANIFEST.languages) &&
+  MEJORASTREMIO_HUB_MANIFEST.languages.includes("spl") &&
+  MEJORASTREMIO_HUB_MANIFEST.languages.includes("spa") &&
+  MEJORASTREMIO_HUB_MANIFEST.languages.includes("es-419"),
+  "MEJORASTREMIO_HUB_MANIFEST expone lenguajes 'spl', 'spa' y 'es-419'",
+);
 
 // Caso Extremo 1: ID de película totalmente inexistente (tt999999999)
 const resInexistente = await handleTranslate(
@@ -162,10 +189,11 @@ assert(
   `Label estricto de última instancia: ${topSub.name}`,
 );
 
-// Verificación de compatibilidad dual de códigos ISO (spl y spa)
+// Verificación de compatibilidad triple de códigos ISO (spl, spa y es-419)
 const hasSpl = dataInexistente.subtitles.some((s: { lang: string }) => s.lang === "spl");
 const hasSpa = dataInexistente.subtitles.some((s: { lang: string }) => s.lang === "spa");
-assert(hasSpl && hasSpa, "Entrega de tracks duales requeridos por Stremio TV Box (spl + spa)");
+const hasEs419 = dataInexistente.subtitles.some((s: { lang: string }) => s.lang === "es-419");
+assert(hasSpl && hasSpa && hasEs419, "Entrega de tracks requeridos por Stremio TV Box (spl + spa + es-419)");
 
 // Descarga del subtítulo sintético de fallback generado
 const synthUrl = new URL(topSub.url);
@@ -177,6 +205,14 @@ const srtBody = await resSynthSrt.text();
 assert(srtBody.length > 100, `Contenido SRT válido entregado (${srtBody.length} bytes)`);
 const parsedSynthCues = parseSrt(srtBody);
 assert(parsedSynthCues.length >= 2, `Cues de diálogo informativos válidos detectados (${parsedSynthCues.length} cues)`);
+
+// Verificación directa del endpoint de fallback universal (/gen/fallback.srt)
+const resDirectFallback = await handleTranslate("/gen/fallback.srt", "http://127.0.0.1:8787/translate");
+assert(resDirectFallback.status === 200, "GET /gen/fallback.srt responde HTTP 200 OK");
+assert(!!resDirectFallback.headers.get("Content-Disposition")?.includes("es-latino.srt"), "Headers incluyen Content-Disposition es-latino.srt");
+assert(resDirectFallback.headers.get("access-control-allow-origin") === "*", "Headers CORS presentes");
+const fallbackText = await resDirectFallback.text();
+assert(fallbackText.includes("⚡ Subtítulos Asistidos por IA"), "Fallback directo contiene cues informativos de traducción IA");
 
 // Caso Extremo 2: Serie con hashes raros sin cobertura comunitaria
 const resSerieRara = await handleTranslate(
@@ -208,7 +244,8 @@ for (const { season, ep } of hpiSeasonCheck) {
   assert(dataHpi.subtitles[0].name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]", `HPI ${epKey}: Opción #1 es ⚡ 1. Latino (IA Gemini) · [Traducción Automática]`);
   const hpiSpl = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "spl");
   const hpiSpa = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "spa");
-  assert(hpiSpl && hpiSpa, `HPI ${epKey}: Entrega dual obligatoria spl + spa para Android TV`);
+  const hpiEs419 = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "es-419");
+  assert(hpiSpl && hpiSpa && hpiEs419, `HPI ${epKey}: Entrega triple obligatoria spl + spa + es-419 para Android TV`);
 }
 
 // Resumen Final

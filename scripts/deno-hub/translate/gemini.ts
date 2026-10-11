@@ -6,7 +6,7 @@
 export const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
 export const OPENROUTER_MODEL = (Deno.env.get("OPENROUTER_MODEL") && Deno.env.get("OPENROUTER_MODEL") !== "openrouter/free")
   ? Deno.env.get("OPENROUTER_MODEL")!
-  : "google/gemini-2.0-flash-001";
+  : "google/gemini-2.5-flash";
 export const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 export const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") ?? "";
 
@@ -26,6 +26,13 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
   // Si la clave provista es formato OpenRouter/OpenAI (sk-...), redirigir de inmediato a OpenRouter
   if (cleanKey.startsWith("sk-")) {
     return await callOpenRouter(prompt, cleanKey, signal);
+  }
+
+  // Si la clave no es de Google AI Studio (las claves de Google comienzan con AIza),
+  // y tenemos OPENROUTER_API_KEY, redirigir inmediatamente a OpenRouter para evitar
+  // reintentos fallidos 401 que agoten el presupuesto síncrono de Fast-Window (<4s).
+  if (!cleanKey.startsWith("AIza") && OPENROUTER_API_KEY) {
+    return await callOpenRouter(prompt, OPENROUTER_API_KEY, signal);
   }
 
   const modelsToTry = [
@@ -119,11 +126,10 @@ export async function callOpenRouter(prompt: string, apiKey: string, signal: Abo
 
   const models = [
     OPENROUTER_MODEL,
-    "google/gemini-2.0-flash-001",
     "google/gemini-2.5-flash",
-    "google/gemini-2.0-flash-lite-001",
+    "google/gemini-2.0-flash-001",
     "google/gemini-flash-1.5",
-    "meta-llama/llama-3.3-70b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct",
   ].filter(Boolean);
 
   let lastErr: Error | null = null;

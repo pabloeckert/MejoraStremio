@@ -199,14 +199,18 @@ x-translate-fastwindow: true
 
 ---
 
-## 7. Análisis de la Propuesta de Refactorización Hono (`subtitles.ts`)
+## 7. Implementación e Integración de la Arquitectura Hono (`subtitles/subtitles.ts`)
 
-Durante la sesión se recibió un fragmento de código que introducía el framework `Hono` (`subtitlesApp`) para reemplazar `subtitles.ts`, el cual se interrumpió abruptamente en `async function translateCuesWithGemini(cues: string[], title: string): Promise`.
+Conforme a la **Opción 3 autorizada**, se completó e integró la suite Hono en `scripts/deno-hub/subtitles/subtitles.ts` y se exportó como `subtitlesApp` montada en `/subtitles-app`:
 
-### 7.1 Evaluación Arquitectónica SRE
-* **Estado Actual de la Base de Código**: El Hub opera actualmente con micro-enrutadores nativos Deno `Request => Response` de alto rendimiento y cero dependencias externas en tiempo de ejecución.
-* **Integración de Fuentes Nuevas**: El snippet aportaba la integración de **Wyzie Subs** (`fetchWyzieSubs`) y una interfaz declarativa Hono.
-* **Recomendación**: La integración de Wyzie Subs y endpoints basados en Hono puede incorporarse en un módulo complementario (`subtitles-v2.ts`) sin romper los endpoints existentes ni invalidar los 105 tests E2E que certifican la estabilidad de la TV Box.
+### 7.1 Componentes Implementados y Certificados
+* **Multi-Fuente Unificada**: Ingesta paralela tolerante a fallos desde **SubDL**, **OpenSubtitles v3**, **SubSource** y el nuevo proveedor **Wyzie Subs** (`fetchWyzieSubs`).
+* **Higiene Acústica Anti-SDH**: Algoritmo `cleanCueForTranslation` y `filterNonSDH` que purgan al 100% ruidos, acotaciones sonoras (`[sighs]`, `(gritos)`, `♪`) y prefijos de interlocutores en mayúsculas antes de la inferencia IA.
+* **Motor de Traducción Fast-Window (`translateCuesWithGemini`)**: 
+  - Ventana síncrona optimizada de 70 cues para Leanback (<1.5s de latencia inicial).
+  - Inferencia dual redundante (Google AI Studio `gemini-2.5-flash` con fallback transparente a OpenRouter `google/gemini-2.5-flash` con `thinkingBudget: 0`).
+  - Preservación estricta de nombres propios, topónimos y centinelas de salto de línea (`§Z`).
+* **Emisión Canónica Triple ISO**: Cada pista generada emite variantes enlazables para **`spl`** (Español Latinoamericano), **`spa`** (Español internacional) y **`es-419`** (IETF LatAm).
 
 ---
 
@@ -219,8 +223,9 @@ Durante la sesión se recibió un fragmento de código que introducía el framew
    * **Ajustes de Audio**: Seleccionar `Español` (código `spa`) para enlace automático con la pista de doblaje latino de TorBox.
    * **Ajustes de Subtítulos**: Idioma preferido en `Español (América Latina)` (`spl`) o `Español` (`spa`). Desactivar subtítulos por defecto; activarlos bajo demanda para visualizar las pistas con prefijo `⚡ 1. Latino`.
 3. **Monitoreo de Despliegue CI/CD**:
-   * Commit actual: `d268ff0` en `main`.
-   * En caso de re-desplegar manualmente a Deno Deploy: `gh workflow run deploy-deno-hub.yml`.
+   * Commit actual: `8790bc5` en `main`.
+   * Despliegue en Deno Deploy: Workflow `deploy-deno-hub.yml` Run `38182509432` (**SUCCESS** en 18s).
+   * Verificación en vivo: `curl -I https://mejorastremio-hub.pabloeckert.deno.net/health` ➔ **HTTP 200 OK**.
 
 ---
 *Certificación emitida conforme a los principios de gobernanza técnica y fiabilidad Zero-Trust de MejoraStremio.*

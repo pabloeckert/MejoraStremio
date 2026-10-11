@@ -39,6 +39,7 @@ import {
   handleUnifiedSubtitles,
   handleUnifiedHub,
 } from "./deno-hub/unified-hub.ts";
+import { subtitlesApp } from "./deno-hub/subtitles/subtitles.ts";
 
 // Re-exportaciones públicas canónicas para compatibilidad con tests y suites
 export {
@@ -95,6 +96,17 @@ export {
 } from "./deno-hub/subtitles/opensubtitles.ts";
 export { SUBSOURCE_MANIFEST } from "./deno-hub/subtitles/subsource.ts";
 export { TRANSLATE_MANIFEST } from "./deno-hub/translate/translate.ts";
+export {
+  subtitlesApp,
+  SUBTITLES_APP_MANIFEST,
+  fetchSubDL,
+  fetchOpenSubtitlesV3,
+  fetchSubSource,
+  fetchWyzieSubs,
+  translateCuesWithGemini,
+  filterNonSDH,
+  sanitizeLatinSpanishTracks,
+} from "./deno-hub/subtitles/subtitles.ts";
 export { handleHealth } from "./deno-hub/health.ts";
 export {
   fetchCinemetaMeta,
@@ -240,6 +252,9 @@ export async function handleHubRequest(req: Request): Promise<Response> {
         ? (path.slice("/streams".length) || "/")
         : path;
       res = await handleStreams(subPath, url);
+    } else if (path.startsWith("/subtitles-app") || path.startsWith("/subtitles-v2")) {
+      route = "subtitles-app";
+      res = await subtitlesApp.fetch(req);
     } else {
       res = new Response("Not found", { status: 404, headers: cors });
     }

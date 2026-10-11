@@ -4,6 +4,10 @@
     "app": "mejorastremio-hub"
   },
   "unstable": ["kv"],
+  "imports": {
+    "hono": "https://deno.land/x/hono@v3.12.0/mod.ts",
+    "hono/middleware": "https://deno.land/x/hono@v3.12.0/middleware.ts"
+  },
   "tasks": {
     "lint": "deno lint",
     "check": "deno check scripts/deno-hub.ts"

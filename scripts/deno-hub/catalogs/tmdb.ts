@@ -773,6 +773,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     params[`${dateField}.lte`] = today;
     params[`${dateField}.gte`] = ninetyDaysAgo;
     params.sort_by = "first_air_date.desc";
+    params["vote_count.gte"] = "3";
   } else if (catalogId === "estrenos-streaming" || catalogId === "streaming-premieres") {
     params[`${dateField}.lte`] = today;
     params[`${dateField}.gte`] = ninetyDaysAgo;

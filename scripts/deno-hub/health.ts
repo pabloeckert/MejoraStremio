@@ -9,6 +9,7 @@ import { SUBDIVX_PROXY_URL } from "./subtitles/subdivx.ts";
 import { SUBSOURCE_API_KEY } from "./subtitles/subsource.ts";
 import { GEMINI_API_KEY, OPENROUTER_API_KEY, runAiProbeTest } from "./translate/gemini.ts";
 import { TMDB_KEY } from "./catalogs/tmdb.ts";
+import { getMediaFlowConfig, globalMediaFlowCircuitBreaker } from "./streams/mediaflow.ts";
 
 export async function handleHealth(reqUrl?: URL): Promise<Response> {
   const probeAi = reqUrl?.searchParams?.has("probe_ai");
@@ -37,6 +38,11 @@ export async function handleHealth(reqUrl?: URL): Promise<Response> {
     iptv: { configured: true },
     mediathek: { configured: true },
     streams: { configured: true, upstream: "https://torrentio.strem.fun/" },
+    mediaflow: {
+      configured: !!getMediaFlowConfig(reqUrl).proxyUrl,
+      proxyUrl: getMediaFlowConfig(reqUrl).proxyUrl ? "configured" : "none",
+      circuitBreaker: globalMediaFlowCircuitBreaker.getStatus(),
+    },
     translate: {
       configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
       baseSource: !!OPENSUBTITLES_API_KEY,

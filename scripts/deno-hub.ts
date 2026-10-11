@@ -79,6 +79,15 @@ export {
   handleStreams,
 } from "./deno-hub/streams/streams.ts";
 
+export {
+  MediaFlowCircuitBreaker,
+  globalMediaFlowCircuitBreaker,
+  getMediaFlowConfig,
+  applyMediaFlowToStreams,
+  buildMediaFlowStreamUrl,
+  shouldProxyMediaStream,
+} from "./deno-hub/streams/mediaflow.ts";
+
 export { SUBDL_MANIFEST } from "./deno-hub/subtitles/subdl.ts";
 export {
   OPENSUBTITLES_MANIFEST,

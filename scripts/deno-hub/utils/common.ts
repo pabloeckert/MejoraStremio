@@ -201,11 +201,6 @@ export function isCachedOrInstantStream(stream: { name?: string; title?: string;
   if (/\[(?:tb|torbox)\s+download\]|\b(?:uncached|downloading)\b|⏳/i.test(text)) {
     return false;
   }
-  const seedMatch = text.match(/👤\s*(\d+)/);
-  if (seedMatch) {
-    const seeders = parseInt(seedMatch[1], 10);
-    return seeders >= 15;
-  }
   if (/torbox|realdebrid|alldebrid|premiumize|debrid/i.test(text) && !/download/i.test(text)) {
     return true;
   }

@@ -3,7 +3,7 @@
  * Preserva las directivas estrictas de traducción cinematográfica, nombres propios y anti-SDH.
  */
 
-export const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
+export const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash-001";
 export const OPENROUTER_MODEL = (Deno.env.get("OPENROUTER_MODEL") && Deno.env.get("OPENROUTER_MODEL") !== "openrouter/free")
   ? Deno.env.get("OPENROUTER_MODEL")!
   : "google/gemini-2.5-flash";
@@ -169,6 +169,8 @@ export async function callOpenRouter(prompt: string, apiKey: string, signal: Abo
   throw lastErr || new Error("OpenRouter: sin respuesta válida de ninguno de los modelos");
 }
 
+const SOUND_CUES_STANDALONE = /^(?:m[uú]sica|musique|music|sonido|sound|audio|disparos?|shots?|gritos?|screams?|aplausos?|applause|risas?|laughter|suspiros?|sighs?|suspira|soupire|llanto|crying|silbidos?|whistle|pasos|footsteps|jadeos?|gasps?|canción|song|tose|coughs?|canta|sings?|viento|wind|trueno|thunder|motor|engine|timbre|bell|teléfono|phone|golpes?|thuds?|knocks?|quejidos?|groans?|sollozos?|sobs?|murmullos?|murmurs?|ininteligible|inaudible|alarma|alarm|resopla|explosión|explosion|silencio|silence|jadea|bosteza|yawns?)\b/i;
+
 export function cleanCueForTranslation(text: string): string {
   if (!text) return "";
   let t = text;
@@ -176,13 +178,17 @@ export function cleanCueForTranslation(text: string): string {
   t = t.replace(/<[^>]+>/g, "");
   t = t.replace(/\{[^}]+\}/g, "");
   // 2. Eliminar acotaciones sonoras entre corchetes o paréntesis ([música], (suspira), [sighs], etc.)
-  t = t.replace(/\[[^\]\n]*\]/g, "");
-  t = t.replace(/\([^)\n]*\)/g, "");
+  t = t.replace(/\[[\s\S]*?\]/g, "");
+  t = t.replace(/\([\s\S]*?\)/g, "");
   // 3. Eliminar prefijos de hablante en mayúsculas o mixtas seguidos de dos puntos (MORGANE:, Morgane:, etc.)
   t = t.replace(/^[-–—•]?\s*[A-Za-zÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸáéíóúñàâçèêëîïôùûüÿ0-9\s._-]{2,30}:\s*/gm, "");
   // 4. Eliminar símbolos musicales y ruidos
   t = t.replace(/[♪♫#*]+/g, "");
-  return t.split("\n").map((l) => l.trim()).filter(Boolean).join("\n");
+  return t
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !SOUND_CUES_STANDALONE.test(l))
+    .join("\n");
 }
 
 export interface AiProbeResult {

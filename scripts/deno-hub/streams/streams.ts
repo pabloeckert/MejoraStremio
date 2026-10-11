@@ -13,6 +13,11 @@ import {
   type StreamAudioCategory,
 } from "../utils/common.ts";
 import { CINEMETA_BASE, fetchCinemetaMeta } from "../utils/cinemeta.ts";
+import {
+  getMediaFlowConfig,
+  applyMediaFlowToStreams,
+  globalMediaFlowCircuitBreaker,
+} from "./mediaflow.ts";
 
 export const STREAMS_MANIFEST = {
   id: "com.mejorastremio.streams",
@@ -336,13 +341,17 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
     }
 
     const ranked = rankAndBadgeStreams(rawStreams);
-    return jsonResponse({ streams: ranked });
+    const mfConfig = getMediaFlowConfig(url, configSegment);
+    const finalStreams = applyMediaFlowToStreams(ranked, mfConfig, globalMediaFlowCircuitBreaker);
+    return jsonResponse({ streams: finalStreams });
   } catch (err) {
     console.error(`[streams] Error fetching upstream torrentio: ${(err as Error).message}`);
     try {
       const fallbackStreams = await resolveFallbackStreams(type, cleanId, upstreamBase);
       const ranked = rankAndBadgeStreams(fallbackStreams);
-      return jsonResponse({ streams: ranked });
+      const mfConfig = getMediaFlowConfig(url, configSegment);
+      const finalStreams = applyMediaFlowToStreams(ranked, mfConfig, globalMediaFlowCircuitBreaker);
+      return jsonResponse({ streams: finalStreams });
     } catch {
       return jsonResponse({ streams: [] });
     }

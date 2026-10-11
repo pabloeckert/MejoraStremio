@@ -18,9 +18,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Instalar Deno CLI
-        run: |
-          curl -fsSL https://deno.land/install.sh | sh -s -- --yes
-          echo "$HOME/.deno/bin" >> "$GITHUB_PATH"
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       - name: Deployar mejorastremio-hub
         env:

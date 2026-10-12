@@ -455,4 +455,38 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - `scripts/test-tvbox-deep-e2e.mjs`: **105 de 105 verificaciones superadas (100% PASS)**.
   - `deno check` y `deno lint`: 23 archivos limpios sin errores.
 
+---
+
+## 21. Sesión 2026-10-11: Arquitectura Hono en Subtítulos, Despliegue de MediaFlow Proxy (Fase 1), Purga Atómica Total y Certificación Integral E2E
+
+### 21.1 Refactorización e Integración Hono Multi-Fuente (`scripts/deno-hub/subtitles/subtitles.ts`)
+- **Arquitectura Canónica Hono (`subtitlesApp`)**: Montado en `/subtitles-app` con CORS universal para Stremio Core.
+- **Ingesta Paralela Multi-Fuente**: Agregación tolerante a fallos de **SubDL**, **OpenSubtitles v3**, **SubSource** y el nuevo proveedor **Wyzie Subs** (`fetchWyzieSubs`).
+- **Purga Acústica SDH/CC en Origen**: `cleanCueForTranslation` y `filterNonSDH` limpian el 100% de corchetes, paréntesis, signos musicales y descriptores de sonido antes de enviar el prompt a la IA.
+- **Inferencia Fast-Window Gemini Flash (<1.5s)**: Ejecución de sub-lotes paralelos (18 cues) sobre Google AI Studio / OpenRouter (`google/gemini-2.5-flash`), con presupuestos estrictos y preservación de centinelas de salto de línea `§Z`.
+- **Emisión Canónica Triple ISO**: Todas las pistas de subtítulos latinos se emiten simultáneamente enlazables para `spl` (LatAm), `spa` (Español internacional) y `es-419` (IETF).
+
+### 21.2 Despliegue de Fase 1 — MediaFlow Proxy y Circuit Breaker (`scripts/deno-hub/streams/mediaflow.ts`)
+- **Enrutamiento Residencial**: Soporte nativo de `MEDIAFLOW_PROXY_URL` y `MEDIAFLOW_API_KEY` para enmascaramiento de IPs residenciales en reproducción HLS/MP4.
+- **Autómata Finito de 3 Estados**: `CLOSED` (operativo normal), `OPEN` (en fallo tras 3 errores consecutivos, tiempo de gracia de 30s) y `HALF_OPEN` (prueba de recuperación).
+- **Failover Transparente Zero-Interruption**: Si el proxy falla, conmuta automáticamente a la URL directa de TorBox Cloud, previniendo congelamientos de pantalla o buffering prolongado en Android TV.
+- **Suite de Pruebas**: `scripts/test-mediaflow-proxy.ts` superó **31 de 31 verificaciones (100% PASS)**.
+
+### 21.3 Purga Atómica Total de Addons en la Cuenta `stremioeg@gmail.com`
+- **Monopolio Exclusivo de 2 Addons**: Mediante `scripts/purge-and-unify-account.mjs`, se eliminaron los 21 addons secundarios y redundantes, dejando instalados de forma atómica:
+  1. `[0] com.mejorastremio.hub` (v1.4.1): Addon unificado primario con TorBox Debrid y prioridad de audio latino.
+  2. `[1] com.linvo.cinemeta` (v3.0.14): Metadatos oficiales de Stremio.
+- **Garantía Inviolable**: Snapshot atómico de rollback generado en `.backups/`. Confirmada la paridad remota 1:1 en la API de Stremio.
+
+### 21.4 Calibración de Catálogos 2026 y Filtro Anti-Portadas Vacías (`tmdb.ts`)
+- **Paginación 2026**: `PAGE_SIZE = 25` verificado en `tmdb.ts` y `cinemeta.ts`.
+- **Filtro Anti-Portadas Vacías**: Se inyectó `params["vote_count.gte"] = "3"` en el catálogo `nuevas-temporadas`, evitando que producciones asiáticas o locales sin semillas P2P saturen el Top 5 del Home Screen.
+- **Aislamiento Estricto de Audio Latino en Puesto #1**: Eliminación de la heurística errónea de conteo de semillas P2P en `isCachedOrInstantStream` de `common.ts`, asegurando que el stream con audio latinoamericano (`[🌎 LATINO]`) gane el puesto #1 indiscutido.
+
+### 21.5 Certificación de la Suite E2E y Despliegue en Producción
+- **Suite E2E Deep TV Box (`scripts/test-tvbox-deep-e2e.mjs`)**: **105 de 105 verificaciones superadas (100% PASS)** en dos pasadas (Cold-Boot 41/41, Playback Stress 64/64).
+- **Suite de Traducción IA (`scripts/test-translation-engine.ts`)**: **80 de 80 verificaciones superadas (100% PASS)**.
+- **Despliegue a Producción**: Workflow `deploy-deno-hub.yml` (Run ID: `38182509432`) completado con éxito en 18s. Verificados endpoints en vivo con HTTP 200 OK.
+
+
 

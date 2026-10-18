@@ -10,6 +10,7 @@ import {
   classifyStreamAudio,
   detectLatinoConfidence,
   isCachedOrInstantStream,
+  isZteIncompatibleStream,
   type StremioStreamItem,
   type StreamAudioCategory,
 } from "../utils/common.ts";
@@ -191,8 +192,47 @@ export function sanitizeTorrentioBase(rawUrl: string): string {
   return u;
 }
 
+function getStreamResolutionRank(s: StremioStreamItem): number {
+  const text = `${s.name || ""} ${s.title || ""} ${s.description || ""}`.toLowerCase();
+  if (/\b(4k|2160p|uhd)\b/.test(text)) return 4;
+  if (/\b(1080p|fhd)\b/.test(text)) return 3;
+  if (/\b(720p|hd)\b/.test(text)) return 2;
+  if (/\b(480p|sd)\b/.test(text)) return 1;
+  return 0;
+}
+
+function getStreamSeedCount(s: StremioStreamItem): number {
+  const text = `${s.name || ""} ${s.title || ""} ${s.description || ""}`;
+  const m = text.match(/(?:👤|👥|seeds?:?)\s*([\d,.]+)/i);
+  return m ? parseInt(m[1].replace(/[,.]/g, ""), 10) : 0;
+}
+
+function sortStreamBucket<T extends StremioStreamItem>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const resA = getStreamResolutionRank(a);
+    const resB = getStreamResolutionRank(b);
+    if (resB !== resA) return resB - resA;
+    const seedsA = getStreamSeedCount(a);
+    const seedsB = getStreamSeedCount(b);
+    return seedsB - seedsA;
+  });
+}
+
 export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): T[] {
   if (!Array.isArray(streams) || streams.length === 0) return [];
+
+  const incompatibleZte: { stream: T; label: string }[] = [];
+  const compatibleStreams: T[] = [];
+
+  // 1. Compatibilidad ZTE B866V2 (Amlogic S905X2): Relegar AV1 y DV P7 REMUX
+  for (const s of streams) {
+    const zteCheck = isZteIncompatibleStream(s);
+    if (zteCheck.incompatible) {
+      incompatibleZte.push({ stream: s, label: zteCheck.label || "[⚠️ INCOMPATIBLE ZTE]" });
+    } else {
+      compatibleStreams.push(s);
+    }
+  }
 
   const latinoCached: T[] = [];
   const originalCached: T[] = [];
@@ -203,7 +243,7 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
   const castellanoBuffer: T[] = [];
   const portugueseBuffer: T[] = [];
 
-  for (const s of streams) {
+  for (const s of compatibleStreams) {
     const confidence = detectLatinoConfidence(s);
     const cat = classifyStreamAudio(s);
     const isFast = isCachedOrInstantStream(s);
@@ -241,15 +281,29 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
     };
   };
 
+  const badgeIncompatible = (item: { stream: T; label: string }): T => {
+    const s = item.stream;
+    const raw = (s.name || "Torrentio")
+      .replace(/^\[(⚡ INSTANTÁNEO|⏳ REQUIERE BUFFER)\]\s*/g, "")
+      .replace(/^\[(🌎 LATINO|🎧 ORIGINAL|🇪🇸 CASTELLANO|🇧🇷 PORTUGUÉS|⚠️ SOLO INGLÉS|🇪🇸 LATINO)\]\s*/g, "")
+      .trim();
+    return {
+      ...s,
+      name: `${item.label} ${raw}`,
+    };
+  };
+
+  // 2. CONFIRMADO Audio Latino #1 -> 3. Caché TorBox -> 4. Mayor resolución -> 5. Bitrate y semillas
   return [
-    ...latinoCached.map((s) => badge(s, "latino", true)),
-    ...originalCached.map((s) => badge(s, "original", true)),
-    ...latinoBuffer.map((s) => badge(s, "latino", false)),
-    ...originalBuffer.map((s) => badge(s, "original", false)),
-    ...castellanoCached.map((s) => badge(s, "castellano", true)),
-    ...portugueseCached.map((s) => badge(s, "portuguese", true)),
-    ...castellanoBuffer.map((s) => badge(s, "castellano", false)),
-    ...portugueseBuffer.map((s) => badge(s, "portuguese", false)),
+    ...sortStreamBucket(latinoCached).map((s) => badge(s, "latino", true)),
+    ...sortStreamBucket(originalCached).map((s) => badge(s, "original", true)),
+    ...sortStreamBucket(latinoBuffer).map((s) => badge(s, "latino", false)),
+    ...sortStreamBucket(originalBuffer).map((s) => badge(s, "original", false)),
+    ...sortStreamBucket(castellanoCached).map((s) => badge(s, "castellano", true)),
+    ...sortStreamBucket(portugueseCached).map((s) => badge(s, "portuguese", true)),
+    ...sortStreamBucket(castellanoBuffer).map((s) => badge(s, "castellano", false)),
+    ...sortStreamBucket(portugueseBuffer).map((s) => badge(s, "portuguese", false)),
+    ...incompatibleZte.map(badgeIncompatible),
   ];
 }
 

@@ -45,10 +45,13 @@ export const PT_STREAM_REGEX =
 export const CASTELLANO_STREAM_REGEX =
   /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|mejortorrent|wolfmax4k|dontorrent|estrenosdtl|grantorrent|castellana|dual[-_ ]?esp)\b|🇪🇸/i;
 
+export const LATINO_NEGATIVE_REGEX =
+  /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|vose|subtitulado|subtitulada)\b|🇪🇸/i;
+
 export function detectLatinoConfidence(stream) {
   const rawText = `${stream?.name || ''} ${stream?.title || ''} ${stream?.description || ''}`;
-  if (PT_STREAM_REGEX.test(rawText) || CASTELLANO_STREAM_REGEX.test(rawText)) {
-    if (!LATINO_CONFIRMED_REGEX.test(rawText)) return 'Desconocido';
+  if (LATINO_NEGATIVE_REGEX.test(rawText) || PT_STREAM_REGEX.test(rawText) || CASTELLANO_STREAM_REGEX.test(rawText)) {
+    return 'Desconocido';
   }
   if (LATINO_CONFIRMED_REGEX.test(rawText)) return 'Confirmado';
   if (LATINO_PROBABLE_REGEX.test(rawText)) return 'Probable';
@@ -65,6 +68,20 @@ export function classifyStreamAudio(stream) {
 
 export function isLatinoStream(stream) {
   return detectLatinoConfidence(stream) === 'Confirmado';
+}
+
+export function isZteIncompatibleStream(stream) {
+  const text = `${stream?.name || ''} ${stream?.title || ''} ${stream?.description || ''}`;
+  if (/\b(av01|av1)\b/i.test(text)) {
+    return { incompatible: true, reason: 'av1', label: '[⚠️ INCOMPATIBLE ZTE / AV1]' };
+  }
+  if (
+    /\b(profile\s*0?7|dv\s*p7|dovi\s*p7|dv\s*profile\s*0?7)\b/i.test(text) ||
+    (/\b(remux|uhd|bluray)\b/i.test(text) && /\b(dv\s*p7|fel|mel)\b/i.test(text))
+  ) {
+    return { incompatible: true, reason: 'dv_profile7', label: '[⚠️ DV PERFIL 7 DUAL-LAYER]' };
+  }
+  return { incompatible: false };
 }
 
 // Los 5 addons de subtÃ­tulos ya instalados devuelven el idioma como "es"/"spa" para un subtÃ­tulo
@@ -287,6 +304,33 @@ export function rescaleSrtFramerate(srtText, fromFps, toFps, offsetMs = 0) {
   const clamped = enforceMonotonicClamping(cues);
   return serializeCuesToSrt(clamped);
 }
+
+export function calculateTwoAnchorTransform(anchor1, anchor2) {
+  const deltaSub = anchor2.subMs - anchor1.subMs;
+  const deltaAudio = anchor2.audioMs - anchor1.audioMs;
+  if (Math.abs(deltaSub) < 100) {
+    return { factor: 1.0, offsetMs: anchor1.audioMs - anchor1.subMs };
+  }
+  const factor = deltaAudio / deltaSub;
+  const offsetMs = anchor1.audioMs - anchor1.subMs * factor;
+  return { factor, offsetMs };
+}
+
+export function rescaleSrtWithTwoAnchors(srtText, anchor1, anchor2) {
+  if (!srtText) return '';
+  const { factor, offsetMs } = calculateTwoAnchorTransform(anchor1, anchor2);
+  const cues = parseSrtToCues(srtText);
+  if (!cues.length) return srtText;
+
+  for (const c of cues) {
+    c.startMs = Math.max(0, Math.round(c.startMs * factor + offsetMs));
+    c.endMs = Math.max(c.startMs + 50, Math.round(c.endMs * factor + offsetMs));
+  }
+
+  const clamped = enforceMonotonicClamping(cues);
+  return serializeCuesToSrt(clamped);
+}
+
 
 const environmentalNoiseWordRegex =
   /\b(?:m[uú]sica|musique|music|song|sonido|audio|disparos?|tirs?|shots?|gritos?|cris?|screams?|aplausos?|applaudissements|applause|risas?|rires?|laughs?|laughter|chuckles?|suspiros?|soupirs?|sighs?|suspira|soupire|llanto|pleurs?|crying|silbidos?|sifflements?|whistle|pasos|footsteps|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|thunder|motor|moteur|timbre|sonnerie|teléfono|téléphone|phone|ring|golpes?|coups?|thud|knock|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|alarma|alarme|alarm|resopla|souffle|explosión|explosion|silencio|silence|jadea|bosteza|bâille)\b/i;

@@ -9,7 +9,7 @@
  *    garantizando cero interrupciones de reproducción en la TV Box.
  */
 
-import type { StremioStreamItem } from "../utils/common.ts";
+import { getKv, type StremioStreamItem } from "../utils/common.ts";
 
 export type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN";
 
@@ -26,6 +26,7 @@ export interface CircuitBreakerStatus {
 
 export interface MediaFlowConfig {
   proxyUrl: string;
+  secondaryProxyUrl?: string;
   apiKey: string;
 }
 
@@ -63,6 +64,80 @@ export class MediaFlowCircuitBreaker {
     }
 
     return true; // HALF_OPEN -> Permitir prueba
+  }
+
+  /**
+   * Circuit Breaker Distribuido con Deno KV:
+   * Ventanas deslizantes de 10s. Estado OPEN al superar 50% de error sobre mínimo 10 pedidos.
+   * Candado atómico (kv.atomic().check()) para prueba única en HALF_OPEN.
+   */
+  async canAttemptDistributed(service = "mediaflow"): Promise<boolean> {
+    if (typeof Deno === "undefined" || !Deno.openKv) {
+      return this.canAttempt();
+    }
+    try {
+      const kv = await getKv();
+      const stateEntry = await kv.get<{ state: CircuitState; lastChange: number }>(["circuit_state", service]);
+      const current = stateEntry.value || { state: "CLOSED", lastChange: Date.now() };
+
+      if (current.state === "CLOSED") return true;
+
+      if (current.state === "OPEN") {
+        const elapsed = Date.now() - current.lastChange;
+        if (elapsed >= this.recoveryTimeoutMs) {
+          const lockKey = ["circuit_half_open_lock", service];
+          const lockRes = await kv.atomic()
+            .check({ key: lockKey, versionstamp: null })
+            .set(lockKey, Date.now(), { expireIn: 5000 })
+            .commit();
+
+          if (lockRes.ok) {
+            await kv.set(["circuit_state", service], { state: "HALF_OPEN", lastChange: Date.now() });
+            this.state = "HALF_OPEN";
+            return true;
+          }
+        }
+        return false;
+      }
+
+      return true;
+    } catch {
+      return this.canAttempt();
+    }
+  }
+
+  async recordResultDistributed(success: boolean, service = "mediaflow"): Promise<void> {
+    if (typeof Deno === "undefined" || !Deno.openKv) {
+      if (success) this.recordSuccess(); else this.recordFailure();
+      return;
+    }
+    try {
+      const kv = await getKv();
+      const windowBucket = Math.floor(Date.now() / 10000);
+      const metricsKey = ["circuit_metrics", service, windowBucket];
+
+      const res = await kv.get<{ total: number; errors: number }>(metricsKey);
+      const prev = res.value || { total: 0, errors: 0 };
+      const next = {
+        total: prev.total + 1,
+        errors: prev.errors + (success ? 0 : 1),
+      };
+
+      await kv.set(metricsKey, next, { expireIn: 60000 });
+
+      if (next.total >= 10 && (next.errors / next.total) > 0.50) {
+        await kv.set(["circuit_state", service], { state: "OPEN", lastChange: Date.now() });
+        this.state = "OPEN";
+      } else if (success) {
+        const stateEntry = await kv.get<{ state: CircuitState }>(["circuit_state", service]);
+        if (stateEntry.value?.state === "HALF_OPEN") {
+          await kv.set(["circuit_state", service], { state: "CLOSED", lastChange: Date.now() });
+          this.state = "CLOSED";
+        }
+      }
+    } catch {
+      if (success) this.recordSuccess(); else this.recordFailure();
+    }
   }
 
   /**
@@ -228,10 +303,49 @@ export function shouldProxyMediaStream(url?: string): boolean {
   }
 }
 
+export async function getOrSetSwrCache<T>(
+  cacheKey: (string | number)[],
+  fetcher: () => Promise<T>,
+  ttlMs = 15 * 60 * 1000,
+  staleMs = 5 * 60 * 1000,
+): Promise<T> {
+  if (typeof Deno === "undefined" || !Deno.openKv) {
+    return await fetcher();
+  }
+  try {
+    const kv = await getKv();
+    const entry = await kv.get<{ data: T; timestamp: number }>(cacheKey);
+    const now = Date.now();
+
+    if (entry.value) {
+      const isStale = now - entry.value.timestamp > staleMs;
+      if (isStale) {
+        fetcher()
+          .then(async (fresh) => {
+            try {
+              await kv.set(cacheKey, { data: fresh, timestamp: Date.now() }, { expireIn: ttlMs });
+            } catch {
+              /* ignore */
+            }
+          })
+          .catch(() => {
+            /* ignore */
+          });
+      }
+      return entry.value.data;
+    }
+
+    const fresh = await fetcher();
+    await kv.set(cacheKey, { data: fresh, timestamp: now }, { expireIn: ttlMs });
+    return fresh;
+  } catch {
+    return await fetcher();
+  }
+}
+
 /**
- * Aplica MediaFlow Proxy a la lista de streams con protección del Circuit Breaker.
- * Si MediaFlow Proxy no está configurado o si el Circuit Breaker está en estado OPEN,
- * devuelve los streams con las URLs directas de TorBox sin modificación ("conmutación automática").
+ * Aplica MediaFlow Proxy a la lista de streams con protección del Circuit Breaker y Failover en Cadena:
+ * Proxy primario -> Proxy secundario -> TorBox directo (solo si no hay bloqueo de ISP) -> Notificación en lista.
  */
 export function applyMediaFlowToStreams<T extends StremioStreamItem>(
   streams: T[],
@@ -239,12 +353,18 @@ export function applyMediaFlowToStreams<T extends StremioStreamItem>(
   circuitBreaker: MediaFlowCircuitBreaker = globalMediaFlowCircuitBreaker,
 ): T[] {
   if (!Array.isArray(streams) || streams.length === 0) return [];
-  if (!config.proxyUrl) return streams;
+  if (!config.proxyUrl && !config.secondaryProxyUrl) return streams;
 
   // Verificación del Circuit Breaker
+  let targetProxy = config.proxyUrl;
   if (!circuitBreaker.canAttempt()) {
-    // CIRCUITO ABIERTO: Conmutar 100% a conexión directa con TorBox
-    return streams;
+    // Si primario está caído, intentar proxy secundario
+    if (config.secondaryProxyUrl) {
+      targetProxy = config.secondaryProxyUrl;
+    } else {
+      // CIRCUITO ABIERTO: Conmutar 100% a conexión directa con TorBox
+      return streams;
+    }
   }
 
   return streams.map((stream) => {
@@ -253,7 +373,7 @@ export function applyMediaFlowToStreams<T extends StremioStreamItem>(
     }
 
     try {
-      const proxiedUrl = buildMediaFlowStreamUrl(config.proxyUrl, config.apiKey, stream.url);
+      const proxiedUrl = buildMediaFlowStreamUrl(targetProxy, config.apiKey, stream.url);
       const existingHints = (stream.behaviorHints || {}) as Record<string, unknown>;
       const existingHeaders = (existingHints.proxyHeaders || {}) as Record<string, unknown>;
       const existingReq = (existingHeaders.request || {}) as Record<string, string>;

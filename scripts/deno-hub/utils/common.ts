@@ -160,6 +160,9 @@ export const PT_STREAM_REGEX =
 export const CASTELLANO_STREAM_REGEX =
   /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|mejortorrent|wolfmax4k|dontorrent|estrenosdtl|grantorrent|castellana|dual[-_ ]?esp)\b|🇪🇸/i;
 
+export const LATINO_NEGATIVE_REGEX =
+  /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|vose|subtitulado|subtitulada)\b|🇪🇸/i;
+
 export const LATINO_CONFIRMED_REGEX =
   /\b(cinecalidad|hackstore|latino|latina|es[-_]?419|spl|doblaje[-_ ]?latino|audio[-_ ]?latino|dual[-_ ]?latino|multi[-_ ]?latino|espanoledla|edla|cuerda[-_ ]?floja)\b|🌎|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
 
@@ -187,10 +190,8 @@ export function cleanReleaseName(text: string): string {
 
 export function detectLatinoConfidence(stream: { name?: string; title?: string; description?: string }): LatinoConfidence {
   const rawText = `${stream?.name || ""} ${stream?.title || ""} ${stream?.description || ""}`;
-  if (PT_STREAM_REGEX.test(rawText) || CASTELLANO_STREAM_REGEX.test(rawText)) {
-    if (!LATINO_CONFIRMED_REGEX.test(rawText)) {
-      return "Desconocido";
-    }
+  if (LATINO_NEGATIVE_REGEX.test(rawText) || PT_STREAM_REGEX.test(rawText) || CASTELLANO_STREAM_REGEX.test(rawText)) {
+    return "Desconocido";
   }
   if (LATINO_CONFIRMED_REGEX.test(rawText)) {
     return "Confirmado";
@@ -229,6 +230,43 @@ export function isCachedOrInstantStream(stream: { name?: string; title?: string;
   return false;
 }
 
+export function isZteIncompatibleStream(stream: { name?: string; title?: string; description?: string }): {
+  incompatible: boolean;
+  reason?: "av1" | "dv_profile7";
+  label?: string;
+} {
+  const text = `${stream?.name || ""} ${stream?.title || ""} ${stream?.description || ""}`;
+  if (/\b(av01|av1)\b/i.test(text)) {
+    return { incompatible: true, reason: "av1", label: "[⚠️ INCOMPATIBLE ZTE / AV1]" };
+  }
+  if (
+    /\b(profile\s*0?7|dv\s*p7|dovi\s*p7|dv\s*profile\s*0?7)\b/i.test(text) ||
+    (/\b(remux|uhd|bluray)\b/i.test(text) && /\b(dv\s*p7|fel|mel)\b/i.test(text))
+  ) {
+    return { incompatible: true, reason: "dv_profile7", label: "[⚠️ DV PERFIL 7 DUAL-LAYER]" };
+  }
+  return { incompatible: false };
+}
+
+export async function signHmacSha256(message: string, secret: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+  const hashArray = Array.from(new Uint8Array(signature));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function verifyHmacSha256(message: string, signature: string, secret: string): Promise<boolean> {
+  const expected = await signHmacSha256(message, secret);
+  return expected === signature;
+}
+
 export const b64u = {
   enc: (s: string) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
   dec: (s: string) => decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/")))),
@@ -243,3 +281,4 @@ export function getKv(): Promise<Deno.Kv> {
   }
   return kvPromise;
 }
+

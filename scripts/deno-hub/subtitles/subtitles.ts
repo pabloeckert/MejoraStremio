@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/middleware";
 import { callGemini, buildTranslateSystemPrompt, NL } from "../translate/gemini.ts";
-import { parseStremioSubId } from "../utils/common.ts";
+import { parseStremioSubId, releaseSimilarity } from "../utils/common.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./smartsync.ts";
 
 export const subtitlesApp = new Hono();
@@ -235,6 +235,15 @@ async function handleSubtitlesRoute(_type: string, rawId: string, reqUrl: URL): 
 
   const rawCandidates = [...subdlSubs, ...osSubs, ...subsrcSubs, ...wyzieSubs];
   const cleanCandidates = filterNonSDH(sanitizeLatinSpanishTracks(rawCandidates));
+
+  // Pre-selección por metadatos del cliente (filename, bytesize, videoHash)
+  if (parsed.filename) {
+    cleanCandidates.sort((a, b) => {
+      const simA = releaseSimilarity(parsed.filename || "", a.name || a.filename || "");
+      const simB = releaseSimilarity(parsed.filename || "", b.name || b.filename || "");
+      return simB - simA;
+    });
+  }
 
   const subtitles: SubtitleTrackPayload[] = [];
 

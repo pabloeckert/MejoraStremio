@@ -275,6 +275,45 @@ export function rescaleSrtFramerate(
   return serializeCuesToSrt(clamped);
 }
 
+export interface SyncAnchor {
+  subMs: number;
+  audioMs: number;
+}
+
+export function calculateTwoAnchorTransform(
+  anchor1: SyncAnchor,
+  anchor2: SyncAnchor,
+): { factor: number; offsetMs: number } {
+  const deltaSub = anchor2.subMs - anchor1.subMs;
+  const deltaAudio = anchor2.audioMs - anchor1.audioMs;
+  if (Math.abs(deltaSub) < 100) {
+    return { factor: 1.0, offsetMs: anchor1.audioMs - anchor1.subMs };
+  }
+  const factor = deltaAudio / deltaSub;
+  const offsetMs = anchor1.audioMs - anchor1.subMs * factor;
+  return { factor, offsetMs };
+}
+
+export function rescaleSrtWithTwoAnchors(
+  srtText: string,
+  anchor1: SyncAnchor,
+  anchor2: SyncAnchor,
+): string {
+  if (!srtText) return "";
+  const { factor, offsetMs } = calculateTwoAnchorTransform(anchor1, anchor2);
+  const cues = parseSrtToCues(srtText);
+  if (!cues.length) return srtText;
+
+  for (const c of cues) {
+    c.startMs = Math.max(0, Math.round(c.startMs * factor + offsetMs));
+    c.endMs = Math.max(c.startMs + 50, Math.round(c.endMs * factor + offsetMs));
+  }
+
+  const clamped = enforceMonotonicClamping(cues);
+  return serializeCuesToSrt(clamped);
+}
+
+
 const environmentalNoiseWordRegex =
   /\b(?:m[uú]sica|musique|music|song|sonido|audio|disparos?|tirs?|shots?|gritos?|cris?|screams?|aplausos?|applaudissements|applause|risas?|rires?|laughs?|laughter|chuckles?|suspiros?|soupirs?|sighs?|suspira|soupire|llanto|pleurs?|crying|silbidos?|sifflements?|whistle|pasos|footsteps|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|thunder|motor|moteur|timbre|sonnerie|teléfono|téléphone|phone|ring|golpes?|coups?|thud|knock|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|alarma|alarme|alarm|resopla|souffle|explosión|explosion|silencio|silence|jadea|bosteza|bâille)\b/i;
 

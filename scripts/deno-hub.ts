@@ -54,6 +54,10 @@ export {
   parseStremioSubId,
   cleanReleaseName,
   classifyStreamAudio,
+  detectLatinoConfidence,
+  type LatinoConfidence,
+  LATINO_CONFIRMED_REGEX,
+  LATINO_PROBABLE_REGEX,
   isLatinoStream,
   isCachedOrInstantStream,
   LATIN_TOKENS,
@@ -62,6 +66,7 @@ export {
 export {
   detectFramerate,
   resolveSmartSync,
+  PAL_TO_WEBDL_RATIO,
   parseSrtToCues,
   serializeCuesToSrt,
   enforceMonotonicClamping,

@@ -264,7 +264,8 @@ async function handleSubtitlesRoute(_type: string, rawId: string, reqUrl: URL): 
     headers: {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
-      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+      "Pragma": "no-cache",
     },
   });
 }

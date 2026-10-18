@@ -96,15 +96,17 @@ export interface SmartSyncDecision {
   fpsParam: string;
 }
 
+export const PAL_TO_WEBDL_RATIO = 1.0427083;
+
 export function resolveSmartSync(videoName?: string | null, subName?: string | null, imdbId?: string | null): SmartSyncDecision {
   const isHpi = imdbId === "tt14060708" || imdbId === "tt13000282" || imdbId === "tt13854128";
   if (isHpi) {
-    // Para HPI (todas las temporadas): estiramiento temporal obligatorio R = 25.0 / 23.976 ≈ 1.042709
+    // Para HPI (todas las temporadas): estiramiento temporal obligatorio R = 1.0427083
     return {
       needsRescale: true,
       fromFps: 25.0,
       toFps: 23.976,
-      ratio: 25.0 / 23.976,
+      ratio: PAL_TO_WEBDL_RATIO,
       actionDescription: "Estiramiento temporal HDTV/PAL (25fps) -> WEB-DL (23.976fps) [+153.75s/h]",
       badge: "⚡ SmartSync (PAL 25->23.976 WEB)",
       fpsParam: "25to23976",
@@ -114,13 +116,13 @@ export function resolveSmartSync(videoName?: string | null, subName?: string | n
   const v = detectFramerate(videoName, imdbId);
   const s = detectFramerate(subName, imdbId);
 
-  // Video WEB-DL (23.976) y subtítulo HDTV/PAL (25.0) -> Time-stretch factor 25 / 23.976 ≈ 1.042709
+  // Video WEB-DL (23.976) y subtítulo HDTV/PAL (25.0) -> Time-stretch factor constante 1.0427083
   if (Math.abs(v.fps - 23.976) < 0.05 && Math.abs(s.fps - 25.0) < 0.05) {
     return {
       needsRescale: true,
       fromFps: 25.0,
       toFps: 23.976,
-      ratio: 25.0 / 23.976,
+      ratio: PAL_TO_WEBDL_RATIO,
       actionDescription: "Estiramiento temporal HDTV/PAL (25fps) -> WEB-DL (23.976fps) [+153.75s/h]",
       badge: "⚡ SmartSync (PAL 25->23.976 WEB)",
       fpsParam: "25to23976",
@@ -255,7 +257,12 @@ export function rescaleSrtFramerate(
   const cues = parseSrtToCues(srtText);
   if (!cues.length) return srtText;
 
-  const ratio = (fromFps && toFps && fromFps !== toFps) ? (fromFps / toFps) : 1.0;
+  let ratio = 1.0;
+  if (Math.abs(fromFps - 25.0) < 0.05 && Math.abs(toFps - 23.976) < 0.05) {
+    ratio = PAL_TO_WEBDL_RATIO;
+  } else if (fromFps && toFps && fromFps !== toFps) {
+    ratio = fromFps / toFps;
+  }
 
   for (const c of cues) {
     if (ratio !== 1.0 || offsetMs !== 0) {
@@ -267,6 +274,9 @@ export function rescaleSrtFramerate(
   const clamped = enforceMonotonicClamping(cues);
   return serializeCuesToSrt(clamped);
 }
+
+const environmentalNoiseWordRegex =
+  /\b(?:m[uú]sica|musique|music|song|sonido|audio|disparos?|tirs?|shots?|gritos?|cris?|screams?|aplausos?|applaudissements|applause|risas?|rires?|laughs?|laughter|chuckles?|suspiros?|soupirs?|sighs?|suspira|soupire|llanto|pleurs?|crying|silbidos?|sifflements?|whistle|pasos|footsteps|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|thunder|motor|moteur|timbre|sonnerie|teléfono|téléphone|phone|ring|golpes?|coups?|thud|knock|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|alarma|alarme|alarm|resopla|souffle|explosión|explosion|silencio|silence|jadea|bosteza|bâille)\b/i;
 
 export function cleanSrt(srtContent: string): string {
   if (!srtContent) return "";
@@ -291,19 +301,43 @@ export function cleanSrt(srtContent: string): string {
     const cleanedLines = rawLines
       .map((line) => {
         let l = line;
-        l = l.replace(/\[.*?\]/g, "");
-        l = l.replace(/\(.*?\)/g, "");
-        l = l.replace(/^[-–—•]?\s*[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/, "");
+        // 1. Purgar siempre corchetes [...]
+        l = l.replace(/\[[^\]]*\]/g, "");
+
+        // 2. Purgar siempre notas musicales ♪, ♫, #, *
         l = l.replace(/[♪♫#*]+/g, "");
+
+        // 3. Purgar siempre etiquetas de hablantes en mayúsculas (ej: MORGANE:)
+        l = l.replace(/^[-–—•]?\s*[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/, "");
+
+        // 4. Purgar paréntesis (...) únicamente si están en MAYÚSCULAS o contienen ruidos ambientales comunes
+        l = l.replace(/\(([^)]*)\)/g, (fullMatch, inner) => {
+          const trimmed = inner.trim();
+          if (!trimmed) return "";
+          const hasUpper = /[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ]/.test(trimmed);
+          const hasLower = /[a-záéíóúñàâçéèêëîïôùûüÿ]/.test(trimmed);
+          if (hasUpper && !hasLower) {
+            return "";
+          }
+          if (environmentalNoiseWordRegex.test(trimmed)) {
+            return "";
+          }
+          return fullMatch;
+        });
+
+        // 5. Purgar tags HTML y caracteres decorativos al borde
         l = l.replace(/<[^>]+>/g, "");
         l = l.replace(/^[•\s\-_=~*|]+|[•\s\-_=~*|]+$/g, "");
-        if (soundCuesRegex.test(l.trim())) {
+        l = l.replace(/[ \t]{2,}/g, " ").trim();
+
+        if (soundCuesRegex.test(l)) {
           l = "";
         }
-        return l.trim();
+        return l;
       })
       .filter((line) => line.length > 0);
 
+    // 6. Eliminar y renumerar bloques vacíos
     if (cleanedLines.length > 0) {
       filteredCues.push({
         ...c,

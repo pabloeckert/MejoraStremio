@@ -487,6 +487,36 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Suite E2E Deep TV Box (`scripts/test-tvbox-deep-e2e.mjs`)**: **105 de 105 verificaciones superadas (100% PASS)** en dos pasadas (Cold-Boot 41/41, Playback Stress 64/64).
 - **Suite de Traducción IA (`scripts/test-translation-engine.ts`)**: **80 de 80 verificaciones superadas (100% PASS)**.
 - **Despliegue a Producción**: Workflow `deploy-deno-hub.yml` (Run ID: `38182509432`) completado con éxito en 18s. Verificados endpoints en vivo con HTTP 200 OK.
+---
 
+## 22. Sesión 2026-10-18: MejoraStremio v1.4.2 — Detección Latina Estricta, Limpiador Anti-SDH Avanzado, SmartSync 1.0427083 y Sincronización Remota Zero-Touch
 
+### 22.1 Detección Latina por Palabras Completas y Confianza en 3 Niveles
+- **Evaluación Delimitada**: Descarte definitivo de subcadenas sueltas (ej. `lat`) para evitar falsos positivos en palabras compuestas en inglés u otros idiomas. Evaluación estricta de palabras exactas con delimitadores de palabra (`\b`): `latino`, `latina`, `doblaje latino`, `audio latino`, `es-419`, `spl`, `cinecalidad`, `hackstore`, `edla`, etc.
+- **Sistema de Confianza Tipado (3 Niveles)**:
+  - `Confirmado`: Coincidencia con tokens exactos y delimitados o banderas regionales (`🌎`, `🇲🇽`, `🇦🇷`, etc.). Única categoría autorizada a recibir la insignia visual `[🌎 LATINO]` en el Puesto #1.
+  - `Probable`: Señales abreviadas o secundarias (`latam`, `eslatam`, `es-la`, `dual-lat`, etc.). No recibe insignia latino en Puesto #1.
+  - `Desconocido`: Sin señales latinas comprobadas.
+- **Implementación Idéntica y Sincronizada**: Refactorizado tanto en `scripts/deno-hub/utils/common.ts` como en `scripts/lib/addon-signals.mjs`.
+
+### 22.2 Limpiador Anti-SDH y Sanitización de Subtítulos Avanzada (`cleanSrt`)
+- **Purga Incondicional**: Corchetes `[...]`, notas musicales `♪`, `♫`, `#`, `*`, y etiquetas de hablantes en mayúsculas (`MORGANE:`).
+- **Purga Selectiva de Paréntesis `(...)`**: Se purgan únicamente si su contenido está en MAYÚSCULAS (ej. `(GRITOS)`, `(LAUGHS)`) o si contienen descriptores de ruidos ambientales comunes (`soundCuesRegex` / `environmentalNoiseWordRegex`). Se preservan las acotaciones y diálogos normales entre paréntesis en minúsculas.
+- **Higiene de Cues y Renumeración**: Los bloques vacíos generados tras la sanitización son eliminados por completo y el archivo SRT resultante es renumerado secuencialmente (1, 2, 3...) mediante `enforceMonotonicClamping`.
+
+### 22.3 Calibración Matemática Exacta de SmartSync (`1.0427083`)
+- **Constante Exacta**: Se fijó la constante matemática estricta de conversión de HDTV/PAL (25.0 fps) a WEB-DL (23.976 fps) en `1.0427083` (`PAL_TO_WEBDL_RATIO`).
+- **Aplicación Global**: Reflejada en `resolveSmartSync` y `rescaleSrtFramerate` en `smartsync.ts` y `addon-signals.mjs`.
+
+### 22.4 Invalidación de Caché en el Manifest (Bypass de RAM en Android TV)
+- **Incremento a v1.4.2**: Manifiesto canónico modularizado en `scripts/deno-hub/manifest.ts` con `version: "1.4.2"`.
+- **Cabeceras HTTP Anti-Caché Globales**: Emisión mandatoria en todos los endpoints (`/manifest.json`, `/:config/manifest.json`, `/stream/...`, `/subtitles/...`):
+  - `Cache-Control: no-cache, no-store, must-revalidate, max-age=0`
+  - `Pragma: no-cache`
+
+### 22.5 Sincronización Remota Zero-Touch y Monopolio de 2 Addons
+- **Control de Versión en transportUrl**: Incorporación del parámetro de control de versión/cache-bust (`.../manifest.json?v=1.4.2`) en `cuentas/stremioeg/profile.json` y `scripts/purge-and-unify-account.mjs`. Esto fuerza a `stremio-core` en la TV Box a invalidar la caché local en memoria y descargar la nueva colección de forma transparente sin reiniciar la app ni el dispositivo.
+- **Mutación Remota**: Aplicada exitosamente en la API de Stremio (`addonCollectionSet`), preservando exclusivamente los 2 addons canónicos:
+  1. `[0] com.mejorastremio.hub` (v1.4.2).
+  2. `[1] com.linvo.cinemeta` (v3.0.14).
 

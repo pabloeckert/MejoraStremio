@@ -5,7 +5,8 @@
 export const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "*",
-  "Cache-Control": "no-cache, no-store, must-revalidate",
+  "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+  "Pragma": "no-cache",
 };
 
 export function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
@@ -151,21 +152,26 @@ export interface StremioStreamItem {
 
 export type StreamAudioCategory = "latino" | "original" | "castellano" | "portuguese";
 
+export type LatinoConfidence = "Confirmado" | "Probable" | "Desconocido";
+
 export const PT_STREAM_REGEX =
   /\b(dublado|legendado|pt[-_]?br|portugu[eê]s|bludv|comando|micoleaodublado|starckfilmes|homem[-_]?aranha|audio[-_ ]?pt)\b|🇧🇷|🇵🇹/i;
 
 export const CASTELLANO_STREAM_REGEX =
   /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|mejortorrent|wolfmax4k|dontorrent|estrenosdtl|grantorrent|castellana|dual[-_ ]?esp)\b|🇪🇸/i;
 
-export const LATINO_EXCLUSIVE_REGEX =
-  /\b(cinecalidad|hackstore|latino|latina|latam|es[-_]?419|doblaje[-_ ]?latino|audio[-_ ]?latino|dual[-_ ]?lat|multi[-_ ]?lat|lat[-_ ]?eng|eng[-_ ]?lat|es[-_]?la|cuerda[-_ ]?floja)\b|🌎|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
+export const LATINO_CONFIRMED_REGEX =
+  /\b(cinecalidad|hackstore|latino|latina|es[-_]?419|spl|doblaje[-_ ]?latino|audio[-_ ]?latino|dual[-_ ]?latino|multi[-_ ]?latino|espanoledla|edla|cuerda[-_ ]?floja)\b|🌎|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
+
+export const LATINO_PROBABLE_REGEX =
+  /\b(latam|eslatam|es[-_]?la|dual[-_ ]?lat\b|multi[-_ ]?lat\b|lat[-_ ]?eng\b|eng[-_ ]?lat\b|latin\b|latinoamericano|spanish[-_ ]?latino|spanish[-_ ]?latam)\b/i;
+
+export const LATINO_EXCLUSIVE_REGEX = LATINO_CONFIRMED_REGEX;
 
 export const LATIN_TOKENS = [
-  "latino", "latina", "latam", "eslatam", "es419", "419", "esla",
-  "espanoledla", "edla", "multilatino", "multilat", "doblajelatino",
-  "audiolatino", "esplatino", "españollatino", "espanollatino",
-  "spanishlatino", "spanishlatam", "latinoamericano", "cinecalidad",
-  "hackstore", "latin", "sudamerica", "americalatina", "cuerdafloja"
+  "latino", "latina", "es419", "spl", "doblajelatino",
+  "audiolatino", "duallatino", "multilatino", "espanoledla", "edla",
+  "cinecalidad", "hackstore", "cuerdafloja"
 ];
 
 export function cleanReleaseName(text: string): string {
@@ -175,22 +181,38 @@ export function cleanReleaseName(text: string): string {
     .replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, "") // Quita banderas territoriales
     .replace(/[\u{1F300}-\u{1F9FF}]/gu, "") // Quita emojis comunes
     .replace(/[🌎🌍🌏💃🇲🇽🇦🇷🇨🇴🇨🇱🇵🇪🇻🇪🇺🇾]/gu, "") // Quita iconos específicos
-    .replace(/[^a-zA-Z0-9]/g, "") // Remueve delimitadores
+    .replace(/[^a-zA-Z0-9]/g, " ") // Conserva delimitación de palabras
     .toLowerCase();
 }
 
+export function detectLatinoConfidence(stream: { name?: string; title?: string; description?: string }): LatinoConfidence {
+  const rawText = `${stream?.name || ""} ${stream?.title || ""} ${stream?.description || ""}`;
+  if (PT_STREAM_REGEX.test(rawText) || CASTELLANO_STREAM_REGEX.test(rawText)) {
+    if (!LATINO_CONFIRMED_REGEX.test(rawText)) {
+      return "Desconocido";
+    }
+  }
+  if (LATINO_CONFIRMED_REGEX.test(rawText)) {
+    return "Confirmado";
+  }
+  if (LATINO_PROBABLE_REGEX.test(rawText)) {
+    return "Probable";
+  }
+  return "Desconocido";
+}
+
 export function classifyStreamAudio(stream: { name?: string; title?: string; description?: string }): StreamAudioCategory {
-  const rawText = `${stream.name || ""} ${stream.title || ""} ${stream.description || ""}`;
-  if (PT_STREAM_REGEX.test(rawText)) return "portuguese";
-  if (CASTELLANO_STREAM_REGEX.test(rawText)) return "castellano";
-  if (LATINO_EXCLUSIVE_REGEX.test(rawText)) return "latino";
-  const cleaned = cleanReleaseName(rawText);
-  if (LATIN_TOKENS.some((t) => cleaned.includes(t))) return "latino";
+  const rawText = `${stream?.name || ""} ${stream?.title || ""} ${stream?.description || ""}`;
+  if (PT_STREAM_REGEX.test(rawText) && !LATINO_CONFIRMED_REGEX.test(rawText)) return "portuguese";
+  if (CASTELLANO_STREAM_REGEX.test(rawText) && !LATINO_CONFIRMED_REGEX.test(rawText)) return "castellano";
+
+  const confidence = detectLatinoConfidence(stream);
+  if (confidence === "Confirmado") return "latino";
   return "original";
 }
 
 export function isLatinoStream(stream: { name?: string; title?: string; description?: string }): boolean {
-  return classifyStreamAudio(stream) === "latino";
+  return detectLatinoConfidence(stream) === "Confirmado";
 }
 
 export function isCachedOrInstantStream(stream: { name?: string; title?: string; description?: string }): boolean {

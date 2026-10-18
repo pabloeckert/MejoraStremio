@@ -14,60 +14,10 @@ import { handleSubdl } from "./subtitles/subdl.ts";
 import { handleTranslate } from "./translate/translate.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./subtitles/smartsync.ts";
 import { handleDiscover } from "./catalogs/tmdb.ts";
+import { MEJORASTREMIO_HUB_MANIFEST } from "./manifest.ts";
 
-export const MEJORASTREMIO_HUB_MANIFEST = {
-  id: "com.mejorastremio.hub",
-  version: "1.4.1",
-  name: "MejoraStremio Hub (TorBox Latino + Subtítulos IA)",
-  description:
-    "Suite integral de MejoraStremio para TV Box: Streams con prioridad absoluta de Audio Latino [🌎 LATINO] y TorBox instantáneo, subtítulos sin SDH, SmartSync PAL 25->23.976fps, traducción IA Gemini Flash bajo demanda y catálogos de estreno Día 1 en orden cronológico estricto.",
-  resources: ["stream", "subtitles", "catalog"],
-  types: ["movie", "series"],
-  idPrefixes: ["tt"],
-  catalogs: [
-    {
-      type: "movie",
-      id: "nuevos-estrenos-cine",
-      name: "Nuevos Estrenos Cine",
-      extra: [
-        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
-        { name: "skip" },
-      ],
-    },
-    {
-      type: "series",
-      id: "nuevas-temporadas",
-      name: "Nuevas Temporadas",
-      extra: [
-        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
-        { name: "skip" },
-      ],
-    },
-    {
-      type: "movie",
-      id: "estrenos-streaming",
-      name: "Estrenos Streaming (Cine)",
-      extra: [
-        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
-        { name: "skip" },
-      ],
-    },
-    {
-      type: "series",
-      id: "estrenos-streaming",
-      name: "Estrenos Streaming (Series)",
-      extra: [
-        { name: "sort", options: ["released", "premiere_date", "year_desc"], isRequired: false },
-        { name: "skip" },
-      ],
-    },
-  ],
-  languages: ["spl", "spa", "es-419"],
-  behaviorHints: {
-    configurable: true,
-    configurationRequired: false,
-  },
-};
+export { MEJORASTREMIO_HUB_MANIFEST };
+
 
 export function renderConfigureHtml(configSegment: string, origin: string): string {
   const currentConfig = configSegment || "providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino";

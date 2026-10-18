@@ -123,7 +123,8 @@ try {
 
   // 1.2 Inicio de Deno Hub Local para Validar Nuevas Funcionalidades
   console.log('\n  1.2 Inicialización de Edge Runtime en Cold-Boot:');
-  localServerProcess = spawn('deno', ['run', '--allow-net', '--allow-env', join(ROOT, 'scripts', 'deno-hub.ts')], {
+  const denoCmd = process.platform === 'win32' ? 'deno.exe' : 'deno';
+  localServerProcess = spawn(denoCmd, ['run', '--allow-net', '--allow-env', join(ROOT, 'scripts', 'deno-hub.ts')], {
     env: { ...process.env, PORT: String(LOCAL_PORT) },
     stdio: 'ignore',
   });

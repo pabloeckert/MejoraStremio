@@ -8,6 +8,7 @@ import {
   cors,
   jsonResponse,
   classifyStreamAudio,
+  detectLatinoConfidence,
   isCachedOrInstantStream,
   type StremioStreamItem,
   type StreamAudioCategory,
@@ -203,10 +204,11 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
   const portugueseBuffer: T[] = [];
 
   for (const s of streams) {
+    const confidence = detectLatinoConfidence(s);
     const cat = classifyStreamAudio(s);
     const isFast = isCachedOrInstantStream(s);
 
-    if (cat === "latino") {
+    if (confidence === "Confirmado") {
       if (isFast) latinoCached.push(s);
       else latinoBuffer.push(s);
     } else if (cat === "original") {

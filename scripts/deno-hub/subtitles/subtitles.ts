@@ -3,6 +3,7 @@ import { cors } from "hono/middleware";
 import { callGemini, buildTranslateSystemPrompt, NL } from "../translate/gemini.ts";
 import { parseStremioSubId, releaseSimilarity } from "../utils/common.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./smartsync.ts";
+import { getOrSetSwrCache } from "../streams/mediaflow.ts";
 
 export const subtitlesApp = new Hono();
 
@@ -11,7 +12,7 @@ subtitlesApp.use("*", cors({ origin: "*", allowMethods: ["GET", "OPTIONS"] }));
 
 export const SUBTITLES_APP_MANIFEST = {
   id: "com.mejorastremio.subtitles",
-  version: "1.4.0",
+  version: "1.4.2",
   name: "MejoraStremio Subtítulos (Multi-Fuente + IA)",
   description: "Ingesta multi-fuente de SubDL, OpenSubtitles v3, SubSource, Wyzie y Traducción IA Gemini Flash sin SDH.",
   resources: ["subtitles"],
@@ -28,8 +29,18 @@ export function cleanCueForTranslation(text: string): string {
   return text
     // Elimina acotaciones sonoras entre corchetes: [música], [sighs], [gritos]
     .replace(/\[[^\]]*\]/g, "")
-    // Elimina acotaciones sonoras entre paréntesis: (sonnerie), (risas)
-    .replace(/\([^)]*\)/g, "")
+    // Elimina paréntesis (...) solo si está en MAYÚSCULAS o ruidos ambientales
+    .replace(/\(([^)]*)\)/g, (fullMatch, inner) => {
+      const trimmed = inner.trim();
+      if (!trimmed) return "";
+      const hasUpper = /[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ]/.test(trimmed);
+      const hasLower = /[a-záéíóúñàâçéèêëîïôùûüÿ]/.test(trimmed);
+      if (hasUpper && !hasLower) return "";
+      if (/\b(?:m[uú]sica|music|gritos?|screams?|risas?|laughs?|suspiros?|sighs?|llanto|crying|pasos|footsteps|aplausos?|applause|disparos?|shots?|alarma|alarm|sonnerie)\b/i.test(trimmed)) {
+        return "";
+      }
+      return fullMatch;
+    })
     // Elimina notas musicales y símbolos especiales
     .replace(/[♪♫#¶]/g, "")
     // Elimina prefijos de hablante en mayúsculas: "MORGANE:", "KARADEC:", "- LUDWIG:"
@@ -63,6 +74,17 @@ export function sanitizeLatinSpanishTracks(rawTracks: any[]): any[] {
     if (lang === "es-es" || lang === "spanish" || lang === "castellano") return false;
     return ["es-419", "spl", "spa-lat", "es-mx", "es-ar", "pob", "spa"].includes(lang);
   });
+}
+
+export async function withScraperTimeout<T>(promise: Promise<T[]>, timeoutMs = 450): Promise<T[]> {
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T[]>((resolve) => setTimeout(() => resolve([]), timeoutMs)),
+    ]);
+  } catch {
+    return [];
+  }
 }
 
 // ============================================================================
@@ -226,19 +248,40 @@ async function handleSubtitlesRoute(_type: string, rawId: string, reqUrl: URL): 
   const season = parsed.season ?? undefined;
   const episode = parsed.episode ?? undefined;
 
-  const [subdlSubs, osSubs, subsrcSubs, wyzieSubs] = await Promise.all([
-    fetchSubDL(imdbId, season, episode),
-    fetchOpenSubtitlesV3(imdbId, season, episode),
-    fetchSubSource(imdbId),
-    fetchWyzieSubs(imdbId, season, episode),
-  ]);
+  // Control de Latencia y Caché: SWR en Deno KV (5-15 min) + timeout de 450 ms por scraper
+  const cacheKey = ["subtitles_agg_v142", imdbId, season ?? 0, episode ?? 0];
+  const rawCandidates = await getOrSetSwrCache(
+    cacheKey,
+    async () => {
+      const results = await Promise.allSettled([
+        withScraperTimeout(fetchSubDL(imdbId, season, episode), 450),
+        withScraperTimeout(fetchOpenSubtitlesV3(imdbId, season, episode), 450),
+        withScraperTimeout(fetchSubSource(imdbId), 450),
+        withScraperTimeout(fetchWyzieSubs(imdbId, season, episode), 450),
+      ]);
+      return results.flatMap((r) => (r.status === "fulfilled" && Array.isArray(r.value) ? r.value : []));
+    },
+    15 * 60 * 1000,
+    5 * 60 * 1000,
+  );
 
-  const rawCandidates = [...subdlSubs, ...osSubs, ...subsrcSubs, ...wyzieSubs];
   const cleanCandidates = filterNonSDH(sanitizeLatinSpanishTracks(rawCandidates));
 
   // Pre-selección por metadatos del cliente (filename, bytesize, videoHash)
-  if (parsed.filename) {
+  if (parsed.filename || parsed.videoHash || parsed.videoSize) {
     cleanCandidates.sort((a, b) => {
+      if (parsed.videoHash) {
+        const aHash = (a.videoHash || "").toLowerCase();
+        const bHash = (b.videoHash || "").toLowerCase();
+        const targetHash = parsed.videoHash.toLowerCase();
+        if (aHash && aHash === targetHash && bHash !== targetHash) return -1;
+        if (bHash && bHash === targetHash && aHash !== targetHash) return 1;
+      }
+      if (parsed.videoSize && a.bytesize && b.bytesize) {
+        const diffA = Math.abs(a.bytesize - parsed.videoSize);
+        const diffB = Math.abs(b.bytesize - parsed.videoSize);
+        if (diffA !== diffB) return diffA - diffB;
+      }
       const simA = releaseSimilarity(parsed.filename || "", a.name || a.filename || "");
       const simB = releaseSimilarity(parsed.filename || "", b.name || b.filename || "");
       return simB - simA;

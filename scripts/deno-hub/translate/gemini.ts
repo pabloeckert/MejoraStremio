@@ -177,9 +177,19 @@ export function cleanCueForTranslation(text: string): string {
   // 1. Eliminar etiquetas HTML y estilos
   t = t.replace(/<[^>]+>/g, "");
   t = t.replace(/\{[^}]+\}/g, "");
-  // 2. Eliminar acotaciones sonoras entre corchetes o paréntesis ([música], (suspira), [sighs], etc.)
+  // 2. Eliminar acotaciones sonoras entre corchetes siempre; y entre paréntesis solo si está en MAYÚSCULAS o ruidos ambientales
   t = t.replace(/\[[\s\S]*?\]/g, "");
-  t = t.replace(/\([\s\S]*?\)/g, "");
+  t = t.replace(/\(([^)]*)\)/g, (fullMatch, inner) => {
+    const trimmed = inner.trim();
+    if (!trimmed) return "";
+    const hasUpper = /[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ]/.test(trimmed);
+    const hasLower = /[a-záéíóúñàâçéèêëîïôùûüÿ]/.test(trimmed);
+    if (hasUpper && !hasLower) return "";
+    if (/\b(?:m[uú]sica|music|gritos?|screams?|risas?|laughs?|suspiros?|sighs?|llanto|crying|pasos|footsteps|aplausos?|applause|disparos?|shots?|alarma|alarm|sonnerie)\b/i.test(trimmed)) {
+      return "";
+    }
+    return fullMatch;
+  });
   // 3. Eliminar prefijos de hablante en mayúsculas o mixtas seguidos de dos puntos (MORGANE:, Morgane:, etc.)
   t = t.replace(/^[-–—•]?\s*[A-Za-zÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸáéíóúñàâçèêëîïôùûüÿ0-9\s._-]{2,30}:\s*/gm, "");
   // 4. Eliminar símbolos musicales y ruidos

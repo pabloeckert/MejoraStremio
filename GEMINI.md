@@ -520,3 +520,17 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   1. `[0] com.mejorastremio.hub` (v1.4.2).
   2. `[1] com.linvo.cinemeta` (v3.0.14).
 
+### 22.6 Blindaje de Hardware ZTE B866V2, Circuit Breaker Distribuido y Two-Anchor Offset
+- **Perfilado Hardware ZTE B866V2 (Amlogic S905X2)**: Relegación al final absoluto de la lista para streams con códec AV1 (sin decodificación HW) y REMUX Dolby Vision Perfil 7 Dual-Layer (MEL/FEL).
+- **Algoritmo de Ranking Estricto**:
+  1. Compatibilidad ZTE B866V2.
+  2. `CONFIRMADO` Audio Latino (`[🌎 LATINO]`) en Puesto #1.
+  3. Caché TorBox Instantáneo (`[⚡ INSTANTÁNEO]`).
+  4. Mayor resolución (2160p > 1080p > 720p).
+  5. Bitrate adecuado y semillas P2P.
+- **Filtro Negativo Latino**: Descarte explícito de `castellano`, `es-ES`, `VOSE` y `subtitulado` mediante `LATINO_NEGATIVE_REGEX`.
+- **Circuit Breaker Distribuido Deno KV**: Ventanas deslizantes de 10s, estado `OPEN` con >50% de error sobre 10 pedidos y candado atómico (`kv.atomic().check()`) en `HALF_OPEN`.
+- **Two-Anchor SmartSync**: Funciones `calculateTwoAnchorTransform` y `rescaleSrtWithTwoAnchors` para calibración milimétrica de desfase temporal con dos puntos de referencia.
+- **Certificación E2E Total**: Suite de pruebas `test-tvbox-deep-e2e.mjs` completada con **105 de 105 verificaciones superadas (100.0% PASS)** y deploy exitoso en Deno Deploy (Run ID `39151128335`).
+
+

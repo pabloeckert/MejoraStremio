@@ -51,8 +51,8 @@ jobs:
       - name: Instalar addon (jn)
         if: inputs.account == 'jn'
         env:
-          ST_EMAIL: ${{ secrets['STREMIO_EMAIL_JN'] || '' }}
-          ST_PASS: ${{ secrets['STREMIO_PASS_JN'] || '' }}
+          ST_EMAIL: ${{ secrets.STREMIO_EMAIL_JN }}
+          ST_PASS: ${{ secrets.STREMIO_PASS_JN }}
         run: |
           set -o pipefail
           node scripts/install-addon.mjs "${{ inputs.manifest_url }}" ${{ steps.pos.outputs.flag }} ${{ inputs.apply == true && '--apply' || '' }}

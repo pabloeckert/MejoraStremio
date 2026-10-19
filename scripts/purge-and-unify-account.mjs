@@ -170,8 +170,8 @@ export async function unifySingleAccount(accountCreds, options = {}) {
   console.log(` Versión Hub: v${version} | Modo: ${dryRun ? 'DRY-RUN (Simulación)' : 'APPLY (En Producción Real)'}`);
   console.log('═'.repeat(75));
 
-  if (!pass) {
-    const msg = `Credenciales faltantes para ${alias} (${email}). Se requiere contraseña (ST_PASS_${alias.toUpperCase()} o similar).`;
+  if (!pass || pass === 'UNCONFIGURED') {
+    const msg = `Credenciales faltantes o no configuradas para ${alias} (${email}). Se requiere contraseña (ST_PASS_${alias.toUpperCase()} o secret STREMIO_PASS_JN).`;
     console.warn(`  ⚠️ ADVERTENCIA: ${msg}`);
     return { success: false, skipped: true, error: msg, alias };
   }

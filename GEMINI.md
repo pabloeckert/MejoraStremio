@@ -589,6 +589,22 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - Si un hash fue purgado o desalojado de TorBox, el stream es degradado defensivamente a `[⏳ REQUIERE BUFFER]` y `[TB download]`, previniendo falsos positivos de disponibilidad y bloqueos de reproducción en la TV Box.
 - **Suite de Pruebas y Certificación**: `scripts/test-swr-p5.ts` y `scratch/test_swr_p5.ts` superaron **5 de 5 pasos con éxito (100% PASS)** y la suite completa `test-tvbox-deep-e2e.mjs` certificó **105 de 105 verificaciones (100.0% PASS)**.
 
+### 22.11 Refinamiento Avanzado de Subtítulos: SmartSync No Lineal, Anti-SDH y Gobernanza Gemini IA (Bloque 5: P7)
+- **SmartSync Avanzado y Control de Drift No Lineal**:
+  - `checkNonLinearDrift` y `rescaleSrtWithTwoAnchorsValidated` calculan la transformación lineal por dos anclas ($a = k \cdot s + b$) y evalúan el residuo absoluto en anclas de verificación.
+  - Umbral estricto `MAX_ALLOWED_RESIDUAL_MS = 300`: Si el residuo excede los 300 ms (típico en ediciones con cortes comerciales o distintos masters), la pista se descarta incondicionalmente (`srt: null`), permitiendo al pipeline evaluar la siguiente opción en prioridad en lugar de entregar un subtítulo desfasado al espectador.
+- **Sanitizador Anti-SDH con Blindaje de Excepciones**:
+  - Preservación estricta de siglas y nombres legítimos de hablantes en mayúsculas (`PRESERVED_SPEAKER_ACRONYMS`: `NASA:`, `FBI:`, `CIA:`, `DEA:`, `CEO:`, `CFO:`, `CTO:`, `OK:`, `INTERPOL:`, `KGB:`, `MI6:`, `SWAT:`, `UN:`, `ONU:`, `NATO:`, etc.).
+  - Preservación de siglas dentro de paréntesis (ej. `(NASA)`, `(FBI)`, `(CEO)`).
+  - Preservación estricta de paréntesis narrativos que contengan texto en minúsculas (ej. `(en voz baja)`, `(sonriendo con complicidad)`).
+  - Purga rigurosa de acotaciones sonoras y etiquetas de hablante genéricas de personas sordas (`MORGANE:`, `NARRADOR:`, `[MÚSICA]`, `(APLAUSOS)`, `(música)`).
+  - Paridad 1:1 entre `cleanSrt` y `cleanCueForTranslation`.
+- **Gobernanza y Resiliencia en Traducción IA (Gemini Flash)**:
+  - Control de cuota diaria en Deno KV (`["gemini_governance", "quota", dateStr]`): límite diario configurable (`GEMINI_DAILY_LIMIT = 1500`), con bloqueo preventivo y fallback transparente hacia pistas comunitarias u OpenRouter ante agotamiento.
+  - Circuit Breaker dedicado para HTTP 429 (`["gemini_governance", "circuit_429"]`): transición inmediata a `OPEN` ante Too Many Requests, cooldown con backoff exponencial (30s, 60s, 120s hasta 300s), sonda de prueba en `HALF_OPEN` y reseteo a `CLOSED` tras éxito.
+  - Rotulado Mandatorio `[Traducción IA]`: Todas las pistas generativas de IA se emiten con la insignia `[Traducción IA]` visible en ExoPlayer/libmpv (ej. `⚡ 1. Latino (IA Gemini) · [Traducción IA]`).
+- **Certificación de la Suite**: `scripts/test-subtitles-p7.ts` (5/5 PASS), `scratch/test_subtitles_p7.ts` (5/5 PASS) y `test-tvbox-deep-e2e.mjs` (105/105 PASS).
+
 
 
 

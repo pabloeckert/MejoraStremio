@@ -314,6 +314,78 @@ export function rescaleSrtWithTwoAnchors(
 }
 
 
+export interface NonLinearDriftResult {
+  valid: boolean;
+  factor: number;
+  offsetMs: number;
+  maxResidualMs: number;
+  isNonLinearDrift: boolean;
+  failingAnchor?: SyncAnchor;
+}
+
+export const MAX_ALLOWED_RESIDUAL_MS = 300;
+
+export function checkNonLinearDrift(
+  anchor1: SyncAnchor,
+  anchor2: SyncAnchor,
+  testAnchors: SyncAnchor[],
+  maxResidualMs = MAX_ALLOWED_RESIDUAL_MS,
+): NonLinearDriftResult {
+  const { factor, offsetMs } = calculateTwoAnchorTransform(anchor1, anchor2);
+  let maxResidual = 0;
+  let failing: SyncAnchor | undefined;
+
+  for (const anchor of testAnchors) {
+    const predictedAudioMs = anchor.subMs * factor + offsetMs;
+    const residual = Math.abs(anchor.audioMs - predictedAudioMs);
+    if (residual > maxResidual) {
+      maxResidual = residual;
+    }
+    if (residual > maxResidualMs && !failing) {
+      failing = anchor;
+    }
+  }
+
+  const isNonLinearDrift = maxResidual > maxResidualMs;
+  return {
+    valid: !isNonLinearDrift,
+    factor,
+    offsetMs,
+    maxResidualMs: Math.round(maxResidual),
+    isNonLinearDrift,
+    failingAnchor: failing,
+  };
+}
+
+export function rescaleSrtWithTwoAnchorsValidated(
+  srtText: string,
+  anchor1: SyncAnchor,
+  anchor2: SyncAnchor,
+  validationAnchors?: SyncAnchor[],
+  maxResidualMs = MAX_ALLOWED_RESIDUAL_MS,
+): { srt: string | null; valid: boolean; maxResidualMs: number; error?: string } {
+  if (!srtText) return { srt: null, valid: false, maxResidualMs: 0, error: "Empty SRT" };
+  if (validationAnchors && validationAnchors.length > 0) {
+    const check = checkNonLinearDrift(anchor1, anchor2, validationAnchors, maxResidualMs);
+    if (!check.valid) {
+      return {
+        srt: null,
+        valid: false,
+        maxResidualMs: check.maxResidualMs,
+        error: `Drift no lineal excesivo detectado: residuo ${check.maxResidualMs}ms > umbral ${maxResidualMs}ms`,
+      };
+    }
+  }
+  const rescaled = rescaleSrtWithTwoAnchors(srtText, anchor1, anchor2);
+  return { srt: rescaled, valid: true, maxResidualMs: 0 };
+}
+
+export const PRESERVED_SPEAKER_ACRONYMS = new Set([
+  "NASA", "FBI", "CIA", "DEA", "CEO", "CFO", "CTO", "COO", "OK",
+  "INTERPOL", "KGB", "MI6", "SWAT", "UN", "ONU", "NATO", "OTAN",
+  "EU", "UE", "USA", "EEUU", "BBC", "CNN", "AI", "IA", "DJ", "MC", "VIP", "PC", "IT", "HR",
+]);
+
 const environmentalNoiseWordRegex =
   /\b(?:m[uú]sica|musique|music|song|sonido|audio|disparos?|tirs?|shots?|gritos?|cris?|screams?|aplausos?|applaudissements|applause|risas?|rires?|laughs?|laughter|chuckles?|suspiros?|soupirs?|sighs?|suspira|soupire|llanto|pleurs?|crying|silbidos?|sifflements?|whistle|pasos|footsteps|jadeos?|halètements?|canción|chanson|tose|tousse|canta|chante|viento|vent|trueno|tonnerre|thunder|motor|moteur|timbre|sonnerie|teléfono|téléphone|phone|ring|golpes?|coups?|thud|knock|quejidos?|gémissements?|sollozos?|sanglots?|murmullos?|murmures?|ininteligible|inintelligible|alarma|alarme|alarm|resopla|souffle|explosión|explosion|silencio|silence|jadea|bosteza|bâille)\b/i;
 
@@ -346,15 +418,34 @@ export function cleanSrt(srtContent: string): string {
         // 2. Purgar siempre notas musicales ♪, ♫, #, *
         l = l.replace(/[♪♫#*]+/g, "");
 
-        // 3. Purgar siempre etiquetas de hablantes en mayúsculas (ej: MORGANE:)
-        l = l.replace(/^[-–—•]?\s*[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/, "");
+        // 3. Purgar etiquetas de hablantes en mayúsculas (ej: MORGANE:), preservando siglas legítimas (NASA:, FBI:, OK:, CEO:)
+        const speakerMatch = l.match(/^([-–—•]?\s*)([A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}):\s*(.*)$/);
+        if (speakerMatch) {
+          const prefix = speakerMatch[1];
+          const tag = speakerMatch[2].trim().toUpperCase();
+          const remainder = speakerMatch[3];
+          if (PRESERVED_SPEAKER_ACRONYMS.has(tag)) {
+            l = `${prefix}${speakerMatch[2]}: ${remainder}`;
+          } else {
+            l = remainder;
+          }
+        }
 
-        // 4. Purgar paréntesis (...) únicamente si están en MAYÚSCULAS o contienen ruidos ambientales comunes
+        // 4. Purgar paréntesis (...) preservando paréntesis narrativos en minúsculas y siglas legítimas
         l = l.replace(/\(([^)]*)\)/g, (fullMatch, inner) => {
           const trimmed = inner.trim();
           if (!trimmed) return "";
-          const hasUpper = /[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ]/.test(trimmed);
+          const upperTag = trimmed.toUpperCase();
+          // Preservar siglas técnicas legítimas dentro de paréntesis (ej. (NASA), (FBI), (CEO), (OK))
+          if (PRESERVED_SPEAKER_ACRONYMS.has(upperTag)) {
+            return fullMatch;
+          }
+          // Conservar paréntesis narrativos que contengan texto en minúsculas (y no sean ruidos)
           const hasLower = /[a-záéíóúñàâçéèêëîïôùûüÿ]/.test(trimmed);
+          if (hasLower && !environmentalNoiseWordRegex.test(trimmed)) {
+            return fullMatch;
+          }
+          const hasUpper = /[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ]/.test(trimmed);
           if (hasUpper && !hasLower) {
             return "";
           }

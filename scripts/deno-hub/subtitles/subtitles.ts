@@ -335,8 +335,8 @@ async function handleSubtitlesRoute(_type: string, rawId: string, reqUrl: URL): 
     pushDualSubtitles(subtitles, {
       id: "ia-fallback-synthetic",
       url: `${origin}/translate/gen/fallback.srt`,
-      label: "⚡ 1. Latino (IA Gemini) · [Traducción Automática]",
-      name: "⚡ 1. Latino (IA Gemini) · [Traducción Automática]",
+      label: "⚡ 1. Latino (IA Gemini) · [Traducción IA]",
+      name: "⚡ 1. Latino (IA Gemini) · [Traducción IA]",
     }, true);
   }
 

@@ -75,7 +75,25 @@ export {
   pushDualSubtitles,
   EUROPEAN_SHOW_IDS,
   isEuropeanShowOrContext,
+  calculateTwoAnchorTransform,
+  rescaleSrtWithTwoAnchors,
+  checkNonLinearDrift,
+  rescaleSrtWithTwoAnchorsValidated,
+  MAX_ALLOWED_RESIDUAL_MS,
+  PRESERVED_SPEAKER_ACRONYMS,
 } from "./deno-hub/subtitles/smartsync.ts";
+
+export {
+  checkGeminiDailyQuota,
+  recordGeminiUsage,
+  checkGemini429Circuit,
+  recordGemini429Error,
+  recordGeminiSuccess,
+  resetGeminiGovernanceForTesting,
+  DEFAULT_GEMINI_DAILY_LIMIT,
+  INITIAL_429_COOLDOWN_MS,
+  MAX_429_COOLDOWN_MS,
+} from "./deno-hub/translate/gemini_governance.ts";
 
 export {
   STREAMS_MANIFEST,

@@ -271,8 +271,8 @@ export async function handleUnifiedSubtitles(
     pushDualSubtitles(subtitles, {
       id: "ia-unified-fallback",
       url: `${origin}/translate/gen/fallback.srt`,
-      label: "⚡ 1. Latino (IA Gemini) · [Traducción Automática]",
-      name: "⚡ 1. Latino (IA Gemini) · [Traducción Automática]",
+      label: "⚡ 1. Latino (IA Gemini) · [Traducción IA]",
+      name: "⚡ 1. Latino (IA Gemini) · [Traducción IA]",
     }, true);
   }
 

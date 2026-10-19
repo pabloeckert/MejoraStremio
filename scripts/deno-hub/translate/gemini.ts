@@ -3,6 +3,15 @@
  * Preserva las directivas estrictas de traducción cinematográfica, nombres propios y anti-SDH.
  */
 
+import { PRESERVED_SPEAKER_ACRONYMS } from "../subtitles/smartsync.ts";
+import {
+  checkGeminiDailyQuota,
+  checkGemini429Circuit,
+  recordGeminiUsage,
+  recordGemini429Error,
+  recordGeminiSuccess,
+} from "./gemini_governance.ts";
+
 export const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash-001";
 export const OPENROUTER_MODEL = (Deno.env.get("OPENROUTER_MODEL") && Deno.env.get("OPENROUTER_MODEL") !== "openrouter/free")
   ? Deno.env.get("OPENROUTER_MODEL")!
@@ -33,6 +42,25 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
   // reintentos fallidos 401 que agoten el presupuesto síncrono de Fast-Window (<4s).
   if (!cleanKey.startsWith("AIza") && OPENROUTER_API_KEY) {
     return await callOpenRouter(prompt, OPENROUTER_API_KEY, signal);
+  }
+
+  // Gobernanza P7: Verificación de cuota diaria y circuito 429
+  const quota = await checkGeminiDailyQuota();
+  if (!quota.allowed) {
+    console.warn(`[GeminiGovernance] Cuota diaria agotada (${quota.used}/${quota.limit}), activando fallback transparente`);
+    if (OPENROUTER_API_KEY && !signal.aborted) {
+      return await callOpenRouter(prompt, OPENROUTER_API_KEY, signal);
+    }
+    throw new Error(`Gemini: Cuota diaria agotada (${quota.used}/${quota.limit})`);
+  }
+
+  const circuit = await checkGemini429Circuit();
+  if (!circuit.allowed) {
+    console.warn(`[GeminiGovernance] Circuito 429 OPEN (${circuit.cooldownRemainingMs}ms restantes), activando fallback transparente`);
+    if (OPENROUTER_API_KEY && !signal.aborted) {
+      return await callOpenRouter(prompt, OPENROUTER_API_KEY, signal);
+    }
+    throw new Error(`Gemini: Circuito 429 OPEN (en cooldown por ${circuit.cooldownRemainingMs}ms)`);
   }
 
   const modelsToTry = [
@@ -88,10 +116,21 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
           });
         }
 
+        if (r.status === 429) {
+          await recordGemini429Error();
+          const errTxt = await r.text().catch(() => "");
+          lastError = new Error(`Gemini (${model}) respondió 429 Too Many Requests: ${errTxt.slice(0, 100)}`);
+          break; // API saturada -> derivar inmediatamente al fallback
+        }
+
         if (r.ok) {
           const d = await r.json();
           const text = d?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) return String(text).trim();
+          if (text) {
+            await recordGeminiUsage();
+            await recordGeminiSuccess();
+            return String(text).trim();
+          }
           lastError = new Error(`Gemini (${model}): sin texto (${d?.candidates?.[0]?.finishReason || "empty"})`);
         } else {
           const errTxt = await r.text().catch(() => "");
@@ -177,21 +216,32 @@ export function cleanCueForTranslation(text: string): string {
   // 1. Eliminar etiquetas HTML y estilos
   t = t.replace(/<[^>]+>/g, "");
   t = t.replace(/\{[^}]+\}/g, "");
-  // 2. Eliminar acotaciones sonoras entre corchetes siempre; y entre paréntesis solo si está en MAYÚSCULAS o ruidos ambientales
+  // 2. Eliminar acotaciones sonoras entre corchetes siempre; y entre paréntesis preservando siglas legítimas y narrativos en minúsculas
   t = t.replace(/\[[\s\S]*?\]/g, "");
   t = t.replace(/\(([^)]*)\)/g, (fullMatch, inner) => {
     const trimmed = inner.trim();
     if (!trimmed) return "";
-    const hasUpper = /[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ]/.test(trimmed);
+    const upperTag = trimmed.toUpperCase();
+    if (PRESERVED_SPEAKER_ACRONYMS.has(upperTag)) return fullMatch;
     const hasLower = /[a-záéíóúñàâçéèêëîïôùûüÿ]/.test(trimmed);
+    if (hasLower && !/\b(?:m[uú]sica|music|gritos?|screams?|risas?|laughs?|suspiros?|sighs?|llanto|crying|pasos|footsteps|aplausos?|applause|disparos?|shots?|alarma|alarm|sonnerie)\b/i.test(trimmed)) {
+      return fullMatch;
+    }
+    const hasUpper = /[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ]/.test(trimmed);
     if (hasUpper && !hasLower) return "";
     if (/\b(?:m[uú]sica|music|gritos?|screams?|risas?|laughs?|suspiros?|sighs?|llanto|crying|pasos|footsteps|aplausos?|applause|disparos?|shots?|alarma|alarm|sonnerie)\b/i.test(trimmed)) {
       return "";
     }
     return fullMatch;
   });
-  // 3. Eliminar prefijos de hablante en mayúsculas o mixtas seguidos de dos puntos (MORGANE:, Morgane:, etc.)
-  t = t.replace(/^[-–—•]?\s*[A-Za-zÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸáéíóúñàâçèêëîïôùûüÿ0-9\s._-]{2,30}:\s*/gm, "");
+  // 3. Eliminar prefijos de hablante en mayúsculas preservando siglas legítimas (NASA:, FBI:, OK:, CEO:)
+  t = t.replace(/^([-–—•]?\s*)([A-Za-zÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸáéíóúñàâçèêëîïôùûüÿ0-9\s._-]{2,30}):\s*(.*)$/gm, (_fullMatch, prefix, speaker, remainder) => {
+    const tag = speaker.trim().toUpperCase();
+    if (PRESERVED_SPEAKER_ACRONYMS.has(tag)) {
+      return `${prefix}${speaker}: ${remainder}`;
+    }
+    return remainder;
+  });
   // 4. Eliminar símbolos musicales y ruidos
   t = t.replace(/[♪♫#*]+/g, "");
   return t

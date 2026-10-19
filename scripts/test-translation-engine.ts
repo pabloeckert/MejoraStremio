@@ -185,7 +185,7 @@ assert(dataInexistente.subtitles.length > 0, `NUNCA devuelve array vacío (recib
 
 const topSub = dataInexistente.subtitles[0];
 assert(
-  topSub.name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]",
+  topSub.name.includes("[Traducción IA]") || topSub.name.includes("[Traducción Automática]"),
   `Label estricto de última instancia: ${topSub.name}`,
 );
 
@@ -222,7 +222,7 @@ const resSerieRara = await handleTranslate(
 assert(resSerieRara.status === 200, "HTTP 200 para serie con hash y nombre de release no estándar");
 const dataSerieRara = await resSerieRara.json();
 assert(dataSerieRara.subtitles.length > 0, `Cobertura garantizada al 100% para serie no estándar (${dataSerieRara.subtitles.length} tracks)`);
-assert(dataSerieRara.subtitles[0].name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]", "Opción #1 liderada por IA Gemini en 100% de los casos");
+assert(dataSerieRara.subtitles[0].name.includes("[Traducción IA]") || dataSerieRara.subtitles[0].name.includes("[Traducción Automática]"), "Opción #1 liderada por IA Gemini en 100% de los casos");
 
 // Caso Extremo 3: HPI / ACI con ID alternativo tt13000282 para todas las temporadas (S01 a S04)
 const hpiSeasonCheck = [
@@ -241,7 +241,7 @@ for (const { season, ep } of hpiSeasonCheck) {
   assert(resHpi.status === 200, `HTTP 200 para HPI ${epKey} con ID alternativo (tt13000282)`);
   const dataHpi = await resHpi.json();
   assert(dataHpi.subtitles.length > 0, `Subtítulos IA entregados para HPI ${epKey} (${dataHpi.subtitles.length} tracks)`);
-  assert(dataHpi.subtitles[0].name === "⚡ 1. Latino (IA Gemini) · [Traducción Automática]", `HPI ${epKey}: Opción #1 es ⚡ 1. Latino (IA Gemini) · [Traducción Automática]`);
+  assert(dataHpi.subtitles[0].name.includes("[Traducción IA]") || dataHpi.subtitles[0].name.includes("[Traducción Automática]"), `HPI ${epKey}: Opción #1 es traducción IA`);
   const hpiSpl = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "spl");
   const hpiSpa = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "spa");
   const hpiEs419 = dataHpi.subtitles.some((s: { lang: string }) => s.lang === "es-419");

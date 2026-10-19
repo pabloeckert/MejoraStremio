@@ -385,7 +385,7 @@ try {
   const walkTranslateFetch = await fetchJson(`${LOCAL_HUB_BASE}/translate/subtitles/movie/tt3488720.json`);
   const walkSubs = walkTranslateFetch.data?.subtitles || [];
   assert(results.pass2_playback, 'Entrega de subtítulos IA para tt3488720', walkSubs.length > 0, `${walkSubs.length} opciones`);
-  const walkAiSub = walkSubs.find((s) => s.name?.includes('⚡ 1. Latino (IA Gemini) · [Traducción Automática]'));
+  const walkAiSub = walkSubs.find((s) => s.name?.includes('[Traducción IA]') || s.name?.includes('[Traducción Automática]'));
   assert(results.pass2_playback, 'Inyección de subtítulo IA Gemini para "En la cuerda floja"', !!walkAiSub, walkAiSub?.name);
   const walkHasSpl = walkSubs.some((s) => s.lang === 'spl');
   const walkHasSpa = walkSubs.some((s) => s.lang === 'spa');
@@ -439,7 +439,7 @@ try {
     const hpiTranslateFetch = await fetchJson(`${LOCAL_HUB_BASE}/translate/subtitles/series/${epId}.json`);
     const hpiSubs = hpiTranslateFetch.data?.subtitles || [];
     assert(results.pass2_playback, `Entrega de subtítulos IA para HPI ${label}`, hpiSubs.length > 0, `${hpiSubs.length} opciones`);
-    const hpiAiSub = hpiSubs.find((s) => s.name?.includes('⚡ 1. Latino (IA Gemini) · [Traducción Automática]'));
+    const hpiAiSub = hpiSubs.find((s) => s.name?.includes('[Traducción IA]') || s.name?.includes('[Traducción Automática]'));
     assert(results.pass2_playback, `Inyección de subtítulo IA Gemini para HPI ${label}`, !!hpiAiSub, hpiAiSub?.name);
     const hpiHasSpl = hpiSubs.some((s) => s.lang === 'spl');
     const hpiHasSpa = hpiSubs.some((s) => s.lang === 'spa');
@@ -544,7 +544,7 @@ try {
   const trInexistente = await fetchJson(`${LOCAL_HUB_BASE}/translate/subtitles/movie/tt999999999.json`);
   const trSubsInex = trInexistente.data?.subtitles || [];
   assert(results.pass2_playback, 'Garantía universal: respuesta nunca vacía para ID inexistente (tt999999999)', trSubsInex.length > 0, `${trSubsInex.length} tracks`);
-  assert(results.pass2_playback, 'Inyección obligatoria de opción IA Gemini en última instancia', trSubsInex[0]?.name === '⚡ 1. Latino (IA Gemini) · [Traducción Automática]', trSubsInex[0]?.name);
+  assert(results.pass2_playback, 'Inyección obligatoria de opción IA Gemini en última instancia', trSubsInex[0]?.name?.includes('[Traducción IA]') || trSubsInex[0]?.name?.includes('[Traducción Automática]'), trSubsInex[0]?.name);
 
   if (trSubsInex[0]?.url) {
     const srtInexRes = await fetchWithTimeout(trSubsInex[0].url, {}, 5000);

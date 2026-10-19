@@ -688,10 +688,10 @@ export async function handleTranslate(
         s: season ?? 0,
         ep: episode ?? 0,
       };
-      const mainLabel = "⚡ 1. Latino (IA Gemini) · [Traducción Automática]";
+      const mainLabel = "⚡ 1. Latino (IA Gemini) · [Traducción IA]";
       const label = i === 0
         ? mainLabel
-        : `🤖 ${i + 1}. Latino (IA Gemini) · [Traducción Automática]`;
+        : `🤖 ${i + 1}. Latino (IA Gemini) · [Traducción IA]`;
       pushDualSubtitles(subtitles, {
         id: `ia-es-${i}`,
         url: `${mountBase}/gen/${b64u.enc(JSON.stringify(subData))}.srt`,

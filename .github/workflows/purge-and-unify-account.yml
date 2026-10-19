@@ -1,0 +1,65 @@
+name: purge-and-unify-account
+
+on:
+  workflow_dispatch:
+    inputs:
+      account:
+        description: 'Cuenta a unificar'
+        type: choice
+        options:
+          - all
+          - eg
+          - solotveg
+          - stremiojn
+        required: true
+        default: 'solotveg'
+      apply:
+        description: 'Aplicar en producción (true = mutación atómica en Stremio API, false = dry-run)'
+        type: boolean
+        default: false
+      version:
+        description: 'Versión del Hub canónico (1.4.2 o 1.4.1 baseline rollback)'
+        type: choice
+        options:
+          - '1.4.2'
+          - '1.4.1'
+        default: '1.4.2'
+
+permissions:
+  contents: write
+
+jobs:
+  unify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Ejecutar Purga Atómica y Unificación
+        run: |
+          set -o pipefail
+          VERSION_FLAG=""
+          [ "${{ inputs.version }}" = "1.4.1" ] && VERSION_FLAG="--baseline-v141"
+          APPLY_FLAG=""
+          [ "${{ inputs.apply }}" = "true" ] && APPLY_FLAG="--apply"
+
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          ST_EMAIL_TEEN="${{ secrets.STREMIO_EMAIL_TEEN }}" \
+          ST_PASS_TEEN="${{ secrets.STREMIO_PASS_TEEN }}" \
+          ST_EMAIL_JN="${{ secrets.STREMIO_EMAIL_JN }}" \
+          ST_PASS_JN="${{ secrets.STREMIO_PASS_JN }}" \
+          node scripts/purge-and-unify-account.mjs --account "${{ inputs.account }}" $APPLY_FLAG $VERSION_FLAG
+
+      - name: Subir backups atómicos como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unify-backups-${{ github.run_id }}
+          path: .backups/
+          retention-days: 14
+          if-no-files-found: ignore

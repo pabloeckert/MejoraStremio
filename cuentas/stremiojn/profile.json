@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "account": "stremiojn@gmail.com",
+  "alias": "Joaquín (Deportes de Combate / Cine de Acción)",
+  "deviceTarget": "TV Box / Android TV (Leanback UI)",
+  "version": "1.4.2",
+  "updatedAt": "2026-10-18T23:00:00Z",
+  "rules": {
+    "focus": "UFC, MMA, Boxeo, Acción",
+    "subtitles": {
+      "mode": "strict_no_sdh",
+      "preferredLanguages": [
+        { "code": "ea", "iso": "es-419", "name": "Spanish (Latin America)", "priority": 1 },
+        { "code": "es", "iso": "spa", "name": "Spanish (Standard, Clean)", "priority": 2 }
+      ],
+      "deprioritizedLanguages": [
+        { "code": "sp", "iso": "es-ES", "name": "Spanish (Spain / Castellano)", "priority": 99 }
+      ],
+      "discardMarkers": [
+        "[SDH]",
+        "(SDH)",
+        "[CC]",
+        "(CC)",
+        "SDH",
+        "CC",
+        "hi=true",
+        "hearing impaired",
+        "para sordos",
+        "sordos"
+      ],
+      "unifiedHub": {
+        "id": "com.mejorastremio.hub",
+        "name": "MejoraStremio Hub (TorBox Latino + Subtítulos IA)",
+        "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=1.4.2",
+        "canonicalStremioUrl": "stremio://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=1.4.2",
+        "position": 0
+      }
+    },
+    "audio": {
+      "priorityHierarchy": [
+        "latino",
+        "original"
+      ],
+      "lastResort": "castellano",
+      "streamAddonOrder": [
+        "com.mejorastremio.hub"
+      ]
+    },
+    "playerOptimization": {
+      "target": "Android TV (Leanback UI)",
+      "recommendedPlayer": "libmpv",
+      "autoFrameRate": "Match frame rate and resolution",
+      "tunneledPlayback": "device_dependent",
+      "audioPassthrough": "direct",
+      "defaultSubtitlesLanguage": "spa",
+      "defaultAudioLanguage": "spa"
+    }
+  }
+}

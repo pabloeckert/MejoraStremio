@@ -1,28 +1,36 @@
-# Logs
+# Logs y depuración
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Sistema / editor
+# Archivos temporales de sistema y editor
 .DS_Store
-.idea
+Thumbs.db
+desktop.ini
+.idea/
 *.local
 MejoraStremio.code-workspace
 
-# Secretos locales (API keys) — *.local no matchea *.local.md, entrada explícita
+# Credenciales y secretos locales (nunca versionar)
 SECRETS.local.md
-
-# Credenciales sueltas fuera de convención (ver SECRETS.local.md — nunca debería
-# haber quedado sin ignorar, agregado 2026-08-13 tras encontrarlo destrackeado)
 .env
+.env.*
+.env.local
 
-# Backups de colecciones de addons (datos de cuenta, no versionar)
-.backups
-
-# Copia de staging para deployar deno-hub.ts aislado del resto del repo
-# (evita subir SECRETS.local.md/.backups al acotar el root-path del deploy)
-.deploy-hub
-
-# Config/estado local de Antigravity / Gemini + worktrees de agentes (no versionar)
+# Directorios de trabajo efímero y cachés de runtime
+scratch/
+/scratch/
+.cache/
+.deno/
 .agents/local/
 .gemini/
-scratch/
 
+# Archivos de empaquetado comprimido
+*.zip
+*.tar.gz
+*.tgz
+
+# Backups locales y staging de despliegue
+.backups/
+.deploy-hub/

@@ -640,10 +640,14 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - Las traducciones generativas de Gemini Flash persistidas bajo la clave composite `["sub", "ai", tmdb_id, season, episode, lang, hash]` son compartidas globalmente por todos los perfiles, eliminando consumo duplicado de tokens de IA y garantizando disponibilidad inmediata sin latencia en la TV Box ZTE B866V2.
 - **Certificación de la Suite**: `scripts/test-multi-account-p9.ts` (5/5 PASS), `scratch/test_multi_account_p9.ts` (5/5 PASS) y `test-tvbox-deep-e2e.mjs` (105/105 PASS).
 
-
-
-
-
-
-
-
+### 22.14 Depuración Integral, Higiene de Repositorio, .gitignore Blindado y Consolidación (MejoraStremio v1.4.2)
+- **Depuración Integral y Purga de Residuos**:
+  - Eliminación definitiva del archivo duplicado obsoleto `deno.jsonc`, consolidando la configuración canónica en `deno.json` con imports de Hono y flags de KV.
+  - Purga de artefactos temporales y suites preliminares en `scratch/`, preservando intactos los componentes canónicos de producción (`deno-hub.ts`, `unified-hub.ts`, etc.), suites homologadas P1–P9 y estructura multi-perfil (`cuentas/`).
+- **Blindaje Estructural de `.gitignore`**:
+  - Reglas estrictas para artefactos de empaquetado (`*.zip`, `*.tar.gz`), logs (`*.log`), temporales de sistema (`.DS_Store`, `Thumbs.db`), directorios efímeros (`scratch/`, `/scratch/`, `.cache/`, `.deno/`) y secretos/credenciales (`.env*`, `SECRETS.local.md`).
+- **Empaquetado Comprimido Limpio de Producción**:
+  - Generación de `MejoraStremio-v1.4.2-Production-Clean.zip` (638 KB) conteniendo exclusivamente el código depurado y funcional de producción sin trazas git, logs, backups ni temporales.
+- **Mecanismo Zero-Touch Update Confirmado (ZTE ZXV10 B866V2)**:
+  - El manifiesto parametrizado `?v=1.4.2` invalida la clave de indexación de `stremio-core` en la memoria RAM del decodificador.
+  - Las cabeceras HTTP `Cache-Control: no-cache, no-store, must-revalidate, max-age=0` y `Pragma: no-cache` garantizan la recarga transparente instantánea sin requerir borrado manual de caché ni reinicio forzado en Android TV.

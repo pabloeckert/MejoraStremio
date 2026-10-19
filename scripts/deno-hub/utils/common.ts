@@ -163,16 +163,19 @@ export const CASTELLANO_STREAM_REGEX =
 export const LATINO_NEGATIVE_REGEX =
   /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|vose|subtitulado|subtitulada)\b|🇪🇸/i;
 
+export const TITLE_FALSE_POSITIVES_REGEX =
+  /\b(?:diego[-_.\s]+latino|latino[-_.\s]+heat)\b/gi;
+
 export const LATINO_CONFIRMED_REGEX =
-  /\b(cinecalidad|hackstore|latino|latina|es[-_]?419|spl|doblaje[-_ ]?latino|audio[-_ ]?latino|dual[-_ ]?latino|multi[-_ ]?latino|espanoledla|edla|cuerda[-_ ]?floja)\b|🌎|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
+  /\b(cinecalidad|hackstore|latino|latina|es[-_.\s]?419|audio[-_.\s]?spl|doblaje[-_.\s]?latino|audio[-_.\s]?latino|dual[-_.\s]?latino|multi[-_.\s]?latino|espanoledla|edla|cuerda[-_.\s]?floja)\b|🌎|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
 
 export const LATINO_PROBABLE_REGEX =
-  /\b(latam|eslatam|es[-_]?la|dual[-_ ]?lat\b|multi[-_ ]?lat\b|lat[-_ ]?eng\b|eng[-_ ]?lat\b|latin\b|latinoamericano|spanish[-_ ]?latino|spanish[-_ ]?latam)\b/i;
+  /\b(latam|eslatam|es[-_.\s]?la|dual[-_.\s]?lat\b|multi[-_.\s]?lat\b|lat[-_.\s]?eng\b|eng[-_.\s]?lat\b|latin\b|latinoamericano|spanish[-_.\s]?latam)\b/i;
 
 export const LATINO_EXCLUSIVE_REGEX = LATINO_CONFIRMED_REGEX;
 
 export const LATIN_TOKENS = [
-  "latino", "latina", "es419", "spl", "doblajelatino",
+  "latino", "latina", "es419", "audiospl", "doblajelatino",
   "audiolatino", "duallatino", "multilatino", "espanoledla", "edla",
   "cinecalidad", "hackstore", "cuerdafloja"
 ];
@@ -193,10 +196,11 @@ export function detectLatinoConfidence(stream: { name?: string; title?: string; 
   if (LATINO_NEGATIVE_REGEX.test(rawText) || PT_STREAM_REGEX.test(rawText) || CASTELLANO_STREAM_REGEX.test(rawText)) {
     return "Desconocido";
   }
-  if (LATINO_CONFIRMED_REGEX.test(rawText)) {
+  const cleanForLatino = rawText.replace(TITLE_FALSE_POSITIVES_REGEX, " ");
+  if (LATINO_CONFIRMED_REGEX.test(cleanForLatino)) {
     return "Confirmado";
   }
-  if (LATINO_PROBABLE_REGEX.test(rawText)) {
+  if (LATINO_PROBABLE_REGEX.test(cleanForLatino)) {
     return "Probable";
   }
   return "Desconocido";

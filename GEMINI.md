@@ -541,5 +541,23 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Lectura Atómica y Purga Defensiva**: Reconstrucción con `kv.getMany()`, validación estricta de hash SHA-256 y descompresión con `DecompressionStream("gzip")`. Ante cualquier alteración o chunk faltante, purga automática de entradas y retorno de `cache miss`.
 - **Suite de Pruebas**: Test unitario `scratch/test_kv_sub_cache.ts` superó **7 de 7 pasos con éxito (100% PASS)** validando SRT masivo (>100 KiB), compresión, chunking real ($n \ge 2$), candado single-flight y descompresión limpia.
 
+### 22.8 Fixture Versionada de 500 Títulos y Quality Gate Audio Latino (Bloque 2: P6)
+- **Fixture Congelada Versionada**: Creación de `data/fixtures_corpus_500.json` (y réplica en `scratch/fixtures_corpus_500.json`) con 500 objetos de prueba reales abarcando metadatos de scrapers, nombres de torrents y tags:
+  - 175 casos de Latino `CONFIRMADO` (tags canónicos, Cinecalidad, Hackstore, ES-419, audio spl, banderas territoriales).
+  - 85 casos de Latino `PROBABLE` (`dual-lat`, `latam`, `eslatam`, `es-la`, `latin`, `latinoamericano`).
+  - 240 casos de `DESCONOCIDO` / Adversos: títulos trampas (*Diego Latino*, *Latino Heat*), subcadenas ambiguas (`SPL`, *Redland* con `edla`, *Platoon* y *Collateral* con `lat`), releases en inglés original y casos explícitos de `castellano`, `es-ES`, `VOSE` y `subtitulado`.
+- **Blindaje del Clasificador**:
+  - `TITLE_FALSE_POSITIVES_REGEX`: Purga quirúrgica de títulos que contienen "Latino" en el nombre de la obra antes de evaluar coincidencia de audio (`diego latino`, `latino heat`).
+  - Delimitador exacto `audio[-_.\s]?spl` en `LATINO_CONFIRMED_REGEX` evitando falsos positivos en el film *SPL: Kill Zone* y grupos de ripeo `-SPL`.
+- **Métricas de Rendimiento Obtenidas (500/500 Casos)**:
+  - `Confirmado`: Precisión 100.00%, Recall 100.00%, F1-Score 100.00% (175 TP, 0 FP, 0 FN).
+  - `Probable`: Precisión 100.00%, Recall 100.00%, F1-Score 100.00% (85 TP, 0 FP, 0 FN).
+  - `Desconocido`: Precisión 100.00%, Recall 100.00%, F1-Score 100.00% (240 TP, 0 FP, 0 FN).
+- **Quality Gate y Reglas de Bloqueo Inviolables**:
+  1. Recall de `CONFIRMADO` = 100.0% (mínimo 100.0% estricto cumplido).
+  2. Falsos positivos con insignia `[🌎 LATINO]` en Puesto #1 = 0 (0 tolerados cumplido).
+- **Suite Ejecutable y Certificación**: `scripts/test-corpus-p6.ts` (y `scratch/test_corpus_p6.ts`) ejecutado con éxito total (100% PASS) y validación profunda de regresión en `test-tvbox-deep-e2e.mjs` (105/105 PASS).
+
+
 
 

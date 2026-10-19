@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-15T13:50:33.786Z",
+  "generatedAt": "2026-10-19T16:03:47.663Z",
   "source": "iptv-org",
   "catalogs": {
     "iptv-ar": "Argentina",
@@ -8,9 +8,9 @@
     "iptv-intl": "Internacional"
   },
   "counts": {
-    "iptv-ar": 126,
+    "iptv-ar": 124,
     "iptv-es": 143,
-    "iptv-intl": 21,
+    "iptv-intl": 20,
     "iptv-latam": 150
   },
   "channels": [
@@ -75,6 +75,18 @@
       "referrer": null
     },
     {
+      "id": "AlternaTV.ar",
+      "name": "AlternaTV",
+      "catalog": "iptv-ar",
+      "country": "AR",
+      "genre": "Música",
+      "logo": "https://tv.alterna.ar/alternatv.png",
+      "url": "https://tv.alterna.ar/stream/hls/live.m3u8",
+      "quality": "720p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
       "id": "AmericaTV.ar",
       "name": "America TV",
       "catalog": "iptv-ar",
@@ -119,18 +131,6 @@
       "logo": "https://i.imgur.com/zkNUO5p.png",
       "url": "https://videostream.shockmedia.com.ar:19360/beatsradio/beatsradio.m3u8",
       "quality": "480p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
-      "id": "BVC.ar",
-      "name": "BVC",
-      "catalog": "iptv-ar",
-      "country": "AR",
-      "genre": "General",
-      "logo": "https://i.imgur.com/I06TSx0.png",
-      "url": "https://vivo.solumedia.com:19360/bvnet/bvnet.m3u8",
-      "quality": null,
       "userAgent": null,
       "referrer": null
     },
@@ -423,6 +423,18 @@
       "referrer": null
     },
     {
+      "id": "Canal5TVChepes.ar",
+      "name": "Canal 5 TV Chepes",
+      "catalog": "iptv-ar",
+      "country": "AR",
+      "genre": "General",
+      "logo": "https://i.imgur.com/AzEqroq.png",
+      "url": "https://videostream.shockmedia.com.ar:19360/canal5alfatvchepes/canal5alfatvchepes.m3u8",
+      "quality": null,
+      "userAgent": null,
+      "referrer": null
+    },
+    {
       "id": "Canal50Morteros.ar",
       "name": "Canal 50 Morteros",
       "catalog": "iptv-ar",
@@ -455,18 +467,6 @@
       "logo": "https://i.imgur.com/K0jk8p4.png",
       "url": "https://stream.arcast.live/canal7jujuy/ngrp:canal7jujuy_all/playlist.m3u8",
       "quality": null,
-      "userAgent": null,
-      "referrer": null
-    },
-    {
-      "id": "Canal7Neuquen.ar",
-      "name": "Canal 7 Neuquen",
-      "catalog": "iptv-ar",
-      "country": "AR",
-      "genre": "General",
-      "logo": "https://i.ibb.co/BrvQsWm/C7neuquenlogo2023.png",
-      "url": "https://stream.arcast.com.ar/c7nq/ngrp:c7nq_all/playlist.m3u8",
-      "quality": "1080p",
       "userAgent": null,
       "referrer": null
     },
@@ -819,18 +819,6 @@
       "referrer": null
     },
     {
-      "id": "ElTreceInternacionalLatinAmerica.ar",
-      "name": "El Trece Internacional Latin America",
-      "catalog": "iptv-ar",
-      "country": "AR",
-      "genre": "General",
-      "logo": "https://i.imgur.com/Vo6prbh.png",
-      "url": "http://200.7.99.59:8000/play/a0gm/index.m3u8",
-      "quality": "1080p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "Encuentro.ar",
       "name": "Encuentro",
       "catalog": "iptv-ar",
@@ -959,6 +947,18 @@
       "logo": "https://i.imgur.com/sfd87LX.png",
       "url": "https://videostream.shockmedia.com.ar/hls/mercuriotv/mercuriotv.m3u8",
       "quality": null,
+      "userAgent": null,
+      "referrer": null
+    },
+    {
+      "id": "MetroTV.ar",
+      "name": "Metro TV",
+      "catalog": "iptv-ar",
+      "country": "AR",
+      "genre": "Entretenimiento",
+      "logo": "https://i.imgur.com/7f7M7zl.png",
+      "url": "https://streamtv12.ddns.net:5443/LiveApp/streams/193945633734205616732920.m3u8",
+      "quality": "720p",
       "userAgent": null,
       "referrer": null
     },
@@ -1155,6 +1155,18 @@
       "referrer": null
     },
     {
+      "id": "RadioYguazuTV.ar",
+      "name": "Radio Yguazu TV",
+      "catalog": "iptv-ar",
+      "country": "AR",
+      "genre": "Entretenimiento",
+      "logo": "https://i.imgur.com/kVi0ICm.png",
+      "url": "https://live.enhdtv.com:8081/radioiguazutv/index.m3u8",
+      "quality": "480p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
       "id": "Radiocanal.ar",
       "name": "Radiocanal",
       "catalog": "iptv-ar",
@@ -1203,18 +1215,6 @@
       "referrer": null
     },
     {
-      "id": "SenalU.ar",
-      "name": "Senal U",
-      "catalog": "iptv-ar",
-      "country": "AR",
-      "genre": "Cultura",
-      "logo": "https://i.ibb.co/yBYcKTj/Senal-U-Uncuyo-en-vivo-Online.png",
-      "url": "https://live20.bozztv.com/giatv/giatv-canal30tda/canal30tda/chunks.m3u8",
-      "quality": null,
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "SenillosaTV.ar",
       "name": "Senillosa TV",
       "catalog": "iptv-ar",
@@ -1239,14 +1239,14 @@
       "referrer": null
     },
     {
-      "id": "SomosEntreRios.ar",
-      "name": "Somos Entre Rios",
+      "id": "SoliveTV.ar",
+      "name": "Solive TV",
       "catalog": "iptv-ar",
       "country": "AR",
-      "genre": "Infantil",
-      "logo": "https://files.catbox.moe/ufv5z0.png",
-      "url": "https://live20.bozztv.com/akamaissh101/ssh101/somosentrerios/playlist.m3u8",
-      "quality": "360p",
+      "genre": "General",
+      "logo": "https://i.imgur.com/dyUxugT.png",
+      "url": "https://stmv6.voxtvhd.com.br/solivetv/solivetv/playlist.m3u8",
+      "quality": null,
       "userAgent": null,
       "referrer": null
     },
@@ -1311,18 +1311,6 @@
       "referrer": null
     },
     {
-      "id": "TelefeInternacional.ar",
-      "name": "Telefe Internacional",
-      "catalog": "iptv-ar",
-      "country": "AR",
-      "genre": "General",
-      "logo": "https://i.imgur.com/HNcCX3h.png",
-      "url": "http://200.115.120.1:8000/play/ca016/index.m3u8",
-      "quality": "1080p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "Telemax.ar",
       "name": "Telemax",
       "catalog": "iptv-ar",
@@ -1335,14 +1323,14 @@
       "referrer": null
     },
     {
-      "id": "TheCabbinFM.ar",
-      "name": "The Cabbin FM",
+      "id": "TIVTelevision.ar",
+      "name": "TIV Television",
       "catalog": "iptv-ar",
       "country": "AR",
-      "genre": "Música",
-      "logo": "https://files.catbox.moe/2vlskg.png",
-      "url": "https://5f700d5b2c46f.streamlock.net/thecabinn/thecabinn/playlist.m3u8",
-      "quality": null,
+      "genre": "General",
+      "logo": "https://i.imgur.com/gsgXGEj.png",
+      "url": "https://videohd.live:19360/8008/8008.m3u8",
+      "quality": "720p",
       "userAgent": null,
       "referrer": null
     },
@@ -1462,18 +1450,6 @@
       "genre": "Noticias",
       "logo": "https://raw.githubusercontent.com/vivetvargentina/vive-tv/main/Logo%20512x512-04.png",
       "url": "https://vivo.solumedia.com:19360/vivetv/vivetv.m3u8",
-      "quality": "1080p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
-      "id": "XLevelMedia.ar",
-      "name": "X Level Media",
-      "catalog": "iptv-ar",
-      "country": "AR",
-      "genre": "Música",
-      "logo": "https://i.imgur.com/BGwQdQW.jpeg",
-      "url": "https://tuvideoonline.com.ar:3332/live/xlevelmedialive.m3u8",
       "quality": "1080p",
       "userAgent": null,
       "referrer": null
@@ -1743,18 +1719,6 @@
       "referrer": null
     },
     {
-      "id": "CadenaElite.es",
-      "name": "Cadena Elite",
-      "catalog": "iptv-es",
-      "country": "ES",
-      "genre": "Música",
-      "logo": "https://i.imgur.com/3yeGDTP.png",
-      "url": "https://cloudvideo.servers10.com:8081/8004/index.m3u8",
-      "quality": "720p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "Canal10Emporda.es",
       "name": "Canal 10 Emporda",
       "catalog": "iptv-es",
@@ -1834,6 +1798,18 @@
       "genre": "General",
       "logo": "https://i.imgur.com/pwRVbCz.png",
       "url": "https://videos.canal56.com/directe/stream/index.m3u8",
+      "quality": "576p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
+      "id": "Canal7TeleValencia.es",
+      "name": "Canal 7 TeleValencia",
+      "catalog": "iptv-es",
+      "country": "ES",
+      "genre": "General",
+      "logo": "https://i.imgur.com/ILfXDRs.png",
+      "url": "https://play.cdn.enetres.net/9E9557EFCEBB43A89CEC8FBD3C500247022/028/playlist.m3u8",
       "quality": "576p",
       "userAgent": null,
       "referrer": null
@@ -2350,6 +2326,18 @@
       "genre": "Entretenimiento",
       "logo": "https://m.media-amazon.com/images/I/5194tl8duqL.png",
       "url": "https://hola-play-2108fd06-86d4-44e8-9867-c35b4895a1c1-es.fast.rakuten.tv/v1/master/0547f18649bd788bec7b67b746e47670f558b6b2/production-LiveChannel-6433/master.m3u8",
+      "quality": "1080p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
+      "id": "ImasTV.es",
+      "name": "Imas TV",
+      "catalog": "iptv-es",
+      "country": "ES",
+      "genre": "General",
+      "logo": "https://i.imgur.com/a9hgTmM.png",
+      "url": "https://secure3.todostreaming.es/live/imastv-livestream.m3u8",
       "quality": "1080p",
       "userAgent": null,
       "referrer": null
@@ -3111,18 +3099,6 @@
       "referrer": null
     },
     {
-      "id": "TVR.es",
-      "name": "TVR",
-      "catalog": "iptv-es",
-      "country": "ES",
-      "genre": "General",
-      "logo": "https://i.ibb.co/nRq3YfT/Logo-Rioja-Televisi-n-S-A.png",
-      "url": "https://5924d3ad0efcf.streamlock.net/riojatv/riojatvlive/playlist.m3u8",
-      "quality": "360p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "TVReus.es",
       "name": "TVReus",
       "catalog": "iptv-es",
@@ -3315,24 +3291,12 @@
       "referrer": null
     },
     {
-      "id": "CNBC.us",
-      "name": "CNBC",
-      "catalog": "iptv-intl",
-      "country": "US",
-      "genre": "General",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/b/bc/CNBC_2025.svg",
-      "url": "http://41.205.93.154/CNBC/index.m3u8",
-      "quality": "720p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "CNNInternational.us",
       "name": "CNN International",
       "catalog": "iptv-intl",
       "country": "US",
       "genre": "Noticias",
-      "logo": "https://dtil.tmsimg.com/assets/s157679_ld_h15_aa.png?lock=720x540",
+      "logo": "https://i.imgur.com/dfxefQw.png",
       "url": "https://d3bp6dwmpbdajl.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-ury0meh5m4nzm/index.m3u8",
       "quality": "1080p",
       "userAgent": null,
@@ -3453,8 +3417,8 @@
       "country": "IT",
       "genre": "General",
       "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Rai_3_-_Logo_2016.svg/960px-Rai_3_-_Logo_2016.svg.png",
-      "url": "https://dash2.antik.sk/live/test_rai_tre_tizen/playlist.m3u8",
-      "quality": "720p",
+      "url": "https://d3k8wzt41aflvx.cloudfront.net/RAI3/Live.m3u8",
+      "quality": "1080p",
       "userAgent": null,
       "referrer": null
     },
@@ -3603,18 +3567,6 @@
       "referrer": null
     },
     {
-      "id": "AguacateTV.ve",
-      "name": "Aguacate TV",
-      "catalog": "iptv-latam",
-      "country": "VE",
-      "genre": "Entretenimiento",
-      "logo": "https://i.ibb.co/wpWBsgf/IMG-20230705-154622.jpg",
-      "url": "https://streamtv.intervenhosting.net:3040/hybrid/play.m3u8",
-      "quality": "1080p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "AMXNoticias.mx",
       "name": "AMX Noticias",
       "catalog": "iptv-latam",
@@ -3675,14 +3627,14 @@
       "referrer": null
     },
     {
-      "id": "AzCorazon.mx",
-      "name": "Az Corazon",
+      "id": "AzCinema.mx",
+      "name": "Az Cinema",
       "catalog": "iptv-latam",
       "country": "MX",
-      "genre": "Series",
-      "logo": "https://i.imgur.com/KIpSdQC.png",
-      "url": "http://200.115.120.1:8000/play/ca020/index.m3u8",
-      "quality": "720p",
+      "genre": "Películas",
+      "logo": "https://i.imgur.com/B5UN7C8.png",
+      "url": "http://15.204.196.147:22880/CABLE-MAGES-AZCINEMA/video.m3u8",
+      "quality": "1080p",
       "userAgent": null,
       "referrer": null
     },
@@ -3831,18 +3783,6 @@
       "referrer": null
     },
     {
-      "id": "CanalPyC.co",
-      "name": "Canal PyC",
-      "catalog": "iptv-latam",
-      "country": "CO",
-      "genre": "Noticias",
-      "logo": "https://i.imgur.com/3qxBDhV.png",
-      "url": "https://live20.bozztv.com/akamaissh101/ssh101/pyctelevision/playlist.m3u8",
-      "quality": "720p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "CanalTROPlus.co",
       "name": "Canal TRO +",
       "catalog": "iptv-latam",
@@ -3939,18 +3879,6 @@
       "referrer": null
     },
     {
-      "id": "ClickTVChile.cl",
-      "name": "ClickTV Chile",
-      "catalog": "iptv-latam",
-      "country": "CL",
-      "genre": "Documentales",
-      "logo": "https://i.imgur.com/H0XNbMS.png",
-      "url": "https://v2.tustreaming.cl/clicktv/playlist.m3u8",
-      "quality": "720p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "CNNChile.cl",
       "name": "CNN Chile",
       "catalog": "iptv-latam",
@@ -3987,6 +3915,18 @@
       "referrer": null
     },
     {
+      "id": "Contivision.cl",
+      "name": "Contivision",
+      "catalog": "iptv-latam",
+      "country": "CL",
+      "genre": "Noticias",
+      "logo": "https://i.imgur.com/Lz2OlKf.png",
+      "url": "https://unlimited6-cl.dps.live/cm/cm.smil/playlist.m3u8",
+      "quality": "720p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
       "id": "Cultura24.pe",
       "name": "Cultura 24",
       "catalog": "iptv-latam",
@@ -3994,18 +3934,6 @@
       "genre": "Cultura",
       "logo": "https://i.imgur.com/h0LxXsx.png",
       "url": "https://www.opencaster.com/resources/hls_stream/cultura24.m3u8",
-      "quality": null,
-      "userAgent": null,
-      "referrer": null
-    },
-    {
-      "id": "CulturaOnline.cl",
-      "name": "Cultura Online",
-      "catalog": "iptv-latam",
-      "country": "CL",
-      "genre": "Cultura",
-      "logo": "https://i.imgur.com/w8td5Lq.png",
-      "url": "https://streaming.bitsur.cl:3399/live/vdo532live.m3u8",
       "quality": null,
       "userAgent": null,
       "referrer": null
@@ -4042,18 +3970,6 @@
       "genre": "Películas",
       "logo": "https://i.imgur.com/MMhSmDK.png",
       "url": "http://200.115.120.1:8000/play/ca030/index.m3u8",
-      "quality": "1080p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
-      "id": "DistritoComedia.mx",
-      "name": "Distrito Comedia",
-      "catalog": "iptv-latam",
-      "country": "MX",
-      "genre": "Entretenimiento",
-      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/DistritoComediaLOGO2018.png/960px-DistritoComediaLOGO2018.png",
-      "url": "http://181.119.66.28:8081/DISTRITO-COMEDIA/index.m3u8",
       "quality": "1080p",
       "userAgent": null,
       "referrer": null
@@ -4203,18 +4119,6 @@
       "referrer": null
     },
     {
-      "id": "EstacionLimacheTV.cl",
-      "name": "Estacion Limache TV",
-      "catalog": "iptv-latam",
-      "country": "CL",
-      "genre": "Entretenimiento",
-      "logo": "https://i.imgur.com/YAADx7P.png",
-      "url": "https://v4.tustreaming.cl/limachemovil/index.m3u8",
-      "quality": "720p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "ExaTV.mx",
       "name": "Exa TV",
       "catalog": "iptv-latam",
@@ -4235,6 +4139,18 @@
       "logo": "https://i.imgur.com/pu0BSB7.png",
       "url": "http://190.93.224.42/EXITOSA/index.m3u8",
       "quality": "1080p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
+      "id": "FiestaTV.co",
+      "name": "Fiesta TV",
+      "catalog": "iptv-latam",
+      "country": "CO",
+      "genre": "Música",
+      "logo": "https://i.imgur.com/42wImV2.png",
+      "url": "https://panelvideo1.intermediahost.co:3286/live/ruzfpkqklive.m3u8",
+      "quality": null,
       "userAgent": null,
       "referrer": null
     },
@@ -4287,6 +4203,18 @@
       "referrer": null
     },
     {
+      "id": "GalacticaTV.pe",
+      "name": "Galactica TV",
+      "catalog": "iptv-latam",
+      "country": "PE",
+      "genre": "Música",
+      "logo": "https://i.imgur.com/byL1zCV.jpeg",
+      "url": "https://stream.neux.site/memfs/e3f59eec-6b93-45e1-a2ab-c82381c2a9ec.m3u8",
+      "quality": null,
+      "userAgent": null,
+      "referrer": null
+    },
+    {
       "id": "GenialTV.cl",
       "name": "Genial TV",
       "catalog": "iptv-latam",
@@ -4306,6 +4234,18 @@
       "genre": "Cultura",
       "logo": "https://i.imgur.com/Gwz78jZ.png",
       "url": "https://pistream.ddns.net/hls/stream.m3u8",
+      "quality": "720p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
+      "id": "GuaroTV.ve",
+      "name": "Guaro TV",
+      "catalog": "iptv-latam",
+      "country": "VE",
+      "genre": "Entretenimiento",
+      "logo": "https://i.ibb.co/LN92K6h/IMG-20230705-154347.jpg",
+      "url": "https://stream.guarotv.net:3592/hybrid/play.m3u8",
       "quality": "720p",
       "userAgent": null,
       "referrer": null
@@ -4367,18 +4307,6 @@
       "logo": "https://i.imgur.com/bkpCGP6.png",
       "url": "https://cloudvideo.servers10.com:8081/impactotv/index.m3u8",
       "quality": "360p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
-      "id": "InterTV.ve",
-      "name": "Inter TV",
-      "catalog": "iptv-latam",
-      "country": "VE",
-      "genre": "Entretenimiento",
-      "logo": "https://i.ibb.co/HG2DM8G/IMG-20230705-153952.jpg",
-      "url": "https://streamtv.intervenhosting.net:3439/hybrid/play.m3u8",
-      "quality": "1080p",
       "userAgent": null,
       "referrer": null
     },
@@ -4731,18 +4659,6 @@
       "referrer": null
     },
     {
-      "id": "MovistarPlus.pe",
-      "name": "Movistar Plus",
-      "catalog": "iptv-latam",
-      "country": "PE",
-      "genre": "Entretenimiento",
-      "logo": "https://i.imgur.com/yGQGDoi.png",
-      "url": "http://200.62.239.170:830/play/a08z/index.m3u8",
-      "quality": "1080p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
       "id": "MultiPremier.mx",
       "name": "MultiPremier",
       "catalog": "iptv-latam",
@@ -4799,18 +4715,6 @@
       "logo": "https://i.imgur.com/oo5vDBv.png",
       "url": "https://pantera1-100gb-cl-movistar.dps.live/nctv/nctv.smil/playlist.m3u8",
       "quality": "1080p",
-      "userAgent": null,
-      "referrer": null
-    },
-    {
-      "id": "NeoTV.pe",
-      "name": "Neo TV",
-      "catalog": "iptv-latam",
-      "country": "PE",
-      "genre": "Entretenimiento",
-      "logo": "https://i.imgur.com/bS5JtYX.jpeg",
-      "url": "http://bantel-cdn1.iptvperu.tv:1935/btnscrtn/DigitalTV/playlist.m3u8",
-      "quality": "720p",
       "userAgent": null,
       "referrer": null
     },
@@ -5290,6 +5194,66 @@
       "genre": "Música",
       "logo": "https://i.imgur.com/nTVJcFA.png",
       "url": "https://streaming.purum.cl/ritoquetv/index.m3u8",
+      "quality": "720p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
+      "id": "RPPTV.pe",
+      "name": "RPP TV",
+      "catalog": "iptv-latam",
+      "country": "PE",
+      "genre": "Noticias",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/3/36/RPP_logo.png",
+      "url": "http://190.93.224.42/RPP/index.m3u8",
+      "quality": "1080p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
+      "id": "RSelvaTV.pe",
+      "name": "RSelvaTV",
+      "catalog": "iptv-latam",
+      "country": "PE",
+      "genre": "Noticias",
+      "logo": "https://i.imgur.com/DAK5ZnD.png",
+      "url": "https://live-evg11.tv360.bitel.com.pe/bitel/selvaticaSRT/playlist.m3u8",
+      "quality": "720p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
+      "id": "RumbaTV.co",
+      "name": "Rumba TV",
+      "catalog": "iptv-latam",
+      "country": "CO",
+      "genre": "Música",
+      "logo": "https://i.imgur.com/WtVpWwI.png",
+      "url": "http://186.148.196.100:8000/play/a02h",
+      "quality": null,
+      "userAgent": null,
+      "referrer": null
+    },
+    {
+      "id": "RumbaMixTV.pe",
+      "name": "RumbaMix TV",
+      "catalog": "iptv-latam",
+      "country": "PE",
+      "genre": "Música",
+      "logo": "https://i.imgur.com/rwA3HIp.png",
+      "url": "https://live-evg5.tv360.bitel.com.pe/bitel/mixtvSRT/playlist.m3u8",
+      "quality": "720p",
+      "userAgent": null,
+      "referrer": null
+    },
+    {
+      "id": "SaborTV.cl",
+      "name": "Sabor TV",
+      "catalog": "iptv-latam",
+      "country": "CL",
+      "genre": "Música",
+      "logo": "https://cdn.m3u.cl/logo/416_Sabor_TV.png",
+      "url": "https://v1.tustreaming.cl/sabortv/index.m3u8",
       "quality": "720p",
       "userAgent": null,
       "referrer": null

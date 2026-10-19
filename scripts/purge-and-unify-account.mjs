@@ -35,8 +35,11 @@ const rbIdx = args.indexOf('--rollback');
 const ROLLBACK_FILE = rbIdx >= 0 ? args[rbIdx + 1] : null;
 const DRY_RUN = !APPLY && !ROLLBACK_LAST && !ROLLBACK_FILE;
 
+const BASELINE_V141 = args.includes('--baseline-v141') || args.includes('--v141');
+const targetVersion = BASELINE_V141 ? '1.4.1' : '1.4.2';
+
 const CANONICAL_HUB_TRANSPORT_URL =
-  'https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=1.4.2';
+  `https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=${targetVersion}`;
 
 const CINEMETA_TRANSPORT_URL = 'https://v3-cinemeta.strem.io/manifest.json';
 

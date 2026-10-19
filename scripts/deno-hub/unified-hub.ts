@@ -282,14 +282,26 @@ export async function handleUnifiedSubtitles(
 /**
  * Dispatcher del Hub Unificado: procesa peticiones en raíz o con prefijo de configuración.
  */
+export function getManifestWithVersion(reqUrl?: URL) {
+  const versionParam = reqUrl?.searchParams?.get("v");
+  if (versionParam === "1.4.1") {
+    return {
+      ...MEJORASTREMIO_HUB_MANIFEST,
+      version: "1.4.1",
+      description: "[ROLLBACK BASELINE v1.4.1] " + MEJORASTREMIO_HUB_MANIFEST.description,
+    };
+  }
+  return MEJORASTREMIO_HUB_MANIFEST;
+}
+
 export async function handleUnifiedHub(
   path: string,
   origin: string,
   reqUrl: URL,
 ): Promise<Response | null> {
-  // 1. Manifest raíz: /manifest.json
+  // 1. Manifest raíz: /manifest.json (soporta ?v=1.4.1 para rollback rápido / cache-busting inverso)
   if (path === "/manifest.json") {
-    return jsonResponse(MEJORASTREMIO_HUB_MANIFEST);
+    return jsonResponse(getManifestWithVersion(reqUrl));
   }
 
   // 2. Página de configuración raíz: /configure
@@ -310,12 +322,12 @@ export async function handleUnifiedHub(
     "streams", "stream", "subtitles", "catalog", "health", "configure", "manifest.json",
   ]);
 
-  // 3. Manifest parametrizado: /:config/manifest.json
+  // 3. Manifest parametrizado: /:config/manifest.json (soporta ?v=1.4.1)
   const configManifestMatch = path.match(/^\/([^/]+)\/manifest\.json$/);
   if (configManifestMatch) {
     const config = configManifestMatch[1];
     if (!RESERVED_PREFIXES.has(config)) {
-      return jsonResponse(MEJORASTREMIO_HUB_MANIFEST);
+      return jsonResponse(getManifestWithVersion(reqUrl));
     }
   }
 

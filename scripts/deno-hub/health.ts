@@ -16,6 +16,7 @@ import {
   getSystemTelemetry,
   verifyTelemetryAuth,
 } from "./telemetry.ts";
+import { getTorboxTokenStatus } from "./utils/torbox_telemetry.ts";
 
 export async function handleHealth(reqUrl?: URL, req?: Request): Promise<Response> {
   const url = reqUrl || (req ? new URL(req.url) : new URL("http://localhost/health"));
@@ -53,6 +54,7 @@ export async function handleHealth(reqUrl?: URL, req?: Request): Promise<Respons
   const scrapers = getScrapersTelemetry();
   const torbox = getTorboxTelemetry();
   const system = getSystemTelemetry();
+  const torboxToken = await getTorboxTokenStatus();
 
   const probeAi = url.searchParams.has("probe_ai");
   const aiProbe = probeAi ? await runAiProbeTest() : undefined;
@@ -79,6 +81,7 @@ export async function handleHealth(reqUrl?: URL, req?: Request): Promise<Respons
       scrapers,
       torbox,
     },
+    torboxToken,
     system: {
       catalog: system.catalog,
     },

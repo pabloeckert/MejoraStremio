@@ -5,8 +5,21 @@
 import { cors, decodeSubtitleText } from "../utils/common.ts";
 import { rescaleSrtFramerate, cleanSrt } from "./smartsync.ts";
 import { extractSrtFromZip } from "./subdl.ts";
+import { verifyProxyUrl, getHmacProxyKeys, signProxyUrl } from "../utils/crypto_security.ts";
 
 export async function handleSubtitleProxy(url: URL): Promise<Response> {
+  // Verificación de firma criptográfica y expiración (P8) si la URL incluye sig o exp
+  if (url.searchParams.has("sig") || url.searchParams.has("exp")) {
+    const { activeKey, previousKey } = getHmacProxyKeys();
+    const verification = await verifyProxyUrl(url, activeKey, previousKey);
+    if (!verification.valid) {
+      if (verification.expired) {
+        return new Response("Firma de proxy expirada (anti-replay)", { status: 403, headers: cors });
+      }
+      return new Response("Firma HMAC de proxy invalida o manipulada", { status: 403, headers: cors });
+    }
+  }
+
   const targetUrl = url.searchParams.get("url");
   if (!targetUrl) {
     return new Response("Falta el parametro url", { status: 400, headers: cors });
@@ -76,4 +89,26 @@ export async function handleSubtitleProxy(url: URL): Promise<Response> {
   } catch (e) {
     return new Response(`Error proxying subtitle: ${(e as Error).message}`, { status: 500, headers: cors });
   }
+}
+
+/**
+ * Construye una URL firmada de proxy de subtítulos con expiración y HMAC-SHA256.
+ */
+export async function buildSignedSubtitleProxyUrl(
+  baseOrigin: string,
+  targetUrl: string,
+  extraParams?: Record<string, string>,
+  activeKeyOverride?: string,
+  ttlSeconds = 3600,
+): Promise<string> {
+  const { activeKey } = getHmacProxyKeys();
+  const keyToUse = activeKeyOverride || activeKey;
+  const u = new URL(`${baseOrigin.replace(/\/+$/, "")}/proxy`);
+  u.searchParams.set("url", targetUrl);
+  if (extraParams) {
+    for (const [k, v] of Object.entries(extraParams)) {
+      u.searchParams.set(k, v);
+    }
+  }
+  return await signProxyUrl(u, keyToUse, ttlSeconds);
 }

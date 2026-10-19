@@ -605,6 +605,23 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - Rotulado Mandatorio `[Traducción IA]`: Todas las pistas generativas de IA se emiten con la insignia `[Traducción IA]` visible en ExoPlayer/libmpv (ej. `⚡ 1. Latino (IA Gemini) · [Traducción IA]`).
 - **Certificación de la Suite**: `scripts/test-subtitles-p7.ts` (5/5 PASS), `scratch/test_subtitles_p7.ts` (5/5 PASS) y `test-tvbox-deep-e2e.mjs` (105/105 PASS).
 
+### 22.12 Seguridad Criptográfica, Rotación HMAC, Telemetría TorBox y Rollback Seguro (Bloque 6: P8)
+- **Validación Criptográfica y Mitigación de Timing Attacks**:
+  - `timingSafeEqual` y `timingSafeEqualString` en `scripts/deno-hub/utils/crypto_security.ts` garantizan comparación en tiempo constante tanto en bytes como strings hex, erradicando timing leaks a nivel de ciclo de CPU.
+  - Firma HMAC-SHA256 con inclusión obligatoria del timestamp de expiración (`exp`), previniendo ataques de alteración de parámetros y replay attacks (`403 Token expirado / Firma HMAC inválida`).
+- **Plan de Rotación Suave de Claves (Dual-Key Transition)**:
+  - Soporte canónico para `activeKey` y `previousKey` (`HMAC_PROXY_SECRET` / `HMAC_PROXY_PREVIOUS_SECRET`, `HMAC_TELEMETRY_SECRET` / `HMAC_TELEMETRY_PREVIOUS_SECRET`).
+  - La verificación evalúa primero la clave activa y, en caso de discrepancia, valida contra la clave previa. Esto permite rotar credenciales criptográficas en producción sin interrumpir sesiones de reproducción en curso ni provocar fallos en las TV Boxes.
+- **Telemetría y Alertas de Token TorBox (Zero-Secrets)**:
+  - `getTorboxTokenStatus()` monitorea periódicamente el token de TorBox contra `/v1/api/user/me` con caché en memoria de 1 hora.
+  - Expone en `/health`: `valid`, `active`, `plan`, `daysRemaining`, `isExpiringSoon` (alerta preventiva si restan $\le$ 7 días), `isExpired` y cuota descargada (`totalDownloadedBytes`).
+  - **Garantía Zero-Secrets**: El token y datos sensibles de usuario son estrictamente sanitizados, exponiendo únicamente métricas operativas de vigencia.
+- **Estrategia de Rollback Rápido con Baseline v1.4.1 y Cache-Busting Inverso**:
+  - `unified-hub.ts` soporta `?v=1.4.1` entregando el manifiesto etiquetado `[ROLLBACK BASELINE v1.4.1]`.
+  - `scripts/purge-and-unify-account.mjs --baseline-v141` conmuta la colección de la cuenta hacia `transportUrl` con `?v=1.4.1`, forzando a `stremio-core` en Android TV a invalidar su memoria RAM mediante cache-busting inverso y recargar la versión previa estable de inmediato sin requerir reinicio del decodificador ZTE B866V2.
+- **Certificación de la Suite**: `scripts/test-security-p8.ts` (5/5 PASS), `scratch/test_security_p8.ts` (5/5 PASS) y `test-tvbox-deep-e2e.mjs` (105/105 PASS).
+
+
 
 
 

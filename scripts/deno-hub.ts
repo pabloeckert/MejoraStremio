@@ -147,6 +147,26 @@ export {
   verifyTelemetryAuth,
 } from "./deno-hub/telemetry.ts";
 export {
+  timingSafeEqual,
+  timingSafeEqualString,
+  signProxyUrl,
+  verifyProxyUrl,
+  canonicalizeUrlForSigning,
+  getHmacProxyKeys,
+} from "./deno-hub/utils/crypto_security.ts";
+export {
+  getTorboxTokenStatus,
+  formatTorboxPlan,
+  defaultTorboxUserFetcher,
+  resetTorboxTelemetryCacheForTesting,
+} from "./deno-hub/utils/torbox_telemetry.ts";
+export {
+  buildSignedSubtitleProxyUrl,
+} from "./deno-hub/subtitles/proxy.ts";
+export {
+  getManifestWithVersion,
+} from "./deno-hub/unified-hub.ts";
+export {
   fetchCinemetaMeta,
   canonicalImdbId,
   sortMetasChronologicalDesc,

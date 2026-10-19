@@ -8,6 +8,9 @@
  * 4. Garantía Zero-Secrets: jamás expone tokens de TorBox, claves de APIs ni URLs internas.
  */
 
+import { timingSafeEqualString } from "./utils/crypto_security.ts";
+export { getTorboxTokenStatus } from "./utils/torbox_telemetry.ts";
+
 export interface LatencyPercentiles {
   p50Ms: number;
   p95Ms: number;
@@ -179,21 +182,28 @@ export async function verifyTelemetryAuth(url: URL, headers?: Headers): Promise<
     (typeof Deno !== "undefined" && Deno.env?.get?.("HMAC_TELEMETRY_SECRET")) ||
     (typeof process !== "undefined" && process.env?.HMAC_TELEMETRY_SECRET);
 
+  const prevHmacSecret =
+    (typeof Deno !== "undefined" && Deno.env?.get?.("HMAC_TELEMETRY_PREVIOUS_SECRET")) ||
+    (typeof process !== "undefined" && process.env?.HMAC_TELEMETRY_PREVIOUS_SECRET);
+
   // Si no se han establecido secretos de protección en el entorno, el acceso es libre (solo-lectura seguro)
   if (!envToken && !envHmacSecret) {
     return true;
   }
 
-  // 1. Verificación por Token Simple
+  // 1. Verificación por Token Simple (en tiempo constante)
   if (envToken) {
     const queryToken = url.searchParams.get("token");
     const headerToken = headers?.get("x-telemetry-token") || headers?.get("authorization")?.replace(/^Bearer\s+/i, "");
-    if (queryToken === envToken || headerToken === envToken) {
+    if (queryToken && timingSafeEqualString(queryToken, envToken)) {
+      return true;
+    }
+    if (headerToken && timingSafeEqualString(headerToken, envToken)) {
       return true;
     }
   }
 
-  // 2. Verificación por Firma HMAC
+  // 2. Verificación por Firma HMAC (tiempo constante + soporte de clave previa)
   if (envHmacSecret) {
     const sig = url.searchParams.get("sig") || headers?.get("x-telemetry-signature");
     const timestampStr = url.searchParams.get("timestamp") || headers?.get("x-telemetry-timestamp");
@@ -204,8 +214,15 @@ export async function verifyTelemetryAuth(url: URL, headers?: Headers): Promise<
       // Ventana de tolerancia: 5 minutos (300.000 ms)
       if (!isNaN(ts) && Math.abs(now - ts) <= 300000) {
         const expectedSig = await generateHmacSignature(timestampStr, envHmacSecret);
-        if (sig.toLowerCase() === expectedSig.toLowerCase()) {
+        if (timingSafeEqualString(sig.toLowerCase(), expectedSig.toLowerCase())) {
           return true;
+        }
+        // Soporte de clave previa durante ventana de rotación
+        if (prevHmacSecret && prevHmacSecret !== envHmacSecret) {
+          const expectedPrev = await generateHmacSignature(timestampStr, prevHmacSecret);
+          if (timingSafeEqualString(sig.toLowerCase(), expectedPrev.toLowerCase())) {
+            return true;
+          }
         }
       }
     }

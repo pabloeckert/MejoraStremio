@@ -26,18 +26,20 @@ jobs:
 
       - name: Health-check (jn)
         if: inputs.account == 'jn'
+        env:
+          ST_EMAIL: ${{ secrets['STREMIO_EMAIL_JN'] || '' }}
+          ST_PASS: ${{ secrets['STREMIO_PASS_JN'] || '' }}
         run: |
           set -o pipefail
-          ST_EMAIL="${{ secrets.STREMIO_EMAIL_JN }}" \
-          ST_PASS="${{ secrets.STREMIO_PASS_JN }}" \
           node scripts/health-check.mjs
 
       - name: Watch-log (jn)
         if: inputs.account == 'jn'
+        env:
+          ST_EMAIL: ${{ secrets['STREMIO_EMAIL_JN'] || '' }}
+          ST_PASS: ${{ secrets['STREMIO_PASS_JN'] || '' }}
         run: |
           set -o pipefail
-          ST_EMAIL="${{ secrets.STREMIO_EMAIL_JN }}" \
-          ST_PASS="${{ secrets.STREMIO_PASS_JN }}" \
           node scripts/watch-log.mjs
 
       - name: Health-check (teen)

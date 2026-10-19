@@ -182,6 +182,10 @@ export class MediaFlowCircuitBreaker {
         await new Promise((r) => setTimeout(r, delay));
       }
 
+      if (!committed) {
+        console.warn(`[CircuitBreaker] No se pudo persistir métrica atómica para ${service} tras ${maxRetries} reintentos`);
+      }
+
       // Evaluar estado actual
       const stateEntry = await kv.get<{ state: CircuitState; lastChange: number }>(["circuit_state", service]);
       const currentState = stateEntry.value?.state || "CLOSED";

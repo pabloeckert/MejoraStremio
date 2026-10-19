@@ -48,6 +48,12 @@ import {
   buildTranslateSystemPrompt,
   cleanCueForTranslation,
 } from "./gemini.ts";
+import {
+  putCachedSub,
+  getCachedSub,
+  calculateSha256,
+  type SubCacheKeyParams,
+} from "./kv_sub_cache.ts";
 
 export const TRANSLATE_MANIFEST = {
   id: "com.mejorastremio.translate",
@@ -678,6 +684,9 @@ export async function handleTranslate(
         r: b.keyRef,
         name: showTitle,
         lang: b.srcLang || "en",
+        id: imdbId,
+        s: season ?? 0,
+        ep: episode ?? 0,
       };
       const mainLabel = "⚡ 1. Latino (IA Gemini) · [Traducción Automática]";
       const label = i === 0
@@ -713,7 +722,7 @@ export async function handleTranslate(
       });
     }
 
-    let src: { t: string; u?: string; f?: number; r: string; name?: string; lang?: string };
+    let src: { t: string; u?: string; f?: number; r: string; name?: string; lang?: string; id?: string; s?: number; ep?: number };
     try {
       if (xM) {
         const u = b64u.dec(xM[1]);
@@ -754,12 +763,28 @@ export async function handleTranslate(
     }
 
     const cacheKey = ["translate-srt", "v9", src.r];
+    const subCacheParams: SubCacheKeyParams = {
+      tmdb_id: src.id || src.r || "unknown",
+      season: src.s ?? 0,
+      episode: src.ep ?? 0,
+      lang: "spl",
+      sourceSrtHash: await calculateSha256(src.u || src.r || src.name || "default"),
+    };
+
     let kv: Deno.Kv | null = null;
     try {
       kv = await getKv();
-      const hit = await kv.get<string>(cacheKey);
-      if (hit.value) {
-        return new Response(hit.value, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+      if (kv) {
+        // 1. Intento de lectura en caché fragmentada Gzip (P1 + P2)
+        const cachedSub = await getCachedSub(kv, subCacheParams);
+        if (cachedSub?.srt) {
+          return new Response(cachedSub.srt, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+        }
+        // Fallback a clave legacy si existe
+        const hit = await kv.get<string>(cacheKey);
+        if (hit.value) {
+          return new Response(hit.value, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+        }
       }
     } catch { kv = null; }
 
@@ -800,7 +825,16 @@ export async function handleTranslate(
       srt = cleanSrt(srt);
 
       if (kv && done) {
-        try { await kv.set(cacheKey, srt, { expireIn: TRANSLATE_CACHE_TTL_MS }); } catch { /* sin cache */ }
+        try {
+          await kv.set(cacheKey, srt, { expireIn: TRANSLATE_CACHE_TTL_MS });
+          // Persistencia en P1 + P2 con criterio estricto y chunking
+          await putCachedSub(kv, subCacheParams, {
+            srt,
+            smartSync: { ratio: 1.0 },
+            allBatchesOk: true,
+            timestamp: Date.now(),
+          });
+        } catch { /* sin cache */ }
       }
       return new Response(srt, {
         headers: {

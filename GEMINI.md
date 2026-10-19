@@ -533,4 +533,13 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Two-Anchor SmartSync**: Funciones `calculateTwoAnchorTransform` y `rescaleSrtWithTwoAnchors` para calibración milimétrica de desfase temporal con dos puntos de referencia.
 - **Certificación E2E Total**: Suite de pruebas `test-tvbox-deep-e2e.mjs` completada con **105 de 105 verificaciones superadas (100.0% PASS)** y deploy exitoso en Deno Deploy (Run ID `39151128335`).
 
+### 22.7 Persistencia Deno KV de Subtítulos IA (Bloque 1: P1 + P2)
+- **Estructura de Clave Composite**: `["sub", "ai", tmdb_id, season, episode, lang, hash(srt_fuente)]` con TTL estricto de 60 días (`5_184_000_000` ms).
+- **Criterio de Inclusión Estricto**: Únicamente se almacena si el 100% de los sub-lotes de 18 cues responden OK (`allBatchesOk === true`). Se descartan de forma defensiva resultados parciales o degradados.
+- **Mecanismo Single-Flight (Lock Atómico)**: Candado temporal en `["sub", "lock", ...]` adquirido atómicamente con `kv.atomic().check()`, impidiendo que peticiones concurrentes dupliquen consultas a la API de Gemini.
+- **Compresión Gzip y Fragmentación (Chunks ≤60 KiB)**: Pipeline nativo `CompressionStream("gzip")`. Si el payload comprimido excede 60 KiB, se fragmenta en subclaves `["chunk", n]` con manifest de commit `["manifest"]` conteniendo `{ n_chunks, bytes, sha256 }`.
+- **Lectura Atómica y Purga Defensiva**: Reconstrucción con `kv.getMany()`, validación estricta de hash SHA-256 y descompresión con `DecompressionStream("gzip")`. Ante cualquier alteración o chunk faltante, purga automática de entradas y retorno de `cache miss`.
+- **Suite de Pruebas**: Test unitario `scratch/test_kv_sub_cache.ts` superó **7 de 7 pasos con éxito (100% PASS)** validando SRT masivo (>100 KiB), compresión, chunking real ($n \ge 2$), candado single-flight y descompresión limpia.
+
+
 

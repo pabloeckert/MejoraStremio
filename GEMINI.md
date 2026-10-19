@@ -575,6 +575,21 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - Protección de acceso mediante Token simple (`TELEMETRY_TOKEN`) y Firma HMAC-SHA256 (`HMAC_TELEMETRY_SECRET`).
 - **Certificación de la Suite**: `scripts/test-cb-health-p3-p4.ts` (5/5 PASS) y `test-tvbox-deep-e2e.mjs` (105/105 PASS).
 
+### 22.10 Estrategia SWR, Segmentación de Cachés y Verificación de Streams Instantáneos (Bloque 4: P5)
+- **Segmentación de TTL por Tipo**:
+  - Catálogos y Metadatos (TMDB/Cinemeta): Ventana fresca de 24 horas y ventana stale de 24 horas (`totalTtlMs = 48h`).
+  - Streams de Scrapers: Ventana fresca de 15 minutos y ventana stale de 5 minutos (`totalTtlMs = 20m`).
+  - Subtítulos: Ventana fresca de 15 minutos y ventana stale de 5 minutos (`totalTtlMs = 20m`).
+- **Control de Thundering Herd y Deduplicación Atómica**:
+  - Implementación de candado atómico de corta duración (`["swr", "lock", ...cacheKey]`) con expiración automática de 30 segundos en Deno KV.
+  - Únicamente una sola petición concurrente en segundo plano adquiere el lock y ejecuta el fetcher ante la expiración de la ventana fresca.
+  - El 100% de las demás solicitudes concurrentes reciben de inmediato el dato *stale* sin latencia ni bloqueos de red (cero *thundering herd*).
+- **Verificación Obligatoria para Streams Instantáneos (`[⚡ INSTANTÁNEO]`)**:
+  - Prohibición estricta de servir datos *stale* marcados como `[⚡ INSTANTÁNEO]` (TorBox Debrid) sin re-verificar activamente en tiempo real si el hash sigue almacenado en la caché de TorBox (`verifyTorboxInstantStreams()`).
+  - Si un hash fue purgado o desalojado de TorBox, el stream es degradado defensivamente a `[⏳ REQUIERE BUFFER]` y `[TB download]`, previniendo falsos positivos de disponibilidad y bloqueos de reproducción en la TV Box.
+- **Suite de Pruebas y Certificación**: `scripts/test-swr-p5.ts` y `scratch/test_swr_p5.ts` superaron **5 de 5 pasos con éxito (100% PASS)** y la suite completa `test-tvbox-deep-e2e.mjs` certificó **105 de 105 verificaciones (100.0% PASS)**.
+
+
 
 
 

@@ -454,45 +454,14 @@ export function shouldProxyMediaStream(url?: string): boolean {
   }
 }
 
-export async function getOrSetSwrCache<T>(
-  cacheKey: (string | number)[],
-  fetcher: () => Promise<T>,
-  ttlMs = 15 * 60 * 1000,
-  staleMs = 5 * 60 * 1000,
-): Promise<T> {
-  if (typeof Deno === "undefined" || !Deno.openKv) {
-    return await fetcher();
-  }
-  try {
-    const kv = await getKv();
-    const entry = await kv.get<{ data: T; timestamp: number }>(cacheKey);
-    const now = Date.now();
-
-    if (entry.value) {
-      const isStale = now - entry.value.timestamp > staleMs;
-      if (isStale) {
-        fetcher()
-          .then(async (fresh) => {
-            try {
-              await kv.set(cacheKey, { data: fresh, timestamp: Date.now() }, { expireIn: ttlMs });
-            } catch {
-              /* ignore */
-            }
-          })
-          .catch(() => {
-            /* ignore */
-          });
-      }
-      return entry.value.data;
-    }
-
-    const fresh = await fetcher();
-    await kv.set(cacheKey, { data: fresh, timestamp: now }, { expireIn: ttlMs });
-    return fresh;
-  } catch {
-    return await fetcher();
-  }
-}
+export {
+  getOrSetSwrCache,
+  TTL_SEGMENTS,
+  verifyTorboxInstantStreams,
+  queryTorboxApiCheckCached,
+  type SwrOptions,
+  type TorboxCacheChecker,
+} from "../utils/swr_cache.ts";
 
 /**
  * Aplica MediaFlow Proxy a la lista de streams con protección del Circuit Breaker y Failover en Cadena:

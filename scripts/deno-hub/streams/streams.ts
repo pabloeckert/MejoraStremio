@@ -21,6 +21,7 @@ import {
   globalMediaFlowCircuitBreaker,
 } from "./mediaflow.ts";
 import { recordScraperLatency, recordTorboxLatency } from "../telemetry.ts";
+import { getOrSetSwrCache, TTL_SEGMENTS } from "../utils/swr_cache.ts";
 
 export const STREAMS_MANIFEST = {
   id: "com.mejorastremio.streams",
@@ -373,44 +374,58 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
   const isTheWalk = cleanId.startsWith("tt3488710") || cleanId.startsWith("tt3488720");
   const targetIds = isTheWalk ? ["tt3488710", "tt3488720"] : [cleanId];
 
+  const cacheKey = ["streams_v142", type, cleanId, configSegment || "default"];
+
   try {
-    const responses = await Promise.allSettled(
-      targetIds.map(async (tid) => {
-        const targetUrl = `${upstreamBase}stream/${type}/${tid}.json`;
-        return await fetchStreamEndpoint(targetUrl, 15000);
-      })
-    );
+    const rawStreams = await getOrSetSwrCache<StremioStreamItem[]>(
+      cacheKey,
+      async () => {
+        const responses = await Promise.allSettled(
+          targetIds.map(async (tid) => {
+            const targetUrl = `${upstreamBase}stream/${type}/${tid}.json`;
+            return await fetchStreamEndpoint(targetUrl, 15000);
+          })
+        );
 
-    const rawStreams: StremioStreamItem[] = [];
-    const seen = new Set<string>();
+        const collected: StremioStreamItem[] = [];
+        const seen = new Set<string>();
 
-    for (const r of responses) {
-      if (r.status === "fulfilled") {
-        for (const s of r.value) {
-          const key = String(s.infoHash || s.url || s.ytId || `${s.title}-${s.name}`);
-          if (!seen.has(key)) {
-            seen.add(key);
-            rawStreams.push(s);
+        for (const r of responses) {
+          if (r.status === "fulfilled") {
+            for (const s of r.value) {
+              const key = String(s.infoHash || s.url || s.ytId || `${s.title}-${s.name}`);
+              if (!seen.has(key)) {
+                seen.add(key);
+                collected.push(s);
+              }
+            }
           }
         }
-      }
-    }
 
-    // Solución Anti-Portadas Vacías: si devuelve 0 streams, activar fallback por Título + Año en TorBox y Cinemeta
-    if (rawStreams.length === 0) {
-      const fallbackStreams = await resolveFallbackStreams(type, cleanId, upstreamBase);
-      for (const s of fallbackStreams) {
-        const key = String(s.infoHash || s.url || s.ytId || `${s.title}-${s.name}`);
-        if (!seen.has(key)) {
-          seen.add(key);
-          rawStreams.push(s);
+        // Solución Anti-Portadas Vacías: si devuelve 0 streams, activar fallback por Título + Año en TorBox y Cinemeta
+        if (collected.length === 0) {
+          const fallbackStreams = await resolveFallbackStreams(type, cleanId, upstreamBase);
+          for (const s of fallbackStreams) {
+            const key = String(s.infoHash || s.url || s.ytId || `${s.title}-${s.name}`);
+            if (!seen.has(key)) {
+              seen.add(key);
+              collected.push(s);
+            }
+          }
         }
-      }
-    }
 
-    const ranked = rankAndBadgeStreams(rawStreams);
+        return rankAndBadgeStreams(collected);
+      },
+      {
+        ttlMs: TTL_SEGMENTS.SCRAPER_STREAMS.freshMs,
+        staleMs: TTL_SEGMENTS.SCRAPER_STREAMS.staleMs,
+        type: "streams",
+        isStreamsData: true,
+      }
+    );
+
     const mfConfig = getMediaFlowConfig(url, configSegment);
-    const finalStreams = applyMediaFlowToStreams(ranked, mfConfig, globalMediaFlowCircuitBreaker);
+    const finalStreams = applyMediaFlowToStreams(rawStreams, mfConfig, globalMediaFlowCircuitBreaker);
     return jsonResponse({ streams: finalStreams });
   } catch (err) {
     console.error(`[streams] Error fetching upstream torrentio: ${(err as Error).message}`);

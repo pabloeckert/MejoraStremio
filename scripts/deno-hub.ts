@@ -92,6 +92,10 @@ export {
   applyMediaFlowToStreams,
   buildMediaFlowStreamUrl,
   shouldProxyMediaStream,
+  getOrSetSwrCache,
+  TTL_SEGMENTS,
+  verifyTorboxInstantStreams,
+  queryTorboxApiCheckCached,
 } from "./deno-hub/streams/mediaflow.ts";
 
 export { SUBDL_MANIFEST } from "./deno-hub/subtitles/subdl.ts";

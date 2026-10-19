@@ -621,6 +621,26 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - `scripts/purge-and-unify-account.mjs --baseline-v141` conmuta la colección de la cuenta hacia `transportUrl` con `?v=1.4.1`, forzando a `stremio-core` en Android TV a invalidar su memoria RAM mediante cache-busting inverso y recargar la versión previa estable de inmediato sin requerir reinicio del decodificador ZTE B866V2.
 - **Certificación de la Suite**: `scripts/test-security-p8.ts` (5/5 PASS), `scratch/test_security_p8.ts` (5/5 PASS) y `test-tvbox-deep-e2e.mjs` (105/105 PASS).
 
+### 22.13 Extensión Remota Multi-Perfil (`stremiojn`, `solotveg`), Monopolio Canónico y Caché Global de IA (Bloque 7: P9)
+- **Unificación y Sincronización Remota de Cuentas Secundarias**:
+  - `scripts/purge-and-unify-account.mjs` refactorizado para soporte multi-cuenta (`--account <eg|solotveg|stremiojn|all>`, `--email`, `--pass`, `--dry-run`, `--apply`, `--baseline-v141`).
+  - Creación del workflow de CI/CD `.github/workflows/purge-and-unify-account.yml` permitiendo ejecución remota segura y auditada.
+- **Mutación Atómica y Monopolio de 2 Addons en `solotveg@gmail.com`**:
+  - Se ejecutó auditoría visual previa con `--dry-run`, identificando y purgando **21 addons secundarios caóticos** (Comet, SubDL, SubSense, AI Search, Descubrir Maestro, Miniseries, YouTube, etc.).
+  - Mutación confirmada en vivo en la API de Stremio (`addonCollectionSet`), dejando exclusivamente los **2 addons canónicos**:
+    1. `[0] com.mejorastremio.hub` (v1.4.2): TorBox Latino + Subtítulos IA + SmartSync.
+    2. `[1] com.linvo.cinemeta` (v3.0.14): Metadatos oficiales de Stremio.
+  - Snapshot de respaldo generado en `.backups/backup-solotveg-pre-purge-atomic-2026-10-19T02-15-26.json`.
+- **Estandarización y Gobernanza Formal de `stremiojn@gmail.com`**:
+  - Creación formal del directorio y perfiles `cuentas/stremiojn/profile.json` y `cuentas/stremiojn/GEMINI.md`, resolviendo la deuda técnica de directorio fantasma documentada en auditorías forenses.
+  - Estandarización idéntica para `cuentas/solotveg/profile.json` y `cuentas/solotveg/GEMINI.md`.
+  - Mecanismo defensivo ante credenciales no configuradas (`stremiojn`), emitiendo advertencia clara sin abortar el flujo multi-perfil.
+- **Aprovechamiento de la Caché Global de IA Compartida (Deno KV)**:
+  - Todas las cuentas del hogar (`stremioeg`, `solotveg`, `stremiojn`) se enlazan a la misma instancia central de `com.mejorastremio.hub` (`mejorastremio-hub.pabloeckert.deno.net`).
+  - Las traducciones generativas de Gemini Flash persistidas bajo la clave composite `["sub", "ai", tmdb_id, season, episode, lang, hash]` son compartidas globalmente por todos los perfiles, eliminando consumo duplicado de tokens de IA y garantizando disponibilidad inmediata sin latencia en la TV Box ZTE B866V2.
+- **Certificación de la Suite**: `scripts/test-multi-account-p9.ts` (5/5 PASS), `scratch/test_multi_account_p9.ts` (5/5 PASS) y `test-tvbox-deep-e2e.mjs` (105/105 PASS).
+
+
 
 
 

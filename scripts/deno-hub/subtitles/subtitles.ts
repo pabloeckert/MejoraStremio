@@ -4,6 +4,7 @@ import { callGemini, buildTranslateSystemPrompt, NL } from "../translate/gemini.
 import { parseStremioSubId, releaseSimilarity } from "../utils/common.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./smartsync.ts";
 import { getOrSetSwrCache } from "../streams/mediaflow.ts";
+import { recordScraperLatency } from "../telemetry.ts";
 
 export const subtitlesApp = new Hono();
 
@@ -76,13 +77,40 @@ export function sanitizeLatinSpanishTracks(rawTracks: any[]): any[] {
   });
 }
 
-export async function withScraperTimeout<T>(promise: Promise<T[]>, timeoutMs = 450): Promise<T[]> {
+export async function withScraperTimeout<T>(
+  promise: Promise<T[]>,
+  timeoutMs = 450,
+  scraperName?: string
+): Promise<T[]> {
+  const start = Date.now();
+  let timerId: number | undefined;
   try {
-    return await Promise.race([
-      promise,
-      new Promise<T[]>((resolve) => setTimeout(() => resolve([]), timeoutMs)),
+    const timeoutPromise = new Promise<T[]>((resolve) => {
+      // @ts-ignore timer
+      timerId = setTimeout(() => {
+        if (scraperName) {
+          recordScraperLatency(scraperName, timeoutMs, true);
+        }
+        resolve([]);
+      }, timeoutMs);
+    });
+
+    const result = await Promise.race([
+      promise.then((res) => {
+        if (timerId !== undefined) clearTimeout(timerId);
+        if (scraperName) {
+          recordScraperLatency(scraperName, Date.now() - start, false);
+        }
+        return res;
+      }),
+      timeoutPromise,
     ]);
+    return result;
   } catch {
+    if (timerId !== undefined) clearTimeout(timerId);
+    if (scraperName) {
+      recordScraperLatency(scraperName, Date.now() - start, false);
+    }
     return [];
   }
 }
@@ -254,10 +282,10 @@ async function handleSubtitlesRoute(_type: string, rawId: string, reqUrl: URL): 
     cacheKey,
     async () => {
       const results = await Promise.allSettled([
-        withScraperTimeout(fetchSubDL(imdbId, season, episode), 450),
-        withScraperTimeout(fetchOpenSubtitlesV3(imdbId, season, episode), 450),
-        withScraperTimeout(fetchSubSource(imdbId), 450),
-        withScraperTimeout(fetchWyzieSubs(imdbId, season, episode), 450),
+        withScraperTimeout(fetchSubDL(imdbId, season, episode), 450, "subdl"),
+        withScraperTimeout(fetchOpenSubtitlesV3(imdbId, season, episode), 450, "opensubtitles"),
+        withScraperTimeout(fetchSubSource(imdbId), 450, "subsource"),
+        withScraperTimeout(fetchWyzieSubs(imdbId, season, episode), 450, "wyziesubs"),
       ]);
       return results.flatMap((r) => (r.status === "fulfilled" && Array.isArray(r.value) ? r.value : []));
     },

@@ -22,6 +22,10 @@ export interface CircuitBreakerStatus {
   lastError: string | null;
   cooldownRemainingMs: number;
   fallbackToDirectTorbox: boolean;
+  halfOpenSuccessThreshold?: number;
+  errorRate10s?: number;
+  totalRequests10s?: number;
+  errors10s?: number;
 }
 
 export interface MediaFlowConfig {
@@ -37,13 +41,31 @@ export class MediaFlowCircuitBreaker {
   private lastFailureTime: number | null = null;
   private lastSuccessTime: number | null = null;
   private lastError: string | null = null;
+  private window10s = { bucket: 0, total: 0, errors: 0 };
 
   readonly failureThreshold: number;
   readonly recoveryTimeoutMs: number;
+  readonly halfOpenSuccessThreshold: number;
 
-  constructor(failureThreshold = 3, recoveryTimeoutMs = 30000) {
+  constructor(failureThreshold = 3, recoveryTimeoutMs = 30000, halfOpenSuccessThreshold = 3) {
     this.failureThreshold = failureThreshold;
     this.recoveryTimeoutMs = recoveryTimeoutMs;
+    this.halfOpenSuccessThreshold = halfOpenSuccessThreshold;
+  }
+
+  /**
+   * Discrimina si un error es exclusivo del Proxy MediaFlow (5xx, conexión caída, timeout de proxy)
+   * o si corresponde a un timeout/falla normal de scrapers de terceros (que NO deben abrir el circuito).
+   */
+  isProxyError(errOrStatus: unknown): boolean {
+    if (typeof errOrStatus === "number") {
+      return errOrStatus >= 500;
+    }
+    const msg = String(errOrStatus || "").toLowerCase();
+    if (msg.includes("scraper timeout") || msg.includes("subdl") || msg.includes("opensubtitles") || msg.includes("wyzie")) {
+      return false; // Error de scraper aislado
+    }
+    return msg.includes("mediaflow") || msg.includes("proxy") || msg.includes("econnrefused") || msg.includes("failed to fetch");
   }
 
   /**
@@ -69,10 +91,10 @@ export class MediaFlowCircuitBreaker {
   /**
    * Circuit Breaker Distribuido con Deno KV:
    * Ventanas deslizantes de 10s. Estado OPEN al superar 50% de error sobre mínimo 10 pedidos.
-   * Candado atómico (kv.atomic().check()) para prueba única en HALF_OPEN.
+   * Candado atómico (kv.atomic().check()) para prueba controlada en HALF_OPEN.
    */
   async canAttemptDistributed(service = "mediaflow"): Promise<boolean> {
-    if (typeof Deno === "undefined" || !Deno.openKv) {
+    if (typeof Deno === "undefined" || typeof Deno.openKv !== "function") {
       return this.canAttempt();
     }
     try {
@@ -88,51 +110,124 @@ export class MediaFlowCircuitBreaker {
           const lockKey = ["circuit_half_open_lock", service];
           const lockRes = await kv.atomic()
             .check({ key: lockKey, versionstamp: null })
-            .set(lockKey, Date.now(), { expireIn: 5000 })
+            .set(lockKey, Date.now(), { expireIn: 10000 })
             .commit();
 
           if (lockRes.ok) {
             await kv.set(["circuit_state", service], { state: "HALF_OPEN", lastChange: Date.now() });
+            await kv.set(["circuit_half_open_successes", service], 0, { expireIn: 30000 });
             this.state = "HALF_OPEN";
+            this.consecutiveSuccesses = 0;
             return true;
           }
         }
         return false;
       }
 
-      return true;
+      return true; // HALF_OPEN -> Permitir tráfico de sondeo
     } catch {
       return this.canAttempt();
     }
   }
 
-  async recordResultDistributed(success: boolean, service = "mediaflow"): Promise<void> {
-    if (typeof Deno === "undefined" || !Deno.openKv) {
+  /**
+   * Registra resultado en Deno KV con:
+   * 1. Aislamiento estricto de timeouts de scrapers (no alteran tasa de error del proxy).
+   * 2. Reintentos con backoff exponencial + jitter ante contención en kv.atomic().
+   * 3. Histéresis en HALF_OPEN: exige N éxitos consecutivos para volver a CLOSED, o revierte a OPEN ante 1 falla.
+   */
+  async recordResultDistributed(success: boolean, service = "mediaflow", isScraperTimeout = false): Promise<void> {
+    if (isScraperTimeout) {
+      // Regla inviolable: los timeouts de scrapers (450ms) NO computan como fallo del Proxy
+      return;
+    }
+
+    if (typeof Deno === "undefined" || typeof Deno.openKv !== "function") {
       if (success) this.recordSuccess(); else this.recordFailure();
       return;
     }
+
     try {
       const kv = await getKv();
       const windowBucket = Math.floor(Date.now() / 10000);
       const metricsKey = ["circuit_metrics", service, windowBucket];
 
-      const res = await kv.get<{ total: number; errors: number }>(metricsKey);
-      const prev = res.value || { total: 0, errors: 0 };
-      const next = {
-        total: prev.total + 1,
-        errors: prev.errors + (success ? 0 : 1),
-      };
+      // Reintentos con backoff exponencial + jitter para resolver contención en kv.atomic()
+      const maxRetries = 15;
+      const baseDelayMs = 5;
+      let committed = false;
+      let nextMetrics = { total: 0, errors: 0 };
 
-      await kv.set(metricsKey, next, { expireIn: 60000 });
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const res = await kv.get<{ total: number; errors: number }>(metricsKey);
+        const prev = res.value || { total: 0, errors: 0 };
+        nextMetrics = {
+          total: prev.total + 1,
+          errors: prev.errors + (success ? 0 : 1),
+        };
 
-      if (next.total >= 10 && (next.errors / next.total) > 0.50) {
-        await kv.set(["circuit_state", service], { state: "OPEN", lastChange: Date.now() });
-        this.state = "OPEN";
-      } else if (success) {
-        const stateEntry = await kv.get<{ state: CircuitState }>(["circuit_state", service]);
-        if (stateEntry.value?.state === "HALF_OPEN") {
-          await kv.set(["circuit_state", service], { state: "CLOSED", lastChange: Date.now() });
-          this.state = "CLOSED";
+        const commitRes = await kv.atomic()
+          .check(res)
+          .set(metricsKey, nextMetrics, { expireIn: 60000 })
+          .commit();
+
+        if (commitRes.ok) {
+          committed = true;
+          break;
+        }
+
+        // Backoff exponencial + jitter: min(250, (2^min(attempt, 6) * 5ms) + random)
+        const jitter = Math.random() * 25;
+        const delay = Math.min(250, Math.pow(2, Math.min(attempt, 6)) * baseDelayMs + jitter);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+
+      // Evaluar estado actual
+      const stateEntry = await kv.get<{ state: CircuitState; lastChange: number }>(["circuit_state", service]);
+      const currentState = stateEntry.value?.state || "CLOSED";
+
+      if (currentState === "HALF_OPEN") {
+        if (success) {
+          // Histéresis: N éxitos consecutivos requeridos para volver a CLOSED
+          const successesKey = ["circuit_half_open_successes", service];
+          let currentSuccesses = 0;
+
+          for (let attempt = 0; attempt < 5; attempt++) {
+            const scRes = await kv.get<number>(successesKey);
+            currentSuccesses = (scRes.value || 0) + 1;
+            const cRes = await kv.atomic().check(scRes).set(successesKey, currentSuccesses, { expireIn: 30000 }).commit();
+            if (cRes.ok) break;
+            await new Promise((r) => setTimeout(r, 5 + Math.random() * 10));
+          }
+
+          if (currentSuccesses >= this.halfOpenSuccessThreshold) {
+            await kv.atomic()
+              .set(["circuit_state", service], { state: "CLOSED", lastChange: Date.now() })
+              .delete(successesKey)
+              .delete(["circuit_half_open_lock", service])
+              .commit();
+            this.state = "CLOSED";
+            this.consecutiveFailures = 0;
+            this.consecutiveSuccesses = currentSuccesses;
+          }
+        } else {
+          // En HALF_OPEN, una sola falla revierte de inmediato a OPEN (anti-flapping)
+          await kv.atomic()
+            .set(["circuit_state", service], { state: "OPEN", lastChange: Date.now() })
+            .delete(["circuit_half_open_successes", service])
+            .delete(["circuit_half_open_lock", service])
+            .commit();
+          this.state = "OPEN";
+          this.consecutiveFailures++;
+          this.consecutiveSuccesses = 0;
+          this.lastFailureTime = Date.now();
+        }
+      } else if (currentState === "CLOSED") {
+        // En CLOSED: si supera 50% de error sobre mínimo 10 pedidos, abrir el circuito
+        if (nextMetrics.total >= 10 && nextMetrics.errors / nextMetrics.total > 0.50) {
+          await kv.set(["circuit_state", service], { state: "OPEN", lastChange: Date.now() });
+          this.state = "OPEN";
+          this.lastFailureTime = Date.now();
         }
       }
     } catch {
@@ -141,13 +236,47 @@ export class MediaFlowCircuitBreaker {
   }
 
   /**
-   * Registra éxito al contactar el proxy residencial.
+   * Obtiene la tasa de error y total de peticiones en la ventana deslizante de 10s.
+   */
+  async getErrorRate10s(service = "mediaflow"): Promise<{ total: number; errors: number; rate: number }> {
+    if (typeof Deno !== "undefined" && typeof Deno.openKv === "function") {
+      try {
+        const kv = await getKv();
+        const windowBucket = Math.floor(Date.now() / 10000);
+        const metricsKey = ["circuit_metrics", service, windowBucket];
+        const res = await kv.get<{ total: number; errors: number }>(metricsKey);
+        const data = res.value || { total: 0, errors: 0 };
+        const rate = data.total > 0 ? Math.round((data.errors / data.total) * 1000) / 1000 : 0;
+        return { total: data.total, errors: data.errors, rate };
+      } catch {
+        // Fallback a memoria
+      }
+    }
+    const currentBucket = Math.floor(Date.now() / 10000);
+    if (this.window10s.bucket !== currentBucket) {
+      return { total: 0, errors: 0, rate: 0 };
+    }
+    const rate = this.window10s.total > 0
+      ? Math.round((this.window10s.errors / this.window10s.total) * 1000) / 1000
+      : 0;
+    return { total: this.window10s.total, errors: this.window10s.errors, rate };
+  }
+
+  /**
+   * Registra éxito en memoria. Respeta histéresis de N éxitos en HALF_OPEN.
    */
   recordSuccess(): void {
     this.lastSuccessTime = Date.now();
+    const currentBucket = Math.floor(Date.now() / 10000);
+    if (this.window10s.bucket !== currentBucket) {
+      this.window10s = { bucket: currentBucket, total: 1, errors: 0 };
+    } else {
+      this.window10s.total++;
+    }
+
     if (this.state === "HALF_OPEN") {
       this.consecutiveSuccesses++;
-      if (this.consecutiveSuccesses >= 1) {
+      if (this.consecutiveSuccesses >= this.halfOpenSuccessThreshold) {
         this.state = "CLOSED";
         this.consecutiveFailures = 0;
         this.lastError = null;
@@ -159,15 +288,27 @@ export class MediaFlowCircuitBreaker {
   }
 
   /**
-   * Registra falla en el proxy residencial. Si supera el umbral, abre el circuito.
+   * Registra falla en memoria. Si es timeout de scraper, NO afecta al proxy.
    */
-  recordFailure(error?: Error | string): void {
+  recordFailure(error?: Error | string, isScraperTimeout = false): void {
+    if (isScraperTimeout) {
+      return; // Aislamiento de scrapers
+    }
     this.consecutiveFailures++;
     this.lastFailureTime = Date.now();
     this.lastError = error ? String(error) : "MediaFlow unreachable";
 
+    const currentBucket = Math.floor(Date.now() / 10000);
+    if (this.window10s.bucket !== currentBucket) {
+      this.window10s = { bucket: currentBucket, total: 1, errors: 1 };
+    } else {
+      this.window10s.total++;
+      this.window10s.errors++;
+    }
+
     if (this.state === "HALF_OPEN" || this.consecutiveFailures >= this.failureThreshold) {
       this.state = "OPEN";
+      this.consecutiveSuccesses = 0;
     }
   }
 
@@ -189,6 +330,12 @@ export class MediaFlowCircuitBreaker {
     const cooldownRemainingMs =
       this.state === "OPEN" ? Math.max(0, this.recoveryTimeoutMs - elapsed) : 0;
 
+    const currentBucket = Math.floor(Date.now() / 10000);
+    const hasBucket = this.window10s.bucket === currentBucket;
+    const total10s = hasBucket ? this.window10s.total : 0;
+    const errors10s = hasBucket ? this.window10s.errors : 0;
+    const errorRate10s = total10s > 0 ? Math.round((errors10s / total10s) * 1000) / 1000 : 0;
+
     return {
       state: this.state,
       consecutiveFailures: this.consecutiveFailures,
@@ -198,6 +345,10 @@ export class MediaFlowCircuitBreaker {
       lastError: this.lastError,
       cooldownRemainingMs,
       fallbackToDirectTorbox: this.state === "OPEN",
+      halfOpenSuccessThreshold: this.halfOpenSuccessThreshold,
+      errorRate10s,
+      totalRequests10s: total10s,
+      errors10s,
     };
   }
 

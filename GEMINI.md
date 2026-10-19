@@ -558,6 +558,24 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   2. Falsos positivos con insignia `[🌎 LATINO]` en Puesto #1 = 0 (0 tolerados cumplido).
 - **Suite Ejecutable y Certificación**: `scripts/test-corpus-p6.ts` (y `scratch/test_corpus_p6.ts`) ejecutado con éxito total (100% PASS) y validación profunda de regresión en `test-tvbox-deep-e2e.mjs` (105/105 PASS).
 
+### 22.9 Circuit Breaker Distribuido en Deno KV y Telemetría /health (Bloque 3: P4 + P3)
+- **Aislamiento Estricto de Errores de Scrapers**:
+  - Timeouts de 450 ms por scraper (SubDL, OpenSubtitles, SubSource, WyzieSubs) se aíslan completamente y NO computan como fallas del Proxy MediaFlow (`isProxyError(err) === false`).
+  - Solo fallos de conectividad o HTTP 5xx propios del Proxy residencial alteran la tasa de errores.
+- **Gestión de Ventanas Deslizantes y Contención Concurrente**:
+  - Contadores en ventanas deslizantes de 10 s mediante Deno KV (`["circuit_metrics", service, windowBucket]`).
+  - Reintentos con backoff exponencial + jitter decorrelacionado en `kv.atomic()` para resolver la contención en ráfagas sin pérdidas ni bloqueos.
+- **Histéresis en HALF_OPEN (Anti-Flapping)**:
+  - En estado `HALF_OPEN`, se exigen $N=3$ éxitos consecutivos registrados atómicamente para transicionar a `CLOSED`.
+  - Ante una sola falla durante `HALF_OPEN`, el circuito revierte inmediatamente a `OPEN` reiniciando el cooldown, erradicando el efecto *flapping*.
+- **Endpoint /health Libre de Secretos (Zero-Secrets Guarantee)**:
+  - Exposición de solo-lectura sanitizada: NUNCA revela tokens de TorBox, API keys (Gemini, SubDL, OpenSubtitles) ni URLs internas.
+  - Cabeceras mandatorias: `Cache-Control: no-store, no-cache, max-age=0, must-revalidate` y `Pragma: no-cache`.
+  - Métricas completas: estado del CB (`CLOSED`/`OPEN`/`HALF_OPEN`), `errorRate10s`, latencias p50/p95 por scraper y a TorBox API, versión del middleware (`v1.4.2`) y edad del refresh de catálogo.
+  - Protección de acceso mediante Token simple (`TELEMETRY_TOKEN`) y Firma HMAC-SHA256 (`HMAC_TELEMETRY_SECRET`).
+- **Certificación de la Suite**: `scripts/test-cb-health-p3-p4.ts` (5/5 PASS) y `test-tvbox-deep-e2e.mjs` (105/105 PASS).
+
+
 
 
 

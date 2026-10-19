@@ -20,6 +20,7 @@ import {
   applyMediaFlowToStreams,
   globalMediaFlowCircuitBreaker,
 } from "./mediaflow.ts";
+import { recordScraperLatency, recordTorboxLatency } from "../telemetry.ts";
 
 export const STREAMS_MANIFEST = {
   id: "com.mejorastremio.streams",
@@ -39,6 +40,10 @@ export const COMET_TORBOX_URL =
   "https://comet.feels.legal/eyJtYXhSZXN1bHRzUGVyUmVzb2x1dGlvbiI6MTAsIm1heFNpemUiOjAsImNhY2hlZE9ubHkiOmZhbHNlLCJyZW1vdmVUcmFzaCI6dHJ1ZSwicmVzdWx0Rm9ybWF0IjpbImFsbCJdLCJkZWJyaWRTZXJ2aWNlIjoidG9ycmVudCIsImRlYnJpZEFwaUtleSI6IiIsImRlYnJpZFN0cmVhbVByb3h5UGFzc3dvcmQiOiIiLCJsYW5ndWFnZXMiOnsiZXhjbHVkZSI6W10sInByZWZlcnJlZCI6WyJsYSIsImVuIl19LCJyZXNvbHV0aW9ucyI6eyJyMjQwcCI6ZmFsc2UsInIzNjBwIjpmYWxzZSwicjQ4MHAiOmZhbHNlLCJ1bmtub3duIjpmYWxzZX0sIm9wdGlvbnMiOnsicmVtb3ZlX3JhbmtzX3VuZGVyIjotMTAwMDAwMDAwMDAsImFsbG93X2VuZ2xpc2hfaW5fbGFuZ3VhZ2VzIjp0cnVlLCJyZW1vdmVfdW5rbm93bl9sYW5ndWFnZXMiOmZhbHNlfSwiZGVicmlkU2VydmljZXMiOlt7InNlcnZpY2UiOiJ0b3Jib3giLCJhcGlLZXkiOiI5ZmU1YzIwMi0xNWVjLTRhZWItYjRlNy04NjEzNzI4Y2YwNDQifV0sImVuYWJsZVRvcnJlbnQiOmZhbHNlLCJzb3J0Q2FjaGVkVW5jYWNoZWRUb2dldGhlciI6ZmFsc2V9/";
 
 export async function fetchStreamEndpoint(url: string, timeoutMs = 12000): Promise<StremioStreamItem[]> {
+  const start = Date.now();
+  const isTorbox = url.includes("torbox") || url.includes("comet");
+  const isTorrentio = url.includes("torrentio");
+
   try {
     const res = await fetch(url, {
       signal: AbortSignal.timeout(timeoutMs),
@@ -47,10 +52,17 @@ export async function fetchStreamEndpoint(url: string, timeoutMs = 12000): Promi
         "Accept": "application/json",
       },
     });
+    const duration = Date.now() - start;
+    if (isTorbox) recordTorboxLatency(duration);
+    if (isTorrentio) recordScraperLatency("torrentio", duration);
+
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data?.streams) ? (data.streams as StremioStreamItem[]) : [];
   } catch {
+    const duration = Date.now() - start;
+    if (isTorbox) recordTorboxLatency(duration);
+    if (isTorrentio) recordScraperLatency("torrentio", duration, true);
     return [];
   }
 }

@@ -114,6 +114,17 @@ export {
 } from "./deno-hub/subtitles/subtitles.ts";
 export { handleHealth } from "./deno-hub/health.ts";
 export {
+  recordScraperLatency,
+  recordTorboxLatency,
+  calculatePercentiles,
+  getScrapersTelemetry,
+  getTorboxTelemetry,
+  getCatalogRefreshInfo,
+  getSystemTelemetry,
+  generateHmacSignature,
+  verifyTelemetryAuth,
+} from "./deno-hub/telemetry.ts";
+export {
   fetchCinemetaMeta,
   canonicalImdbId,
   sortMetasChronologicalDesc,
@@ -171,7 +182,7 @@ export async function handleHubRequest(req: Request): Promise<Response> {
       });
     } else if (path === "/health") {
       route = "health";
-      res = await handleHealth(url);
+      res = await handleHealth(url, req);
     } else if (path.startsWith("/subtitles/proxy")) {
       route = "subtitles-proxy";
       res = await handleSubtitleProxy(url);

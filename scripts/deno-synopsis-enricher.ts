@@ -22,8 +22,8 @@
  *   https://<proyecto>.deno.dev/manifest.json
  */
 
-const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash-lite";
-const OPENROUTER_MODEL = Deno.env.get("OPENROUTER_MODEL") ?? "openrouter/free";
+const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
+const OPENROUTER_MODEL = Deno.env.get("OPENROUTER_MODEL") ?? "google/gemini-3.8-flash";
 
 const AIOMETADATA_BASE = "https://aiometadata.elfhosted.com";
 const CINEMETA_BASE = "https://v3-cinemeta.strem.io";

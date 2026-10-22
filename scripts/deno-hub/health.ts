@@ -113,7 +113,7 @@ export async function handleHealth(reqUrl?: URL, req?: Request): Promise<Respons
     translate: {
       configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
       baseSource: !!OPENSUBTITLES_API_KEY,
-      engine: "gemini-flash",
+      engine: "gemini-3.8-flash",
     },
     services: {
       smartSync: { active: true, supportedFramerates: ["23.976", "24.0", "25.0", "29.97"] },
@@ -143,7 +143,7 @@ export async function handleHealth(reqUrl?: URL, req?: Request): Promise<Respons
       translate: {
         configured: !!(GEMINI_API_KEY || OPENROUTER_API_KEY),
         baseSource: !!OPENSUBTITLES_API_KEY,
-        engine: "gemini-flash",
+        engine: "gemini-3.8-flash",
       },
     },
     ...(aiProbe ? { aiProbe } : {}),

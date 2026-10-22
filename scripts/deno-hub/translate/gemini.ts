@@ -12,10 +12,10 @@ import {
   recordGeminiSuccess,
 } from "./gemini_governance.ts";
 
-export const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash-001";
+export const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
 export const OPENROUTER_MODEL = (Deno.env.get("OPENROUTER_MODEL") && Deno.env.get("OPENROUTER_MODEL") !== "openrouter/free")
   ? Deno.env.get("OPENROUTER_MODEL")!
-  : "google/gemini-2.5-flash";
+  : "google/gemini-3.8-flash";
 export const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 export const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") ?? "";
 
@@ -64,9 +64,10 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
   }
 
   const modelsToTry = [
-    GEMINI_MODEL || "gemini-2.0-flash",
+    GEMINI_MODEL || "gemini-3.8-flash",
+    "gemini-3.8-flash",
     "gemini-2.5-flash",
-    "gemini-2.0-flash-lite",
+    "gemini-2.0-flash",
     "gemini-1.5-flash",
   ];
   const candidates = [...new Set(modelsToTry.filter(Boolean))];
@@ -80,8 +81,8 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
           temperature: 0.2,
           maxOutputTokens: 8192,
         };
-        // Para modelos 2.0 y 2.5, forzar thinkingBudget: 0 para garantizar respuestas en <1.5s
-        if (/2\.0|2\.5|thinking/i.test(model)) {
+        // Para modelos 2.0, 2.5 y 3.8, forzar thinkingBudget: 0 para garantizar respuestas en <1.5s
+        if (/2\.0|2\.5|3\.8|thinking/i.test(model)) {
           generationConfig.thinkingConfig = { thinkingBudget: 0 };
         }
         let r = await fetch(url, {
@@ -165,6 +166,7 @@ export async function callOpenRouter(prompt: string, apiKey: string, signal: Abo
 
   const models = [
     OPENROUTER_MODEL,
+    "google/gemini-3.8-flash",
     "google/gemini-2.5-flash",
     "google/gemini-2.0-flash-001",
     "google/gemini-flash-1.5",
@@ -309,6 +311,7 @@ export async function runAiProbeTest(): Promise<AiProbeResult> {
 
     const modelsToProbe = [
       OPENROUTER_MODEL,
+      "google/gemini-3.8-flash",
       "google/gemini-2.0-flash-001",
       "google/gemini-2.5-flash",
       "google/gemini-2.0-flash-lite-001",

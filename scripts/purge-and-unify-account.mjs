@@ -357,7 +357,11 @@ async function main() {
   const DRY_RUN = !APPLY && !ROLLBACK_LAST && !ROLLBACK_FILE;
 
   const BASELINE_V141 = args.includes('--baseline-v141') || args.includes('--v141');
-  const targetVersion = BASELINE_V141 ? '1.4.1' : '1.4.2';
+  const vIdx = args.findIndex((a) => a === '--version' || a.startsWith('--version='));
+  const cliVersion = vIdx >= 0
+    ? (args[vIdx].startsWith('--version=') ? args[vIdx].split('=')[1] : args[vIdx + 1])
+    : null;
+  const targetVersion = BASELINE_V141 ? '1.4.1' : (cliVersion || '2.1.0');
 
   const accIdx = args.findIndex((a) => a === '--account' || a.startsWith('--account='));
   const accountArg = accIdx >= 0

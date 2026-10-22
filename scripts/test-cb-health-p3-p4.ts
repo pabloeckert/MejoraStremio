@@ -219,7 +219,7 @@ Deno.test("BLOQUE 3: P4 + P3 — Suite de Circuit Breaker y Telemetría /health"
     const data = JSON.parse(rawBody);
 
     // Validación de estructura de métricas requeridas
-    if (data.version !== "v1.4.2") {
+    if (data.version !== "3.0.1") {
       throw new Error(`Versión inválida: ${data.version}`);
     }
     if (!data.circuitBreaker || typeof data.circuitBreaker.state !== "string") {

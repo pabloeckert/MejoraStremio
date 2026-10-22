@@ -4,13 +4,13 @@
  * y Smart Audio Sync con entrega dual ('spl' y 'spa').
  */
 
-import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, releaseSimilarity, getKv } from "../utils/common.ts";
+import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, releaseSimilarity, getKv, safeEnv } from "../utils/common.ts";
 import { BoundedLruCache } from "../utils/lru-cache.ts";
 import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 import { resolveSmartSync, rescaleSrtFramerate, cleanSrt, pushDualSubtitles, type SubtitleTrackPayload } from "./smartsync.ts";
 import { isSdhName, looksLikeSDH } from "./sdh-detector.ts";
 
-export const OPENSUBTITLES_API_KEY = Deno.env.get("OPENSUBTITLES_API_KEY") ?? "";
+export const OPENSUBTITLES_API_KEY = safeEnv("OPENSUBTITLES_API_KEY");
 export const OPENSUBTITLES_API = "https://api.opensubtitles.com/api/v1";
 export const OPENSUBTITLES_UA = "MejoraStremio v1";
 export const OPENSUBTITLES_SRT_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 días

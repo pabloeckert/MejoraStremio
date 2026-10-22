@@ -4,6 +4,7 @@
  */
 
 import { PRESERVED_SPEAKER_ACRONYMS } from "../subtitles/smartsync.ts";
+import { safeEnv } from "../utils/common.ts";
 import {
   checkGeminiDailyQuota,
   checkGemini429Circuit,
@@ -12,12 +13,12 @@ import {
   recordGeminiSuccess,
 } from "./gemini_governance.ts";
 
-export const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
-export const OPENROUTER_MODEL = (Deno.env.get("OPENROUTER_MODEL") && Deno.env.get("OPENROUTER_MODEL") !== "openrouter/free")
-  ? Deno.env.get("OPENROUTER_MODEL")!
+export const GEMINI_MODEL = safeEnv("GEMINI_MODEL", "gemini-3.8-flash");
+export const OPENROUTER_MODEL = (safeEnv("OPENROUTER_MODEL") && safeEnv("OPENROUTER_MODEL") !== "openrouter/free")
+  ? safeEnv("OPENROUTER_MODEL")
   : "google/gemini-3.8-flash";
-export const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-export const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") ?? "";
+export const GEMINI_API_KEY = safeEnv("GEMINI_API_KEY");
+export const OPENROUTER_API_KEY = safeEnv("OPENROUTER_API_KEY");
 
 export const NL = "§Z"; // Sentinel para saltos de línea internos al mandar a la IA
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

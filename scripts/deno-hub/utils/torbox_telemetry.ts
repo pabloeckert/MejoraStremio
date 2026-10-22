@@ -9,6 +9,8 @@
  * Alcance exclusivo: Android TV ZTE ZXV10 B866V2.
  */
 
+import { safeEnv } from "./common.ts";
+
 export interface TorboxTokenStatus {
   valid: boolean;
   active: boolean;
@@ -93,9 +95,7 @@ export async function getTorboxTokenStatus(
 
   const token =
     tokenOverride ||
-    (typeof Deno !== "undefined" && Deno.env?.get?.("TORBOX_API_KEY")) ||
-    (typeof process !== "undefined" && process.env?.TORBOX_API_KEY) ||
-    "";
+    safeEnv("TORBOX_API_KEY");
 
   if (!token) {
     const unconfigured: TorboxTokenStatus = {

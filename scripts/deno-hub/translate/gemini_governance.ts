@@ -8,9 +8,9 @@
  * Alcance exclusivo: Android TV ZTE ZXV10 B866V2.
  */
 
-import { getKv } from "../utils/common.ts";
+import { getKv, safeEnv } from "../utils/common.ts";
 
-export const DEFAULT_GEMINI_DAILY_LIMIT = Number(Deno.env.get("GEMINI_DAILY_LIMIT")) || 1500;
+export const DEFAULT_GEMINI_DAILY_LIMIT = Number(safeEnv("GEMINI_DAILY_LIMIT")) || 1500;
 export const INITIAL_429_COOLDOWN_MS = 30_000; // 30 segundos
 export const MAX_429_COOLDOWN_MS = 300_000;    // 5 minutos
 

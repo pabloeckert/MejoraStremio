@@ -2,13 +2,13 @@
  * subsource.ts — Proveedor de subtítulos SubSource ES (sin SDH).
  */
 
-import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, getKv } from "../utils/common.ts";
+import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, getKv, safeEnv } from "../utils/common.ts";
 import { BoundedLruCache } from "../utils/lru-cache.ts";
 import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 import { resolveSmartSync, rescaleSrtFramerate, cleanSrt, pushDualSubtitles, type SubtitleTrackPayload } from "./smartsync.ts";
 import { extractSrtFromZip } from "./subdl.ts";
 
-export const SUBSOURCE_API_KEY = (typeof Deno !== "undefined" && Deno.env?.get?.("SUBSOURCE_API_KEY")) || "";
+export const SUBSOURCE_API_KEY = safeEnv("SUBSOURCE_API_KEY");
 export const SUBSOURCE_API = "https://api.subsource.net/api/v1";
 
 // L1 Cache: Máximo 50 subtítulos en RAM (~2.5 MB) con LRU eviction

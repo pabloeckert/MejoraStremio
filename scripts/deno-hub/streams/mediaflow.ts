@@ -9,7 +9,7 @@
  *    garantizando cero interrupciones de reproducción en la TV Box.
  */
 
-import { getKv, type StremioStreamItem } from "../utils/common.ts";
+import { getKv, safeEnv, type StremioStreamItem } from "../utils/common.ts";
 
 export type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN";
 
@@ -391,15 +391,8 @@ export const globalMediaFlowCircuitBreaker = new MediaFlowCircuitBreaker();
  * Obtiene la configuración de MediaFlow Proxy desde variables de entorno o parámetros.
  */
 export function getMediaFlowConfig(reqUrl?: URL, configSegment?: string): MediaFlowConfig {
-  let proxyUrl =
-    (typeof Deno !== "undefined" && Deno.env?.get?.("MEDIAFLOW_PROXY_URL")) ||
-    (typeof process !== "undefined" && process.env?.MEDIAFLOW_PROXY_URL) ||
-    "";
-
-  let apiKey =
-    (typeof Deno !== "undefined" && Deno.env?.get?.("MEDIAFLOW_API_KEY")) ||
-    (typeof process !== "undefined" && process.env?.MEDIAFLOW_API_KEY) ||
-    "";
+  let proxyUrl = safeEnv("MEDIAFLOW_PROXY_URL");
+  let apiKey = safeEnv("MEDIAFLOW_API_KEY");
 
   // Soporte de inyección vía query params
   if (reqUrl) {

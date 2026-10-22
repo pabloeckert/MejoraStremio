@@ -1,6 +1,6 @@
 /**
  * health.ts — Endpoint de diagnóstico, salud y telemetría del Hub (/health).
- * MejoraStremio v1.4.2 — Blindaje Zero-Secrets y Protección por Token/HMAC.
+ * MejoraStremio v3.0.1 — Blindaje Zero-Secrets y Protección por Token/HMAC.
  */
 
 import { cors } from "./utils/common.ts";

@@ -9,7 +9,7 @@
  * Alcance exclusivo: Android TV ZTE ZXV10 B866V2.
  */
 
-import { signHmacSha256 } from "./common.ts";
+import { signHmacSha256, safeEnv } from "./common.ts";
 
 export interface ProxySigningOptions {
   activeKey: string;
@@ -186,14 +186,12 @@ export async function verifyProxyUrl(
  */
 export function getHmacProxyKeys(): { activeKey: string; previousKey?: string } {
   const activeKey =
-    (typeof Deno !== "undefined" && Deno.env?.get?.("HMAC_PROXY_ACTIVE_KEY")) ||
-    (typeof Deno !== "undefined" && Deno.env?.get?.("HMAC_TELEMETRY_SECRET")) ||
-    (typeof process !== "undefined" && process.env?.HMAC_PROXY_ACTIVE_KEY) ||
-    "default-active-hmac-key-v142";
+    safeEnv("HMAC_PROXY_ACTIVE_KEY") ||
+    safeEnv("HMAC_TELEMETRY_SECRET") ||
+    "default-active-hmac-key-v301";
 
   const previousKey =
-    (typeof Deno !== "undefined" && Deno.env?.get?.("HMAC_PROXY_PREVIOUS_KEY")) ||
-    (typeof process !== "undefined" && process.env?.HMAC_PROXY_PREVIOUS_KEY) ||
+    safeEnv("HMAC_PROXY_PREVIOUS_KEY") ||
     undefined;
 
   return { activeKey, previousKey };

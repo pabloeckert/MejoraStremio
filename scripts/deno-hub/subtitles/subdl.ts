@@ -4,14 +4,14 @@
  * en memoria (máximo 50 entradas) + persistencia Deno KV (30 días), y fallback resiliente a OpenSubtitles.
  */
 
-import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, releaseSimilarity, getKv } from "../utils/common.ts";
+import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, releaseSimilarity, getKv, safeEnv } from "../utils/common.ts";
 import { BoundedLruCache } from "../utils/lru-cache.ts";
 import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 import { resolveSmartSync, rescaleSrtFramerate, cleanSrt, pushDualSubtitles, isEuropeanShowOrContext, type SubtitleTrackPayload } from "./smartsync.ts";
 import { isSdhName } from "./sdh-detector.ts";
 import { fetchOpenSubtitlesSubs, downloadOpenSubtitlesSrt } from "./opensubtitles.ts";
 
-export const SUBDL_KEY = Deno.env.get("SUBDL_KEY") ?? "";
+export const SUBDL_KEY = safeEnv("SUBDL_KEY");
 export const SUBDL_API = "https://api.subdl.com/api/v1/subtitles";
 export const SUBDL_DL = "https://dl.subdl.com";
 

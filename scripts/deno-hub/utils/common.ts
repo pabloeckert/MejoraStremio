@@ -18,6 +18,28 @@ export function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   });
 }
 
+/**
+ * Obtiene de forma segura una variable de entorno sin lanzar excepción si los permisos
+ * de entorno de Deno no están habilitados (Zero-Trust defensive guard).
+ */
+export function safeEnv(key: string, fallback = ""): string {
+  try {
+    if (typeof Deno !== "undefined" && typeof Deno.env?.get === "function") {
+      return Deno.env.get(key) || fallback;
+    }
+  } catch {
+    // Ignorar si Deno deniega permisos de entorno
+  }
+  try {
+    if (typeof process !== "undefined" && process?.env) {
+      return process.env[key] || fallback;
+    }
+  } catch {
+    // Ignorar si process.env deniega permisos
+  }
+  return fallback;
+}
+
 // Parsea el id que Stremio pone en las requests de subtítulos/streams.
 export function parseStremioSubId(rawId: string): {
   imdbId: string;

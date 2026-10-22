@@ -1,5 +1,5 @@
 /**
- * telemetry.ts — Módulo de Telemetría, Latencias y Seguridad para MejoraStremio v1.4.2.
+ * telemetry.ts — Módulo de Telemetría, Latencias y Seguridad para MejoraStremio v3.0.1.
  *
  * Funcionalidad:
  * 1. Registro de latencias por scraper y API de TorBox con cálculo de percentiles p50 y p95.
@@ -10,6 +10,7 @@
 
 import { timingSafeEqualString } from "./utils/crypto_security.ts";
 import { BoundedLruCache } from "./utils/lru-cache.ts";
+import { safeEnv } from "./utils/common.ts";
 export { getTorboxTokenStatus } from "./utils/torbox_telemetry.ts";
 
 export interface LatencyPercentiles {
@@ -141,7 +142,7 @@ export function getCatalogRefreshInfo(): CatalogRefreshInfo {
 
 export function getSystemTelemetry(): SystemTelemetry {
   return {
-    version: "v1.4.2",
+    version: "3.0.1",
     uptimeSeconds: Math.floor((Date.now() - startTime) / 1000),
     timestamp: new Date().toISOString(),
     catalog: getCatalogRefreshInfo(),
@@ -178,17 +179,9 @@ export async function generateHmacSignature(timestamp: number | string, secret: 
  * 3. Si HMAC_TELEMETRY_SECRET está configurado: valida query params `sig` y `timestamp` (ventana de 5 minutos).
  */
 export async function verifyTelemetryAuth(url: URL, headers?: Headers): Promise<boolean> {
-  const envToken =
-    (typeof Deno !== "undefined" && Deno.env?.get?.("TELEMETRY_TOKEN")) ||
-    (typeof process !== "undefined" && process.env?.TELEMETRY_TOKEN);
-
-  const envHmacSecret =
-    (typeof Deno !== "undefined" && Deno.env?.get?.("HMAC_TELEMETRY_SECRET")) ||
-    (typeof process !== "undefined" && process.env?.HMAC_TELEMETRY_SECRET);
-
-  const prevHmacSecret =
-    (typeof Deno !== "undefined" && Deno.env?.get?.("HMAC_TELEMETRY_PREVIOUS_SECRET")) ||
-    (typeof process !== "undefined" && process.env?.HMAC_TELEMETRY_PREVIOUS_SECRET);
+  const envToken = safeEnv("TELEMETRY_TOKEN");
+  const envHmacSecret = safeEnv("HMAC_TELEMETRY_SECRET");
+  const prevHmacSecret = safeEnv("HMAC_TELEMETRY_PREVIOUS_SECRET");
 
   // Si no se han establecido secretos de protección en el entorno, el acceso es libre (solo-lectura seguro)
   if (!envToken && !envHmacSecret) {

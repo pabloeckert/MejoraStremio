@@ -4,11 +4,11 @@
  * inmutable de IDs IMDb, batching controlado anti-burst y mitigación total de cascada N+1.
  */
 
-import { cors, getKv, jsonResponse } from "../utils/common.ts";
+import { cors, getKv, jsonResponse, safeEnv } from "../utils/common.ts";
 import { BoundedLruCache } from "../utils/lru-cache.ts";
 import { fetchCinemetaCatalogSorted } from "../utils/cinemeta.ts";
 
-export const TMDB_KEY = Deno.env.get("TMDB_API_KEY_AISEARCH") ?? "2d12317c428a903b661011caa1506b60";
+export const TMDB_KEY = safeEnv("TMDB_API_KEY_AISEARCH", "2d12317c428a903b661011caa1506b60");
 export const TMDB_API = "https://api.themoviedb.org/3";
 export const PROD_HUB_UPSTREAM = "https://mejorastremio-hub.pabloeckert.deno.net";
 

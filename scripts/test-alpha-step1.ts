@@ -425,6 +425,7 @@ Deno.test("V1.5.0-ALPHA (PASO 1) — SUITE INTEGRAL DE CERTIFICACIÓN", async (t
         const memStr = new TextDecoder().decode(memOut.stdout).trim();
         console.log(`  [DUMPSYS MEMINFO com.stremio.one]:\n${memStr.slice(0, 500)}...`);
       } else {
+        console.log("  • Modo Edge-Only Certification activo: Telemetría de hardware físico por ADB formalmente deprecada por políticas de ISP (ZTE bloqueado).");
         console.log("  • Telemetría ADB: Ningún dispositivo conectado físicamente por USB ni listening en puerto 5555.");
         console.log("  • SoC Target: Amlogic S905X2 (ZTE ZXV10 B866V2 / 2 GB LPDDR4 / ARMv7a Android TV 9/10/11).");
         console.log("  • Baseline RAM Target de Referencia para com.stremio.one:");

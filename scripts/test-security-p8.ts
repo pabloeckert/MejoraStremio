@@ -8,7 +8,7 @@
  * 4. Telemetría y monitoreo preventivo de vigencia y cuota de TorBox (Zero-Secrets).
  * 5. Estrategia de rollback rápido con baseline v1.4.1 y cache-busting inverso.
  *
- * Alcance exclusivo: Android TV ZTE ZXV10 B866V2.
+ * Alcance: Estándar Edge-Only Certification (ZTE ZXV10 B866V2 / Deno Deploy Edge Hub v3.0.1).
  */
 
 import {
@@ -249,21 +249,21 @@ Deno.test("BLOQUE 6: P8 — Suite de Seguridad Criptográfica, Rotación HMAC y 
   });
 
   // ───────────────────────────────────────────────────────────────────────────
-  // 5. ESTRATEGIA DE ROLLBACK RÁPIDO Y CACHE-BUSTING INVERSO (v1.4.1 vs v1.4.2)
+  // 5. ESTRATEGIA DE ROLLBACK RÁPIDO Y CACHE-BUSTING INVERSO (v1.4.1 vs v3.0.1)
   // ───────────────────────────────────────────────────────────────────────────
   await t.step("5. Estrategia de Rollback Rápido con Baseline v1.4.1", async () => {
-    // 5.1 Manifest estándar de producción -> v1.4.2
-    const resV142 = await handleUnifiedHub(
+    // 5.1 Manifest estándar de producción -> v3.0.1
+    const resV301 = await handleUnifiedHub(
       "/manifest.json",
       "https://mejorastremio-hub.pabloeckert.deno.net",
-      new URL("https://mejorastremio-hub.pabloeckert.deno.net/manifest.json?v=1.4.2"),
+      new URL("https://mejorastremio-hub.pabloeckert.deno.net/manifest.json?v=3.0.1"),
     );
-    if (!resV142 || resV142.status !== 200) {
-      throw new Error("handleUnifiedHub falló en /manifest.json?v=1.4.2");
+    if (!resV301 || resV301.status !== 200) {
+      throw new Error("handleUnifiedHub falló en /manifest.json?v=3.0.1");
     }
-    const manifestV142 = await resV142.json();
-    if (manifestV142.version !== "1.4.2") {
-      throw new Error(`Versión esperada '1.4.2', recibida: '${manifestV142.version}'`);
+    const manifestV301 = await resV301.json();
+    if (manifestV301.version !== "3.0.1") {
+      throw new Error(`Versión esperada '3.0.1', recibida: '${manifestV301.version}'`);
     }
 
     // 5.2 Manifest con rollback de emergencia a baseline v1.4.1 (Cache-Busting Inverso)
@@ -284,10 +284,10 @@ Deno.test("BLOQUE 6: P8 — Suite de Seguridad Criptográfica, Rotación HMAC y 
     }
 
     // 5.3 Verificación de transportUrl diferenciado
-    const transport142: string = "https://mejorastremio-hub.pabloeckert.deno.net/manifest.json?v=1.4.2";
+    const transport301: string = "https://mejorastremio-hub.pabloeckert.deno.net/manifest.json?v=3.0.1";
     const transport141: string = "https://mejorastremio-hub.pabloeckert.deno.net/manifest.json?v=1.4.1";
-    if (transport142 === transport141) {
-      throw new Error("transportUrl para v1.4.1 y v1.4.2 no son diferenciados");
+    if (transport301 === transport141) {
+      throw new Error("transportUrl para v1.4.1 y v3.0.1 no son diferenciados");
     }
 
     console.log("  ✓ Rollback rápido y cache-busting inverso validados: Baseline v1.4.1 listo para activación transparente");

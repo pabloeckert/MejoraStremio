@@ -56,8 +56,24 @@ export const ACCOUNTS_CONFIG = {
 
 export const CINEMETA_TRANSPORT_URL = 'https://v3-cinemeta.strem.io/manifest.json';
 
+export const GLOBAL_CACHE_BUSTER = Date.now();
+
+export function injectCacheBuster(url, buster = GLOBAL_CACHE_BUSTER) {
+  if (!url) return url;
+  if (/[?&]v=/.test(url)) {
+    return url.replace(/([?&]v=)([^&]*)/, (m, p1, p2) => {
+      const parts = p2.split('.');
+      const baseVer = parts.length >= 3 ? parts.slice(0, 3).join('.') : p2;
+      return baseVer ? `${p1}${baseVer}.${buster}` : `${p1}${buster}`;
+    });
+  }
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}v=${buster}`;
+}
+
 export function getCanonicalHubTransportUrl(version = '1.4.2') {
-  return `https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=${version}`;
+  const base = `https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=${version}`;
+  return injectCacheBuster(base);
 }
 
 export function resolveAccountCredentials(targetKey = 'eg', cliEmail = null, cliPass = null) {

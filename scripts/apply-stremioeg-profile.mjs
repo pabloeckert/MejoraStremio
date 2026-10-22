@@ -342,17 +342,32 @@ export function ensureHubSubtitleAddons(addons) {
 export const CANONICAL_TORBOX_CONFIG =
   'providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino';
 
+export const GLOBAL_CACHE_BUSTER = Date.now();
+
+export function injectCacheBuster(url, buster = GLOBAL_CACHE_BUSTER) {
+  if (!url) return url;
+  if (/[?&]v=/.test(url)) {
+    return url.replace(/([?&]v=)([^&]*)/, (m, p1, p2) => {
+      const parts = p2.split('.');
+      const baseVer = parts.length >= 3 ? parts.slice(0, 3).join('.') : p2;
+      return baseVer ? `${p1}${baseVer}.${buster}` : `${p1}${buster}`;
+    });
+  }
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}v=${buster}`;
+}
+
 export const CANONICAL_HUB_URL =
-  `https://mejorastremio-hub.pabloeckert.deno.net/${CANONICAL_TORBOX_CONFIG}/manifest.json`;
+  injectCacheBuster(`https://mejorastremio-hub.pabloeckert.deno.net/${CANONICAL_TORBOX_CONFIG}/manifest.json?v=1.4.2`);
 
 export const UNIFIED_HUB_ADDON_ENTRY = {
   transportUrl: CANONICAL_HUB_URL,
   manifest: {
     id: 'com.mejorastremio.hub',
-    version: '1.3.0',
+    version: '1.4.2',
     name: 'MejoraStremio Hub',
     description: 'Addon Unificado de MejoraStremio: Streams prioritarios TorBox + Audio Latino, Subtítulos sin SDH y Traducción IA (Gemini Flash).',
-    resources: ['stream', 'subtitles'],
+    resources: ['stream', 'subtitles', 'catalog'],
     types: ['movie', 'series'],
     idPrefixes: ['tt'],
     catalogs: [],
@@ -668,7 +683,9 @@ async function runProfileManager() {
       },
     ];
 
-    const targetHubUrl = profile.rules?.subtitles?.unifiedHub?.transportUrl || CANONICAL_HUB_URL;
+    const baseHubUrl = profile.rules?.subtitles?.unifiedHub?.transportUrl || CANONICAL_HUB_URL;
+    const targetHubUrl = injectCacheBuster(baseHubUrl);
+    console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
     const finalHub = {
       transportUrl: targetHubUrl,
       transportName: '',
@@ -721,7 +738,9 @@ async function runProfileManager() {
 
     if (profile.rules?.subtitles?.unifiedHub) {
       // Arquitectura Unificada: Monopolio exclusivo de MejoraStremio Hub + Cinemeta
-      const targetHubUrl = profile.rules.subtitles.unifiedHub.transportUrl || CANONICAL_HUB_URL;
+      const baseHubUrl = profile.rules.subtitles.unifiedHub.transportUrl || CANONICAL_HUB_URL;
+      const targetHubUrl = injectCacheBuster(baseHubUrl);
+      console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
       const hubAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
       const cinemetaAddon = addons.find((a) => a.manifest?.id === 'com.linvo.cinemeta' || a.manifest?.id === 'com.stremio.cinemeta');
 
@@ -821,7 +840,7 @@ async function runProfileManager() {
         'com.mejorastremio.subsource',
         'com.mejorastremio.translate',
       ];
-      if (aioRes.changed) guardExempt.push('aio-metadata');
+      if (typeof aioRes !== 'undefined' && aioRes?.changed) guardExempt.push('aio-metadata');
 
       const guardOk = await assertNoFrozenEmptyCatalogs(updatedAddons, guardExempt);
       if (!guardOk) {

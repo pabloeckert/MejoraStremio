@@ -45,8 +45,10 @@ jobs:
           ST_PASS: ${{ secrets.STREMIO_PASS }}
           ST_EMAIL_TEEN: ${{ secrets.STREMIO_EMAIL_TEEN }}
           ST_PASS_TEEN: ${{ secrets.STREMIO_PASS_TEEN }}
-          ST_EMAIL_JN: ${{ secrets.STREMIO_EMAIL_JN || '' }}
-          ST_PASS_JN: ${{ secrets.STREMIO_PASS_JN || '' }}
+          ST_EMAIL_JN: ${{ secrets.STREMIO_EMAIL_JN }}
+          ST_PASS_JN: ${{ secrets.STREMIO_PASS_JN }}
+          STREMIO_EMAIL_JN: ${{ secrets.STREMIO_EMAIL_JN }}
+          STREMIO_PASS_JN: ${{ secrets.STREMIO_PASS_JN }}
         run: |
           set -o pipefail
           VERSION_FLAG=""

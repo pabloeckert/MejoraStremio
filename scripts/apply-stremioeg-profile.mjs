@@ -358,14 +358,14 @@ export function injectCacheBuster(url, buster = GLOBAL_CACHE_BUSTER) {
 }
 
 export const CANONICAL_HUB_URL =
-  injectCacheBuster(`https://mejorastremio-hub.pabloeckert.deno.net/${CANONICAL_TORBOX_CONFIG}/manifest.json?v=2.1.0`);
+  injectCacheBuster(`https://mejorastremio-hub.pabloeckert.deno.net/${CANONICAL_TORBOX_CONFIG}/manifest.json?v=3.0.0`);
 
 export const UNIFIED_HUB_ADDON_ENTRY = {
   transportUrl: CANONICAL_HUB_URL,
   manifest: {
     id: 'com.mejorastremio.hub',
-    version: '2.1.0',
-    name: 'MejoraStremio Hub',
+    version: '3.0.0',
+    name: 'MejoraStremio Hub v3.0 (Enterprise)',
     description: 'Addon Unificado de MejoraStremio: Streams prioritarios TorBox + Audio Latino, Subtítulos sin SDH y Traducción IA (Gemini Flash).',
     resources: ['stream', 'subtitles', 'catalog'],
     types: ['movie', 'series'],
@@ -709,11 +709,11 @@ async function runProfileManager() {
     const freshHubManifest = await fetchFreshHubManifest();
     const manifestToUse = freshHubManifest || {
       ...UNIFIED_HUB_ADDON_ENTRY.manifest,
-      version: '2.1.0',
+      version: '3.0.0',
     };
 
     const baseHubUrl = profile.rules?.subtitles?.unifiedHub?.transportUrl || CANONICAL_HUB_URL;
-    const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)1\.4\.2/, '$12.1.0'));
+    const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)(1\.4\.2|2\.1\.0)/, '$13.0.0'));
     console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
     const finalHub = {
       transportUrl: targetHubUrl,
@@ -770,11 +770,11 @@ async function runProfileManager() {
       const freshHubManifest = await fetchFreshHubManifest();
       const manifestToUse = freshHubManifest || {
         ...UNIFIED_HUB_ADDON_ENTRY.manifest,
-        version: '2.1.0',
+        version: '3.0.0',
       };
 
       const baseHubUrl = profile.rules.subtitles.unifiedHub.transportUrl || CANONICAL_HUB_URL;
-      const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)1\.4\.2/, '$12.1.0'));
+      const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)(1\.4\.2|2\.1\.0)/, '$13.0.0'));
       console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
       const hubAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
       const cinemetaAddon = addons.find((a) => a.manifest?.id === 'com.linvo.cinemeta' || a.manifest?.id === 'com.stremio.cinemeta');

@@ -14,7 +14,7 @@
  *
  * Node >= 20, sin dependencias.
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, openSync, fsyncSync, closeSync, renameSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { isCachedStream, isSpanishLang } from './lib/addon-signals.mjs';
@@ -148,63 +148,83 @@ async function main() {
 
   const TRAKT_AUTH_FILE = join(ROOT, 'data', 'trakt-auth.json');
 
+  let activeRefreshPromise = null;
+
   async function refreshTraktToken() {
-    let auth = {};
-    if (existsSync(TRAKT_AUTH_FILE)) {
-      try {
-        auth = JSON.parse(readFileSync(TRAKT_AUTH_FILE, 'utf8'));
-      } catch {}
+    if (activeRefreshPromise) {
+      console.log('⏳ [Autómata OAuth Trakt] Esperando rotación en vuelo activa (Mutex Single-Flight)...');
+      return await activeRefreshPromise;
     }
 
-    const refreshToken = auth.refresh_token || process.env.TRAKT_REFRESH_TOKEN;
-    const clientId = auth.client_id || process.env.TRAKT_CLIENT_ID || 'd301ba16194b65dc9bfaad3316db73a110bfad1357fa174ee0f0e0fe331cf116';
-    const clientSecret = auth.client_secret || process.env.TRAKT_CLIENT_SECRET || '';
+    activeRefreshPromise = (async () => {
+      let auth = {};
+      if (existsSync(TRAKT_AUTH_FILE)) {
+        try {
+          auth = JSON.parse(readFileSync(TRAKT_AUTH_FILE, 'utf8'));
+        } catch {}
+      }
 
-    if (!refreshToken) {
-      throw new Error('No hay refresh_token disponible en data/trakt-auth.json ni en TRAKT_REFRESH_TOKEN');
-    }
+      const refreshToken = auth.refresh_token || process.env.TRAKT_REFRESH_TOKEN;
+      const clientId = auth.client_id || process.env.TRAKT_CLIENT_ID || 'd301ba16194b65dc9bfaad3316db73a110bfad1357fa174ee0f0e0fe331cf116';
+      const clientSecret = auth.client_secret || process.env.TRAKT_CLIENT_SECRET || '';
 
-    console.log('🔄 [Autómata OAuth Trakt] Intentando auto-recuperación de sesión vía refresh_token...');
-    const res = await fetch('https://api.trakt.tv/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        refresh_token: refreshToken,
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
-        grant_type: 'refresh_token',
-      }),
-      signal: AbortSignal.timeout(10000),
+      if (!refreshToken) {
+        throw new Error('No hay refresh_token disponible en data/trakt-auth.json ni en TRAKT_REFRESH_TOKEN');
+      }
+
+      console.log('🔄 [Autómata OAuth Trakt] Intentando auto-recuperación de sesión vía refresh_token...');
+      const res = await fetch('https://api.trakt.tv/oauth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          refresh_token: refreshToken,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
+          grant_type: 'refresh_token',
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error(`Trakt OAuth devolvió HTTP ${res.status}: ${errText}`);
+      }
+
+      const newTokens = await res.json();
+      const updatedAuth = {
+        ...auth,
+        access_token: newTokens.access_token,
+        refresh_token: newTokens.refresh_token || refreshToken,
+        updated_at: new Date().toISOString(),
+        expires_in: newTokens.expires_in,
+      };
+
+      mkdirSync(dirname(TRAKT_AUTH_FILE), { recursive: true });
+      const tmpFile = `${TRAKT_AUTH_FILE}.tmp`;
+      const fd = openSync(tmpFile, 'w');
+      writeFileSync(fd, JSON.stringify(updatedAuth, null, 2) + '\n', 'utf8');
+      fsyncSync(fd);
+      closeSync(fd);
+      renameSync(tmpFile, TRAKT_AUTH_FILE);
+
+      console.log('✓ [Autómata OAuth Trakt] Nuevo Access Token negociado y persistido atómicamente con éxito.');
+      return updatedAuth;
+    })().finally(() => {
+      activeRefreshPromise = null;
     });
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      throw new Error(`Trakt OAuth devolvió HTTP ${res.status}: ${errText}`);
-    }
-
-    const newTokens = await res.json();
-    const updatedAuth = {
-      ...auth,
-      access_token: newTokens.access_token,
-      refresh_token: newTokens.refresh_token || refreshToken,
-      updated_at: new Date().toISOString(),
-      expires_in: newTokens.expires_in,
-    };
-
-    mkdirSync(dirname(TRAKT_AUTH_FILE), { recursive: true });
-    writeFileSync(TRAKT_AUTH_FILE, JSON.stringify(updatedAuth, null, 2) + '\n', 'utf8');
-    console.log('✓ [Autómata OAuth Trakt] Nuevo Access Token negociado y persistido con éxito.');
-    return updatedAuth;
+    return await activeRefreshPromise;
   }
 
+  const maxRetries = 1;
   async function fetchCatalog(type, id, retry = 0) {
     const metas = [];
     for (let skip = 0; skip < 500; skip += 100) {
       const page = await getJson(`${traktBase}catalog/${type}/${id}${skip ? `/skip=${skip}` : ''}.json`);
       if (page?._authError) {
-        if (retry === 0) {
-          console.warn(`::warning:: [TRAKT_401] Trakt devolvió HTTP 401 en catálogo ${id}. Ejecutando autómata OAuth...`);
+        if (retry < maxRetries) {
+          console.warn(`::warning:: [TRAKT_401] Trakt devolvió HTTP 401 en catálogo ${id}. Ejecutando autómata OAuth (intento ${retry + 1}/${maxRetries})...`);
           try {
             await refreshTraktToken();
             return await fetchCatalog(type, id, retry + 1);
@@ -214,7 +234,7 @@ async function main() {
             return null;
           }
         }
-        console.warn(`::warning:: [FAIL-CLOSED] Trakt devolvió HTTP 401 tras reintento de refresh. Saliendo de forma limpia.`);
+        console.warn(`::warning:: [FAIL-CLOSED] Trakt devolvió HTTP 401 tras superar maxRetries (${maxRetries}). Saliendo de forma limpia.`);
         process.exitCode = 0;
         return null;
       }

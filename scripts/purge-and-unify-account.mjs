@@ -23,12 +23,23 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { execSync } from 'node:child_process';
 import { apiPost, stremioLogin } from './lib/stremio-api.mjs';
 import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const BACKUPS = join(ROOT, '.backups');
+
+export function getGitShortSha() {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: ROOT }).trim();
+  } catch {
+    return 'dist';
+  }
+}
+
+export const GIT_SHORT_SHA = getGitShortSha();
 
 export const ACCOUNTS_CONFIG = {
   eg: {
@@ -56,19 +67,16 @@ export const ACCOUNTS_CONFIG = {
 
 export const CINEMETA_TRANSPORT_URL = 'https://v3-cinemeta.strem.io/manifest.json';
 
-export const GLOBAL_CACHE_BUSTER = Date.now();
-
-export function injectCacheBuster(url, buster = GLOBAL_CACHE_BUSTER) {
+export function injectCacheBuster(url, sha = GIT_SHORT_SHA) {
   if (!url) return url;
   if (/[?&]v=/.test(url)) {
     return url.replace(/([?&]v=)([^&]*)/, (m, p1, p2) => {
-      const parts = p2.split('.');
-      const baseVer = parts.length >= 3 ? parts.slice(0, 3).join('.') : p2;
-      return baseVer ? `${p1}${baseVer}.${buster}` : `${p1}${buster}`;
+      const baseVer = p2.split('-')[0].split('.').slice(0, 3).join('.');
+      return `${p1}${baseVer || '3.0.1'}-${sha}`;
     });
   }
   const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}v=${buster}`;
+  return `${url}${sep}v=3.0.1-${sha}`;
 }
 
 export function getCanonicalHubTransportUrl(version = '3.0.0') {
@@ -188,6 +196,10 @@ export async function unifySingleAccount(accountCreds, options = {}) {
 
   if (!pass || pass === 'UNCONFIGURED') {
     const msg = `Credenciales faltantes o no configuradas para ${alias} (${email}). Se requiere contraseña (ST_PASS_${alias.toUpperCase()} o secret STREMIO_PASS_JN).`;
+    if (!dryRun) {
+      console.error(`\n❌ ERROR CRÍTICO: ${msg} Queda prohibido bypass silencioso en modo --apply.`);
+      process.exit(1);
+    }
     console.warn(`  ⚠️ ADVERTENCIA: ${msg}`);
     return { success: false, skipped: true, error: msg, alias };
   }
@@ -316,8 +328,11 @@ export async function unifySingleAccount(accountCreds, options = {}) {
   }
   console.log('  ✓ addonCollectionSet aceptado por la API de Stremio');
 
-  // 6. Verificación Cruda Post-Mutación
-  console.log('\n  Verificando estado post-mutación en la API (addonCollectionGet)...');
+  // 6. Verificación Read-Back Obligatoria (3 segundos de espera)
+  console.log('\n  Aguardando 3 segundos para propagación en Stremio Cloud...');
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  console.log('  Verificando estado post-mutación en la API (addonCollectionGet independiente)...');
   const verifyCol = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
   const verifiedAddons = verifyCol?.result?.addons || [];
 
@@ -327,8 +342,14 @@ export async function unifySingleAccount(accountCreds, options = {}) {
   });
 
   if (verifiedAddons.length !== 2) {
-    throw new Error(`ADVERTENCIA: Se esperaban 2 addons, pero se encontraron ${verifiedAddons.length}`);
+    console.error(`❌ ERROR CRÍTICO: Read-back falló. Se esperaban matemáticamente 2 addons, pero se encontraron ${verifiedAddons.length}`);
+    process.exit(1);
   }
+  if (verifiedAddons[0]?.manifest?.id !== 'com.mejorastremio.hub' || verifiedAddons[1]?.manifest?.id !== 'com.linvo.cinemeta') {
+    console.error(`❌ ERROR CRÍTICO: Read-back falló. El orden debe ser estrictamente [com.mejorastremio.hub, com.linvo.cinemeta], recibido: [${verifiedAddons.map(a => a.manifest?.id).join(', ')}]`);
+    process.exit(1);
+  }
+  console.log('  ✓ Verificación Read-Back Matemática EXITOSA: Monopolio estricto de 2 addons confirmado en la nube.');
 
   console.log('\n══════════════════════════════════════════════════════════════════════');
   console.log(` ✨ PURGA ATÓMICA FINALIZADA CON ÉXITO: ${alias.toUpperCase()}`);

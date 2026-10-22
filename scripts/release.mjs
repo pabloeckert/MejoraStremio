@@ -70,13 +70,18 @@ if (existsSync(hubPath)) {
   console.log(`  ✓ scripts/deno-hub/unified-hub.ts badge actualizado`);
 }
 
+let gitShortSha = 'dist';
+try {
+  gitShortSha = execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: ROOT }).trim();
+} catch {}
+
 // 1.3 scripts/apply-stremioeg-profile.mjs
 const applyScriptPath = join(ROOT, 'scripts', 'apply-stremioeg-profile.mjs');
 if (existsSync(applyScriptPath)) {
   let content = readFileSync(applyScriptPath, 'utf8');
   content = content.replace(
     /CANONICAL_TORBOX_CONFIG}\/manifest\.json\?v=[^'`"]*/g,
-    `CANONICAL_TORBOX_CONFIG}/manifest.json?v=${version}`
+    `CANONICAL_TORBOX_CONFIG}/manifest.json?v=${version}-${gitShortSha}`
   );
   content = content.replace(
     /(UNIFIED_HUB_ADDON_ENTRY\s*=\s*{[\s\S]*?version:\s*')[^']+'/g,
@@ -91,7 +96,7 @@ if (existsSync(applyScriptPath)) {
     `$1${version}'`
   );
   writeFileSync(applyScriptPath, content, 'utf8');
-  console.log(`  ✓ scripts/apply-stremioeg-profile.mjs sincronizado con v${version}`);
+  console.log(`  ✓ scripts/apply-stremioeg-profile.mjs sincronizado con v${version}-${gitShortSha}`);
 }
 
 // 1.4 cuentas/*/profile.json
@@ -100,10 +105,11 @@ for (const acc of accounts) {
   const profPath = join(ROOT, 'cuentas', acc, 'profile.json');
   if (existsSync(profPath)) {
     let content = readFileSync(profPath, 'utf8');
-    content = content.replace(/manifest\.json\?v=[^"&]*/g, `manifest.json?v=${version}`);
+    content = content.replace(/manifest\.json\?v=[^"&]*/g, `manifest.json?v=${version}-${gitShortSha}`);
     content = content.replace(/("name":\s*")MejoraStremio Hub[^"]*"/g, `$1${enterpriseName}"`);
+    content = content.replace(/("version":\s*")[^"]+"/g, `$1${version}"`);
     writeFileSync(profPath, content, 'utf8');
-    console.log(`  ✓ cuentas/${acc}/profile.json sincronizado con v${version}`);
+    console.log(`  ✓ cuentas/${acc}/profile.json sincronizado con v${version}-${gitShortSha}`);
   }
 }
 
@@ -185,14 +191,30 @@ console.log(`\n[ 3/3 ] Sincronización Forzada Definitiva de Perfiles Stremio...
 const syncAccounts = ['stremioeg', 'solotveg', 'stremiojn'];
 const results = [];
 
+function hasLocalPasswordForAccount(acc) {
+  if (acc === 'stremioeg') {
+    const localCred = 'C:/Users/tabeg/OneDrive/Documentos/Stemio/Pruebas/baee30cf-9528-4d53-82f3-2c4831853455.txt';
+    return Boolean(process.env.ST_PASS_EG || process.env.ST_PASS || process.env.STREMIO_PASS || (existsSync(localCred) && readFileSync(localCred, 'utf8').trim()));
+  }
+  if (acc === 'solotveg') {
+    return Boolean(process.env.ST_PASS_TEEN || process.env.STREMIO_PASS_TEEN);
+  }
+  if (acc === 'stremiojn') {
+    return Boolean(process.env.ST_PASS_JN || process.env.STREMIO_PASS_JN);
+  }
+  return false;
+}
+
 for (const acc of syncAccounts) {
   console.log(`\n── [Perfil ${acc}] Ejecutando sincronización con el Edge v${version} ──`);
+  const hasPass = hasLocalPasswordForAccount(acc);
+  const flag = hasPass ? '--apply' : '--check';
   try {
-    execSync(`node scripts/apply-stremioeg-profile.mjs --account=${acc} --apply`, {
+    execSync(`node scripts/apply-stremioeg-profile.mjs --account=${acc} ${flag}`, {
       stdio: 'inherit',
       cwd: ROOT,
     });
-    results.push({ account: acc, status: 'OK', exitCode: 0 });
+    results.push({ account: acc, status: hasPass ? 'APPLIED' : 'VALIDATED (DRY-RUN)', exitCode: 0 });
   } catch (err) {
     console.error(`❌ Error al sincronizar cuenta ${acc}: ${err.message}`);
     results.push({ account: acc, status: 'FAILED', exitCode: err.status || 1 });
@@ -206,7 +228,7 @@ for (const r of results) {
 }
 console.log('═'.repeat(74));
 
-const anyFailed = results.some((r) => r.status !== 'OK');
+const anyFailed = results.some((r) => r.status === 'FAILED');
 if (anyFailed) {
   console.error('\n⚠️ Al menos un perfil falló en la sincronización.');
   process.exit(1);

@@ -91,9 +91,65 @@ if (liveCfg.simkl) { config.simkl = liveCfg.simkl; config.apiKeys.simkl = liveCf
 console.log(`✓ Config armado: ${config.catalogs.length} catálogos | trakt=${!!config.trakt} simkl=${!!config.simkl} | hideUnreleasedDigital=${config.hideUnreleasedDigital}`);
 
 // ── 2.5 Garbage Collector ElfHosted (Purga de Instancias Huérfanas > 24h) ────
+export function getProtectedAioInstances(activeUuid) {
+  const protectedSet = new Set();
+  if (activeUuid) protectedSet.add(activeUuid);
+
+  // 1. data/preset.json
+  if (existsSync(PRESET_PATH)) {
+    try {
+      const p = JSON.parse(readFileSync(PRESET_PATH, 'utf8'));
+      if (p?.aioMetadataConfig?.instanceId) protectedSet.add(p.aioMetadataConfig.instanceId);
+    } catch {}
+  }
+
+  // 2. cuentas/*/profile.json y cuentas/*/aiometadata-instance.json
+  const cuentasDir = join(ROOT, 'cuentas');
+  if (existsSync(cuentasDir)) {
+    try {
+      const accs = readdirSync(cuentasDir);
+      for (const acc of accs) {
+        const accPath = join(cuentasDir, acc);
+        if (!statSync(accPath).isDirectory()) continue;
+
+        const profPath = join(accPath, 'profile.json');
+        if (existsSync(profPath)) {
+          try {
+            const rawProf = readFileSync(profPath, 'utf8');
+            const prof = JSON.parse(rawProf);
+            if (prof?.rules?.catalogs?.aiometadata?.instanceId) {
+              protectedSet.add(prof.rules.catalogs.aiometadata.instanceId);
+            }
+            const matches = rawProf.match(/\/([0-9a-f-]{36})\//g) || [];
+            for (const m of matches) {
+              const u = m.replace(/\//g, '');
+              if (u) protectedSet.add(u);
+            }
+          } catch {}
+        }
+
+        const aioInstPath = join(accPath, 'aiometadata-instance.json');
+        if (existsSync(aioInstPath)) {
+          try {
+            const aio = JSON.parse(readFileSync(aioInstPath, 'utf8'));
+            if (aio?.instanceId) protectedSet.add(aio.instanceId);
+            if (aio?.uuid) protectedSet.add(aio.uuid);
+            if (aio?.id) protectedSet.add(aio.id);
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  return protectedSet;
+}
+
 export async function purgeOrphanInstances(activeUuid, aioPassword, isDryRun = false) {
   console.log(`\n🧹 [Garbage Collector ElfHosted] Escaneando instancias huérfanas...`);
   try {
+    const protectedSet = getProtectedAioInstances(activeUuid);
+    console.log(`  • Instancias protegidas activas (${protectedSet.size}): ${Array.from(protectedSet).join(', ')}`);
+
     let instances = [];
     const qs = aioPassword ? `?password=${encodeURIComponent(aioPassword)}` : '';
 
@@ -118,7 +174,7 @@ export async function purgeOrphanInstances(activeUuid, aioPassword, isDryRun = f
           try {
             const content = JSON.parse(readFileSync(join(backupDir, bf), 'utf8'));
             const u = content.newUuid || content.fromUuid;
-            if (u && u !== activeUuid) {
+            if (u && !protectedSet.has(u)) {
               const stat = statSync(join(backupDir, bf));
               discovered.set(u, stat.mtimeMs);
             }
@@ -126,7 +182,7 @@ export async function purgeOrphanInstances(activeUuid, aioPassword, isDryRun = f
             for (const a of addons) {
               if (a.transportUrl && a.transportUrl.includes('aiometadata')) {
                 const match = a.transportUrl.match(/\/([0-9a-f-]{36})\//);
-                if (match && match[1] !== activeUuid) {
+                if (match && !protectedSet.has(match[1])) {
                   const stat = statSync(join(backupDir, bf));
                   if (!discovered.has(match[1]) || discovered.get(match[1]) > stat.mtimeMs) {
                     discovered.set(match[1], stat.mtimeMs);
@@ -144,13 +200,13 @@ export async function purgeOrphanInstances(activeUuid, aioPassword, isDryRun = f
     const ONE_DAY_MS = 24 * 60 * 60 * 1000;
     const toDelete = instances.filter((inst) => {
       const id = inst.id || inst.uuid || inst;
-      if (!id || id === activeUuid) return false;
+      if (!id || protectedSet.has(id)) return false;
       const created = inst.createdAt ? new Date(inst.createdAt).getTime() : (inst.timestamp || 0);
       return created > 0 && (now - created) > ONE_DAY_MS;
     });
 
     if (toDelete.length === 0) {
-      console.log(`✓ [Garbage Collector ElfHosted] 0 instancias huérfanas mayores a 24h encontradas.`);
+      console.log(`✓ [Garbage Collector ElfHosted] 0 instancias huérfanas mayores a 24h encontradas (respetando referencias activas).`);
       return { purged: 0 };
     }
 
@@ -160,22 +216,32 @@ export async function purgeOrphanInstances(activeUuid, aioPassword, isDryRun = f
       return { purged: toDelete.length, dryRun: true };
     }
 
-    const deleteResults = await Promise.all(
-      toDelete.map(async (inst) => {
-        const id = inst.id || inst.uuid || inst;
-        try {
-          const delRes = await fetch(`${AIO_BASE}/api/config/${id}${qs}`, {
-            method: 'DELETE',
-            signal: AbortSignal.timeout(5000),
-          });
-          return delRes.ok;
-        } catch {
-          return false;
-        }
-      })
-    );
+    // Ejecutar en lotes secuenciales de máximo 3 peticiones concurrentes con Promise.allSettled
+    const BATCH_SIZE = 3;
+    let successCount = 0;
+    for (let i = 0; i < toDelete.length; i += BATCH_SIZE) {
+      const batch = toDelete.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (inst) => {
+          const id = inst.id || inst.uuid || inst;
+          try {
+            const delRes = await fetch(`${AIO_BASE}/api/config/${id}${qs}`, {
+              method: 'DELETE',
+              signal: AbortSignal.timeout(5000),
+            });
+            console.log(`  DELETE ${id}: HTTP ${delRes.status}`);
+            return delRes.ok;
+          } catch (e) {
+            console.warn(`  DELETE ${id}: Falló (${e.message})`);
+            return false;
+          }
+        })
+      );
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value) successCount++;
+      }
+    }
 
-    const successCount = deleteResults.filter(Boolean).length;
     console.log(`✓ [Garbage Collector ElfHosted] ${successCount}/${toDelete.length} instancias basura purgadas exitosamente.`);
     return { purged: successCount, total: toDelete.length };
   } catch (err) {

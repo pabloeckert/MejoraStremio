@@ -8,9 +8,11 @@ import { cors, getKv, jsonResponse } from "../utils/common.ts";
 import { BoundedLruCache } from "../utils/lru-cache.ts";
 import { fetchCinemetaCatalogSorted } from "../utils/cinemeta.ts";
 
-export const TMDB_KEY = Deno.env.get("TMDB_API_KEY_AISEARCH") ?? "";
+export const TMDB_KEY = Deno.env.get("TMDB_API_KEY_AISEARCH") ?? "2d12317c428a903b661011caa1506b60";
 export const TMDB_API = "https://api.themoviedb.org/3";
 export const PROD_HUB_UPSTREAM = "https://mejorastremio-hub.pabloeckert.deno.net";
+
+export const BLOCKED_TMDB_LANGUAGES = new Set(["hi", "ko", "ja", "zh", "tr", "th"]);
 
 export const MINISERIES_MANIFEST = {
   id: "com.mejorastremio.miniseries",
@@ -246,7 +248,11 @@ export async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[
         page: String(page),
       });
       // deno-lint-ignore no-explicit-any
-      for (const s of (d?.results ?? []) as any[]) candidates.push(s.id);
+      for (const s of (d?.results ?? []) as any[]) {
+        if (!BLOCKED_TMDB_LANGUAGES.has(String(s.original_language || "").toLowerCase().trim())) {
+          candidates.push(s.id);
+        }
+      }
     } catch {
       break;
     }
@@ -841,7 +847,9 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       const path = type === "movie" ? "/discover/movie" : "/discover/tv";
       const d = await tmdbGet(path, params);
       // deno-lint-ignore no-explicit-any
-      const results = ((d?.results ?? []) as any[]).slice(0, 10);
+      const results = ((d?.results ?? []) as any[])
+        .filter((r) => !BLOCKED_TMDB_LANGUAGES.has(String(r.original_language || "").toLowerCase().trim()))
+        .slice(0, 10);
       const items = results.map((r) => ({
         name: r.title ?? r.name,
         date: r[responseDateField] ?? null,
@@ -1010,12 +1018,16 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     const results2 = (d2?.results ?? []) as any[];
     const combinedResults = [...results1, ...results2];
 
-    // Deduplicar resultados brutos por TMDB ID
+    // Deduplicar resultados brutos por TMDB ID y aplicar filtro duro anti-basura L2
     const seenTmdbIds = new Set<number>();
     // deno-lint-ignore no-explicit-any
     const results: any[] = [];
     for (const r of combinedResults) {
       if (r && r.id && !seenTmdbIds.has(r.id)) {
+        const origLang = String(r.original_language || "").toLowerCase().trim();
+        if (BLOCKED_TMDB_LANGUAGES.has(origLang)) {
+          continue; // Descarte estricto L2
+        }
         seenTmdbIds.add(r.id);
         results.push(r);
       }

@@ -32,7 +32,7 @@ const rawPreset = JSON.parse(readFileSync(PRESET_PATH, 'utf8'));
 const GLOBAL_ANTI_TRASH = {
   'vote_count.gte': 150,
   'vote_average.gte': 6.0,
-  without_original_language: 'hi,ko,ja,zh,tr,th',
+  with_original_language: 'en|es|pt|fr|it|de',
   with_origin_country: 'US|GB|AR|ES',
   include_adult: false,
 };
@@ -119,7 +119,7 @@ function makeCatalogItem({
           includeGenres: [],
           excludeGenres: [],
           genreJoinMode: 'or',
-          originalLanguage: '',
+          originalLanguage: mergedParams.with_original_language || '',
           originCountry: mergedParams.with_origin_country || '',
           certificationCountry: '',
           certificationValue: '',
@@ -237,14 +237,14 @@ NETWORKS.forEach((net) => {
 });
 
 // ── 2. Perfilado de Nicho para stremiojn (Excepción: Documental 99 Permitido) ─
-// Bloque Management: Keywords 1442,11520,10471,164629,236319
+// Bloque Management: Keywords 1442|11520|10471|164629|236319
 addCatalog({
     id: 'tmdb.discover.movie.business.management.stremiojn',
     type: 'movie',
     name: 'stremiojn | Management & Negocios B2B',
     showInHome: true,
     params: {
-      with_keywords: '1442,11520,10471,164629,236319',
+      with_keywords: '1442|11520|10471|164629|236319',
       without_genres: '10767', // Documental 99 PERMITIDO
     },
   });
@@ -255,19 +255,19 @@ addCatalog({
     name: 'stremiojn | Management & Negocios B2B (Series)',
     showInHome: false,
     params: {
-      with_keywords: '1442,11520,10471,164629,236319',
+      with_keywords: '1442|11520|10471|164629|236319',
       without_genres: '10767', // Documental 99 PERMITIDO
     },
   });
 
-// Bloque Deportes Motor / Combate: Keywords 9715,25484,10121,10649
+// Bloque Deportes Motor / Combate: Keywords 9715|25484|10121|10649
 addCatalog({
     id: 'tmdb.discover.movie.deportes.motor_combate.stremiojn',
     type: 'movie',
     name: 'stremiojn | Deportes de Motor & Combate (F1 / UFC / WWE)',
     showInHome: true,
     params: {
-      with_keywords: '9715,25484,10121,10649',
+      with_keywords: '9715|25484|10121|10649',
       without_genres: '10767', // Documental 99 PERMITIDO
     },
   });
@@ -278,7 +278,7 @@ addCatalog({
     name: 'stremiojn | Deportes de Motor & Combate (Series)',
     showInHome: false,
     params: {
-      with_keywords: '9715,25484,10121,10649',
+      with_keywords: '9715|25484|10121|10649',
       without_genres: '10767', // Documental 99 PERMITIDO
     },
   });
@@ -380,6 +380,8 @@ addCatalog({
       region: 'AR',
       'primary_release_date.gte': sixtyDaysAgo,
       'primary_release_date.lte': today,
+      'vote_count.gte': 5,
+      'vote_average.gte': 5.5,
       without_genres: '99,10767',
     },
   });
@@ -392,6 +394,8 @@ addCatalog({
     params: {
       'first_air_date.gte': sixtyDaysAgo,
       'first_air_date.lte': today,
+      'vote_count.gte': 5,
+      'vote_average.gte': 5.5,
       without_genres: '99,10767',
     },
   });

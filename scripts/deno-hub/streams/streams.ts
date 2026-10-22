@@ -22,6 +22,7 @@ import {
 } from "./mediaflow.ts";
 import { recordScraperLatency, recordTorboxLatency } from "../telemetry.ts";
 import { getOrSetSwrCache, TTL_SEGMENTS } from "../utils/swr_cache.ts";
+import { sessionizeTorboxStreams } from "./stream_security.ts";
 
 export const STREAMS_MANIFEST = {
   id: "com.mejorastremio.streams",
@@ -426,7 +427,8 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
 
     const mfConfig = getMediaFlowConfig(url, configSegment);
     const finalStreams = applyMediaFlowToStreams(rawStreams, mfConfig, globalMediaFlowCircuitBreaker);
-    return jsonResponse({ streams: finalStreams });
+    const secureStreams = await sessionizeTorboxStreams(finalStreams, url.origin);
+    return jsonResponse({ streams: secureStreams });
   } catch (err) {
     console.error(`[streams] Error fetching upstream torrentio: ${(err as Error).message}`);
     try {
@@ -434,7 +436,8 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
       const ranked = rankAndBadgeStreams(fallbackStreams);
       const mfConfig = getMediaFlowConfig(url, configSegment);
       const finalStreams = applyMediaFlowToStreams(ranked, mfConfig, globalMediaFlowCircuitBreaker);
-      return jsonResponse({ streams: finalStreams });
+      const secureFallback = await sessionizeTorboxStreams(finalStreams, url.origin);
+      return jsonResponse({ streams: secureFallback });
     } catch {
       return jsonResponse({ streams: [] });
     }

@@ -17,8 +17,30 @@ import { handleDiscover } from "./catalogs/tmdb.ts";
 import { MEJORASTREMIO_HUB_MANIFEST } from "./manifest.ts";
 import { buildParaVosCatalog } from "./catalogs/paravos.ts";
 import { isCanaryActiveForProfile } from "./utils/canary_governance.ts";
+import { resolveStreamSession } from "./streams/stream_security.ts";
+import { fetchMovieHash, computeMovieHashFromBuffers } from "./subtitles/hasher.ts";
 
-export { MEJORASTREMIO_HUB_MANIFEST };
+export { MEJORASTREMIO_HUB_MANIFEST, fetchMovieHash, computeMovieHashFromBuffers };
+
+export async function computeSha256Etag(payload: string): Promise<string> {
+  const data = new TextEncoder().encode(payload);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(digest));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function createManifestResponse(manifest: Record<string, unknown>): Promise<Response> {
+  const body = JSON.stringify(manifest);
+  const etag = await computeSha256Etag(body);
+  return new Response(body, {
+    headers: {
+      ...cors,
+      "Content-Type": "application/json",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "ETag": `"${etag}"`,
+    },
+  });
+}
 
 
 export function renderConfigureHtml(configSegment: string, origin: string): string {
@@ -359,7 +381,35 @@ export async function handleUnifiedHub(
   // 1. Manifest raíz: /manifest.json (soporta ?v=1.4.1 para rollback rápido / cache-busting inverso)
   if (path === "/manifest.json") {
     const manifest = await getCanaryManifest(reqUrl, undefined, customKv);
-    return jsonResponse(manifest);
+    return await createManifestResponse(manifest);
+  }
+
+  // Stream session redirection: /stream_session/:id
+  const streamSessionMatch = path.match(/^\/stream_session\/([^/]+)$/);
+  if (streamSessionMatch) {
+    const sessionIdOrHex = streamSessionMatch[1];
+    const realUrl = await resolveStreamSession(sessionIdOrHex, customKv);
+    if (realUrl) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          ...cors,
+          "Location": realUrl,
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+      });
+    }
+    return new Response("Stream session expired or not found", { status: 404, headers: cors });
+  }
+
+  // Moviehash probe endpoint: /subtitles/hash?streamUrl=...
+  if (path === "/subtitles/hash") {
+    const targetUrl = reqUrl.searchParams.get("streamUrl") || reqUrl.searchParams.get("url");
+    if (targetUrl) {
+      const hashInfo = await fetchMovieHash(targetUrl);
+      return jsonResponse(hashInfo || { error: "Failed to calculate moviehash" });
+    }
+    return jsonResponse({ error: "Parámetro 'streamUrl' requerido" }, { status: 400 });
   }
 
   // 2. Página de configuración raíz: /configure
@@ -377,7 +427,7 @@ export async function handleUnifiedHub(
     "subdl", "opensubtitles", "opensubtitles-latino", "subdivx",
     "subsource", "latino", "synopsis", "miniseries", "short-series",
     "discover", "ufc", "livetv", "iptv", "mediathek", "translate",
-    "streams", "stream", "subtitles", "catalog", "health", "configure", "manifest.json",
+    "streams", "stream", "stream_session", "subtitles", "catalog", "health", "configure", "manifest.json",
   ]);
 
   // 3. Manifest parametrizado: /:config/manifest.json (soporta ?v=1.4.1 y canario)
@@ -386,7 +436,7 @@ export async function handleUnifiedHub(
     const config = configManifestMatch[1];
     if (!RESERVED_PREFIXES.has(config)) {
       const manifest = await getCanaryManifest(reqUrl, config, customKv);
-      return jsonResponse(manifest);
+      return await createManifestResponse(manifest);
     }
   }
 

@@ -19,6 +19,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { execSync } from 'node:child_process';
 import { apiPost } from './lib/stremio-api.mjs';
 import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
 import { auditLeanbackHomeCatalogs } from './prune-home-catalogs.mjs';
@@ -35,6 +36,17 @@ const rbIdx = args.indexOf('--rollback');
 const ROLLBACK_FILE = rbIdx >= 0 ? args[rbIdx + 1] : null;
 const DRY_RUN = args.includes('--dry-run') || args.includes('--check') || (!APPLY && !ROLLBACK_LAST && !ROLLBACK_FILE);
 const RUN_UNIT_TEST = args.includes('--test-unit');
+
+// Parsing de flags adicionales --email y --pass
+const emailArgIdx = args.findIndex((a) => a === '--email' || a.startsWith('--email='));
+export const CLI_EMAIL = emailArgIdx >= 0
+  ? (args[emailArgIdx].startsWith('--email=') ? args[emailArgIdx].split('=')[1] : args[emailArgIdx + 1])
+  : null;
+
+const passArgIdx = args.findIndex((a) => a === '--pass' || a.startsWith('--pass='));
+export const CLI_PASS = passArgIdx >= 0
+  ? (args[passArgIdx].startsWith('--pass=') ? args[passArgIdx].split('=')[1] : args[passArgIdx + 1])
+  : null;
 
 // Detección de cuenta y ruta de perfil
 const accArgIdx = args.findIndex((a) => a === '--account' || a.startsWith('--account='));
@@ -283,29 +295,36 @@ export function ensureHubSubtitleAddons(addons) {
 export const CANONICAL_TORBOX_CONFIG =
   'providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino';
 
-export const GLOBAL_CACHE_BUSTER = Date.now();
+export function getGitShortSha() {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: ROOT }).trim();
+  } catch {
+    return 'dist';
+  }
+}
 
-export function injectCacheBuster(url, buster = GLOBAL_CACHE_BUSTER) {
+export const GIT_SHORT_SHA = getGitShortSha();
+
+export function injectCacheBuster(url, sha = GIT_SHORT_SHA) {
   if (!url) return url;
   if (/[?&]v=/.test(url)) {
     return url.replace(/([?&]v=)([^&]*)/, (m, p1, p2) => {
-      const parts = p2.split('.');
-      const baseVer = parts.length >= 3 ? parts.slice(0, 3).join('.') : p2;
-      return baseVer ? `${p1}${baseVer}.${buster}` : `${p1}${buster}`;
+      const baseVer = p2.split('-')[0].split('.').slice(0, 3).join('.');
+      return `${p1}${baseVer || '3.0.1'}-${sha}`;
     });
   }
   const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}v=${buster}`;
+  return `${url}${sep}v=3.0.1-${sha}`;
 }
 
 export const CANONICAL_HUB_URL =
-  injectCacheBuster(`https://mejorastremio-hub.pabloeckert.deno.net/${CANONICAL_TORBOX_CONFIG}/manifest.json?v=3.0.0`);
+  injectCacheBuster(`https://mejorastremio-hub.pabloeckert.deno.net/${CANONICAL_TORBOX_CONFIG}/manifest.json?v=3.0.1-aaa9cb7`);
 
 export const UNIFIED_HUB_ADDON_ENTRY = {
   transportUrl: CANONICAL_HUB_URL,
   manifest: {
     id: 'com.mejorastremio.hub',
-    version: '3.0.0',
+    version: '3.0.1',
     name: 'MejoraStremio Hub v3.0 (Enterprise)',
     description: 'Addon Unificado de MejoraStremio: Streams prioritarios TorBox + Audio Latino, Subtítulos sin SDH y Traducción IA (Gemini Flash).',
     resources: ['stream', 'subtitles', 'catalog'],
@@ -599,32 +618,39 @@ async function runProfileManager() {
   console.log('  ✓ Audio: Prioridad [Latino, Original] con Smart Stream Interceptor');
   console.log('  ✓ Catálogos: Sincronización diaria 07:00 ART vía daily-catalog-refresh');
 
-  let email = '';
-  let pass = '';
+  let email = CLI_EMAIL || '';
+  let pass = CLI_PASS || '';
 
-  if (TARGET_ACCOUNT === 'stremiojn') {
-    email = process.env.ST_EMAIL_JN || process.env.STREMIO_EMAIL_JN || process.env.ST_EMAIL || profile.account;
-    pass = process.env.ST_PASS_JN || process.env.STREMIO_PASS_JN || process.env.ST_PASS || '';
-  } else if (TARGET_ACCOUNT === 'solotveg') {
-    email = process.env.ST_EMAIL_TEEN || process.env.STREMIO_EMAIL_TEEN || process.env.ST_EMAIL || profile.account;
-    pass = process.env.ST_PASS_TEEN || process.env.STREMIO_PASS_TEEN || process.env.ST_PASS || '';
-  } else {
-    email = process.env.ST_EMAIL_EG || process.env.ST_EMAIL || process.env.STREMIO_EMAIL || profile.account;
-    pass = process.env.ST_PASS_EG || process.env.ST_PASS || process.env.STREMIO_PASS || '';
-    if (!pass) {
-      const localCred = 'C:/Users/tabeg/OneDrive/Documentos/Stemio/Pruebas/baee30cf-9528-4d53-82f3-2c4831853455.txt';
-      if (existsSync(localCred)) {
-        try {
-          const rawLines = readFileSync(localCred, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-          pass = rawLines.length > 1 ? rawLines[1] : rawLines[0];
-        } catch {
-          // Ignorar error al leer credencial local de respaldo
+  if (!email || !pass) {
+    if (TARGET_ACCOUNT === 'stremiojn') {
+      if (!email) email = process.env.ST_EMAIL_JN || process.env.STREMIO_EMAIL_JN || process.env.ST_EMAIL || profile.account;
+      if (!pass) pass = process.env.ST_PASS_JN || process.env.STREMIO_PASS_JN || process.env.ST_PASS || '';
+    } else if (TARGET_ACCOUNT === 'solotveg') {
+      if (!email) email = process.env.ST_EMAIL_TEEN || process.env.STREMIO_EMAIL_TEEN || process.env.ST_EMAIL || profile.account;
+      if (!pass) pass = process.env.ST_PASS_TEEN || process.env.STREMIO_PASS_TEEN || process.env.ST_PASS || '';
+    } else {
+      if (!email) email = process.env.ST_EMAIL_EG || process.env.ST_EMAIL || process.env.STREMIO_EMAIL || profile.account;
+      if (!pass) pass = process.env.ST_PASS_EG || process.env.ST_PASS || process.env.STREMIO_PASS || '';
+      if (!pass) {
+        const localCred = 'C:/Users/tabeg/OneDrive/Documentos/Stemio/Pruebas/baee30cf-9528-4d53-82f3-2c4831853455.txt';
+        if (existsSync(localCred)) {
+          try {
+            const rawLines = readFileSync(localCred, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+            pass = rawLines.length > 1 ? rawLines[1] : rawLines[0];
+          } catch {
+            // Ignorar error al leer credencial local de respaldo
+          }
         }
       }
     }
   }
 
   if (!pass) {
+    if (APPLY) {
+      console.error(`\n❌ Error Crítico: Se especificó --apply para la cuenta ${TARGET_ACCOUNT}, pero no se encontraron credenciales válidas.`);
+      console.error(`   Asegúrate de definir ST_PASS_${TARGET_ACCOUNT.toUpperCase()} o pasar --pass=<password>. Queda prohibido bypass silencioso.`);
+      process.exit(1);
+    }
     console.log(`\n[ 2/3 ] Cuenta Stremio: Modo Dry-Run Simulado para [${TARGET_ACCOUNT}] (ST_PASS no provisto)`);
     console.log(`  ℹ Para aplicar cambios remotos en vivo: ST_EMAIL_${TARGET_ACCOUNT.toUpperCase()}=... ST_PASS_${TARGET_ACCOUNT.toUpperCase()}=... node scripts/apply-stremioeg-profile.mjs --account=${TARGET_ACCOUNT} --apply`);
 
@@ -650,7 +676,7 @@ async function runProfileManager() {
     const freshHubManifest = await fetchFreshHubManifest();
     const manifestToUse = freshHubManifest || {
       ...UNIFIED_HUB_ADDON_ENTRY.manifest,
-      version: '3.0.0',
+      version: '3.0.1',
     };
 
     const baseHubUrl = profile.rules?.subtitles?.unifiedHub?.transportUrl || CANONICAL_HUB_URL;
@@ -710,7 +736,7 @@ async function runProfileManager() {
     const freshHubManifest = await fetchFreshHubManifest();
     const manifestToUse = freshHubManifest || {
       ...UNIFIED_HUB_ADDON_ENTRY.manifest,
-      version: '3.0.0',
+      version: '3.0.1',
     };
 
     const baseHubUrl = profile.rules?.subtitles?.unifiedHub?.transportUrl || CANONICAL_HUB_URL;
@@ -792,7 +818,29 @@ async function runProfileManager() {
         console.error('✗ Falló addonCollectionSet:', JSON.stringify(saveRes));
         process.exit(1);
       }
-      console.log('  ✓ Colección guardada exitosamente en la cuenta con monopolio de subtítulos en el Hub.');
+      console.log('  ✓ addonCollectionSet aceptado por la API de Stremio');
+
+      // ── Verificación Read-Back Obligatoria (3s de espera en Stremio Cloud) ──
+      console.log('  Aguardando 3 segundos para propagación en Stremio Cloud...');
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      console.log('  Ejecutando verificación Read-Back independiente (addonCollectionGet)...');
+      const verifyCol = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
+      const readBackAddons = verifyCol?.result?.addons || [];
+      console.log(`  ✓ Read-Back completado: ${readBackAddons.length} add-ons devueltos por Stremio API.`);
+      readBackAddons.forEach((a, i) => {
+        console.log(`    [${i}] ${a.manifest?.name} (${a.manifest?.id}) v${a.manifest?.version}`);
+      });
+
+      if (readBackAddons.length !== 2) {
+        console.error(`❌ ERROR CRÍTICO: Read-back falló. result.addons.length es ${readBackAddons.length} (se esperaba matemáticamente 2).`);
+        process.exit(1);
+      }
+      if (readBackAddons[0]?.manifest?.id !== 'com.mejorastremio.hub' || readBackAddons[1]?.manifest?.id !== 'com.linvo.cinemeta') {
+        console.error(`❌ ERROR CRÍTICO: Read-back falló. El orden debe ser estrictamente [com.mejorastremio.hub, com.linvo.cinemeta], recibido: [${readBackAddons.map(a => a.manifest?.id).join(', ')}]`);
+        process.exit(1);
+      }
+      console.log('  ✓ Verificación Read-Back Matemática EXITOSA: Monopolio estricto de 2 addons confirmado en la nube.');
     } else if (changesCount === 0) {
       console.log('\n  ✓ Add-ons de la cuenta ya cumplen estrictamente con la configuración.');
     } else {

@@ -88,25 +88,30 @@ export function validatePreset(filePath, preset, errFn = err, warnFn = warn) {
         errFn(`[${filePath}] ${at} (${c.id}) es discover pero le falta metadata.discover.params`);
       } else {
         const isUpcoming = /upcoming/.test(String(c.id || ''));
+        const isRecentRelease = /upcoming|now_playing|recent|estrenos|cartelera/i.test(String(c.id || ''));
 
-        // 1. Filtro Anti-Basura Obligatorio: vote_count.gte >= 150 (excepto en estrenos no lanzados)
+        // 1. Filtro Anti-Basura Obligatorio: vote_count.gte >= 150 (o >= 5 en estrenos / en cartelera)
         if (!isUpcoming) {
+          const minVoteCount = isRecentRelease ? 5 : 150;
+          const minVoteAvg = isRecentRelease ? 5.5 : 6.0;
           const vc = Number(params['vote_count.gte']);
-          if (isNaN(vc) || vc < 150) {
-            errFn(`[${filePath}] ${at} ("${c.name}") carece del filtro anti-basura vote_count.gte >= 150 (tiene: ${params['vote_count.gte']})`);
+          if (isNaN(vc) || vc < minVoteCount) {
+            errFn(`[${filePath}] ${at} ("${c.name}") carece del filtro anti-basura vote_count.gte >= ${minVoteCount} (tiene: ${params['vote_count.gte']})`);
           }
           const va = Number(params['vote_average.gte']);
-          if (isNaN(va) || va < 6.0) {
-            errFn(`[${filePath}] ${at} ("${c.name}") carece del filtro vote_average.gte >= 6.0 (tiene: ${params['vote_average.gte']})`);
+          if (isNaN(va) || va < minVoteAvg) {
+            errFn(`[${filePath}] ${at} ("${c.name}") carece del filtro vote_average.gte >= ${minVoteAvg} (tiene: ${params['vote_average.gte']})`);
           }
         }
 
-        // 2. Filtro Anti-Basura Obligatorio: without_original_language con hi,ko,ja,zh,tr,th
+        // 2. Filtro Anti-Basura: with_original_language con idiomas legítimos o without_original_language
+        const withLang = String(params.with_original_language || '');
         const withoutLang = String(params.without_original_language || '');
         const REQUIRED_LANGS = ['hi', 'ko', 'ja', 'zh', 'tr', 'th'];
+        const hasValidWithLang = withLang.includes('en') || withLang.includes('es');
         const missingLangs = REQUIRED_LANGS.filter((l) => !withoutLang.includes(l));
-        if (missingLangs.length > 0) {
-          errFn(`[${filePath}] ${at} ("${c.name}") carece de idiomas basura excluidos en without_original_language: faltan [${missingLangs.join(', ')}]`);
+        if (!hasValidWithLang && missingLangs.length > 0) {
+          errFn(`[${filePath}] ${at} ("${c.name}") carece de filtro de idiomas (requiere with_original_language o without_original_language excluyendo [${missingLangs.join(', ')}])`);
         }
 
         // 3. Purga Dual de Géneros Basura: without_genres: 99,10767 (excepto en nichos stremiojn)

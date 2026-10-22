@@ -342,12 +342,16 @@ async function runScenario3() {
     }
 
     // Aserción de Seguridad: Cero exposición de API Key de TorBox en texto plano o Base64
+    let exposedPlain = 0;
+    let exposedBase64 = 0;
+    const base64Key = Buffer.from(TORBOX_API_KEY).toString('base64');
     for (const s of streams) {
       const rawStream = JSON.stringify(s);
-      assert(!rawStream.includes(TORBOX_API_KEY), `Cero exposición de TorBox API Key en texto plano`);
-      const base64Key = Buffer.from(TORBOX_API_KEY).toString('base64');
-      assert(!rawStream.includes(base64Key), `Cero exposición de TorBox API Key en Base64 simple`);
+      if (rawStream.includes(TORBOX_API_KEY)) exposedPlain++;
+      if (rawStream.includes(base64Key)) exposedBase64++;
     }
+    assert(exposedPlain === 0, `Cero exposición de TorBox API Key en texto plano (${streams.length} streams auditados)`);
+    assert(exposedBase64 === 0, `Cero exposición de TorBox API Key en Base64 simple (${streams.length} streams auditados)`);
   }
 }
 

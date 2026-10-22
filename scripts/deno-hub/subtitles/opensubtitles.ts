@@ -5,6 +5,8 @@
  */
 
 import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, releaseSimilarity, getKv } from "../utils/common.ts";
+import { BoundedLruCache } from "../utils/lru-cache.ts";
+import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 import { resolveSmartSync, rescaleSrtFramerate, cleanSrt, pushDualSubtitles, type SubtitleTrackPayload } from "./smartsync.ts";
 import { isSdhName, looksLikeSDH } from "./sdh-detector.ts";
 
@@ -12,6 +14,9 @@ export const OPENSUBTITLES_API_KEY = Deno.env.get("OPENSUBTITLES_API_KEY") ?? ""
 export const OPENSUBTITLES_API = "https://api.opensubtitles.com/api/v1";
 export const OPENSUBTITLES_UA = "MejoraStremio v1";
 export const OPENSUBTITLES_SRT_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 días
+
+// L1 Cache: Máximo 50 subtítulos en RAM (~2.5 MB) con desalojo LRU
+const openSubtitlesMemCache = new BoundedLruCache<number, string>(50, 24 * 60 * 60 * 1000);
 
 export const OPENSUBTITLES_MANIFEST = {
   id: "com.mejorastremio.opensubtitles",
@@ -77,15 +82,29 @@ export async function fetchOpenSubtitlesSubs(
 }
 
 export async function downloadOpenSubtitlesSrt(fileId: number): Promise<string | null> {
+  // 1. L1 Memoria rápida Bounded LRU
+  const memCached = openSubtitlesMemCache.get(fileId);
+  if (memCached) {
+    return memCached;
+  }
+
+  // 2. L2 Deno KV comprimido Gzip + SHA-256
   const cacheKey = ["opensubtitles-srt", fileId];
   let kv: Deno.Kv | null = null;
   try {
     kv = await getKv();
-    const cached = await kv.get<string>(cacheKey);
-    if (cached.value) return cached.value;
+    if (kv) {
+      const cached = await getCompressedKvText(kv, cacheKey);
+      if (cached) {
+        openSubtitlesMemCache.set(fileId, cached);
+        return cached;
+      }
+    }
   } catch {
     kv = null;
   }
+
+  // 3. Descarga Upstream OpenSubtitles
   try {
     const dl = await fetch(`${OPENSUBTITLES_API}/download`, {
       method: "POST",
@@ -101,8 +120,15 @@ export async function downloadOpenSubtitlesSrt(fileId: number): Promise<string |
     const r = await fetch(dl.link, { signal: AbortSignal.timeout(20000) });
     if (!r.ok) return null;
     const srtText = decodeSubtitleText(new Uint8Array(await r.arrayBuffer()));
-    if (kv) {
-      try { await kv.set(cacheKey, srtText, { expireIn: OPENSUBTITLES_SRT_CACHE_TTL_MS }); } catch { /* sin cache */ }
+    if (srtText) {
+      openSubtitlesMemCache.set(fileId, srtText);
+      if (kv) {
+        try {
+          await setCompressedKvText(kv, cacheKey, srtText, { expireIn: OPENSUBTITLES_SRT_CACHE_TTL_MS });
+        } catch {
+          /* sin cache */
+        }
+      }
     }
     return srtText;
   } catch {

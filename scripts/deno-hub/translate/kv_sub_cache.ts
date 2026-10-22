@@ -216,6 +216,48 @@ export async function putCachedSub(
 
   const n_chunks = Math.max(1, Math.ceil(totalBytes / SUB_CACHE_CHUNK_SIZE));
 
+  // Gobernanza de TTL: garantizar formalmente que expireIn(chunks) >= expireIn(manifest)
+  const manifestTtlMs = ttlMs;
+  const chunkTtlMs = manifestTtlMs + 60_000;
+  if (chunkTtlMs < manifestTtlMs) {
+    throw new Error("Violación de gobernanza: expireIn(chunks) debe ser >= expireIn(manifest)");
+  }
+
+  // Purga explícita de chunks sobrantes o huérfanos del commit anterior
+  try {
+    const prevManifestEntry = await kv.get<SubCacheManifest>([...baseKey, "manifest"]);
+    const prevNChunks = prevManifestEntry?.value?.n_chunks ?? 0;
+    if (prevNChunks > n_chunks) {
+      let purgeAtomic = kv.atomic();
+      for (let i = n_chunks; i < prevNChunks; i++) {
+        purgeAtomic = purgeAtomic.delete([...baseKey, "chunk", i]);
+      }
+      await purgeAtomic.commit();
+    }
+
+    // Escaneo defensivo para eliminar cualquier residuo huérfano con índice >= n_chunks
+    const chunkIter = kv.list<Uint8Array>({ prefix: [...baseKey, "chunk"] });
+    let orphanAtomic = kv.atomic();
+    let orphanCount = 0;
+    for await (const entry of chunkIter) {
+      const idxPart = entry.key[entry.key.length - 1];
+      if (typeof idxPart === "number" && idxPart >= n_chunks) {
+        orphanAtomic = orphanAtomic.delete(entry.key);
+        orphanCount++;
+        if (orphanCount >= 10) {
+          await orphanAtomic.commit();
+          orphanAtomic = kv.atomic();
+          orphanCount = 0;
+        }
+      }
+    }
+    if (orphanCount > 0) {
+      await orphanAtomic.commit();
+    }
+  } catch {
+    /* fallback defensivo */
+  }
+
   const manifest: SubCacheManifest = {
     n_chunks,
     bytes: totalBytes,
@@ -231,9 +273,9 @@ export async function putCachedSub(
       const start = i * SUB_CACHE_CHUNK_SIZE;
       const end = Math.min(totalBytes, (i + 1) * SUB_CACHE_CHUNK_SIZE);
       const chunkData = compressed.subarray(start, end);
-      atomic = atomic.set([...baseKey, "chunk", i], chunkData, { expireIn: ttlMs });
+      atomic = atomic.set([...baseKey, "chunk", i], chunkData, { expireIn: chunkTtlMs });
     }
-    atomic = atomic.set([...baseKey, "manifest"], manifest, { expireIn: ttlMs });
+    atomic = atomic.set([...baseKey, "manifest"], manifest, { expireIn: manifestTtlMs });
     const res = await atomic.commit();
     return res.ok;
   }
@@ -246,7 +288,7 @@ export async function putCachedSub(
       const start = j * SUB_CACHE_CHUNK_SIZE;
       const end = Math.min(totalBytes, (j + 1) * SUB_CACHE_CHUNK_SIZE);
       const chunkData = compressed.subarray(start, end);
-      atomic = atomic.set([...baseKey, "chunk", j], chunkData, { expireIn: ttlMs });
+      atomic = atomic.set([...baseKey, "chunk", j], chunkData, { expireIn: chunkTtlMs });
     }
     const chunkRes = await atomic.commit();
     if (!chunkRes.ok) {
@@ -258,7 +300,7 @@ export async function putCachedSub(
   // Manifest final como señal de validez
   const manifestRes = await kv
     .atomic()
-    .set([...baseKey, "manifest"], manifest, { expireIn: ttlMs })
+    .set([...baseKey, "manifest"], manifest, { expireIn: manifestTtlMs })
     .commit();
 
   return manifestRes.ok;

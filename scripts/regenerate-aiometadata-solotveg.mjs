@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * Regenera la instancia de AIOMetadata PROPIA de la cuenta solotveg (perfil
  * juvenil/adolescente) desde data/preset.json, aplicando las diferencias de
@@ -58,9 +58,11 @@ function relaxQuantityFilters(catalog) {
   const p = c.metadata.discover.params;
   delete p["vote_average.gte"];
   if (typeof p["vote_count.gte"] === "number" && p["vote_count.gte"] > 10) p["vote_count.gte"] = 10;
-  if (c.metadata.discover.formState) {
+  // Blindaje anti-portadas vacías: piso mínimo de 3 votos (evita pósters rotos/fantasma)
+  if (typeof p["vote_count.gte"] === "number" && p["vote_count.gte"] < 3) p["vote_count.gte"] = 3;
+  if (c.metadata?.discover?.formState) {
     c.metadata.discover.formState.voteAverageRange = [0, 10];
-    c.metadata.discover.formState.voteCountMin = p["vote_count.gte"] ?? 0;
+    c.metadata.discover.formState.voteCountMin = p["vote_count.gte"] ?? 3;
   }
   return c;
 }
@@ -128,14 +130,24 @@ const rest = enabled.filter((c) => ![...dateCats, ...platformCats, ...animationC
 
 console.log(`Estrenos/Cartelera: ${dateCats.length} | Plataforma/Canal: ${platformCats.length} | AnimaciÃ³n: ${animationCats.length} (+2 AcciÃ³n Real nuevas) | Resto gÃ©neros: ${rest.length} | Deprioritizados (paÃ­s/regiÃ³n/rating): ${deprioritized.length}`);
 
+const homeDates = dateCats.map((c) => ({ ...c, showInHome: true }));
+const homePlatforms = platformCats.map(relaxQuantityFilters).map((c) => ({ ...c, showInHome: true }));
+const homeAnimation = animationCats.map(relaxQuantityFilters).map((c) => ({ ...c, showInHome: true }));
+
 const finalOrder = [
-  ...dateCats,
-  ...platformCats.map(relaxQuantityFilters),
-  ...animationCats.map(relaxQuantityFilters),
+  ...homeDates,
+  ...homePlatforms,
+  ...homeAnimation,
   ...liveActionCats,
-  ...rest.map(relaxQuantityFilters).map((c) => ({ ...c, showInHome: true })),
+  ...rest.map(relaxQuantityFilters).map((c) => ({ ...c, showInHome: false })),
   ...deprioritized.map((c) => ({ ...c, showInHome: false })),
 ];
+
+const homeTotal = finalOrder.filter((c) => c.showInHome !== false).length;
+console.log(`[Leanback UX] Filas curadas en Inicio (Home): ${homeTotal} (límite estricto <= 20)`);
+if (homeTotal > 20) {
+  die(`[Gobernanza Leanback] solotveg tiene ${homeTotal} filas en Home (límite estricto <= 20).`);
+}
 
 const config = JSON.parse(JSON.stringify(preset.aioMetadataConfig.config));
 config.catalogs = finalOrder;

@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import { cors } from "hono/middleware";
-import { callGemini, buildTranslateSystemPrompt, NL } from "../translate/gemini.ts";
+import { callGemini, buildTranslateSystemPrompt, NL, cleanCueForTranslation } from "../translate/gemini.ts";
 import { parseStremioSubId, releaseSimilarity } from "../utils/common.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./smartsync.ts";
 import { getOrSetSwrCache } from "../streams/mediaflow.ts";
 import { recordScraperLatency } from "../telemetry.ts";
+
+export { cleanCueForTranslation };
 
 export const subtitlesApp = new Hono();
 
@@ -25,31 +27,6 @@ export const SUBTITLES_APP_MANIFEST = {
 // ============================================================================
 // 1. PURGA Y HIGIENE ANTI-SDH (HEARING IMPAIRED / NOISE REMOVAL)
 // ============================================================================
-export function cleanCueForTranslation(text: string): string {
-  if (!text) return "";
-  return text
-    // Elimina acotaciones sonoras entre corchetes: [música], [sighs], [gritos]
-    .replace(/\[[^\]]*\]/g, "")
-    // Elimina paréntesis (...) solo si está en MAYÚSCULAS o ruidos ambientales
-    .replace(/\(([^)]*)\)/g, (fullMatch, inner) => {
-      const trimmed = inner.trim();
-      if (!trimmed) return "";
-      const hasUpper = /[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ]/.test(trimmed);
-      const hasLower = /[a-záéíóúñàâçéèêëîïôùûüÿ]/.test(trimmed);
-      if (hasUpper && !hasLower) return "";
-      if (/\b(?:m[uú]sica|music|gritos?|screams?|risas?|laughs?|suspiros?|sighs?|llanto|crying|pasos|footsteps|aplausos?|applause|disparos?|shots?|alarma|alarm|sonnerie)\b/i.test(trimmed)) {
-        return "";
-      }
-      return fullMatch;
-    })
-    // Elimina notas musicales y símbolos especiales
-    .replace(/[♪♫#¶]/g, "")
-    // Elimina prefijos de hablante en mayúsculas: "MORGANE:", "KARADEC:", "- LUDWIG:"
-    .replace(/^[-–—•]?\s*[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ0-9\s._-]{2,30}:\s*/gm, "")
-    // Normaliza espacios en blanco duplicados
-    .replace(/[ \t]+/g, " ")
-    .trim();
-}
 
 // deno-lint-ignore no-explicit-any
 export function filterNonSDH(subtitles: any[]): any[] {

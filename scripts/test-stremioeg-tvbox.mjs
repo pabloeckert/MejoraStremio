@@ -20,6 +20,7 @@ import {
   filterCompetingSubtitleAddons,
   ensureHubSubtitleAddons,
 } from './apply-stremioeg-profile.mjs';
+import { auditLeanbackHomeCatalogs } from './prune-home-catalogs.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -66,9 +67,11 @@ if (profile) {
   const hasSub = profile.rules?.subtitles?.mode === 'strict_no_sdh';
   const hasAudio = profile.rules?.audio?.priorityHierarchy?.[0] === 'latino';
   const hasCatalogs = profile.rules?.catalogs?.dailySync === true;
+  const hasLeanbackRules = profile.rules?.catalogs?.maxHomeRows <= 20 && profile.rules?.catalogs?.minVoteCountHome >= 3;
   record(report.test1_structure, 'Reglas de subtítulos estrictos sin SDH declaradas', hasSub);
   record(report.test1_structure, 'Reglas de audio latino/original prioritario declaradas', hasAudio);
   record(report.test1_structure, 'Regla de sincronización diaria de catálogos declarada', hasCatalogs);
+  record(report.test1_structure, 'Reglas Leanback UX declaradas (maxHomeRows <= 20, minVoteCountHome >= 3)', hasLeanbackRules);
 }
 
 // 1.3 Documentación en cuentas/stremioeg/GEMINI.md
@@ -122,6 +125,36 @@ if (existsSync(workflowPath)) {
   record(report.test1_structure, 'Workflow daily-catalog-refresh.yml configurado con cron diario', hasCron && runsRefresh);
 } else {
   record(report.test1_structure, 'Workflow daily-catalog-refresh.yml configurado con cron diario', false, 'Archivo no existe');
+}
+
+// 1.7 Poda UX Leanback: Home screen limitado estrictamente a <= 20 filas
+let homeAudit = null;
+if (preset) {
+  homeAudit = auditLeanbackHomeCatalogs(preset);
+  record(
+    report.test1_structure,
+    'Poda UX Leanback: Inicio limitado estrictamente a <= 20 filas',
+    homeAudit.valid && homeAudit.homeCount > 0 && homeAudit.homeCount <= 20,
+    `${homeAudit.homeCount} filas activas en Home`
+  );
+
+  // 1.8 Blindaje anti-portadas vacías: vote_count.gte >= 3 en Discover
+  const hasAntiBrokenCovers = !homeAudit.errors.some((e) => e.includes('vote_count.gte'));
+  record(
+    report.test1_structure,
+    'Blindaje anti-portadas vacías: vote_count.gte >= 3 en catálogos estrenados de Inicio',
+    hasAntiBrokenCovers,
+    hasAntiBrokenCovers ? 'Mínimo 3 votos exigido en títulos estrenados' : 'Faltan parámetros de votos mínimos'
+  );
+
+  // 1.9 Ordenamiento dinámico: fechas recientes priorizadas, cero popularidad estática
+  const hasDynamicSort = !homeAudit.errors.some((e) => e.includes('popularidad estático'));
+  record(
+    report.test1_structure,
+    'Ordenamiento dinámico: fechas recientes priorizadas (erradicadas listas de popularidad estáticas)',
+    hasDynamicSort,
+    hasDynamicSort ? 'Todos los catálogos en orden cronológico reciente' : 'Detectadas listas con popularidad estática'
+  );
 }
 
 // ── TEST 2: SIMULACIÓN DE FILTROS DE AUDIO Y SUBTÍTULOS ──────────────────────

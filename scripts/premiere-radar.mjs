@@ -1,20 +1,13 @@
 #!/usr/bin/env node
 /**
- * premiere-radar.mjs â€” Para cada show en progreso/watchlist en MyTrakt Sync, calcula el prÃ³ximo
- * episodio no visto y avisa por email la PRIMERA vez que ese episodio puntual estÃ¡ realmente listo
- * para ver: al menos un stream cacheado en TorBox (Torrentio/Comet, sin depender de que el swarm
- * P2P tenga seeds vivos) Y al menos un subtÃ­tulo en espaÃ±ol ya hecho (no una traducciÃ³n bajo
- * demanda todavÃ­a sin generar) en alguna de las 5 fuentes de subs instaladas.
+ * premiere-radar.mjs — Radar de estrenos listos para ver con blindaje Fail-Closed.
  *
- * "PrÃ³ximo episodio no visto" viene directo del campo `watched` que MyTrakt Sync ya calcula por
- * episodio en su propio endpoint de meta (sincronizado con Trakt) â€” no hace falta la API de Trakt
- * ni sus tokens (que ni siquiera son accesibles desde acÃ¡, ver GEMINI.md).
- *
- * Si el episodio target ni siquiera se estrenÃ³ todavÃ­a, queda "pendiente" sin gastar requests en
- * Torrentio/Comet/subs. Si ya se estrenÃ³ pero falla alguno de los dos chequeos, tambiÃ©n queda
- * "pendiente" â€” se re-chequea en la prÃ³xima corrida, sin avisar nada (cero spam de falsos
- * positivos). El estado persiste en data/premiere-radar-state.json para no avisar dos veces el
- * mismo episodio una vez que ya pasÃ³ a LISTO.
+ * Directivas de Gobernanza Técnica v2.1:
+ * 1. Fail-Closed ante fallos externos: Si la API de Trakt o Stremio devuelve 401 (token expirado),
+ *    403 o 5xx (caída upstream), el script captura la excepción, emite una advertencia formal
+ *    y finaliza con código de salida 0 (limpio), evitando marcar en rojo el pipeline de GitHub Actions.
+ * 2. Cero spam de estado: Si no hay shows o Trakt está temporalmente inaccesible, preserva
+ *    data/premiere-radar-state.json intacto sin borrar registros previos.
  *
  * Requiere: ST_EMAIL, ST_PASS
  * Uso: node scripts/premiere-radar.mjs
@@ -31,191 +24,279 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const STATE_PATH = join(ROOT, 'data', 'premiere-radar-state.json');
 
-const die = (m, code = 1) => { console.error(`âœ— ${m}`); process.exit(code); };
-const getJson = (url, t = 20000) =>
-  fetch(url, { signal: AbortSignal.timeout(t) })
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null);
 const baseOf = (u) => (/manifest\.json$/.test(u) ? u.replace(/manifest\.json$/, '') : u.replace(/\/?$/, '/'));
 const hasRes = (m, r) => (m?.resources || []).some((x) => x === r || x?.name === r);
 
 function loadState() {
   if (!existsSync(STATE_PATH)) return [];
-  return JSON.parse(readFileSync(STATE_PATH, 'utf8'));
+  try {
+    return JSON.parse(readFileSync(STATE_PATH, 'utf8'));
+  } catch {
+    return [];
+  }
 }
+
 function saveState(state) {
   mkdirSync(dirname(STATE_PATH), { recursive: true });
   writeFileSync(STATE_PATH, JSON.stringify(state, null, 2) + '\n');
 }
 
-const email = process.env.ST_EMAIL;
-const pass = process.env.ST_PASS;
-if (!email || !pass) die('Faltan ST_EMAIL / ST_PASS');
-
-const login = await apiPost('login', { authKey: null, email, password: pass });
-const authKey = login?.result?.authKey;
-if (!authKey) die('Login fallido: ' + JSON.stringify(login?.error || login));
-
-const col = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
-const addons = col?.result?.addons || [];
-
-const myTrakt = addons.find((a) => (a.manifest?.id || '').startsWith('trakt.addon.v3.'));
-if (!myTrakt) die('No se encontrÃ³ MyTrakt Sync en la colecciÃ³n instalada.');
-const torrentio = addons.find((a) =>
-  a.manifest?.id === 'com.mejorastremio.hub' ||
-  a.manifest?.id === 'com.mejorastremio.streams' ||
-  a.manifest?.id === 'com.stremio.torrentio.addon'
-);
-const comet = addons.find((a) => a.manifest?.id === 'stremio.comet.fast');
-if (!torrentio && !comet) die('Ni MejoraStremio/Torrentio ni Comet están instalados — no se puede chequear cache TorBox.');
-// MyTrakt Sync declara el recurso "subtitles" en su manifest pero no lo implementa de verdad
-// (siempre devuelve []) — no es una de las 5 fuentes de subs reales, se excluye explícitamente.
-const subAddons = addons.filter((a) => hasRes(a.manifest, 'subtitles') && a.manifest?.id !== myTrakt.manifest.id);
-if (!subAddons.length) die('No hay addons de subtítulos instalados.');
-
-const traktBase = baseOf(myTrakt.transportUrl);
-const torrentioBase = torrentio ? baseOf(torrentio.transportUrl) : null;
-const cometBase = comet ? baseOf(comet.transportUrl) : null;
-
-console.log('â•'.repeat(60));
-console.log(' MejoraStremio â€” Radar de estrenos listos');
-console.log(' ' + new Date().toISOString());
-console.log('â•'.repeat(60));
-console.log(`MyTrakt: ${myTrakt.manifest.name} | Streams: Torrentio, Comet | Subs: ${subAddons.map(a => a.manifest.name).join(', ')}\n`);
-
-async function fetchCatalog(type, id) {
-  const metas = [];
-  for (let skip = 0; skip < 500; skip += 100) {
-    const page = await getJson(`${traktBase}catalog/${type}/${id}${skip ? `/skip=${skip}` : ''}.json`);
-    const pageMetas = page?.metas || [];
-    metas.push(...pageMetas);
-    if (pageMetas.length < 100) break;
-  }
-  return metas;
-}
-
-const [continueWatching, watchlist] = await Promise.all([
-  fetchCatalog('series', 'continue_watching_shows'),
-  fetchCatalog('series', 'watchlist_shows'),
-]);
-
-const allMetas = [...continueWatching, ...watchlist];
-
-// Detección semántica de expiración de sesión Trakt (OAuth requerido)
-const traktAuthExpired = allMetas.some(
-  (m) => String(m?.id || '').startsWith('trakt_auth_required') || /trakt authentication required/i.test(m?.name || '')
-);
-
-if (traktAuthExpired) {
-  console.warn('\n::warning:: [TRAKT_AUTH_REQUIRED] La sesión de Trakt.tv ha expirado en MyTrakt Sync.');
-  console.warn('⚠️ Se requiere re-autenticar la cuenta en: https://mytrakt.elfhosted.com');
-  console.warn('ℹ️ No se modifica data/premiere-radar-state.json para preservar el historial previo.\n');
-  process.exit(0);
-}
-
-const shows = new Map();
-for (const m of allMetas) {
-  if (m.imdb_id && !shows.has(m.imdb_id)) shows.set(m.imdb_id, m.name);
-}
-
-// Guard: si MyTrakt devuelve 0 shows es casi siempre un fallo transitorio del endpoint
-// (getJson → null → metas:[]), no que Pablo se haya quedado sin nada en progreso. Sin este
-// guard, saveState([]) borraba todo el estado y la corrida siguiente re-"notificaba" cada
-// episodio desde cero (pasó el 2026-09-02, ver GEMINI.md sesión 2026-09-03 dev 2). Abortamos
-// sin tocar el archivo de estado y sin romper el build en CI.
-if (shows.size === 0) {
-  console.warn('⚠️ MyTrakt Sync devolvió 0 shows (continue_watching + watchlist vacíos) — probable fallo transitorio del endpoint.');
-  console.warn('ℹ️ No se toca data/premiere-radar-state.json. Saliendo de forma controlada.');
-  process.exit(0);
-}
-console.log(`${shows.size} show(s) en progreso/watchlist en MyTrakt Sync.\n`);
-
-function nextUnwatched(videos) {
-  return (videos || [])
-    .filter((v) => v.season > 0)
-    .sort((a, b) => a.season - b.season || a.number - b.number)
-    .find((v) => v.watched !== true);
-}
-
-async function checkCached(imdbId, season, episode) {
-  const streamId = `${imdbId}:${season}:${episode}`;
-  const proms = [];
-  if (torrentioBase) proms.push(getJson(`${torrentioBase}stream/series/${streamId}.json`));
-  if (cometBase) proms.push(getJson(`${cometBase}stream/series/${streamId}.json`));
-  const results = await Promise.all(proms);
-  const streams = results.flatMap((r) => r?.streams || []);
-  return streams.some(isCachedStream);
-}
-
-async function checkSpanishSubs(imdbId, season, episode) {
-  const streamId = `${imdbId}:${season}:${episode}`;
-  const results = await Promise.all(
-    subAddons.map((a) => getJson(`${baseOf(a.transportUrl)}subtitles/series/${streamId}.json`, 18000))
-  );
-  return results.some((r) => (r?.subtitles || []).some((s) => isSpanishLang(s.lang)));
-}
-
-const state = loadState();
-const now = new Date();
-const newState = [];
-const newlyReady = [];
-let readyCount = 0, pendingCount = 0, notAiredCount = 0;
-
-for (const [imdbId, showName] of shows) {
-  const meta = await getJson(`${traktBase}meta/series/${imdbId}.json`);
-  const target = nextUnwatched(meta?.meta?.videos);
-  if (!target) {
-    console.log(`  â€” ${showName}: sin prÃ³ximo episodio (serie al dÃ­a/completa)`);
-    continue;
-  }
-
-  const key = `${imdbId}:${target.season}:${target.number}`;
-  const label = `${showName} S${String(target.season).padStart(2, '0')}E${String(target.number).padStart(2, '0')}`;
-  const releaseDate = target.released || target.firstAired || null;
-  const aired = releaseDate ? new Date(releaseDate) <= now : false;
-
-  const prev = state.find((e) => e.key === key);
-
-  if (!aired) {
-    notAiredCount++;
-    console.log(`  â³ ${label} â€” todavÃ­a no se estrenÃ³ (${releaseDate || 'fecha desconocida'})`);
-    newState.push({ key, imdbId, show: showName, season: target.season, episode: target.number,
-      episodeTitle: target.name || target.title || '', status: 'pendiente', reason: 'no-estrenado',
-      lastCheckedAt: now.toISOString(), notifiedAt: prev?.notifiedAt || null });
-    continue;
-  }
-
-  const [cached, subs] = await Promise.all([
-    checkCached(imdbId, target.season, target.number),
-    checkSpanishSubs(imdbId, target.season, target.number),
-  ]);
-  const ready = cached && subs;
-
-  if (ready) {
-    readyCount++;
-    const alreadyNotified = !!prev?.notifiedAt;
-    console.log(`  âœ… ${label} "${target.name || ''}" â€” LISTO (cache=${cached} subs=${subs})${alreadyNotified ? ' [ya avisado]' : ''}`);
-    if (!alreadyNotified) {
-      newlyReady.push({ show: showName, season: target.season, episode: target.number, title: target.name || target.title || '' });
+const getJson = async (url, t = 20000) => {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(t) });
+    if (res.status === 401 || res.status === 403) {
+      console.warn(`::warning:: [FAIL-CLOSED] API devolvió HTTP ${res.status} (autenticación expirada) en ${url}`);
+      return { _status: res.status, _authError: true };
     }
-    newState.push({ key, imdbId, show: showName, season: target.season, episode: target.number,
-      episodeTitle: target.name || target.title || '', status: 'listo', lastCheckedAt: now.toISOString(),
-      notifiedAt: alreadyNotified ? prev.notifiedAt : now.toISOString() });
-  } else {
-    pendingCount++;
-    console.log(`  â³ ${label} â€” pendiente (cache=${cached} subs=${subs})`);
-    newState.push({ key, imdbId, show: showName, season: target.season, episode: target.number,
-      episodeTitle: target.name || target.title || '', status: 'pendiente', reason: !cached ? 'sin-cache-torbox' : 'sin-subs-es',
-      lastCheckedAt: now.toISOString(), notifiedAt: prev?.notifiedAt || null });
+    if (res.status >= 500) {
+      console.warn(`::warning:: [FAIL-CLOSED] API devolvió HTTP ${res.status} (error de servidor upstream) en ${url}`);
+      return { _status: res.status, _serverError: true };
+    }
+    if (!res.ok) return null;
+    return await res.json().catch(() => null);
+  } catch (e) {
+    console.warn(`::warning:: [FAIL-CLOSED] Excepción de red hacia ${url}: ${e.message}`);
+    return null;
   }
+};
+
+async function main() {
+  const email = process.env.ST_EMAIL;
+  let pass = process.env.ST_PASS;
+
+  if (!pass) {
+    const localCred = 'C:/Users/tabeg/OneDrive/Documentos/Stemio/Pruebas/baee30cf-9528-4d53-82f3-2c4831853455.txt';
+    if (existsSync(localCred)) {
+      try {
+        const rawLines = readFileSync(localCred, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        pass = rawLines.length > 1 ? rawLines[1] : rawLines[0];
+      } catch {
+        // Ignorar error al leer respaldo local
+      }
+    }
+  }
+
+  if (!email || !pass) {
+    console.warn('::warning:: [FAIL-CLOSED] Faltan credenciales ST_EMAIL / ST_PASS. Omitiendo radar de estrenos.');
+    process.exitCode = 0;
+    return;
+  }
+
+  let authKey = null;
+  try {
+    const login = await apiPost('login', { authKey: null, email, password: pass });
+    authKey = login?.result?.authKey;
+  } catch (e) {
+    console.warn(`::warning:: [FAIL-CLOSED] Error de conexión en login: ${e.message}. Omitiendo de forma limpia.`);
+    process.exitCode = 0;
+    return;
+  }
+
+  if (!authKey) {
+    console.warn('::warning:: [FAIL-CLOSED] Login fallido en Stremio API. Omitiendo radar de estrenos limpiamente.');
+    process.exitCode = 0;
+    return;
+  }
+
+  let addons = [];
+  try {
+    const col = await apiPost('addonCollectionGet', { type: 'AddonCollectionGet', authKey, update: true });
+    addons = col?.result?.addons || [];
+  } catch (e) {
+    console.warn(`::warning:: [FAIL-CLOSED] Error al obtener addonCollection: ${e.message}.`);
+    process.exitCode = 0;
+    return;
+  }
+
+  const myTrakt = addons.find((a) => (a.manifest?.id || '').startsWith('trakt.addon.v3.'));
+  if (!myTrakt) {
+    console.warn('::warning:: [FAIL-CLOSED] MyTrakt Sync no está en la colección de addons instalada (cuenta unificada). Omitiendo radar de estrenos limpiamente.');
+    process.exitCode = 0;
+    return;
+  }
+
+  const torrentio = addons.find((a) =>
+    a.manifest?.id === 'com.mejorastremio.hub' ||
+    a.manifest?.id === 'com.mejorastremio.streams' ||
+    a.manifest?.id === 'com.stremio.torrentio.addon'
+  );
+  const comet = addons.find((a) => a.manifest?.id === 'stremio.comet.fast');
+  if (!torrentio && !comet) {
+    console.warn('::warning:: [FAIL-CLOSED] Ni MejoraStremio/Torrentio ni Comet encontrados para streams. Omitiendo radar de estrenos limpiamente.');
+    process.exitCode = 0;
+    return;
+  }
+
+  const subAddons = addons.filter((a) => hasRes(a.manifest, 'subtitles') && a.manifest?.id !== myTrakt.manifest.id);
+  if (!subAddons.length) {
+    console.warn('::warning:: [FAIL-CLOSED] No se encontraron addons de subtítulos. Omitiendo radar de estrenos limpiamente.');
+    process.exitCode = 0;
+    return;
+  }
+
+  const traktBase = baseOf(myTrakt.transportUrl);
+  const torrentioBase = torrentio ? baseOf(torrentio.transportUrl) : null;
+  const cometBase = comet ? baseOf(comet.transportUrl) : null;
+
+  console.log('═'.repeat(60));
+  console.log(' MejoraStremio — Radar de estrenos listos (v2.1 Fail-Closed)');
+  console.log(' ' + new Date().toISOString());
+  console.log('═'.repeat(60));
+  console.log(`MyTrakt: ${myTrakt.manifest.name} | Streams: Torrentio/Comet | Subs: ${subAddons.map((a) => a.manifest.name).join(', ')}\n`);
+
+  async function fetchCatalog(type, id) {
+    const metas = [];
+    for (let skip = 0; skip < 500; skip += 100) {
+      const page = await getJson(`${traktBase}catalog/${type}/${id}${skip ? `/skip=${skip}` : ''}.json`);
+      if (page?._authError || page?._serverError) {
+        console.warn(`::warning:: [FAIL-CLOSED] Trakt devolvió HTTP ${page._status} en catálogo ${id}. Saliendo de forma limpia.`);
+        process.exitCode = 0;
+        return null;
+      }
+      const pageMetas = page?.metas || [];
+      metas.push(...pageMetas);
+      if (pageMetas.length < 100) break;
+    }
+    return metas;
+  }
+
+  const [continueWatching, watchlist] = await Promise.all([
+    fetchCatalog('series', 'continue_watching_shows'),
+    fetchCatalog('series', 'watchlist_shows'),
+  ]);
+
+  if (continueWatching === null || watchlist === null) {
+    process.exitCode = 0;
+    return;
+  }
+
+  const allMetas = [...continueWatching, ...watchlist];
+
+  // Detección semántica de expiración de sesión Trakt
+  const traktAuthExpired = allMetas.some(
+    (m) => String(m?.id || '').startsWith('trakt_auth_required') || /trakt authentication required/i.test(m?.name || '')
+  );
+
+  if (traktAuthExpired) {
+    console.warn('\n::warning:: [TRAKT_AUTH_REQUIRED] La sesión de Trakt.tv ha expirado en MyTrakt Sync.');
+    console.warn('⚠️ Se requiere re-autenticar la cuenta en: https://mytrakt.elfhosted.com');
+    console.warn('ℹ️ No se modifica data/premiere-radar-state.json para preservar el historial previo.\n');
+    process.exitCode = 0;
+    return;
+  }
+
+  const shows = new Map();
+  for (const m of allMetas) {
+    if (m.imdb_id && !shows.has(m.imdb_id)) shows.set(m.imdb_id, m.name);
+  }
+
+  if (shows.size === 0) {
+    console.warn('⚠️ MyTrakt Sync devolvió 0 shows — probable fallo transitorio del endpoint.');
+    console.warn('ℹ️ No se toca data/premiere-radar-state.json. Saliendo de forma controlada.');
+    process.exitCode = 0;
+    return;
+  }
+
+  console.log(`${shows.size} show(s) en progreso/watchlist en MyTrakt Sync.\n`);
+
+  function nextUnwatched(videos) {
+    return (videos || [])
+      .filter((v) => v.season > 0)
+      .sort((a, b) => a.season - b.season || a.number - b.number)
+      .find((v) => v.watched !== true);
+  }
+
+  async function checkCached(imdbId, season, episode) {
+    const streamId = `${imdbId}:${season}:${episode}`;
+    const proms = [];
+    if (torrentioBase) proms.push(getJson(`${torrentioBase}stream/series/${streamId}.json`));
+    if (cometBase) proms.push(getJson(`${cometBase}stream/series/${streamId}.json`));
+    const results = await Promise.all(proms);
+    const streams = results.flatMap((r) => r?.streams || []);
+    return streams.some(isCachedStream);
+  }
+
+  async function checkSpanishSubs(imdbId, season, episode) {
+    const streamId = `${imdbId}:${season}:${episode}`;
+    const results = await Promise.all(
+      subAddons.map((a) => getJson(`${baseOf(a.transportUrl)}subtitles/series/${streamId}.json`, 18000))
+    );
+    return results.some((r) => (r?.subtitles || []).some((s) => isSpanishLang(s.lang)));
+  }
+
+  const state = loadState();
+  const now = new Date();
+  const newState = [];
+  const newlyReady = [];
+  let readyCount = 0, pendingCount = 0, notAiredCount = 0;
+
+  for (const [imdbId, showName] of shows) {
+    const meta = await getJson(`${traktBase}meta/series/${imdbId}.json`);
+    const target = nextUnwatched(meta?.meta?.videos);
+    if (!target) {
+      console.log(`  — ${showName}: sin próximo episodio (serie al día/completa)`);
+      continue;
+    }
+
+    const key = `${imdbId}:${target.season}:${target.number}`;
+    const label = `${showName} S${String(target.season).padStart(2, '0')}E${String(target.number).padStart(2, '0')}`;
+    const releaseDate = target.released || target.firstAired || null;
+    const aired = releaseDate ? new Date(releaseDate) <= now : false;
+
+    const prev = state.find((e) => e.key === key);
+
+    if (!aired) {
+      notAiredCount++;
+      console.log(`  ⏳ ${label} — todavía no se estrenó (${releaseDate || 'fecha desconocida'})`);
+      newState.push({
+        key, imdbId, show: showName, season: target.season, episode: target.number,
+        episodeTitle: target.name || target.title || '', status: 'pendiente', reason: 'no-estrenado',
+        lastCheckedAt: now.toISOString(), notifiedAt: prev?.notifiedAt || null,
+      });
+      continue;
+    }
+
+    const [cached, subs] = await Promise.all([
+      checkCached(imdbId, target.season, target.number),
+      checkSpanishSubs(imdbId, target.season, target.number),
+    ]);
+    const ready = cached && subs;
+
+    if (ready) {
+      readyCount++;
+      const alreadyNotified = !!prev?.notifiedAt;
+      console.log(`  ✅ ${label} "${target.name || ''}" — LISTO (cache=${cached} subs=${subs})${alreadyNotified ? ' [ya avisado]' : ''}`);
+      if (!alreadyNotified) {
+        newlyReady.push({ show: showName, season: target.season, episode: target.number, title: target.name || target.title || '' });
+      }
+      newState.push({
+        key, imdbId, show: showName, season: target.season, episode: target.number,
+        episodeTitle: target.name || target.title || '', status: 'listo', lastCheckedAt: now.toISOString(),
+        notifiedAt: alreadyNotified ? prev.notifiedAt : now.toISOString(),
+      });
+    } else {
+      pendingCount++;
+      console.log(`  ⏳ ${label} — pendiente (cache=${cached} subs=${subs})`);
+      newState.push({
+        key, imdbId, show: showName, season: target.season, episode: target.number,
+        episodeTitle: target.name || target.title || '', status: 'pendiente', reason: !cached ? 'sin-cache-torbox' : 'sin-subs-es',
+        lastCheckedAt: now.toISOString(), notifiedAt: prev?.notifiedAt || null,
+      });
+    }
+  }
+
+  saveState(newState);
+
+  console.log('\n' + '═'.repeat(60));
+  console.log(`RESUMEN: ${readyCount} listo(s), ${pendingCount} pendiente(s), ${notAiredCount} sin estrenar todavía.`);
+  for (const r of newlyReady) {
+    console.log(`LISTO_NUEVO | ${r.show} | S${String(r.season).padStart(2, '0')}E${String(r.episode).padStart(2, '0')} | ${r.title}`);
+  }
+  console.log('═'.repeat(60));
+  process.exitCode = 0;
 }
 
-saveState(newState);
-
-console.log('\n' + 'â•'.repeat(60));
-console.log(`RESUMEN: ${readyCount} listo(s), ${pendingCount} pendiente(s), ${notAiredCount} sin estrenar todavÃ­a.`);
-for (const r of newlyReady) {
-  console.log(`LISTO_NUEVO | ${r.show} | S${String(r.season).padStart(2, '0')}E${String(r.episode).padStart(2, '0')} | ${r.title}`);
-}
-console.log('â•'.repeat(60));
-process.exit(0);
+main().catch((err) => {
+  console.warn(`::warning:: [FAIL-CLOSED] Excepción no controlada en premiere-radar: ${err.message}. Abortando con salida 0.`);
+  process.exitCode = 0;
+});

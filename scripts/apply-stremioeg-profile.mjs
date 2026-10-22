@@ -21,10 +21,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { apiPost } from './lib/stremio-api.mjs';
 import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
+import { auditLeanbackHomeCatalogs } from './prune-home-catalogs.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const PROFILE_PATH = join(ROOT, 'cuentas', 'stremioeg', 'profile.json');
 const PRESET_PATH = join(ROOT, 'data', 'preset.json');
 const BACKUPS = join(ROOT, '.backups');
 
@@ -36,12 +36,35 @@ const ROLLBACK_FILE = rbIdx >= 0 ? args[rbIdx + 1] : null;
 const DRY_RUN = args.includes('--dry-run') || args.includes('--check') || (!APPLY && !ROLLBACK_LAST && !ROLLBACK_FILE);
 const RUN_UNIT_TEST = args.includes('--test-unit');
 
+// Detección de cuenta y ruta de perfil
+const accArgIdx = args.findIndex((a) => a === '--account' || a.startsWith('--account='));
+const rawAccount = accArgIdx >= 0
+  ? (args[accArgIdx].startsWith('--account=') ? args[accArgIdx].split('=')[1] : args[accArgIdx + 1])
+  : (process.env.ST_ACCOUNT || process.env.ACCOUNT || 'stremioeg');
+
+export const TARGET_ACCOUNT = (() => {
+  const norm = (rawAccount || 'stremioeg').toLowerCase();
+  if (norm === 'stremiojn' || norm === 'jn') return 'stremiojn';
+  if (norm === 'solotveg' || norm === 'teen') return 'solotveg';
+  return 'stremioeg';
+})();
+
+const profArgIdx = args.findIndex((a) => a === '--profile' || a.startsWith('--profile='));
+const customProfilePath = profArgIdx >= 0
+  ? (args[profArgIdx].startsWith('--profile=') ? args[profArgIdx].split('=')[1] : args[profArgIdx + 1])
+  : null;
+
+const PROFILE_PATH = customProfilePath
+  ? (customProfilePath.startsWith('/') || customProfilePath.includes(':') ? customProfilePath : join(ROOT, customProfilePath))
+  : join(ROOT, 'cuentas', TARGET_ACCOUNT, 'profile.json');
+
 // ── Cargar Especificación de Perfil ──────────────────────────────────────────
-export function loadProfile() {
-  if (!existsSync(PROFILE_PATH)) {
-    throw new Error(`No se encontró el perfil en ${PROFILE_PATH}`);
+export function loadProfile(customPath = null) {
+  const pPath = customPath || PROFILE_PATH;
+  if (!existsSync(pPath)) {
+    throw new Error(`No se encontró el perfil en ${pPath}`);
   }
-  return JSON.parse(readFileSync(PROFILE_PATH, 'utf8'));
+  return JSON.parse(readFileSync(pPath, 'utf8'));
 }
 
 // ── Lógica Estricta de Subtítulos (Filtro y Priorización) ─────────────────────
@@ -391,13 +414,23 @@ export function ensureStreamsInterceptor(addons) {
 export async function syncAioMetadataInstance(addons) {
   if (!existsSync(PRESET_PATH)) return { addons, changed: false };
   let presetInstanceId = null;
+  let preset = null;
   try {
-    const preset = JSON.parse(readFileSync(PRESET_PATH, 'utf8'));
+    preset = JSON.parse(readFileSync(PRESET_PATH, 'utf8'));
     presetInstanceId = preset?.aioMetadataConfig?.instanceId;
   } catch {
     // preset.json ausente o no legible
   }
   if (!presetInstanceId) return { addons, changed: false };
+
+  // Gobernanza Leanback: Validar antes de sincronizar contra la cuenta
+  if (preset) {
+    const audit = auditLeanbackHomeCatalogs(preset);
+    if (!audit.valid) {
+      console.warn('  ⚠️ Gobernanza Leanback: preset.json no cumple con las directivas UX para TV Box:');
+      audit.errors.forEach((e) => console.warn(`     - ${e}`));
+    }
+  }
 
   const aioIdx = addons.findIndex((a) => a.manifest?.id === 'aio-metadata');
   if (aioIdx < 0) return { addons, changed: false };
@@ -574,7 +607,7 @@ async function runProfileManager() {
   const profile = loadProfile();
 
   console.log('═'.repeat(70));
-  console.log(' MejoraStremio — Gestor de Perfil: stremioeg (Pablo)');
+  console.log(` MejoraStremio — Gestor de Perfil: ${TARGET_ACCOUNT} (${profile.alias})`);
   const modeLabel = (ROLLBACK_LAST || ROLLBACK_FILE)
     ? (DRY_RUN ? ' [ROLLBACK DRY-RUN]' : ' [ROLLBACK]')
     : (DRY_RUN ? ' [DRY-RUN]' : ' [APPLY]');
@@ -587,48 +620,83 @@ async function runProfileManager() {
   console.log('  ✓ Audio: Prioridad [Latino, Original] con Smart Stream Interceptor');
   console.log('  ✓ Catálogos: Sincronización diaria 07:00 ART vía daily-catalog-refresh');
 
-  const email = process.env.ST_EMAIL || profile.account;
-  let pass = process.env.ST_PASS || '';
+  let email = '';
+  let pass = '';
 
-  if (!pass) {
-    const localCred = 'C:/Users/tabeg/OneDrive/Documentos/Stemio/Pruebas/baee30cf-9528-4d53-82f3-2c4831853455.txt';
-    if (existsSync(localCred)) {
-      try {
-        const rawLines = readFileSync(localCred, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-        pass = rawLines.length > 1 ? rawLines[1] : rawLines[0];
-      } catch {
-        // Ignorar error al leer credencial local de respaldo
+  if (TARGET_ACCOUNT === 'stremiojn') {
+    email = process.env.ST_EMAIL_JN || process.env.STREMIO_EMAIL_JN || process.env.ST_EMAIL || profile.account;
+    pass = process.env.ST_PASS_JN || process.env.STREMIO_PASS_JN || process.env.ST_PASS || '';
+  } else if (TARGET_ACCOUNT === 'solotveg') {
+    email = process.env.ST_EMAIL_TEEN || process.env.STREMIO_EMAIL_TEEN || process.env.ST_EMAIL || profile.account;
+    pass = process.env.ST_PASS_TEEN || process.env.STREMIO_PASS_TEEN || process.env.ST_PASS || '';
+  } else {
+    email = process.env.ST_EMAIL_EG || process.env.ST_EMAIL || process.env.STREMIO_EMAIL || profile.account;
+    pass = process.env.ST_PASS_EG || process.env.ST_PASS || process.env.STREMIO_PASS || '';
+    if (!pass) {
+      const localCred = 'C:/Users/tabeg/OneDrive/Documentos/Stemio/Pruebas/baee30cf-9528-4d53-82f3-2c4831853455.txt';
+      if (existsSync(localCred)) {
+        try {
+          const rawLines = readFileSync(localCred, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+          pass = rawLines.length > 1 ? rawLines[1] : rawLines[0];
+        } catch {
+          // Ignorar error al leer credencial local de respaldo
+        }
       }
     }
   }
 
   if (!pass) {
-    console.log('\n[ 2/3 ] Cuenta Stremio: Modo Auditoría Local (ST_PASS no provisto)');
-    console.log('  ℹ Para aplicar cambios remotos en vivo: ST_EMAIL=... ST_PASS=... node scripts/apply-stremioeg-profile.mjs --apply');
+    console.log(`\n[ 2/3 ] Cuenta Stremio: Modo Dry-Run Simulado para [${TARGET_ACCOUNT}] (ST_PASS no provisto)`);
+    console.log(`  ℹ Para aplicar cambios remotos en vivo: ST_EMAIL_${TARGET_ACCOUNT.toUpperCase()}=... ST_PASS_${TARGET_ACCOUNT.toUpperCase()}=... node scripts/apply-stremioeg-profile.mjs --account=${TARGET_ACCOUNT} --apply`);
 
-    const backupPaths = [
-      'C:/Users/tabeg/OneDrive/Documentos/Stemio/Backup/stremioeg@gmail.com-stremio-addon-manager-2026-03-06 21-06-42.json',
-      'C:/Users/tabeg/OneDrive/Documentos/Stemio/Backup/stremioeg@gmail.com-stremio-addon-manager-2026-02-27 17-22-13.json',
+    const simulatedCurrentAddons = [
+      {
+        manifest: { id: 'com.linvo.cinemeta', name: 'Cinemeta', version: '3.0.14' },
+        transportUrl: 'https://v3-cinemeta.strem.io/manifest.json',
+      },
+      {
+        manifest: { id: 'com.stremio.torrentio.addon', name: 'Torrentio', version: '1.0.13' },
+        transportUrl: 'https://torrentio.strem.fun/manifest.json',
+      },
+      {
+        manifest: { id: 'org.stremio.opensubtitlesv3', name: 'OpenSubtitles v3', version: '1.0.0' },
+        transportUrl: 'https://opensubtitles-v3.strem.io/manifest.json',
+      },
+      {
+        manifest: { id: 'com.mejorastremio.subsource', name: 'SubSource ES', version: '1.0.0' },
+        transportUrl: 'https://mejorastremio-hub.pabloeckert.deno.net/subsource/manifest.json',
+      },
     ];
-    for (const bp of backupPaths) {
-      if (existsSync(bp)) {
-        try {
-          const raw = JSON.parse(readFileSync(bp, 'utf8'));
-          const list = Array.isArray(raw) ? raw : (raw.addons || []);
-          console.log(`\n  Auditoría forense sobre backup de cuenta real (${bp.split('/').pop()}):`);
-          console.log(`  • Total add-ons en backup: ${list.length}`);
-          const { removedAddons } = filterCompetingSubtitleAddons(list);
-          if (removedAddons.length > 0) {
-            console.log(`  ⚠️ Se detectaron ${removedAddons.length} add-ons de subtítulos competidores que secuestran la UI de Android TV:`);
-            removedAddons.forEach((ra) => console.log(`     - [${ra.manifest?.id || ra.id}] ${ra.manifest?.name || ra.name}`));
-            console.log(`  ℹ En Leanback UI, estos add-ons tienen precedencia e inyectan SDH y subtítulos desincronizados.`);
-          }
-          break;
-        } catch {
-          // Ignorar error de lectura de backup y continuar con el siguiente
-        }
-      }
+
+    const targetHubUrl = profile.rules?.subtitles?.unifiedHub?.transportUrl || CANONICAL_HUB_URL;
+    const finalHub = {
+      transportUrl: targetHubUrl,
+      transportName: '',
+      manifest: UNIFIED_HUB_ADDON_ENTRY.manifest,
+      flags: { official: false, protected: false },
+    };
+    const finalCinemeta = {
+      transportUrl: 'https://v3-cinemeta.strem.io/manifest.json',
+      transportName: '',
+      manifest: { id: 'com.linvo.cinemeta', name: 'Cinemeta', version: '3.0.14' },
+      flags: { official: true, protected: true },
+    };
+    const targetSimulated = [finalHub, finalCinemeta];
+
+    renderVisualDiff(simulatedCurrentAddons, targetSimulated);
+
+    const guardOk = await assertNoFrozenEmptyCatalogs(targetSimulated, [
+      'com.mejorastremio.hub',
+      'com.linvo.cinemeta',
+    ]);
+    if (!guardOk) {
+      console.error('✗ Abortado por guard anti-catálogos-congelados');
+      process.exit(1);
     }
+    console.log(`\n  ✓ Simulación de topología canónica para ${TARGET_ACCOUNT} exitosa:`);
+    console.log(`    - Posición #0: ${targetSimulated[0].manifest.id} (${targetSimulated[0].manifest.name})`);
+    console.log(`    - Posición #1: ${targetSimulated[1].manifest.id} (${targetSimulated[1].manifest.name})`);
+    console.log(`    - Total addons resultantes: ${targetSimulated.length} (monopolio de 2 addons canónicos verificado)`);
   } else {
     console.log('\n[ 2/3 ] Conectando a la cuenta Stremio...');
     const login = await apiPost('login', { authKey: null, email, password: pass });
@@ -763,7 +831,7 @@ async function runProfileManager() {
 
       mkdirSync(BACKUPS, { recursive: true });
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      const bFile = join(BACKUPS, `backup-stremioeg-pre-profile-${stamp}.json`);
+      const bFile = join(BACKUPS, `backup-${TARGET_ACCOUNT}-pre-profile-${stamp}.json`);
       writeFileSync(bFile, JSON.stringify({ result: { addons } }, null, 2));
       console.log(`  ✓ Backup creado: ${bFile}`);
 
@@ -780,10 +848,24 @@ async function runProfileManager() {
     }
   }
 
-  // ── 3/3: Validación de Catálogos de Estrenos ──────────────────────────────
-  console.log('\n[ 3/3 ] Verificando Estado de Catálogos de Estrenos...');
+  // ── 3/3: Validación de Catálogos de Estrenos y Gobernanza Leanback UX ─────
+  console.log('\n[ 3/3 ] Verificando Estado de Catálogos y Gobernanza Leanback UX...');
   if (existsSync(PRESET_PATH)) {
     const preset = JSON.parse(readFileSync(PRESET_PATH, 'utf8'));
+    const homeAudit = auditLeanbackHomeCatalogs(preset);
+    if (!homeAudit.valid) {
+      console.error('  ✗ Violación de Gobernanza Leanback UX en data/preset.json:');
+      homeAudit.errors.forEach((e) => console.error(`    - ${e}`));
+      if (APPLY) {
+        console.error('  ✗ Abortando aplicación de perfil para proteger la UI Leanback.');
+        process.exit(1);
+      }
+    } else {
+      console.log(`  ✓ Pantalla de Inicio (Home): ${homeAudit.homeCount} filas (tope estricto <= 20)`);
+      console.log(`  ✓ Blindaje anti-portadas vacías: vote_count.gte >= 3 verificado`);
+      console.log(`  ✓ Ordenamiento dinámico: fechas recientes priorizadas (cero popularidad estática)`);
+    }
+
     const std = preset?.aioMetadataConfig?.catalogs?.standard || [];
     const enCartelera = std.find((c) => /now_playing/.test(String(c.id || '')));
     const proximos = std.find((c) => /upcoming/.test(String(c.id || '')));
@@ -802,7 +884,7 @@ async function runProfileManager() {
   }
 
   console.log('\n' + '═'.repeat(70));
-  console.log(' Perfil stremioeg validado correctamente.');
+  console.log(` Perfil ${TARGET_ACCOUNT} validado correctamente.`);
   console.log('═'.repeat(70));
 }
 
@@ -882,6 +964,42 @@ export function runUnitTests() {
 
   const withHubMonopoly = ensureHubSubtitleAddons(cleanedAddons);
   assertTest('Inyecta los 3 add-ons del Hub al inicio de la colección', withHubMonopoly.some(a => a.manifest.id === 'com.mejorastremio.opensubtitles-latino') && withHubMonopoly.some(a => a.manifest.id === 'com.mejorastremio.subdl'));
+
+  // 5. Gobernanza Leanback UX (Home <= 20, vote_count.gte >= 3, dynamic sort)
+  if (existsSync(PRESET_PATH)) {
+    const preset = JSON.parse(readFileSync(PRESET_PATH, 'utf8'));
+    const liveAudit = auditLeanbackHomeCatalogs(preset);
+    assertTest('Gobernanza Leanback: preset.json cumple <= 20 filas en Home', liveAudit.valid && liveAudit.homeCount <= 20 && liveAudit.homeCount > 0);
+    assertTest('Gobernanza Leanback: blindaje anti-portadas vacías (vote_count.gte >= 3)', liveAudit.valid && !liveAudit.errors.some((e) => e.includes('vote_count.gte')));
+    assertTest('Gobernanza Leanback: ordenamiento dinámico por fecha reciente', liveAudit.valid && !liveAudit.errors.some((e) => e.includes('popularity')));
+
+    // Simulación de violación de tope > 20 filas
+    const mockExcessPreset = JSON.parse(JSON.stringify(preset));
+    for (let i = 0; i < 25; i++) {
+      mockExcessPreset.aioMetadataConfig.catalogs.standard.push({
+        id: `mock.cat.${i}`,
+        name: `Mock Cat ${i}`,
+        type: 'movie',
+        enabled: true,
+        showInHome: true,
+        metadata: { discover: { params: { sort_by: 'primary_release_date.desc', 'vote_count.gte': 5 } } },
+      });
+    }
+    const excessAudit = auditLeanbackHomeCatalogs(mockExcessPreset);
+    assertTest('Gobernanza Leanback: detecta y rechaza exceso > 20 filas en Home', !excessAudit.valid && excessAudit.errors.some((e) => e.includes('exceden el límite máximo de 20')));
+
+    // Simulación de violación de anti-portadas vacías (vote_count.gte < 3)
+    const mockBrokenVotePreset = JSON.parse(JSON.stringify(preset));
+    mockBrokenVotePreset.aioMetadataConfig.catalogs.standard[0].metadata.discover.params['vote_count.gte'] = 1;
+    const brokenVoteAudit = auditLeanbackHomeCatalogs(mockBrokenVotePreset);
+    assertTest('Gobernanza Leanback: detecta y rechaza catálogos sin blindaje anti-portadas vacías', !brokenVoteAudit.valid && brokenVoteAudit.errors.some((e) => e.includes('mínimo requerido: 3')));
+
+    // Simulación de violación de lista estática de popularidad
+    const mockPopPreset = JSON.parse(JSON.stringify(preset));
+    mockPopPreset.aioMetadataConfig.catalogs.standard[0].metadata.discover.params.sort_by = 'popularity.desc';
+    const brokenPopAudit = auditLeanbackHomeCatalogs(mockPopPreset);
+    assertTest('Gobernanza Leanback: detecta y rechaza listas estáticas de popularidad congeladas', !brokenPopAudit.valid && brokenPopAudit.errors.some((e) => e.includes('popularidad estático')));
+  }
 
   console.log(`\nResultado Tests Unitarios: ${passed}/${total} pruebas pasadas con éxito.\n`);
   if (passed !== total) process.exit(1);

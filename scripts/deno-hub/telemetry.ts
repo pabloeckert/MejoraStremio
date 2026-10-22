@@ -9,6 +9,7 @@
  */
 
 import { timingSafeEqualString } from "./utils/crypto_security.ts";
+import { BoundedLruCache } from "./utils/lru-cache.ts";
 export { getTorboxTokenStatus } from "./utils/torbox_telemetry.ts";
 
 export interface LatencyPercentiles {
@@ -41,10 +42,10 @@ export interface SystemTelemetry {
   catalog: CatalogRefreshInfo;
 }
 
-// Búferes circulares de latencias (en memoria RAM para cero sobrecarga de I/O)
+// Búferes circulares de latencias acotados con BoundedLruCache (anti-OOM en Deno Deploy)
 const MAX_SAMPLES = 100;
-const scraperLatencies = new Map<string, number[]>();
-const scraperTimeoutCounts = new Map<string, number>();
+const scraperLatencies = new BoundedLruCache<string, number[]>(50, 24 * 60 * 60 * 1000);
+const scraperTimeoutCounts = new BoundedLruCache<string, number>(50, 24 * 60 * 60 * 1000);
 const torboxLatencies: number[] = [];
 let lastTorboxLatencyMs = 0;
 const startTime = Date.now();
@@ -58,17 +59,20 @@ export function setCatalogRefreshTimestamp(ts: number | string): void {
 
 export function recordScraperLatency(scraperName: string, durationMs: number, isTimeout = false): void {
   const norm = scraperName.toLowerCase().trim();
-  if (!scraperLatencies.has(norm)) {
-    scraperLatencies.set(norm, []);
+  let samples = scraperLatencies.get(norm);
+  if (!samples) {
+    samples = [];
+    scraperLatencies.set(norm, samples);
     scraperTimeoutCounts.set(norm, 0);
   }
-  const samples = scraperLatencies.get(norm)!;
   samples.push(Math.round(durationMs));
   if (samples.length > MAX_SAMPLES) {
     samples.shift();
   }
+  scraperLatencies.set(norm, samples);
   if (isTimeout) {
-    scraperTimeoutCounts.set(norm, (scraperTimeoutCounts.get(norm) || 0) + 1);
+    const currentCount = scraperTimeoutCounts.get(norm) || 0;
+    scraperTimeoutCounts.set(norm, currentCount + 1);
   }
 }
 

@@ -16,6 +16,13 @@
     }
   },
   "remote": {
+    "https://deno.land/std@0.224.0/json/_common.ts": "6444c6ea166514eb379f778d9216c1d8eb159f97c753aeeb1fc44cd091e30544",
+    "https://deno.land/std@0.224.0/json/common.ts": "33f1a4f39a45e2f9f357823fd0b5cf88b63fb4784b8c9a28f8120f70a20b23e9",
+    "https://deno.land/std@0.224.0/json/concatenated_json_parse_stream.ts": "13a707615e03e5ea93ac81e5f00420e3b7764c4e3fa88043e63bbac87ebe62ce",
+    "https://deno.land/std@0.224.0/json/json_parse_stream.ts": "2740652ea73726cd0f2edc89188b35d64a1ec15dc8cf7fd87db52a0170bc182c",
+    "https://deno.land/std@0.224.0/json/json_stringify_stream.ts": "269633e63d4e38ab3ba31e76a4292d11b9eb3151e26ff4f49dee1c264b4878fa",
+    "https://deno.land/std@0.224.0/json/mod.ts": "acd3e39a6c68c70ee7fa93991a8a8f02d799f7394db3cef09594e2dd8fd69814",
+    "https://deno.land/std@0.224.0/streams/to_transform_stream.ts": "4c4836455ef89bab9ece55975ee3a819f07d3d8b0e43101ec7f4ed033c8a2b61",
     "https://deno.land/x/hono@v3.12.0/adapter/deno/serve-static.ts": "c1bbaf52e44d5eb0a159029c60ab2057d7735a8b3f7019263d46fb0ac6271329",
     "https://deno.land/x/hono@v3.12.0/client/client.ts": "ec277e5e4887926cab672022340c6e5750ff1ebc6acaeb020cae84a22e319453",
     "https://deno.land/x/hono@v3.12.0/client/index.ts": "3ff4cf246f3543f827a85a2c84d66a025ac350ee927613629bda47e854bfb7ba",

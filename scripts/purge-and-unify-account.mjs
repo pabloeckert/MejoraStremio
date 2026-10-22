@@ -343,14 +343,20 @@ async function main() {
   const BASELINE_V141 = args.includes('--baseline-v141') || args.includes('--v141');
   const targetVersion = BASELINE_V141 ? '1.4.1' : '1.4.2';
 
-  const accIdx = args.indexOf('--account');
-  const accountArg = accIdx >= 0 ? args[accIdx + 1] : 'eg';
+  const accIdx = args.findIndex((a) => a === '--account' || a.startsWith('--account='));
+  const accountArg = accIdx >= 0
+    ? (args[accIdx].startsWith('--account=') ? args[accIdx].split('=')[1] : args[accIdx + 1])
+    : 'eg';
 
-  const emailIdx = args.indexOf('--email');
-  const cliEmail = emailIdx >= 0 ? args[emailIdx + 1] : null;
+  const emailIdx = args.findIndex((a) => a === '--email' || a.startsWith('--email='));
+  const cliEmail = emailIdx >= 0
+    ? (args[emailIdx].startsWith('--email=') ? args[emailIdx].split('=')[1] : args[emailIdx + 1])
+    : null;
 
-  const passIdx = args.indexOf('--pass');
-  const cliPass = passIdx >= 0 ? args[passIdx + 1] : null;
+  const passIdx = args.findIndex((a) => a === '--pass' || a.startsWith('--pass='));
+  const cliPass = passIdx >= 0
+    ? (args[passIdx].startsWith('--pass=') ? args[passIdx].split('=')[1] : args[passIdx + 1])
+    : null;
 
   const options = {
     dryRun: DRY_RUN,

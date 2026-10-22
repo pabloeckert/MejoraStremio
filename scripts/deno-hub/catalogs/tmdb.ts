@@ -404,13 +404,13 @@ export const GENRE_IDS_SERIES: Record<string, number> = {
   "Bélica y Política": 10768, "Western": 37,
 };
 
-export function discoverExtra(genreMap: Record<string, number>) {
+export function discoverExtra(genreMap: Record<string, number>, isGenreRequired = true) {
   return [
     { name: "service", options: ["Todos", ...Object.keys(SERVICE_IDS)], isRequired: false },
     { name: "region", options: ["Todos", ...Object.keys(REGION_IDS)], isRequired: false },
     { name: "country", options: ["Todos", ...Object.keys(COUNTRY_IDS)], isRequired: false },
     { name: "language", options: ["Todos", ...Object.keys(LANGUAGE_IDS)], isRequired: false },
-    { name: "genre", options: ["Todos", ...Object.keys(genreMap)], isRequired: false },
+    { name: "genre", options: ["Todos", ...Object.keys(genreMap)], isRequired: isGenreRequired },
     { name: "sort", options: ["released", "premiere_date", "year_desc", "popularity.desc"], isRequired: false },
     { name: "skip" },
   ];
@@ -523,6 +523,12 @@ export async function resolveImdbIdCached(
   const kv = await safeGetKv();
   if (kv) {
     try {
+      const idmapEntry = await kv.get<string>(["idmap", tmdbId]);
+      if (idmapEntry && idmapEntry.value !== null) {
+        const val = idmapEntry.value === "" ? null : idmapEntry.value;
+        imdbIdLruCache.set(cacheKey, val);
+        return val;
+      }
       const entry = await kv.get<string>(["tmdb_imdb_v2", type, tmdbId]);
       if (entry && entry.value !== null) {
         const val = entry.value === "" ? null : entry.value;
@@ -547,6 +553,7 @@ export async function resolveImdbIdCached(
     if (kv) {
       const expireIn = imdbId ? IMDB_MAP_KV_TTL_POSITIVE_MS : IMDB_MAP_KV_TTL_NEGATIVE_MS;
       kv.set(["tmdb_imdb_v2", type, tmdbId], imdbId ?? "", { expireIn }).catch(() => {});
+      kv.set(["idmap", tmdbId], imdbId ?? "", { expireIn }).catch(() => {});
     }
 
     return imdbId;
@@ -911,3 +918,160 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     return jsonResponse({ metas: [], error: (e as Error).message }, { status: 500 });
   }
 }
+
+/**
+ * Normalización Unicode NFD para búsquedas:
+ * - Descompone caracteres con diacríticos (NFD)
+ * - Remueve marcas de acentuación ([\u0300-\u036f])
+ * - Convierte a minúsculas y elimina espacios superfluos
+ */
+export function normalizeSearchQuery(query: string): string {
+  if (!query) return "";
+  return query
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+export interface SearchTmdbMultiOptions {
+  language?: string;
+  page?: number;
+  timeoutMs?: number;
+  kv?: Deno.Kv | null;
+}
+
+export interface SearchTmdbMultiResult {
+  page: number;
+  total_results: number;
+  total_pages: number;
+  // deno-lint-ignore no-explicit-any
+  results: any[];
+  latency_ms: number;
+  partial: boolean;
+}
+
+/**
+ * Búsqueda y Discover con TMDB /search/multi:
+ * - language: "es-MX" por defecto
+ * - Normalización Unicode NFD de tildes
+ * - Mapeo L1 (RAM) + L2 (Deno KV ["idmap", tmdb_id])
+ * - Timeout duro de 450 ms por llamada
+ * - Respuesta parcial tolerante a fallos
+ * - Latencia p95 < 800 ms
+ */
+export async function searchTmdbMulti(
+  query: string,
+  options?: SearchTmdbMultiOptions,
+): Promise<SearchTmdbMultiResult> {
+  const start = performance.now();
+  const normalized = normalizeSearchQuery(query);
+  const lang = options?.language ?? "es-MX";
+  const page = options?.page ?? 1;
+  const timeoutMs = options?.timeoutMs ?? 450;
+  const kv = options?.kv ?? await safeGetKv();
+
+  if (!normalized) {
+    return { page, total_results: 0, total_pages: 0, results: [], latency_ms: 0, partial: false };
+  }
+
+  // 1. Revisar caché en Deno KV si está disponible: ["search_cache_v1", lang, normalized, page]
+  if (kv) {
+    try {
+      // deno-lint-ignore no-explicit-any
+      const cached = await kv.get<any>(["search_cache_v1", lang, normalized, page]);
+      if (cached?.value) {
+        return {
+          ...cached.value,
+          latency_ms: Math.round(performance.now() - start),
+          partial: false,
+        };
+      }
+    } catch {
+      /* fallback */
+    }
+  }
+
+  // 2. Consulta de Red a TMDB /search/multi con timeout duro de 450ms
+  try {
+    const qs = new URLSearchParams({
+      api_key: TMDB_KEY,
+      query: normalized,
+      language: lang,
+      page: String(page),
+      include_adult: "false",
+    });
+
+    const res = await fetch(`${TMDB_API}/search/multi?${qs}`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+
+    if (!res.ok) {
+      throw new Error(`TMDB /search/multi respondió HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const rawResults = Array.isArray(data?.results) ? data.results : [];
+
+    // Filtrar solo películas y series
+    // deno-lint-ignore no-explicit-any
+    const mediaResults = rawResults.filter((r: any) => r && (r.media_type === "movie" || r.media_type === "tv"));
+
+    // Resolver IDs de IMDb para cada resultado utilizando ["idmap", tmdb_id]
+    const mappedResults = await Promise.all(
+      // deno-lint-ignore no-explicit-any
+      mediaResults.map(async (item: any) => {
+        let imdbId: string | null = null;
+        if (kv) {
+          try {
+            const entry = await kv.get<string>(["idmap", item.id]);
+            if (entry?.value) imdbId = entry.value;
+          } catch {
+            /* ignore */
+          }
+        }
+        if (!imdbId) {
+          imdbId = await resolveImdbIdCached(item.id, item.media_type === "tv" ? "tv" : "movie");
+        }
+        return {
+          id: item.id,
+          imdb_id: imdbId,
+          media_type: item.media_type,
+          title: item.title ?? item.name,
+          name: item.name ?? item.title,
+          overview: item.overview ?? "",
+          poster_path: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+          release_date: item.release_date ?? item.first_air_date,
+          popularity: item.popularity ?? 0,
+        };
+      })
+    );
+
+    const result: SearchTmdbMultiResult = {
+      page: data.page ?? page,
+      total_results: data.total_results ?? mappedResults.length,
+      total_pages: data.total_pages ?? 1,
+      results: mappedResults,
+      latency_ms: Math.round(performance.now() - start),
+      partial: false,
+    };
+
+    // Cachear en KV durante 1 hora
+    if (kv && result.results.length > 0) {
+      kv.set(["search_cache_v1", lang, normalized, page], result, { expireIn: 3600_000 }).catch(() => {});
+    }
+
+    return result;
+  } catch (_err) {
+    // Tolerancia a fallos: respuesta parcial ante timeout o error de red
+    return {
+      page,
+      total_results: 0,
+      total_pages: 0,
+      results: [],
+      latency_ms: Math.round(performance.now() - start),
+      partial: true,
+    };
+  }
+}
+

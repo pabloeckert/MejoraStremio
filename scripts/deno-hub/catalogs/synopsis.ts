@@ -4,6 +4,7 @@
  */
 
 import { cors, jsonResponse, parseStremioSubId, getKv } from "../utils/common.ts";
+import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 import { fetchCinemetaMeta } from "../utils/cinemeta.ts";
 import {
   GEMINI_API_KEY,
@@ -122,8 +123,10 @@ export async function enrichSynopsis(
   let kv: Deno.Kv | null = null;
   try {
     kv = await getKv();
-    const cached = await kv.get<string>(key);
-    if (cached.value) return cached.value;
+    if (kv) {
+      const cached = await getCompressedKvText(kv, key);
+      if (cached) return cached;
+    }
   } catch {
     kv = null;
   }
@@ -157,7 +160,7 @@ export async function enrichSynopsis(
 
   if (text && kv) {
     try {
-      await kv.set(key, text, { expireIn: SYNOPSIS_CACHE_TTL_MS });
+      await setCompressedKvText(kv, key, text, { expireIn: SYNOPSIS_CACHE_TTL_MS });
     } catch {
       // sin cache
     }

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * log-status.mjs â€” Registra el resultado de una corrida automatizada (health-monitor,
  * daily-catalog-refresh, anti-frustration-review, premiere-radar) en un log interno
@@ -32,9 +32,15 @@ if (!source || !status) {
 const raw = readFileSync(0, 'utf8');
 const summary = raw
   .split('\n')
-  .filter((l) => !/^\s*âœ“/.test(l))
+  .filter((l) => !/^\s*(?:✓|âœ“|\u2713)/.test(l))
   .join('\n')
   .trim();
+
+// Higiene de Git: Si es una corrida de rutina 'ok' sin advertencias, errores ni notas, omitir
+if (status === 'ok' && !summary) {
+  console.log(`ℹ Log interno: status OK sin incidencias para "${source}" — omitiendo entrada redundante.`);
+  process.exit(0);
+}
 
 const entries = existsSync(LOG_PATH)
   ? readFileSync(LOG_PATH, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l))

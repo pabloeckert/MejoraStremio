@@ -58,7 +58,24 @@ Deno.test("BLOQUE 7: P9 — Suite de Unificación y Sincronización Remota Multi
       throw new Error("resolveAccountCredentials debió rechazar cuenta desconocida");
     }
 
-    console.log("  ✓ Mapeo de perfiles validado: stremioeg, solotveg y stremiojn resueltos con éxito");
+    // 1.5 Inyección dinámica de variables de entorno para stremiojn (Zero-Trust)
+    const prevEmailJn = Deno.env.get("ST_EMAIL_JN");
+    const prevPassJn = Deno.env.get("ST_PASS_JN");
+    try {
+      Deno.env.set("ST_EMAIL_JN", "ci-joaquin@stremio.com");
+      Deno.env.set("ST_PASS_JN", "zero-trust-secret-ci");
+      const jnInjected = resolveAccountCredentials("stremiojn");
+      if (jnInjected.email !== "ci-joaquin@stremio.com" || jnInjected.pass !== "zero-trust-secret-ci") {
+        throw new Error(`Inyección de ST_EMAIL_JN/ST_PASS_JN falló: ${JSON.stringify(jnInjected)}`);
+      }
+    } finally {
+      if (prevEmailJn !== undefined) Deno.env.set("ST_EMAIL_JN", prevEmailJn);
+      else Deno.env.delete("ST_EMAIL_JN");
+      if (prevPassJn !== undefined) Deno.env.set("ST_PASS_JN", prevPassJn);
+      else Deno.env.delete("ST_PASS_JN");
+    }
+
+    console.log("  ✓ Mapeo de perfiles y soporte de secretos ST_EMAIL_JN / ST_PASS_JN validado con éxito");
   });
 
   // ── 2. Especificación Canónica y URLs de Transporte v1.4.2 ────────────────

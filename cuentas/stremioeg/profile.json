@@ -55,6 +55,8 @@
       "cronUtc": "0 10 * * *",
       "cronArt": "07:00 ART",
       "orderLaw": "release_date_desc",
+      "maxHomeRows": 20,
+      "minVoteCountHome": 3,
       "timeSensitive": [
         "now_playing",
         "upcoming"

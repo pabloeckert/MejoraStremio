@@ -2,6 +2,8 @@
  * common.ts — Utilidades compartidas, tipos canónicos y funciones de saneamiento de Deno Hub.
  */
 
+import { detectPeninsularSpanish } from "./spanish_peninsular_detector.ts";
+
 export const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "*",
@@ -196,6 +198,9 @@ export function detectLatinoConfidence(stream: { name?: string; title?: string; 
   if (LATINO_NEGATIVE_REGEX.test(rawText) || PT_STREAM_REGEX.test(rawText) || CASTELLANO_STREAM_REGEX.test(rawText)) {
     return "Desconocido";
   }
+  if (detectPeninsularSpanish(rawText).isPeninsular) {
+    return "Desconocido";
+  }
   const cleanForLatino = rawText.replace(TITLE_FALSE_POSITIVES_REGEX, " ");
   if (LATINO_CONFIRMED_REGEX.test(cleanForLatino)) {
     return "Confirmado";
@@ -210,6 +215,7 @@ export function classifyStreamAudio(stream: { name?: string; title?: string; des
   const rawText = `${stream?.name || ""} ${stream?.title || ""} ${stream?.description || ""}`;
   if (PT_STREAM_REGEX.test(rawText) && !LATINO_CONFIRMED_REGEX.test(rawText)) return "portuguese";
   if (CASTELLANO_STREAM_REGEX.test(rawText) && !LATINO_CONFIRMED_REGEX.test(rawText)) return "castellano";
+  if (detectPeninsularSpanish(rawText).isPeninsular && !LATINO_CONFIRMED_REGEX.test(rawText)) return "castellano";
 
   const confidence = detectLatinoConfidence(stream);
   if (confidence === "Confirmado") return "latino";
@@ -284,5 +290,16 @@ export function getKv(): Promise<Deno.Kv> {
     kvPromise = Deno.openKv();
   }
   return kvPromise;
+}
+
+export async function safeGetKv(): Promise<Deno.Kv | null> {
+  try {
+    if (typeof Deno !== "undefined" && typeof Deno.openKv === "function") {
+      return await getKv();
+    }
+  } catch {
+    // KV no disponible en entorno sin --unstable-kv
+  }
+  return null;
 }
 

@@ -1,0 +1,1520 @@
+[
+  {
+    "id": 5,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.Multi.Latino.DDP5.1.x264.🇨🇴",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.Multi.Latino.DDP5.1.x264.🇨🇴\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇨🇴 Multi Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 10,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.cuerda.floja.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.cuerda.floja.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  cuerda floja"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 15,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.Doblaje.Latino.DDP5.1.x264.🇻🇪",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.Doblaje.Latino.DDP5.1.x264.🇻🇪\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇻🇪 Doblaje Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 20,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.ES-419.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.ES-419.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  ES-419"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 25,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.espanoledla.DDP5.1.x264.🌎",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.espanoledla.DDP5.1.x264.🌎\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🌎 espanoledla"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 30,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.Dual.Latino.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.Dual.Latino.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  Dual Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 35,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.hackstore.DDP5.1.x264.🇦🇷",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.hackstore.DDP5.1.x264.🇦🇷\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇦🇷 hackstore"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 40,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.Latino.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.Latino.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 45,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.es-419.DDP5.1.x264.🇨🇴",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.es-419.DDP5.1.x264.🇨🇴\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇨🇴 es-419"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 50,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.edla.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.edla.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  edla"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 55,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.Audio.Latino.DDP5.1.x264.🇻🇪",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.Audio.Latino.DDP5.1.x264.🇻🇪\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇻🇪 Audio Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 60,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.cinecalidad.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.cinecalidad.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  cinecalidad"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 65,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.audio.spl.DDP5.1.x264.🌎",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.audio.spl.DDP5.1.x264.🌎\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🌎 audio spl"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 70,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.Multi.Latino.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.Multi.Latino.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  Multi Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 75,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.cuerda.floja.DDP5.1.x264.🇦🇷",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.cuerda.floja.DDP5.1.x264.🇦🇷\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇦🇷 cuerda floja"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 80,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.Doblaje.Latino.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.Doblaje.Latino.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  Doblaje Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 85,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.ES-419.DDP5.1.x264.🇨🇴",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.ES-419.DDP5.1.x264.🇨🇴\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇨🇴 ES-419"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 90,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.espanoledla.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.espanoledla.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  espanoledla"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 95,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.Dual.Latino.DDP5.1.x264.🇻🇪",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.Dual.Latino.DDP5.1.x264.🇻🇪\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇻🇪 Dual Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 100,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.hackstore.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.hackstore.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  hackstore"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 105,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.Latino.DDP5.1.x264.🌎",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.Latino.DDP5.1.x264.🌎\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🌎 Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 110,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.es-419.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.es-419.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  es-419"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 115,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.edla.DDP5.1.x264.🇦🇷",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.edla.DDP5.1.x264.🇦🇷\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇦🇷 edla"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 120,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.Audio.Latino.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.Audio.Latino.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  Audio Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 125,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.cinecalidad.DDP5.1.x264.🇨🇴",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.cinecalidad.DDP5.1.x264.🇨🇴\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇨🇴 cinecalidad"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 130,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.audio.spl.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.audio.spl.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  audio spl"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 135,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.Multi.Latino.DDP5.1.x264.🇻🇪",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.Multi.Latino.DDP5.1.x264.🇻🇪\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇻🇪 Multi Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 140,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.cuerda.floja.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.cuerda.floja.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  cuerda floja"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 145,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.Doblaje.Latino.DDP5.1.x264.🌎",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.Doblaje.Latino.DDP5.1.x264.🌎\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🌎 Doblaje Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 150,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.ES-419.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.ES-419.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  ES-419"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 155,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.espanoledla.DDP5.1.x264.🇦🇷",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.espanoledla.DDP5.1.x264.🇦🇷\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇦🇷 espanoledla"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 160,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.Dual.Latino.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.Dual.Latino.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  Dual Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 165,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.hackstore.DDP5.1.x264.🇨🇴",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.hackstore.DDP5.1.x264.🇨🇴\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇨🇴 hackstore"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 170,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.Latino.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.Latino.DDP5.1.x264\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+]  Latino"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 175,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.es-419.DDP5.1.x264.🇻🇪",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.es-419.DDP5.1.x264.🇻🇪\n👤 45 · ⚙️ 4.2 GB",
+      "description": "[TB+] 🇻🇪 es-419"
+    },
+    "expected_confidence": "Confirmado",
+    "is_latino_audio": true,
+    "category": "latino_confirmed"
+  },
+  {
+    "id": 180,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.BluRay.eslatam.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.BluRay.eslatam.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] eslatam"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 185,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.BluRay.latinoamericano.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.BluRay.latinoamericano.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] latinoamericano"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 190,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.BluRay.LATAM.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.BluRay.LATAM.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] LATAM"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 195,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.BluRay.latin.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.BluRay.latin.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] latin"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 200,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.BluRay.latam.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.BluRay.latam.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] latam"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 205,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.BluRay.eng-lat.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.BluRay.eng-lat.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] eng-lat"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 210,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.BluRay.dual.lat.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.BluRay.dual.lat.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] dual.lat"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 215,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.BluRay.lat-eng.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.BluRay.lat-eng.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] lat-eng"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 220,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.BluRay.dual-lat.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.BluRay.dual-lat.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] dual-lat"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 225,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.BluRay.es-la.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.BluRay.es-la.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] es-la"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 230,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.BluRay.spanish-latam.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.BluRay.spanish-latam.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] spanish-latam"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 235,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.BluRay.eslatam.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.BluRay.eslatam.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] eslatam"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 240,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.BluRay.latinoamericano.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.BluRay.latinoamericano.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] latinoamericano"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 245,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.BluRay.LATAM.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.BluRay.LATAM.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] LATAM"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 250,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.BluRay.latin.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.BluRay.latin.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] latin"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 255,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.BluRay.latam.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.BluRay.latam.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] latam"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 260,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.BluRay.eng-lat.x264-GRP",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.BluRay.eng-lat.x264-GRP\n👤 28 · ⚙️ 5.1 GB",
+      "description": "[TB+] eng-lat"
+    },
+    "expected_confidence": "Probable",
+    "is_latino_audio": false,
+    "category": "latino_probable"
+  },
+  {
+    "id": 265,
+    "imdb_id": "tt9990005",
+    "media_title": "Diego Latino World Tour",
+    "year": 2023,
+    "release_title": "Diego.Latino.World.Tour.2023.2160p.UHD.HDR.x265",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Diego.Latino.World.Tour.2023.2160p.UHD.HDR.x265\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Diego Latino en título",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 270,
+    "imdb_id": "tt0438170",
+    "media_title": "Latino Heat Tribute",
+    "year": 2006,
+    "release_title": "WWE.Latino.Heat.Tribute.2006.1080p.BluRay.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "WWE.Latino.Heat.Tribute.2006.1080p.BluRay.x264\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Latino Heat en título",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 275,
+    "imdb_id": "tt0478028",
+    "media_title": "Thriller 2023",
+    "year": 2023,
+    "release_title": "Thriller.2023.720p.WEB-DL.x264-SPL",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Thriller.2023.720p.WEB-DL.x264-SPL\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Grupo de release -SPL",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 280,
+    "imdb_id": "tt1488592",
+    "media_title": "Woodland",
+    "year": 2018,
+    "release_title": "Woodland.2018.1080p.BluRay.DDP5.1.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Woodland.2018.1080p.BluRay.DDP5.1.x264\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Woodland",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 285,
+    "imdb_id": "tt0245027",
+    "media_title": "Chocolat",
+    "year": 2000,
+    "release_title": "Chocolat.2000.1080p.BluRay.x264-FGT",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Chocolat.2000.1080p.BluRay.x264-FGT\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Chocolat",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 290,
+    "imdb_id": "tt11822834",
+    "media_title": "Lateral",
+    "year": 2022,
+    "release_title": "Lateral.2022.1080p.BluRay.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Lateral.2022.1080p.BluRay.x264\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Lateral",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 295,
+    "imdb_id": "tt9990003",
+    "media_title": "Diego Latino Special",
+    "year": 2022,
+    "release_title": "Diego.Latino.Special.2022.1080p.WEBRip.AAC2.0.x264.v34",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Diego.Latino.Special.2022.1080p.WEBRip.AAC2.0.x264.v34\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Diego Latino en título",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 300,
+    "imdb_id": "tt0438168",
+    "media_title": "Latino Heat Legacy",
+    "year": 2008,
+    "release_title": "Latino.Heat.Legacy.2008.DVDRip.XviD-WRESTLE.v39",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Latino.Heat.Legacy.2008.DVDRip.XviD-WRESTLE.v39\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Latino Heat en título",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 305,
+    "imdb_id": "tt0478026",
+    "media_title": "SPL: Sha Po Lang",
+    "year": 2005,
+    "release_title": "SPL.Sha.Po.Lang.2005.CHINESE.1080p.BluRay.H264.AAC-VXT.v44",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "SPL.Sha.Po.Lang.2005.CHINESE.1080p.BluRay.H264.AAC-VXT.v44\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "SPL",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 310,
+    "imdb_id": "tt1488590",
+    "media_title": "The Redland Trail",
+    "year": 2018,
+    "release_title": "The.Redland.Trail.2018.1080p.WEBRip.x264.v49",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "The.Redland.Trail.2018.1080p.WEBRip.x264.v49\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Redland contiene edla",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 315,
+    "imdb_id": "tt0360486",
+    "media_title": "Collateral",
+    "year": 2004,
+    "release_title": "Collateral.2004.1080p.BluRay.DTS.x264-CtrlHD.v54",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Collateral.2004.1080p.BluRay.DTS.x264-CtrlHD.v54\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Collateral contiene lat",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 320,
+    "imdb_id": "tt7214834",
+    "media_title": "Latitude",
+    "year": 2017,
+    "release_title": "Latitude.2017.1080p.WEBRip.x264-AMZN.v59",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Latitude.2017.1080p.WEBRip.x264-AMZN.v59\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Latitude",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 325,
+    "imdb_id": "tt9990001",
+    "media_title": "Diego Latino: Live in Concert",
+    "year": 2021,
+    "release_title": "Diego.Latino.Live.in.Concert.2021.1080p.WEB-DL.DDP5.1.Atmos.H.264-FLUX.v64",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Diego.Latino.Live.in.Concert.2021.1080p.WEB-DL.DDP5.1.Atmos.H.264-FLUX.v64\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Diego Latino en título",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 330,
+    "imdb_id": "tt0438166",
+    "media_title": "Latino Heat: The Eddie Guerrero Story",
+    "year": 2004,
+    "release_title": "Latino.Heat.The.Eddie.Guerrero.Story.2004.1080p.WWE.WEBRip.x264.v69",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Latino.Heat.The.Eddie.Guerrero.Story.2004.1080p.WWE.WEBRip.x264.v69\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Latino Heat en título",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 335,
+    "imdb_id": "tt0478024",
+    "media_title": "SPL: Kill Zone (Sha Po Lang)",
+    "year": 2005,
+    "release_title": "SPL.Kill.Zone.2005.1080p.BluRay.x264-CiNEFiLE.v74",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "SPL.Kill.Zone.2005.1080p.BluRay.x264-CiNEFiLE.v74\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "SPL Kill Zone",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 340,
+    "imdb_id": "tt1488588",
+    "media_title": "Redland",
+    "year": 2010,
+    "release_title": "Redland.2010.720p.WEB-DL.AAC2.0.H.264.v79",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Redland.2010.720p.WEB-DL.AAC2.0.H.264.v79\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Redland contiene edla",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 345,
+    "imdb_id": "tt0091763",
+    "media_title": "Platoon",
+    "year": 1986,
+    "release_title": "Platoon.1986.REMASTERED.1080p.BluRay.x264-CiNEFiLE.v84",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Platoon.1986.REMASTERED.1080p.BluRay.x264-CiNEFiLE.v84\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Platoon contiene lat",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 350,
+    "imdb_id": "tt0443543",
+    "media_title": "Isolation",
+    "year": 2005,
+    "release_title": "Isolation.2005.1080p.BluRay.x264-MELiTE.v89",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Isolation.2005.1080p.BluRay.x264-MELiTE.v89\n👤 15 · ⚙️ 3.8 GB",
+      "description": "[TB+] 1080p WEB-DL"
+    },
+    "notes": "Isolation",
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "adversarial_false_positive"
+  },
+  {
+    "id": 355,
+    "imdb_id": "tt2962362",
+    "media_title": "Ocho apellidos vascos",
+    "year": 2014,
+    "release_title": "Ocho.apellidos.vascos.2014.1080p.BluRay.es_ES.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Ocho.apellidos.vascos.2014.1080p.BluRay.es_ES.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] es_ES"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 360,
+    "imdb_id": "tt0284490",
+    "media_title": "Los otros",
+    "year": 2001,
+    "release_title": "Los.otros.2001.1080p.BluRay.EstrenosDTL.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Los.otros.2001.1080p.BluRay.EstrenosDTL.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] EstrenosDTL"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 365,
+    "imdb_id": "tt0245712",
+    "media_title": "El laberinto del fauno",
+    "year": 2006,
+    "release_title": "El.laberinto.del.fauno.2006.1080p.BluRay.español de españa.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "El.laberinto.del.fauno.2006.1080p.BluRay.español de españa.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] español de españa"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 370,
+    "imdb_id": "tt1648190",
+    "media_title": "El cuerpo",
+    "year": 2012,
+    "release_title": "El.cuerpo.2012.1080p.BluRay.DonTorrent.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "El.cuerpo.2012.1080p.BluRay.DonTorrent.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] DonTorrent"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 375,
+    "imdb_id": "tt1137450",
+    "media_title": "La casa de papel",
+    "year": 2017,
+    "release_title": "La.casa.de.papel.2017.1080p.BluRay.Castellano.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "La.casa.de.papel.2017.1080p.BluRay.Castellano.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] Castellano"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 380,
+    "imdb_id": "tt0118694",
+    "media_title": "Abre los ojos",
+    "year": 1997,
+    "release_title": "Abre.los.ojos.1997.1080p.BluRay.🇪🇸.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Abre.los.ojos.1997.1080p.BluRay.🇪🇸.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] 🇪🇸"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 385,
+    "imdb_id": "tt2244495",
+    "media_title": "Contratiempo",
+    "year": 2016,
+    "release_title": "Contratiempo.2016.1080p.BluRay.GranTorrent.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Contratiempo.2016.1080p.BluRay.GranTorrent.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] GranTorrent"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 390,
+    "imdb_id": "tt2962362",
+    "media_title": "Ocho apellidos vascos",
+    "year": 2014,
+    "release_title": "Ocho.apellidos.vascos.2014.1080p.BluRay.es-ES.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Ocho.apellidos.vascos.2014.1080p.BluRay.es-ES.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] es-ES"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 395,
+    "imdb_id": "tt0284490",
+    "media_title": "Los otros",
+    "year": 2001,
+    "release_title": "Los.otros.2001.1080p.BluRay.Wolfmax4k.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Los.otros.2001.1080p.BluRay.Wolfmax4k.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] Wolfmax4k"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 400,
+    "imdb_id": "tt0245712",
+    "media_title": "El laberinto del fauno",
+    "year": 2006,
+    "release_title": "El.laberinto.del.fauno.2006.1080p.BluRay.castellano.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "El.laberinto.del.fauno.2006.1080p.BluRay.castellano.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] castellano"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 405,
+    "imdb_id": "tt1648190",
+    "media_title": "El cuerpo",
+    "year": 2012,
+    "release_title": "El.cuerpo.2012.1080p.BluRay.MejorTorrent.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "El.cuerpo.2012.1080p.BluRay.MejorTorrent.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] MejorTorrent"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 410,
+    "imdb_id": "tt1137450",
+    "media_title": "La casa de papel",
+    "year": 2017,
+    "release_title": "La.casa.de.papel.2017.1080p.BluRay.dual-esp.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "La.casa.de.papel.2017.1080p.BluRay.dual-esp.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] dual-esp"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 415,
+    "imdb_id": "tt0118694",
+    "media_title": "Abre los ojos",
+    "year": 1997,
+    "release_title": "Abre.los.ojos.1997.1080p.BluRay.es_ES.DTS.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Abre.los.ojos.1997.1080p.BluRay.es_ES.DTS.x264\n👤 33 · ⚙️ 6.2 GB",
+      "description": "[TB+] es_ES"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "castellano_peninsular"
+  },
+  {
+    "id": 420,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.WEB-DL.subtitulada.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.WEB-DL.subtitulada.x264\n👤 19 · ⚙️ 2.4 GB",
+      "description": "[TB+] subtitulada"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "vose_subtitled"
+  },
+  {
+    "id": 425,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.WEB-DL.Subtitulado.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.WEB-DL.Subtitulado.x264\n👤 19 · ⚙️ 2.4 GB",
+      "description": "[TB+] Subtitulado"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "vose_subtitled"
+  },
+  {
+    "id": 430,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.WEB-DL.VOSE.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.WEB-DL.VOSE.x264\n👤 19 · ⚙️ 2.4 GB",
+      "description": "[TB+] VOSE"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "vose_subtitled"
+  },
+  {
+    "id": 435,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.WEB-DL.Spanish.Subs.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.WEB-DL.Spanish.Subs.x264\n👤 19 · ⚙️ 2.4 GB",
+      "description": "[TB+] Spanish.Subs"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "vose_subtitled"
+  },
+  {
+    "id": 440,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.WEB-DL.subtitulado.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.WEB-DL.subtitulado.x264\n👤 19 · ⚙️ 2.4 GB",
+      "description": "[TB+] subtitulado"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "vose_subtitled"
+  },
+  {
+    "id": 445,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.WEB-DL.vose.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.WEB-DL.vose.x264\n👤 19 · ⚙️ 2.4 GB",
+      "description": "[TB+] vose"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "vose_subtitled"
+  },
+  {
+    "id": 450,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.WEB-DL.Subs.Esp.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.WEB-DL.Subs.Esp.x264\n👤 19 · ⚙️ 2.4 GB",
+      "description": "[TB+] Subs.Esp"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "vose_subtitled"
+  },
+  {
+    "id": 455,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.1080p.WEB-DL.subtitulada.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Arrival.2016.1080p.WEB-DL.subtitulada.x264\n👤 19 · ⚙️ 2.4 GB",
+      "description": "[TB+] subtitulada"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "vose_subtitled"
+  },
+  {
+    "id": 460,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.1080p.WEB-DL.Subtitulado.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inception.2010.1080p.WEB-DL.Subtitulado.x264\n👤 19 · ⚙️ 2.4 GB",
+      "description": "[TB+] Subtitulado"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "vose_subtitled"
+  },
+  {
+    "id": 465,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.🇧🇷.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.🇧🇷.x264\n👤 50 · ⚙️ 4.0 GB",
+      "description": "[TB+] 🇧🇷"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "portuguese_veto"
+  },
+  {
+    "id": 470,
+    "imdb_id": "tt15239678",
+    "media_title": "Dune: Part Two",
+    "year": 2024,
+    "release_title": "Dune.Part.Two.2024.1080p.WEB-DL.pt-br.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Dune.Part.Two.2024.1080p.WEB-DL.pt-br.x264\n👤 50 · ⚙️ 4.0 GB",
+      "description": "[TB+] pt-br"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "portuguese_veto"
+  },
+  {
+    "id": 475,
+    "imdb_id": "tt7959026",
+    "media_title": "Inside Out 2",
+    "year": 2024,
+    "release_title": "Inside.Out.2.2024.1080p.WEB-DL.dublado.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Inside.Out.2.2024.1080p.WEB-DL.dublado.x264\n👤 50 · ⚙️ 4.0 GB",
+      "description": "[TB+] dublado"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "portuguese_veto"
+  },
+  {
+    "id": 480,
+    "imdb_id": "tt6710474",
+    "media_title": "Everything Everywhere All at Once",
+    "year": 2022,
+    "release_title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.Comando.x264",
+    "stream": {
+      "name": "Torrentio\n1080p",
+      "title": "Everything.Everywhere.All.at.Once.2022.1080p.WEB-DL.Comando.x264\n👤 50 · ⚙️ 4.0 GB",
+      "description": "[TB+] Comando"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "portuguese_veto"
+  },
+  {
+    "id": 485,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.2160p.UHD.BluRay.TrueHD.7.1.x265-FLUX",
+    "stream": {
+      "name": "Torrentio\n4K",
+      "title": "Inception.2010.2160p.UHD.BluRay.TrueHD.7.1.x265-FLUX\n👤 85 · ⚙️ 18.5 GB",
+      "description": "[TB+] TrueHD.7.1"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "clean_original"
+  },
+  {
+    "id": 490,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.2160p.UHD.BluRay.Atmos.x265-FLUX",
+    "stream": {
+      "name": "Torrentio\n4K",
+      "title": "Arrival.2016.2160p.UHD.BluRay.Atmos.x265-FLUX\n👤 85 · ⚙️ 18.5 GB",
+      "description": "[TB+] Atmos"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "clean_original"
+  },
+  {
+    "id": 495,
+    "imdb_id": "tt1375666",
+    "media_title": "Inception",
+    "year": 2010,
+    "release_title": "Inception.2010.2160p.UHD.BluRay.Original.Audio.x265-FLUX",
+    "stream": {
+      "name": "Torrentio\n4K",
+      "title": "Inception.2010.2160p.UHD.BluRay.Original.Audio.x265-FLUX\n👤 85 · ⚙️ 18.5 GB",
+      "description": "[TB+] Original.Audio"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "clean_original"
+  },
+  {
+    "id": 500,
+    "imdb_id": "tt2543164",
+    "media_title": "Arrival",
+    "year": 2016,
+    "release_title": "Arrival.2016.2160p.UHD.BluRay.English.x265-FLUX",
+    "stream": {
+      "name": "Torrentio\n4K",
+      "title": "Arrival.2016.2160p.UHD.BluRay.English.x265-FLUX\n👤 85 · ⚙️ 18.5 GB",
+      "description": "[TB+] English"
+    },
+    "expected_confidence": "Desconocido",
+    "is_latino_audio": false,
+    "category": "clean_original"
+  }
+]

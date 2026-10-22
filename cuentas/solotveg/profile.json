@@ -50,6 +50,16 @@
         "com.mejorastremio.hub"
       ]
     },
+    "catalogs": {
+      "dailySync": true,
+      "orderLaw": "release_date_desc",
+      "maxHomeRows": 20,
+      "minVoteCountHome": 3,
+      "timeSensitive": [
+        "now_playing",
+        "upcoming"
+      ]
+    },
     "playerOptimization": {
       "target": "Android TV (Leanback UI)",
       "recommendedPlayer": "libmpv",

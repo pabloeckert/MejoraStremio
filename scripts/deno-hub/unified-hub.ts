@@ -8,13 +8,15 @@
  *    Subtítulos (SubDL + OpenSubtitles Latino + Traducción IA Gemini Flash + SmartSync).
  */
 
-import { cors, jsonResponse } from "./utils/common.ts";
+import { cors, jsonResponse, safeGetKv } from "./utils/common.ts";
 import { handleStreams } from "./streams/streams.ts";
 import { handleSubdl } from "./subtitles/subdl.ts";
 import { handleTranslate } from "./translate/translate.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./subtitles/smartsync.ts";
 import { handleDiscover } from "./catalogs/tmdb.ts";
 import { MEJORASTREMIO_HUB_MANIFEST } from "./manifest.ts";
+import { buildParaVosCatalog } from "./catalogs/paravos.ts";
+import { isCanaryActiveForProfile } from "./utils/canary_governance.ts";
 
 export { MEJORASTREMIO_HUB_MANIFEST };
 
@@ -282,6 +284,20 @@ export async function handleUnifiedSubtitles(
 /**
  * Dispatcher del Hub Unificado: procesa peticiones en raíz o con prefijo de configuración.
  */
+export function extractProfileFromConfig(configSegment?: string | null): string {
+  if (!configSegment) return "default";
+  for (const part of configSegment.split("|")) {
+    if (part.startsWith("profile=")) {
+      return part.slice("profile=".length).trim();
+    }
+  }
+  const clean = configSegment.toLowerCase().trim();
+  if (["stremiojn", "stremioeg", "solotveg"].includes(clean)) {
+    return clean;
+  }
+  return "default";
+}
+
 export function getManifestWithVersion(reqUrl?: URL) {
   const versionParam = reqUrl?.searchParams?.get("v");
   if (versionParam === "1.4.1") {
@@ -294,14 +310,56 @@ export function getManifestWithVersion(reqUrl?: URL) {
   return MEJORASTREMIO_HUB_MANIFEST;
 }
 
+export async function getCanaryManifest(
+  reqUrl?: URL,
+  configSegment?: string,
+  customKv?: Deno.Kv | null,
+): Promise<Record<string, unknown>> {
+  const versionParam = reqUrl?.searchParams?.get("v");
+  if (versionParam === "1.4.1") {
+    return getManifestWithVersion(reqUrl) as unknown as Record<string, unknown>;
+  }
+
+  const profile = reqUrl?.searchParams?.get("profile") || extractProfileFromConfig(configSegment);
+  const kv = customKv ?? (await safeGetKv());
+  const canaryStatus = await isCanaryActiveForProfile(profile, kv);
+
+  if (canaryStatus.active) {
+    return {
+      ...MEJORASTREMIO_HUB_MANIFEST,
+      version: "1.5.0-rc",
+      description: "[CANARY v1.5.0-RC · stremiojn] " + MEJORASTREMIO_HUB_MANIFEST.description,
+      catalogs: [
+        {
+          type: "movie",
+          id: "paravos",
+          name: "Para vos (Recomendado)",
+          extra: [{ name: "skip" }],
+        },
+        {
+          type: "series",
+          id: "paravos",
+          name: "Para vos (Series)",
+          extra: [{ name: "skip" }],
+        },
+        ...MEJORASTREMIO_HUB_MANIFEST.catalogs,
+      ],
+    };
+  }
+
+  return MEJORASTREMIO_HUB_MANIFEST as unknown as Record<string, unknown>;
+}
+
 export async function handleUnifiedHub(
   path: string,
   origin: string,
   reqUrl: URL,
+  customKv?: Deno.Kv | null,
 ): Promise<Response | null> {
   // 1. Manifest raíz: /manifest.json (soporta ?v=1.4.1 para rollback rápido / cache-busting inverso)
   if (path === "/manifest.json") {
-    return jsonResponse(getManifestWithVersion(reqUrl));
+    const manifest = await getCanaryManifest(reqUrl, undefined, customKv);
+    return jsonResponse(manifest);
   }
 
   // 2. Página de configuración raíz: /configure
@@ -322,12 +380,13 @@ export async function handleUnifiedHub(
     "streams", "stream", "subtitles", "catalog", "health", "configure", "manifest.json",
   ]);
 
-  // 3. Manifest parametrizado: /:config/manifest.json (soporta ?v=1.4.1)
+  // 3. Manifest parametrizado: /:config/manifest.json (soporta ?v=1.4.1 y canario)
   const configManifestMatch = path.match(/^\/([^/]+)\/manifest\.json$/);
   if (configManifestMatch) {
     const config = configManifestMatch[1];
     if (!RESERVED_PREFIXES.has(config)) {
-      return jsonResponse(getManifestWithVersion(reqUrl));
+      const manifest = await getCanaryManifest(reqUrl, config, customKv);
+      return jsonResponse(manifest);
     }
   }
 
@@ -387,8 +446,17 @@ export async function handleUnifiedHub(
   if (configCatMatch) {
     const configSegment = configCatMatch[1];
     if (!RESERVED_PREFIXES.has(configSegment)) {
-      const type = configCatMatch[2];
+      const type = configCatMatch[2] as "movie" | "series";
       const catId = configCatMatch[3];
+      if (catId === "paravos") {
+        const kv = customKv ?? (await safeGetKv());
+        if (kv) {
+          const profile = reqUrl.searchParams.get("profile") || extractProfileFromConfig(configSegment);
+          const data = await buildParaVosCatalog(kv, profile, type);
+          return jsonResponse(data);
+        }
+        return jsonResponse({ metas: [] });
+      }
       const extra = configCatMatch[4] ? `/${configCatMatch[4]}` : "";
       const subPath = `/catalog/${type}/${catId}${extra}.json`;
       return await handleDiscover(subPath, reqUrl);
@@ -398,6 +466,17 @@ export async function handleUnifiedHub(
   // 10. Catálogos directos en raíz: /catalog/:type/:id.json
   const directCatMatch = path.match(/^\/catalog\/(movie|series)\/([^/]+)(?:\/([^/]+))?\.json$/);
   if (directCatMatch) {
+    const type = directCatMatch[1] as "movie" | "series";
+    const catId = directCatMatch[2];
+    if (catId === "paravos") {
+      const kv = customKv ?? (await safeGetKv());
+      if (kv) {
+        const profile = reqUrl.searchParams.get("profile") || "default";
+        const data = await buildParaVosCatalog(kv, profile, type);
+        return jsonResponse(data);
+      }
+      return jsonResponse({ metas: [] });
+    }
     return await handleDiscover(path, reqUrl);
   }
 

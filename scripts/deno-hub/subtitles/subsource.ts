@@ -2,12 +2,17 @@
  * subsource.ts — Proveedor de subtítulos SubSource ES (sin SDH).
  */
 
-import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText } from "../utils/common.ts";
+import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, getKv } from "../utils/common.ts";
+import { BoundedLruCache } from "../utils/lru-cache.ts";
+import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 import { resolveSmartSync, rescaleSrtFramerate, cleanSrt, pushDualSubtitles, type SubtitleTrackPayload } from "./smartsync.ts";
 import { extractSrtFromZip } from "./subdl.ts";
 
 export const SUBSOURCE_API_KEY = (typeof Deno !== "undefined" && Deno.env?.get?.("SUBSOURCE_API_KEY")) || "";
 export const SUBSOURCE_API = "https://api.subsource.net/api/v1";
+
+// L1 Cache: Máximo 50 subtítulos en RAM (~2.5 MB) con LRU eviction
+const subSourceMemCache = new BoundedLruCache<string, string>(50, 24 * 60 * 60 * 1000);
 
 export const SUBSOURCE_MANIFEST = {
   id: "com.mejorastremio.subsource",
@@ -61,6 +66,28 @@ export async function fetchSubSourceSubs(
 }
 
 export async function downloadSubSourceSrt(downloadUrl: string): Promise<string | null> {
+  // 1. L1 Memoria rápida Bounded LRU
+  const memCached = subSourceMemCache.get(downloadUrl);
+  if (memCached) {
+    return memCached;
+  }
+
+  // 2. L2 Deno KV comprimido Gzip + SHA-256 (30 días)
+  const cacheKey = ["subsource_srt_cache_v2", downloadUrl];
+  let kv: Deno.Kv | null = null;
+  try {
+    kv = await getKv();
+    if (kv) {
+      const cached = await getCompressedKvText(kv, cacheKey);
+      if (cached) {
+        subSourceMemCache.set(downloadUrl, cached);
+        return cached;
+      }
+    }
+  } catch {
+    kv = null;
+  }
+
   let dlHost: string;
   try {
     dlHost = new URL(downloadUrl).hostname.toLowerCase();
@@ -75,7 +102,18 @@ export async function downloadSubSourceSrt(downloadUrl: string): Promise<string 
     if (!r.ok) return null;
     const buf = new Uint8Array(await r.arrayBuffer());
     const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
-    return isZip ? await extractSrtFromZip(buf) : decodeSubtitleText(buf);
+    const srt = isZip ? await extractSrtFromZip(buf) : decodeSubtitleText(buf);
+    if (srt) {
+      subSourceMemCache.set(downloadUrl, srt);
+      if (kv) {
+        try {
+          await setCompressedKvText(kv, cacheKey, srt, { expireIn: 30 * 24 * 60 * 60 * 1000 });
+        } catch {
+          /* sin cache */
+        }
+      }
+    }
+    return srt;
   } catch {
     return null;
   }

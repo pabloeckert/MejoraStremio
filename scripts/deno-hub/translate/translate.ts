@@ -54,6 +54,7 @@ import {
   calculateSha256,
   type SubCacheKeyParams,
 } from "./kv_sub_cache.ts";
+import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 
 export const TRANSLATE_MANIFEST = {
   id: "com.mejorastremio.translate",
@@ -321,7 +322,7 @@ export async function translateCues(
           .filter((c) => !isSoundOnly(c.text) && c.text.trim().length > 0);
         let finalSrt = serializeSrt(outCues);
         finalSrt = cleanSrt(finalSrt);
-        await kv.set(["translate-srt", "v9", cacheRef], finalSrt, { expireIn: TRANSLATE_CACHE_TTL_MS });
+        await setCompressedKvText(kv, ["translate-srt", "v9", cacheRef], finalSrt, { expireIn: TRANSLATE_CACHE_TTL_MS });
       } catch { /* background fallback */ }
     };
 
@@ -780,10 +781,10 @@ export async function handleTranslate(
         if (cachedSub?.srt) {
           return new Response(cachedSub.srt, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
         }
-        // Fallback a clave legacy si existe
-        const hit = await kv.get<string>(cacheKey);
-        if (hit.value) {
-          return new Response(hit.value, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+        // Fallback a clave legacy/comprimida si existe
+        const hit = await getCompressedKvText(kv, cacheKey);
+        if (hit) {
+          return new Response(hit, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
         }
       }
     } catch { kv = null; }
@@ -826,7 +827,7 @@ export async function handleTranslate(
 
       if (kv && done) {
         try {
-          await kv.set(cacheKey, srt, { expireIn: TRANSLATE_CACHE_TTL_MS });
+          await setCompressedKvText(kv, cacheKey, srt, { expireIn: TRANSLATE_CACHE_TTL_MS });
           // Persistencia en P1 + P2 con criterio estricto y chunking
           await putCachedSub(kv, subCacheParams, {
             srt,

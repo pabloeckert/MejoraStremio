@@ -210,6 +210,8 @@ export async function callOpenRouter(prompt: string, apiKey: string, signal: Abo
 
 const SOUND_CUES_STANDALONE = /^(?:m[uú]sica|musique|music|sonido|sound|audio|disparos?|shots?|gritos?|screams?|aplausos?|applause|risas?|laughter|suspiros?|sighs?|suspira|soupire|llanto|crying|silbidos?|whistle|pasos|footsteps|jadeos?|gasps?|canción|song|tose|coughs?|canta|sings?|viento|wind|trueno|thunder|motor|engine|timbre|bell|teléfono|phone|golpes?|thuds?|knocks?|quejidos?|groans?|sollozos?|sobs?|murmullos?|murmurs?|ininteligible|inaudible|alarma|alarm|resopla|explosión|explosion|silencio|silence|jadea|bosteza|yawns?)\b/i;
 
+const SOUND_WORDS_RE = /\b(?:m[uú]sica|musique|music|sonido|sound|audio|disparos?|shots?|gritos?|screams?|aplausos?|applause|risas?|laughs?|laughter|suspiros?|sighs?|suspira|soupire|llanto|crying|silbidos?|whistle|pasos|footsteps|jadeos?|gasps?|canción|song|tose|coughs?|canta|sings?|viento|wind|trueno|thunder|motor|engine|timbre|bell|teléfono|phone|golpes?|thuds?|knocks?|quejidos?|groans?|sollozos?|sobs?|murmullos?|murmurs?|ininteligible|inaudible|alarma|alarm|resopla|explosión|explosion|silencio|silence|jadea|bosteza|yawns?|sonnerie)\b/i;
+
 export function cleanCueForTranslation(text: string): string {
   if (!text) return "";
   let t = text;
@@ -223,15 +225,12 @@ export function cleanCueForTranslation(text: string): string {
     if (!trimmed) return "";
     const upperTag = trimmed.toUpperCase();
     if (PRESERVED_SPEAKER_ACRONYMS.has(upperTag)) return fullMatch;
-    const hasLower = /[a-záéíóúñàâçéèêëîïôùûüÿ]/.test(trimmed);
-    if (hasLower && !/\b(?:m[uú]sica|music|gritos?|screams?|risas?|laughs?|suspiros?|sighs?|llanto|crying|pasos|footsteps|aplausos?|applause|disparos?|shots?|alarma|alarm|sonnerie)\b/i.test(trimmed)) {
-      return fullMatch;
-    }
-    const hasUpper = /[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ]/.test(trimmed);
-    if (hasUpper && !hasLower) return "";
-    if (/\b(?:m[uú]sica|music|gritos?|screams?|risas?|laughs?|suspiros?|sighs?|llanto|crying|pasos|footsteps|aplausos?|applause|disparos?|shots?|alarma|alarm|sonnerie)\b/i.test(trimmed)) {
+    if (SOUND_WORDS_RE.test(trimmed)) {
       return "";
     }
+    const hasLower = /[a-záéíóúñàâçéèêëîïôùûüÿ]/.test(trimmed);
+    const hasUpper = /[A-ZÁÉÍÓÚÑÀÂÇÉÈÊËÎÏÔÙÛÜŸ]/.test(trimmed);
+    if (hasUpper && !hasLower) return "";
     return fullMatch;
   });
   // 3. Eliminar prefijos de hablante en mayúsculas preservando siglas legítimas (NASA:, FBI:, OK:, CEO:)
@@ -373,13 +372,17 @@ export const LANG_NAMES: Record<string, string> = {
   es: "idioma español (es)",
 };
 
-export function buildTranslateSystemPrompt(titleName?: string, sourceLang = "inglés"): string {
+export function buildTranslateSystemPrompt(
+  titleName?: string,
+  sourceLang = "inglés",
+  glossaryDirectives?: string,
+): string {
   const langLabel = LANG_NAMES[sourceLang.toLowerCase()] || `idioma ${sourceLang}`;
   const showInfo = titleName
     ? `Estás traduciendo la serie/película "${titleName}".`
     : "Estás traduciendo una producción audiovisual de cine o televisión.";
 
-  return (
+  const basePrompt = (
     `Sos un traductor y adaptador profesional de subtítulos para cine y series de televisión. ` +
     `Tu tarea es traducir del ${langLabel} al ESPAÑOL LATINOAMERICANO NEUTRO (estilo doblaje profesional latinoamericano).\n\n` +
     `${showInfo}\n\n` +
@@ -389,4 +392,9 @@ export function buildTranslateSystemPrompt(titleName?: string, sourceLang = "ing
     `3. HIGIENE ANTI-SDH: NUNCA generes ni incluyas descripciones de sonido, ruidos entre corchetes o paréntesis ni etiquetas de hablantes (ej: NADA de [Música], (Risas) ni NOMBRE:). Traduce exclusivamente el diálogo humano hablado.\n` +
     `4. CONSERVACIÓN DE FORMATO: Recibís líneas numeradas '<n>▸ <texto>'. Devolvé EXACTAMENTE las mismas líneas numeradas '<n>▸ <traducción>', una por línea, mismo n, misma cantidad, sin texto introductorio ni explicaciones adicionales. El símbolo ${NL} es un salto de línea interno: conservalo en el lugar exacto donde corresponda en la traducción.`
   );
+
+  if (glossaryDirectives && glossaryDirectives.trim()) {
+    return `${basePrompt}\n\n${glossaryDirectives.trim()}`;
+  }
+  return basePrompt;
 }

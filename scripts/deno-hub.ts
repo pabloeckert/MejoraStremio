@@ -40,6 +40,8 @@ import {
   handleUnifiedHub,
 } from "./deno-hub/unified-hub.ts";
 import { subtitlesApp } from "./deno-hub/subtitles/subtitles.ts";
+import { handleProxyStream } from "./deno-hub/catalogs/paravos.ts";
+import { getLatinoTrailersHotPath } from "./deno-hub/catalogs/trailers.ts";
 
 // Re-exportaciones públicas canónicas para compatibilidad con tests y suites
 export {
@@ -62,6 +64,19 @@ export {
   isCachedOrInstantStream,
   LATIN_TOKENS,
 } from "./deno-hub/utils/common.ts";
+
+export { BoundedLruCache } from "./deno-hub/utils/lru-cache.ts";
+
+export {
+  setCompressedKvText,
+  getCompressedKvText,
+  setCompressedKvJson,
+  getCompressedKvJson,
+  calculateSha256 as calculateBlobSha256,
+  compressGzip,
+  decompressGzip,
+  KV_BLOB_CHUNK_SIZE,
+} from "./deno-hub/utils/kv_blob_cache.ts";
 
 export {
   detectFramerate,
@@ -179,6 +194,44 @@ export {
   DISCOVER_PAGE_KV_TTL_DEFAULT_MS,
   DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS,
 } from "./deno-hub/catalogs/tmdb.ts";
+
+export {
+  handleProxyStream,
+  recordPlaybackEvent,
+  getProfileHistory,
+  buildParaVosCatalog,
+  buildHistoryKey,
+  hashToken,
+  HISTORY_MAX_ITEMS,
+  HISTORY_KV_TTL_MS,
+  type ProfilePlaybackHistory,
+  type HistoryItem,
+  type ParaVosCatalogMeta,
+} from "./deno-hub/catalogs/paravos.ts";
+
+export {
+  isStrictLatinoTrailer,
+  getLatinoTrailersHotPath,
+  runNightlyTrailerCron,
+  fetchTmdbVideos,
+  LATINO_CHANNEL_WHITELIST,
+  NEGATIVE_TRAILER_TOKENS,
+  DAILY_YOUTUBE_SEARCH_BUDGET,
+  TRAILER_KV_TTL_MS,
+  type TrailerCandidate,
+  type TmdbVideoItem,
+} from "./deno-hub/catalogs/trailers.ts";
+
+export {
+  getCanaryConfig,
+  setCanaryConfig,
+  isCanaryProfile,
+  isCanaryActiveForProfile,
+  triggerCanaryRollback,
+  CANARY_KV_KEY,
+  DEFAULT_CANARY_CONFIG,
+  type CanaryFlagConfig,
+} from "./deno-hub/utils/canary_governance.ts";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // ── Router Central Ultraligero ──────────────────────────────────────────────
@@ -313,6 +366,16 @@ export async function handleHubRequest(req: Request): Promise<Response> {
     } else if (path.startsWith("/subtitles-app") || path.startsWith("/subtitles-v2")) {
       route = "subtitles-app";
       res = await subtitlesApp.fetch(req);
+    } else if (path === "/proxy/stream" || path.startsWith("/proxy/stream")) {
+      route = "proxy-stream";
+      res = await handleProxyStream(url, req);
+    } else if (path.startsWith("/trailer/") || path.startsWith("/trailers/")) {
+      route = "trailers";
+      const parts = path.split("/").filter(Boolean);
+      const type = (parts[1] as "movie" | "tv") || "movie";
+      const id = parts[2]?.replace(/\.json$/, "") || "";
+      const trailers = await getLatinoTrailersHotPath(id, type, id);
+      res = jsonResponse({ trailers });
     } else {
       res = new Response("Not found", { status: 404, headers: cors });
     }
@@ -322,6 +385,20 @@ export async function handleHubRequest(req: Request): Promise<Response> {
 
   console.log(`[hub] ${route} ${req.method} ${path} -> ${res.status} (${Date.now() - started}ms)`);
   return res;
+}
+
+// ── Keep-Warm Serverless Nativo en Deno Deploy (Cero cuota GitHub Actions) ──
+type DenoCronFn = (name: string, schedule: string, handler: () => Promise<void> | void) => void;
+if (typeof Deno !== "undefined" && typeof (Deno as unknown as { cron?: DenoCronFn }).cron === "function") {
+  (Deno as unknown as { cron: DenoCronFn }).cron("keep-warm-hub", "*/15 * * * *", async () => {
+    try {
+      const pingUrl = "https://mejorastremio-hub.pabloeckert.deno.net/health";
+      const r = await fetch(pingUrl, { signal: AbortSignal.timeout(10000) });
+      console.log(`[cron:keep-warm] Ping de salud a ${pingUrl}: status ${r.status}`);
+    } catch (e) {
+      console.warn(`[cron:keep-warm] Ping de salud falló: ${(e as Error).message}`);
+    }
+  });
 }
 
 if (typeof Deno !== "undefined" && typeof Deno.serve === "function" && import.meta.main) {

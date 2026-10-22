@@ -6,6 +6,7 @@
 
 import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, releaseSimilarity, getKv } from "../utils/common.ts";
 import { BoundedLruCache } from "../utils/lru-cache.ts";
+import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 import { resolveSmartSync, rescaleSrtFramerate, cleanSrt, pushDualSubtitles, isEuropeanShowOrContext, type SubtitleTrackPayload } from "./smartsync.ts";
 import { isSdhName } from "./sdh-detector.ts";
 import { fetchOpenSubtitlesSubs, downloadOpenSubtitlesSrt } from "./opensubtitles.ts";
@@ -163,13 +164,15 @@ export async function downloadSubdlSrt(subdlPath: string): Promise<string | null
     }
   }
 
-  // 2. Deno KV persistente (30 días)
+  // 2. Deno KV persistente (30 días) con Gzip + SHA-256
   try {
     const kv = await getKv();
-    const cached = await kv.get<string>(["subdl_srt_cache_v2", subdlPath]);
-    if (cached?.value) {
-      subdlMemCache.set(subdlPath, cached.value);
-      return cached.value;
+    if (kv) {
+      const cached = await getCompressedKvText(kv, ["subdl_srt_cache_v2", subdlPath]);
+      if (cached) {
+        subdlMemCache.set(subdlPath, cached);
+        return cached;
+      }
     }
   } catch {
     // Si KV no está disponible, continuar al fetch
@@ -199,7 +202,9 @@ export async function downloadSubdlSrt(subdlPath: string): Promise<string | null
       subdlMemCache.set(subdlPath, srt);
       try {
         const kv = await getKv();
-        await kv.set(["subdl_srt_cache_v2", subdlPath], srt, { expireIn: 30 * 86400 * 1000 });
+        if (kv) {
+          await setCompressedKvText(kv, ["subdl_srt_cache_v2", subdlPath], srt, { expireIn: 30 * 86400 * 1000 });
+        }
       } catch {
         // Ignorar fallo de escritura KV
       }

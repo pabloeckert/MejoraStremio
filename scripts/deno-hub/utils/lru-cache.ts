@@ -68,4 +68,22 @@ export class BoundedLruCache<K, V> {
   get size(): number {
     return this.map.size;
   }
+
+  *entries(): IterableIterator<[K, V]> {
+    const now = Date.now();
+    for (const [k, entry] of this.map.entries()) {
+      if (now <= entry.expiresAt) {
+        yield [k, entry.value];
+      }
+    }
+  }
+
+  *keys(): IterableIterator<K> {
+    const now = Date.now();
+    for (const [k, entry] of this.map.entries()) {
+      if (now <= entry.expiresAt) {
+        yield k;
+      }
+    }
+  }
 }

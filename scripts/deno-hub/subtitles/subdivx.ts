@@ -2,11 +2,16 @@
  * subdivx.ts — Subdivx ES Latino (vía Proxy con Smart Audio Sync).
  */
 
-import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, b64u } from "../utils/common.ts";
+import { cors, jsonResponse, parseStremioSubId, decodeSubtitleText, b64u, getKv } from "../utils/common.ts";
+import { BoundedLruCache } from "../utils/lru-cache.ts";
+import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 import { resolveSmartSync, rescaleSrtFramerate, cleanSrt, pushDualSubtitles, type SubtitleTrackPayload } from "./smartsync.ts";
 import { extractSrtFromZip } from "./subdl.ts";
 
 export const SUBDIVX_PROXY_URL = Deno.env.get("SUBDIVX_PROXY_URL") ?? "https://stremio-subdivx.xor.ar";
+
+// L1 Cache: Máximo 50 subtítulos en RAM (~2.5 MB) con LRU eviction
+const subdivxMemCache = new BoundedLruCache<string, string>(50, 24 * 60 * 60 * 1000);
 
 export const SUBDIVX_MANIFEST = {
   id: "com.mejorastremio.subdivx",
@@ -101,12 +106,40 @@ export async function handleSubdivx(
   if (srtMatch) {
     const rawTarget = decodeURIComponent(srtMatch[1]);
     try {
-      const r = await fetch(rawTarget, { signal: AbortSignal.timeout(15000) });
-      if (!r.ok) return new Response("Error upstream Subdivx", { status: 502, headers: cors });
-      const buf = new Uint8Array(await r.arrayBuffer());
-      const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
-      let srtText = isZip ? await extractSrtFromZip(buf) : decodeSubtitleText(buf);
-      if (!srtText) return new Response("Error decodificando subtítulo", { status: 502, headers: cors });
+      let srtText: string | null = subdivxMemCache.get(rawTarget) ?? null;
+      const cacheKey = ["subdivx_srt_cache_v2", rawTarget];
+      let kv: Deno.Kv | null = null;
+
+      if (!srtText) {
+        try {
+          kv = await getKv();
+          if (kv) {
+            srtText = await getCompressedKvText(kv, cacheKey);
+            if (srtText) {
+              subdivxMemCache.set(rawTarget, srtText);
+            }
+          }
+        } catch {
+          kv = null;
+        }
+      }
+
+      if (!srtText) {
+        const r = await fetch(rawTarget, { signal: AbortSignal.timeout(15000) });
+        if (!r.ok) return new Response("Error upstream Subdivx", { status: 502, headers: cors });
+        const buf = new Uint8Array(await r.arrayBuffer());
+        const isZip = buf[0] === 0x50 && buf[1] === 0x4b;
+        srtText = isZip ? await extractSrtFromZip(buf) : decodeSubtitleText(buf);
+        if (!srtText) return new Response("Error decodificando subtítulo", { status: 502, headers: cors });
+        subdivxMemCache.set(rawTarget, srtText);
+        if (kv) {
+          try {
+            await setCompressedKvText(kv, cacheKey, srtText, { expireIn: 30 * 24 * 60 * 60 * 1000 });
+          } catch {
+            /* sin cache */
+          }
+        }
+      }
 
       const fps = reqUrl?.searchParams?.get("fps");
       const offsetStr = reqUrl?.searchParams?.get("offset");

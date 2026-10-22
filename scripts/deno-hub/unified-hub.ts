@@ -182,7 +182,7 @@ export function renderConfigureHtml(configSegment: string, origin: string): stri
 </head>
 <body>
   <div class="container">
-    <span class="badge">MejoraStremio v1.3.0</span>
+    <span class="badge">MejoraStremio v2.1.0</span>
     <h1>Hub Unificado de MejoraStremio</h1>
     <p class="desc">
       Smart Stream Interceptor (TorBox + Audio Latino) y suite completa de subtítulos limpios sin SDH, SmartSync (PAL 25 ➔ 23.976fps) y traducción IA Gemini Flash en un solo addon.

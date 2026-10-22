@@ -21,8 +21,8 @@ export const CANARY_KV_KEY: Deno.KvKey = ["flags", "rc_v150"];
 export const DEFAULT_CANARY_CONFIG: CanaryFlagConfig = {
   enabled: false,
   canaryAccounts: ["stremiojn", "stremiojn@gmail.com"],
-  rollbackBaseline: "v1.4.2",
-  version: "v1.5.0-rc",
+  rollbackBaseline: "v2.1.0",
+  version: "v2.1.0-canary",
   updatedAt: 0,
 };
 

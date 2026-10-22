@@ -15,7 +15,7 @@ subtitlesApp.use("*", cors({ origin: "*", allowMethods: ["GET", "OPTIONS"] }));
 
 export const SUBTITLES_APP_MANIFEST = {
   id: "com.mejorastremio.subtitles",
-  version: "1.4.2",
+  version: "2.1.0",
   name: "MejoraStremio Subtítulos (Multi-Fuente + IA)",
   description: "Ingesta multi-fuente de SubDL, OpenSubtitles v3, SubSource, Wyzie y Traducción IA Gemini Flash sin SDH.",
   resources: ["subtitles"],

@@ -358,13 +358,13 @@ export function injectCacheBuster(url, buster = GLOBAL_CACHE_BUSTER) {
 }
 
 export const CANONICAL_HUB_URL =
-  injectCacheBuster(`https://mejorastremio-hub.pabloeckert.deno.net/${CANONICAL_TORBOX_CONFIG}/manifest.json?v=1.4.2`);
+  injectCacheBuster(`https://mejorastremio-hub.pabloeckert.deno.net/${CANONICAL_TORBOX_CONFIG}/manifest.json?v=2.1.0`);
 
 export const UNIFIED_HUB_ADDON_ENTRY = {
   transportUrl: CANONICAL_HUB_URL,
   manifest: {
     id: 'com.mejorastremio.hub',
-    version: '1.4.2',
+    version: '2.1.0',
     name: 'MejoraStremio Hub',
     description: 'Addon Unificado de MejoraStremio: Streams prioritarios TorBox + Audio Latino, Subtítulos sin SDH y Traducción IA (Gemini Flash).',
     resources: ['stream', 'subtitles', 'catalog'],
@@ -372,7 +372,27 @@ export const UNIFIED_HUB_ADDON_ENTRY = {
     idPrefixes: ['tt'],
     catalogs: [],
   },
+  flags: { official: false, protected: false },
 };
+
+export async function fetchFreshHubManifest() {
+  const url = 'https://mejorastremio-hub.pabloeckert.deno.net/manifest.json';
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(15000),
+      headers: { 'Cache-Control': 'no-cache, no-store' },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      console.log(`  ✓ Manifest fresco de MejoraStremio Hub obtenido (v${json.version}, ${json.catalogs?.length || 0} catálogos)`);
+      return json;
+    }
+    console.warn(`  ⚠️ No se pudo obtener manifest fresco del Hub: HTTP ${res.status}`);
+  } catch (err) {
+    console.warn(`  ⚠️ Error al consultar manifest fresco del Hub: ${err.message}`);
+  }
+  return null;
+}
 
 export function ensureStreamsInterceptor(addons) {
   let changed = false;
@@ -513,11 +533,14 @@ export function renderVisualDiff(currentAddons, targetAddons) {
     } else {
       const { addon: c, pos: oldPos } = currentMap.get(id);
       const urlChanged = c.transportUrl !== t.transportUrl;
+      const verChanged = c.manifest?.version !== t.manifest?.version;
       const posChanged = oldPos !== newPos;
 
-      if (urlChanged) {
+      if (urlChanged || verChanged) {
         modified++;
-        const note = posChanged ? `pos ${oldPos}->${newPos} + url` : 'url modif';
+        const note = verChanged
+          ? `v${c.manifest?.version || '?'}>v${t.manifest?.version || '?'}`
+          : (posChanged ? `pos ${oldPos}->${newPos} + url` : 'url modif');
         console.log(`│ ${posStr} │ ${name} │ [~] MODIFICADO       │ ${note.slice(0, 13).padEnd(13)} │`);
       } else if (posChanged) {
         reordered++;
@@ -683,13 +706,19 @@ async function runProfileManager() {
       },
     ];
 
+    const freshHubManifest = await fetchFreshHubManifest();
+    const manifestToUse = freshHubManifest || {
+      ...UNIFIED_HUB_ADDON_ENTRY.manifest,
+      version: '2.1.0',
+    };
+
     const baseHubUrl = profile.rules?.subtitles?.unifiedHub?.transportUrl || CANONICAL_HUB_URL;
-    const targetHubUrl = injectCacheBuster(baseHubUrl);
+    const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)1\.4\.2/, '$12.1.0'));
     console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
     const finalHub = {
       transportUrl: targetHubUrl,
       transportName: '',
-      manifest: UNIFIED_HUB_ADDON_ENTRY.manifest,
+      manifest: manifestToUse,
       flags: { official: false, protected: false },
     };
     const finalCinemeta = {
@@ -738,16 +767,23 @@ async function runProfileManager() {
 
     if (profile.rules?.subtitles?.unifiedHub) {
       // Arquitectura Unificada: Monopolio exclusivo de MejoraStremio Hub + Cinemeta
+      const freshHubManifest = await fetchFreshHubManifest();
+      const manifestToUse = freshHubManifest || {
+        ...UNIFIED_HUB_ADDON_ENTRY.manifest,
+        version: '2.1.0',
+      };
+
       const baseHubUrl = profile.rules.subtitles.unifiedHub.transportUrl || CANONICAL_HUB_URL;
-      const targetHubUrl = injectCacheBuster(baseHubUrl);
+      const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)1\.4\.2/, '$12.1.0'));
       console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
       const hubAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
       const cinemetaAddon = addons.find((a) => a.manifest?.id === 'com.linvo.cinemeta' || a.manifest?.id === 'com.stremio.cinemeta');
 
-      const finalHub = hubAddon ? { ...hubAddon, transportUrl: targetHubUrl } : {
+      const finalHub = {
+        ...(hubAddon || {}),
         transportUrl: targetHubUrl,
         transportName: '',
-        manifest: UNIFIED_HUB_ADDON_ENTRY.manifest,
+        manifest: manifestToUse,
         flags: { official: false, protected: false },
       };
 
@@ -764,9 +800,11 @@ async function runProfileManager() {
       const idsCurrent = addons.map((a) => a.manifest?.id);
       const idsTarget = targetList.map((a) => a.manifest?.id);
       const isIdentical = idsCurrent.length === idsTarget.length && idsCurrent.every((id, i) => id === idsTarget[i]);
+      const hubVerChanged = hubAddon && hubAddon.manifest?.version !== finalHub.manifest?.version;
+      const hubUrlChanged = hubAddon && hubAddon.transportUrl !== targetHubUrl;
       
-      if (!isIdentical || (hubAddon && hubAddon.transportUrl !== targetHubUrl)) {
-        changesCount = Math.max(1, Math.abs(addons.length - targetList.length));
+      if (!isIdentical || hubUrlChanged || hubVerChanged) {
+        changesCount = Math.max(1, Math.abs(addons.length - targetList.length) + (hubVerChanged ? 1 : 0) + (hubUrlChanged ? 1 : 0));
         console.log(`  ✓ Unificación activada: purga de addons secundarios y consolidación en Hub Unificado (#0) + Cinemeta (#1)`);
       }
       updatedAddons = targetList;

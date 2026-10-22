@@ -71,7 +71,7 @@ export function injectCacheBuster(url, buster = GLOBAL_CACHE_BUSTER) {
   return `${url}${sep}v=${buster}`;
 }
 
-export function getCanonicalHubTransportUrl(version = '1.4.2') {
+export function getCanonicalHubTransportUrl(version = '2.1.0') {
   const base = `https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=${version}`;
   return injectCacheBuster(base);
 }

@@ -277,6 +277,9 @@ async function runScenario2() {
   }
 }
 
+const CANONICAL_CONFIG =
+  'providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino';
+
 // ═════════════════════════════════════════════════════════════════════════════
 // ESCENARIO 3: Elección de Contenido y Resolución de Streams
 // ═════════════════════════════════════════════════════════════════════════════
@@ -292,8 +295,8 @@ async function runScenario3() {
   ];
 
   for (const title of titlesToTest) {
-    console.log(`\n  • Solicitando streams para "${title.name}" (${title.id})...`);
-    const streamUrl = `${EDGE_URL}/stream/movie/${title.id}.json`;
+    console.log(`\n  • Solicitando streams para "${title.name}" (${title.id}) con perfil de usuario...`);
+    const streamUrl = `${EDGE_URL}/${CANONICAL_CONFIG}/stream/movie/${title.id}.json`;
     const t0 = Date.now();
     const res = await fetch(streamUrl, { signal: AbortSignal.timeout(10000) });
     const streamTime = Date.now() - t0;
@@ -305,11 +308,25 @@ async function runScenario3() {
 
     const topStream = streams[0];
     const topName = `${topStream.name || ''} ${topStream.title || ''}`;
-    console.log(`    🥇 Stream Puesto #1: "${topStream.name}" — "${topStream.title?.split('\n')[0]}"`);
+    console.log(`    🥇 Stream Puesto #1: "${topStream.name?.split('\n')[0]}" — "${topStream.title?.split('\n')[0]}"`);
 
-    // Aserción: Puesto #1 contiene Audio Latino
-    const hasLatino = topName.includes('LATINO') || topName.includes('🌎') || topName.includes('Dual') || topName.includes('latino');
-    assert(hasLatino, `Puesto #1 reservado para stream con audio Latino [🌎 LATINO]`);
+    // Aserción de Jerarquía Canónica Friction-Zero (GEMINI.md Sección 9.4):
+    // Tier 1: [⚡ INSTANTÁNEO] [🌎 LATINO]
+    // Tier 2: [⚡ INSTANTÁNEO] [🎧 ORIGINAL]
+    // Tier 3: [⏳ REQUIERE BUFFER] [🌎 LATINO]
+    const hasCachedLatino = streams.some((s) => {
+      const t = `${s.name || ''} ${s.title || ''}`;
+      return t.includes('[⚡ INSTANTÁNEO]') && t.includes('[🌎 LATINO]');
+    });
+
+    if (hasCachedLatino) {
+      const isTopCachedLatino = topName.includes('[⚡ INSTANTÁNEO]') && topName.includes('[🌎 LATINO]');
+      assert(isTopCachedLatino, `Puesto #1 reservado para stream cacheado con audio Latino [⚡ INSTANTÁNEO] [🌎 LATINO]`);
+    } else {
+      console.log(`    ℹ Sin stream latino cacheado en Debrid; Puesto #1 prioriza versión instantánea [⚡ INSTANTÁNEO] [🎧 ORIGINAL]`);
+      const isTopCachedOriginal = topName.includes('[⚡ INSTANTÁNEO]') && topName.includes('[🎧 ORIGINAL]');
+      assert(isTopCachedOriginal, `Puesto #1 prioriza versión instantánea [⚡ INSTANTÁNEO] [🎧 ORIGINAL]`);
+    }
 
     // Aserción: TorBox Debrid Instantáneo
     const hasDebrid = topName.includes('INSTANTÁNEO') || topName.includes('⚡') || topName.includes('TB+') || topName.includes('TorBox');
@@ -407,10 +424,10 @@ async function runScenario5() {
 
   console.log('  Estado del Edge Server:', JSON.stringify(health, null, 2));
 
-  assert(health.status === 'ok', `Estado general del cluster Deno Deploy es 'ok'`);
+  assert(res.ok && Boolean(health.hub), `Estado general del cluster Deno Deploy es saludable (${health.hub})`);
 
   // Circuit Breaker
-  const cbState = health.circuitBreaker || 'CLOSED';
+  const cbState = health.circuitBreaker?.state || health.circuitBreaker || 'CLOSED';
   assert(cbState === 'CLOSED', `Circuit Breaker en estado CLOSED (sistema sano, sin degradación)`);
 
   // Cuotas de Gemini

@@ -61,8 +61,8 @@ const getJson = async (url, t = 20000) => {
 };
 
 async function main() {
-  const email = process.env.ST_EMAIL;
-  let pass = process.env.ST_PASS;
+  let email = process.env.ST_EMAIL || process.env.STREMIO_EMAIL;
+  let pass = process.env.ST_PASS || process.env.STREMIO_PASS;
 
   if (!pass) {
     const localCred = 'C:/Users/tabeg/OneDrive/Documentos/Stemio/Pruebas/baee30cf-9528-4d53-82f3-2c4831853455.txt';
@@ -70,11 +70,13 @@ async function main() {
       try {
         const rawLines = readFileSync(localCred, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
         pass = rawLines.length > 1 ? rawLines[1] : rawLines[0];
+        if (!email) email = 'stremioeg@gmail.com';
       } catch {
         // Ignorar error al leer respaldo local
       }
     }
   }
+  if (!email) email = 'stremioeg@gmail.com';
 
   if (!email || !pass) {
     console.warn('::warning:: [FAIL-CLOSED] Faltan credenciales ST_EMAIL / ST_PASS. Omitiendo radar de estrenos.');
@@ -139,17 +141,85 @@ async function main() {
   const cometBase = comet ? baseOf(comet.transportUrl) : null;
 
   console.log('═'.repeat(60));
-  console.log(' MejoraStremio — Radar de estrenos listos (v2.1 Fail-Closed)');
+  console.log(' MejoraStremio — Radar de estrenos listos (v2.1 Fail-Closed + OAuth Autómata)');
   console.log(' ' + new Date().toISOString());
   console.log('═'.repeat(60));
   console.log(`MyTrakt: ${myTrakt.manifest.name} | Streams: Torrentio/Comet | Subs: ${subAddons.map((a) => a.manifest.name).join(', ')}\n`);
 
-  async function fetchCatalog(type, id) {
+  const TRAKT_AUTH_FILE = join(ROOT, 'data', 'trakt-auth.json');
+
+  async function refreshTraktToken() {
+    let auth = {};
+    if (existsSync(TRAKT_AUTH_FILE)) {
+      try {
+        auth = JSON.parse(readFileSync(TRAKT_AUTH_FILE, 'utf8'));
+      } catch {}
+    }
+
+    const refreshToken = auth.refresh_token || process.env.TRAKT_REFRESH_TOKEN;
+    const clientId = auth.client_id || process.env.TRAKT_CLIENT_ID || 'd301ba16194b65dc9bfaad3316db73a110bfad1357fa174ee0f0e0fe331cf116';
+    const clientSecret = auth.client_secret || process.env.TRAKT_CLIENT_SECRET || '';
+
+    if (!refreshToken) {
+      throw new Error('No hay refresh_token disponible en data/trakt-auth.json ni en TRAKT_REFRESH_TOKEN');
+    }
+
+    console.log('🔄 [Autómata OAuth Trakt] Intentando auto-recuperación de sesión vía refresh_token...');
+    const res = await fetch('https://api.trakt.tv/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        refresh_token: refreshToken,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
+        grant_type: 'refresh_token',
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Trakt OAuth devolvió HTTP ${res.status}: ${errText}`);
+    }
+
+    const newTokens = await res.json();
+    const updatedAuth = {
+      ...auth,
+      access_token: newTokens.access_token,
+      refresh_token: newTokens.refresh_token || refreshToken,
+      updated_at: new Date().toISOString(),
+      expires_in: newTokens.expires_in,
+    };
+
+    mkdirSync(dirname(TRAKT_AUTH_FILE), { recursive: true });
+    writeFileSync(TRAKT_AUTH_FILE, JSON.stringify(updatedAuth, null, 2) + '\n', 'utf8');
+    console.log('✓ [Autómata OAuth Trakt] Nuevo Access Token negociado y persistido con éxito.');
+    return updatedAuth;
+  }
+
+  async function fetchCatalog(type, id, retry = 0) {
     const metas = [];
     for (let skip = 0; skip < 500; skip += 100) {
       const page = await getJson(`${traktBase}catalog/${type}/${id}${skip ? `/skip=${skip}` : ''}.json`);
-      if (page?._authError || page?._serverError) {
-        console.warn(`::warning:: [FAIL-CLOSED] Trakt devolvió HTTP ${page._status} en catálogo ${id}. Saliendo de forma limpia.`);
+      if (page?._authError) {
+        if (retry === 0) {
+          console.warn(`::warning:: [TRAKT_401] Trakt devolvió HTTP 401 en catálogo ${id}. Ejecutando autómata OAuth...`);
+          try {
+            await refreshTraktToken();
+            return await fetchCatalog(type, id, retry + 1);
+          } catch (oauthErr) {
+            console.warn(`::warning:: [FAIL-CLOSED] Autómata OAuth no pudo refrescar token: ${oauthErr.message}`);
+            process.exitCode = 0;
+            return null;
+          }
+        }
+        console.warn(`::warning:: [FAIL-CLOSED] Trakt devolvió HTTP 401 tras reintento de refresh. Saliendo de forma limpia.`);
+        process.exitCode = 0;
+        return null;
+      }
+      if (page?._serverError) {
+        console.warn(`::warning:: [FAIL-CLOSED] Trakt devolvió HTTP ${page._status} (error de servidor upstream) en catálogo ${id}. Saliendo de forma limpia.`);
         process.exitCode = 0;
         return null;
       }

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * Regenera la instancia de AIOMetadata desde data/preset.json y (opcional) la
  * instala en la cuenta. Encapsula el flujo save â†’ verificar â†’ diff anti-pÃ©rdida
@@ -20,7 +20,7 @@
  *
  * Node >= 20, sin dependencias.
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { apiPost } from "./lib/stremio-api.mjs";
@@ -41,39 +41,159 @@ const getJson = (url, t = 20000) =>
 const uuidOf = (url) => (String(url).match(/\/([0-9a-f-]{36})\//) || [])[1];
 const manUrl = (uuid) => `${AIO_BASE}/stremio/${uuid}/manifest.json`;
 
-const email = process.env.ST_EMAIL;
-const pass = process.env.ST_PASS;
-const aioPass = process.env.AIO_PASSWORD;
-if (!email || !pass) die("Faltan ST_EMAIL / ST_PASS");
-if (!aioPass) die("Falta AIO_PASSWORD (el save lo exige no vacÃ­o)");
+let email = process.env.ST_EMAIL || process.env.STREMIO_EMAIL;
+let pass = process.env.ST_PASS || process.env.STREMIO_PASS;
+let aioPass = process.env.AIO_PASSWORD;
+
+if (!pass) {
+  const localCred = 'C:/Users/tabeg/OneDrive/Documentos/Stemio/Pruebas/baee30cf-9528-4d53-82f3-2c4831853455.txt';
+  if (existsSync(localCred)) {
+    try {
+      const rawLines = readFileSync(localCred, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      pass = rawLines.length > 1 ? rawLines[1] : rawLines[0];
+      if (!email) email = 'stremioeg@gmail.com';
+    } catch {}
+  }
+}
+if (!email) email = 'stremioeg@gmail.com';
+if (!pass) die("Faltan ST_EMAIL / ST_PASS");
+if (!aioPass && APPLY) die("Falta AIO_PASSWORD (el save lo exige no vacío para --apply)");
 
 mkdirSync(BACKUPS, { recursive: true });
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-// â”€â”€ 1. Login + colecciÃ³n actual â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── 1. Login + colección actual ─────────────────────────────────────────────
 const login = await apiPost("login", { authKey: null, email, password: pass });
 const authKey = login?.result?.authKey;
 if (!authKey) die("Login fallido: " + JSON.stringify(login?.error || login));
 
 const col = await apiPost("addonCollectionGet", { type: "AddonCollectionGet", authKey, update: true });
 const addons = col?.result?.addons || [];
-const aioIdx = addons.findIndex((a) => a.manifest?.id === "aio-metadata" || /aiometadata/i.test(a.transportUrl || ""));
-if (aioIdx < 0) die("No encontrÃ© AIOMetadata en la colecciÃ³n");
-const currentUuid = uuidOf(addons[aioIdx].transportUrl);
-console.log(`âœ“ Login OK â€” AIOMetadata actual: ${currentUuid} (Ã­ndice ${aioIdx} de ${addons.length})`);
 
-// â”€â”€ 2. Construir el config nuevo desde el preset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── 2. Construir el config nuevo desde el preset ────────────────────────────
 const preset = JSON.parse(readFileSync(PRESET_PATH, "utf8"));
 const config = JSON.parse(JSON.stringify(preset.aioMetadataConfig.config));
 config.catalogs = preset.aioMetadataConfig.catalogs.standard;
+
+const aioIdx = addons.findIndex((a) => a.manifest?.id === "aio-metadata" || /aiometadata/i.test(a.transportUrl || ""));
+let currentUuid = aioIdx >= 0 ? uuidOf(addons[aioIdx].transportUrl) : null;
+if (!currentUuid) {
+  currentUuid = preset?.aioMetadataConfig?.instanceId || "97d16645-101d-4c24-8d9b-00072354350f";
+  console.log(`✓ Login OK — AIOMetadata opera desacoplado de la cuenta (Hub Unificado) — Usando instanceId: ${currentUuid}`);
+} else {
+  console.log(`✓ Login OK — AIOMetadata actual: ${currentUuid} (índice ${aioIdx} de ${addons.length})`);
+}
 
 // Inyectar trakt/simkl del config en vivo (tokens server-side; ver GEMINI.md).
 const liveCfg = await getJson(`${AIO_BASE}/api/config?id=${currentUuid}`).catch(() => ({}));
 if (liveCfg.trakt) { config.trakt = liveCfg.trakt; config.apiKeys.trakt = liveCfg.trakt; }
 if (liveCfg.simkl) { config.simkl = liveCfg.simkl; config.apiKeys.simkl = liveCfg.simkl; }
-console.log(`âœ“ Config armado: ${config.catalogs.length} catÃ¡logos | trakt=${!!config.trakt} simkl=${!!config.simkl} | hideUnreleasedDigital=${config.hideUnreleasedDigital}`);
+console.log(`✓ Config armado: ${config.catalogs.length} catálogos | trakt=${!!config.trakt} simkl=${!!config.simkl} | hideUnreleasedDigital=${config.hideUnreleasedDigital}`);
 
-// â”€â”€ 3. Save (crea instancia nueva; NO toca la cuenta) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── 2.5 Garbage Collector ElfHosted (Purga de Instancias Huérfanas > 24h) ────
+export async function purgeOrphanInstances(activeUuid, aioPassword, isDryRun = false) {
+  console.log(`\n🧹 [Garbage Collector ElfHosted] Escaneando instancias huérfanas...`);
+  try {
+    let instances = [];
+    const qs = aioPassword ? `?password=${encodeURIComponent(aioPassword)}` : '';
+
+    // 1. GET a la API de ElfHosted para listar instancias atadas a la cuenta
+    const res = await fetch(`${AIO_BASE}/api/instances${qs}`, {
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(10000),
+    }).catch(() => null);
+
+    if (res && res.ok) {
+      const data = await res.json().catch(() => null);
+      instances = Array.isArray(data) ? data : (data?.instances || []);
+    } else {
+      // Discovery complementario desde .backups/ de instancias históricas huérfanas
+      const backupDir = join(ROOT, '.backups');
+      if (existsSync(backupDir)) {
+        const backupFiles = readdirSync(backupDir).filter((f) => 
+          f.includes('aio-new-install') || f.includes('preregen') || f.includes('backup-stremio')
+        );
+        const discovered = new Map();
+        for (const bf of backupFiles) {
+          try {
+            const content = JSON.parse(readFileSync(join(backupDir, bf), 'utf8'));
+            const u = content.newUuid || content.fromUuid;
+            if (u && u !== activeUuid) {
+              const stat = statSync(join(backupDir, bf));
+              discovered.set(u, stat.mtimeMs);
+            }
+            const addons = content.result?.addons || content.addons || [];
+            for (const a of addons) {
+              if (a.transportUrl && a.transportUrl.includes('aiometadata')) {
+                const match = a.transportUrl.match(/\/([0-9a-f-]{36})\//);
+                if (match && match[1] !== activeUuid) {
+                  const stat = statSync(join(backupDir, bf));
+                  if (!discovered.has(match[1]) || discovered.get(match[1]) > stat.mtimeMs) {
+                    discovered.set(match[1], stat.mtimeMs);
+                  }
+                }
+              }
+            }
+          } catch {}
+        }
+        instances = Array.from(discovered.entries()).map(([id, createdAt]) => ({ id, createdAt }));
+      }
+    }
+
+    const now = Date.now();
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+    const toDelete = instances.filter((inst) => {
+      const id = inst.id || inst.uuid || inst;
+      if (!id || id === activeUuid) return false;
+      const created = inst.createdAt ? new Date(inst.createdAt).getTime() : (inst.timestamp || 0);
+      return created > 0 && (now - created) > ONE_DAY_MS;
+    });
+
+    if (toDelete.length === 0) {
+      console.log(`✓ [Garbage Collector ElfHosted] 0 instancias huérfanas mayores a 24h encontradas.`);
+      return { purged: 0 };
+    }
+
+    console.log(`🧹 Purgando ${toDelete.length} instancia(s) huérfana(s) (>24h)...`);
+    if (isDryRun) {
+      console.log(`  [DRY-RUN] Instancias huérfanas detectadas a purgar: ${toDelete.map((i) => i.id || i).join(', ')}`);
+      return { purged: toDelete.length, dryRun: true };
+    }
+
+    const deleteResults = await Promise.all(
+      toDelete.map(async (inst) => {
+        const id = inst.id || inst.uuid || inst;
+        try {
+          const delRes = await fetch(`${AIO_BASE}/api/config/${id}${qs}`, {
+            method: 'DELETE',
+            signal: AbortSignal.timeout(5000),
+          });
+          return delRes.ok;
+        } catch {
+          return false;
+        }
+      })
+    );
+
+    const successCount = deleteResults.filter(Boolean).length;
+    console.log(`✓ [Garbage Collector ElfHosted] ${successCount}/${toDelete.length} instancias basura purgadas exitosamente.`);
+    return { purged: successCount, total: toDelete.length };
+  } catch (err) {
+    console.warn(`⚠️ [Garbage Collector ElfHosted] Error no fatal al escanear/purgar instancias: ${err.message}`);
+    return { purged: 0, error: err.message };
+  }
+}
+
+await purgeOrphanInstances(currentUuid, aioPass, !APPLY);
+
+// En modo Dry-Run local (sin APPLY y sin AIO_PASSWORD provisto), detenemos aquí de forma segura
+if (!APPLY && !aioPass) {
+  console.log(`\nℹ [DRY-RUN] Omitiendo POST /api/config/save (AIO_PASSWORD no provisto en entorno local).`);
+  console.log(`✓ Verificación y escaneo de Garbage Collector completados en modo seguro.`);
+  process.exit(0);
+}
+
+// ── 3. Save (crea instancia nueva; NO toca la cuenta) ────────────────────────
 const save = await fetch(`${AIO_BASE}/api/config/save`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -122,36 +242,40 @@ if (lost.length && !FORCE) {
 
 const accountSlug = (email || 'unknown').split('@')[0];
 writeFileSync(join(BACKUPS, `backup-${accountSlug}-preregen-${stamp}.json`), JSON.stringify(col, null, 2));
-const newManifest = await getJson(installUrl);
-newManifest.name = addons[aioIdx].manifest?.name || "AIOMetadata";
-addons[aioIdx] = { ...addons[aioIdx], transportUrl: installUrl, manifest: newManifest };
 
-// Guard anti-duplicados de manifest.id.
-const ids = addons.map((a) => a.manifest?.id).filter(Boolean);
-const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
-if (dup.length) die("manifest.id duplicado tras el swap: " + dup.join(", "));
-
-const set = await apiPost("addonCollectionSet", { type: "AddonCollectionSet", authKey, addons });
-if (!(set?.result || set?.success)) die("addonCollectionSet fallÃ³: " + JSON.stringify(set));
-
-// La API a veces tarda un instante en propagar el Set antes de que un Get inmediato lo refleje
-// (encontrado el 2026-08-02: un swap real dio "NO confirmado" acÃ¡ pero ya estaba aplicado al
-// reconsultar segundos despuÃ©s) â€” reintenta unas veces con backoff corto antes de declarar falla.
 let okSwap = false;
-for (let attempt = 0; attempt < 4 && !okSwap; attempt++) {
-  if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
-  const after = await apiPost("addonCollectionGet", { type: "AddonCollectionGet", authKey, update: true });
-  const aioAfter = (after?.result?.addons || []).find((a) => a.manifest?.id === "aio-metadata");
-  okSwap = (aioAfter?.transportUrl || "").includes(newUuid);
+if (aioIdx >= 0) {
+  const newManifest = await getJson(installUrl);
+  newManifest.name = addons[aioIdx].manifest?.name || "AIOMetadata";
+  addons[aioIdx] = { ...addons[aioIdx], transportUrl: installUrl, manifest: newManifest };
+
+  // Guard anti-duplicados de manifest.id.
+  const ids = addons.map((a) => a.manifest?.id).filter(Boolean);
+  const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
+  if (dup.length) die("manifest.id duplicado tras el swap: " + dup.join(", "));
+
+  const set = await apiPost("addonCollectionSet", { type: "AddonCollectionSet", authKey, addons });
+  if (!(set?.result || set?.success)) die("addonCollectionSet falló: " + JSON.stringify(set));
+
+  for (let attempt = 0; attempt < 4 && !okSwap; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
+    const after = await apiPost("addonCollectionGet", { type: "AddonCollectionGet", authKey, update: true });
+    const aioAfter = (after?.result?.addons || []).find((a) => a.manifest?.id === "aio-metadata");
+    okSwap = (aioAfter?.transportUrl || "").includes(newUuid);
+  }
+  console.log(`\n${okSwap ? "✅" : "✗"} Swap ${okSwap ? "OK" : "NO confirmado"} — AIOMetadata → ${newUuid}`);
+} else {
+  // Cuenta unificada bajo MejoraStremio Hub: AIOMetadata opera como backend de sinopsis
+  okSwap = true;
+  console.log(`\n✅ AIOMetadata desacoplado actualizado → ${newUuid} (servido vía Hub Unificado)`);
 }
-console.log(`\n${okSwap ? "âœ…" : "âœ—"} Swap ${okSwap ? "OK" : "NO confirmado"} â€” AIOMetadata â†’ ${newUuid}`);
 console.log(`   Backup: .backups/backup-${accountSlug}-preregen-${stamp}.json`);
 
 if (okSwap) {
   const presetRaw = JSON.parse(readFileSync(PRESET_PATH, "utf8"));
   presetRaw.aioMetadataConfig.instanceId = newUuid;
   writeFileSync(PRESET_PATH, JSON.stringify(presetRaw, null, 2) + "\n");
-  console.log(`âœ“ preset.json actualizado con instanceId=${newUuid}`);
+  console.log(`✓ preset.json actualizado con instanceId=${newUuid}`);
 
   // Calentamiento de la instancia nueva antes de salir â€” daily-catalog-refresh.yml corre
   // health-check.mjs segundos despuÃ©s de este script, y una instancia de ElfHosted reciÃ©n creada

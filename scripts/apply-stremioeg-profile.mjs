@@ -252,91 +252,32 @@ export const COMPETING_SUBTITLE_ADDON_IDS = new Set([
   'com.mejorastremio.opensubtitles',
 ]);
 
+export const CANONICAL_WHITELIST_ADDON_IDS = new Set([
+  'com.mejorastremio.hub',
+  'com.linvo.cinemeta',
+  'com.stremio.cinemeta',
+]);
+
 export function filterCompetingSubtitleAddons(addons) {
   if (!Array.isArray(addons)) return { cleanedAddons: [], removedAddons: [] };
   const removedAddons = [];
-  const cleanedAddons = addons.filter((a) => {
+  const cleanedAddons = [];
+  for (const a of addons) {
     const id = a.manifest?.id || a.id || '';
-    if (COMPETING_SUBTITLE_ADDON_IDS.has(id)) {
+    if (CANONICAL_WHITELIST_ADDON_IDS.has(id)) {
+      cleanedAddons.push(a);
+    } else {
       removedAddons.push(a);
-      return false;
     }
-    const transport = String(a.transportUrl || a.url || '');
-    if (
-      !transport.includes('mejorastremio-hub') &&
-      (transport.includes('opensubtitles-v3.strem.io') ||
-        transport.includes('subsense.nepiraw.com') ||
-        transport.includes('submaker.elfhosted.com') ||
-        transport.includes('subdl.strem.top') ||
-        transport.includes('subsource.strem.top') ||
-        transport.includes('stremio-community-subtitles') ||
-        transport.includes('subtito.com'))
-    ) {
-      removedAddons.push(a);
-      return false;
-    }
-    return true;
-  });
+  }
   return { cleanedAddons, removedAddons };
 }
 
 export function ensureHubSubtitleAddons(addons) {
-  const hubAddons = [
-    {
-      transportUrl: 'https://mejorastremio-hub.pabloeckert.deno.net/opensubtitles-latino/manifest.json',
-      manifest: {
-        id: 'com.mejorastremio.opensubtitles-latino',
-        version: '1.0.0',
-        name: 'OpenSubtitles Latino (sin SDH)',
-        description: 'Subtítulos en español latinoamericano real sin SDH',
-        resources: ['subtitles'],
-        types: ['movie', 'series'],
-        idPrefixes: ['tt'],
-      },
-    },
-    {
-      transportUrl: 'https://mejorastremio-hub.pabloeckert.deno.net/subdl/manifest.json',
-      manifest: {
-        id: 'com.mejorastremio.subdl',
-        version: '1.0.0',
-        name: 'SubDL ES (sin SDH)',
-        description: 'Subtítulos en español de SubDL sin hearing-impaired',
-        resources: ['subtitles'],
-        types: ['movie', 'series'],
-        idPrefixes: ['tt'],
-      },
-    },
-    {
-      transportUrl: 'https://mejorastremio-hub.pabloeckert.deno.net/subsource/manifest.json',
-      manifest: {
-        id: 'com.mejorastremio.subsource',
-        version: '1.0.0',
-        name: 'SubSource ES (sin SDH)',
-        description: 'Subtítulos en español de SubSource con filtrado hearing-impaired (sin SDH) y smart audio sync.',
-        resources: ['subtitles'],
-        types: ['movie', 'series'],
-        idPrefixes: ['tt'],
-        catalogs: [],
-      },
-    },
-    {
-      transportUrl: 'https://mejorastremio-hub.pabloeckert.deno.net/translate/manifest.json',
-      manifest: {
-        id: 'com.mejorastremio.translate',
-        version: '1.0.0',
-        name: 'Traducción IA (Gemini Flash)',
-        description: 'Traducción automática bajo demanda de subtítulos a español latino cuando no existen subtítulos oficiales.',
-        resources: ['subtitles'],
-        types: ['movie', 'series'],
-        idPrefixes: ['tt'],
-        catalogs: [],
-      },
-    },
-  ];
-
-  const existingIds = new Set(addons.map((a) => a.manifest?.id || a.id));
-  const toAdd = hubAddons.filter((h) => !existingIds.has(h.manifest.id));
-  return [...toAdd, ...addons];
+  // Arquitectura Unificada v3.0: Ya no se inyectan add-ons de subtítulos fragmentados.
+  // Todo el procesamiento de subtítulos (SubDL, OpenSubtitles Latino, SubSource, Traducción IA)
+  // reside exclusivamente dentro de com.mejorastremio.hub.
+  return addons;
 }
 
 export const CANONICAL_TORBOX_CONFIG =
@@ -765,102 +706,56 @@ async function runProfileManager() {
     let changesCount = 0;
     let updatedAddons = addons;
 
-    if (profile.rules?.subtitles?.unifiedHub) {
-      // Arquitectura Unificada: Monopolio exclusivo de MejoraStremio Hub + Cinemeta
-      const freshHubManifest = await fetchFreshHubManifest();
-      const manifestToUse = freshHubManifest || {
-        ...UNIFIED_HUB_ADDON_ENTRY.manifest,
-        version: '3.0.0',
-      };
+    // ── Arquitectura Unificada v3.0: Monopolio Estricto Whitelist (Hub #0 + Cinemeta #1) ──
+    const freshHubManifest = await fetchFreshHubManifest();
+    const manifestToUse = freshHubManifest || {
+      ...UNIFIED_HUB_ADDON_ENTRY.manifest,
+      version: '3.0.0',
+    };
 
-      const baseHubUrl = profile.rules.subtitles.unifiedHub.transportUrl || CANONICAL_HUB_URL;
-      const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)(1\.4\.2|2\.1\.0)/, '$13.0.0'));
-      console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
-      const hubAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
-      const cinemetaAddon = addons.find((a) => a.manifest?.id === 'com.linvo.cinemeta' || a.manifest?.id === 'com.stremio.cinemeta');
+    const baseHubUrl = profile.rules?.subtitles?.unifiedHub?.transportUrl || CANONICAL_HUB_URL;
+    const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)(1\.4\.2|2\.1\.0)/, '$13.0.0'));
+    console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
+    const hubAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
+    const cinemetaAddon = addons.find((a) => a.manifest?.id === 'com.linvo.cinemeta' || a.manifest?.id === 'com.stremio.cinemeta');
 
-      const finalHub = {
-        ...(hubAddon || {}),
-        transportUrl: targetHubUrl,
-        transportName: '',
-        manifest: manifestToUse,
-        flags: { official: false, protected: false },
-      };
-
-      const finalCinemeta = cinemetaAddon || {
-        transportUrl: 'https://v3-cinemeta.strem.io/manifest.json',
-        transportName: '',
-        manifest: { id: 'com.linvo.cinemeta', name: 'Cinemeta', version: '3.0.14' },
-        flags: { official: true, protected: true },
-      };
-
-      const targetList = [finalHub, finalCinemeta];
-      
-      // Contar cambios
-      const idsCurrent = addons.map((a) => a.manifest?.id);
-      const idsTarget = targetList.map((a) => a.manifest?.id);
-      const isIdentical = idsCurrent.length === idsTarget.length && idsCurrent.every((id, i) => id === idsTarget[i]);
-      const hubVerChanged = hubAddon && hubAddon.manifest?.version !== finalHub.manifest?.version;
-      const hubUrlChanged = hubAddon && hubAddon.transportUrl !== targetHubUrl;
-      
-      if (!isIdentical || hubUrlChanged || hubVerChanged) {
-        changesCount = Math.max(1, Math.abs(addons.length - targetList.length) + (hubVerChanged ? 1 : 0) + (hubUrlChanged ? 1 : 0));
-        console.log(`  ✓ Unificación activada: purga de addons secundarios y consolidación en Hub Unificado (#0) + Cinemeta (#1)`);
-      }
-      updatedAddons = targetList;
-    } else {
-      // 1. Neutralizar addons de subtítulos competidores
-      const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(addons);
-      if (removedAddons.length > 0) {
-        changesCount += removedAddons.length;
-        console.log(`  ✓ Neutralizados ${removedAddons.length} add-ons competidores de subtítulos:`);
-        removedAddons.forEach((ra) => console.log(`     - [${ra.manifest?.id || ra.id}] ${ra.manifest?.name || ra.name}`));
-      }
-
-      // 2. Garantizar presencia de los addons de subtítulos del Hub (incluyendo SubSource)
-      const withHub = ensureHubSubtitleAddons(cleanedAddons);
-      if (withHub.length > cleanedAddons.length) {
-        changesCount += (withHub.length - cleanedAddons.length);
-        console.log(`  ✓ Instalados ${withHub.length - cleanedAddons.length} add-ons del Hub para monopolio de subtítulos sin SDH`);
-      }
-
-      // 3. Smart Stream Interceptor (MejoraStremio Streams en puesto #1 de streams)
-      const streamRes = ensureStreamsInterceptor(withHub);
-      let currentAddonsList = streamRes.addons;
-      if (streamRes.changed) {
-        changesCount++;
-        console.log('  ✓ Smart Stream Interceptor (com.mejorastremio.streams) configurado como stream prioritario');
-      }
-
-      // 4. Sincronización de instancia AIOMetadata contra preset.json
-      const aioRes = await syncAioMetadataInstance(currentAddonsList);
-      currentAddonsList = aioRes.addons;
-      if (aioRes.changed) {
-        changesCount++;
-        console.log(`  ✓ AIOMetadata sincronizado con preset.json: ${aioRes.oldId} ➔ ${aioRes.newId}`);
-      }
-
-      // 5. Ajustar configuración de streams (Torrentio, Comet)
-      updatedAddons = currentAddonsList.map((a) => {
-        if (a.manifest?.id === 'com.stremio.torrentio.addon') {
-          const tRes = configureTorrentio(a);
-          if (tRes.changed) {
-            changesCount++;
-            console.log(`  ✓ Torrentio actualizado: ${tRes.oldSegment} ➔ ${tRes.newSegment}`);
-            return { ...a, transportUrl: tRes.url };
-          }
-        }
-        if (a.manifest?.id === 'stremio.comet.fast') {
-          const cRes = configureComet(a);
-          if (cRes.changed) {
-            changesCount++;
-            console.log(`  ✓ Comet actualizado: languages.preferred = ${JSON.stringify(cRes.after.languages.preferred)}`);
-            return { ...a, transportUrl: cRes.url };
-          }
-        }
-        return a;
-      });
+    // 1. Filtrado Estricto (Whitelist): Purgar todo addon que no sea com.mejorastremio.hub o Cinemeta
+    const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(addons);
+    if (removedAddons.length > 0) {
+      console.log(`  ✓ Purga estricta Whitelist: ${removedAddons.length} add-on(s) no autorizados eliminados:`);
+      removedAddons.forEach((ra) => console.log(`     [-] [${ra.manifest?.id || ra.id}] ${ra.manifest?.name || ra.name}`));
     }
+
+    // 2. Componer la lista canónica estricta de 2 addons: Posición #0 = Hub, Posición #1 = Cinemeta
+    const finalHub = {
+      ...(hubAddon || {}),
+      transportUrl: targetHubUrl,
+      transportName: '',
+      manifest: manifestToUse,
+      flags: { official: false, protected: false },
+    };
+
+    const finalCinemeta = cinemetaAddon || {
+      transportUrl: 'https://v3-cinemeta.strem.io/manifest.json',
+      transportName: '',
+      manifest: { id: 'com.linvo.cinemeta', name: 'Cinemeta', version: '3.0.14' },
+      flags: { official: true, protected: true },
+    };
+
+    const targetList = [finalHub, finalCinemeta];
+
+    // 3. Evaluar cambios respecto a la colección actual
+    const idsCurrent = addons.map((a) => a.manifest?.id);
+    const idsTarget = targetList.map((a) => a.manifest?.id);
+    const isIdentical = idsCurrent.length === idsTarget.length && idsCurrent.every((id, i) => id === idsTarget[i]);
+    const hubVerChanged = hubAddon && hubAddon.manifest?.version !== finalHub.manifest?.version;
+    const hubUrlChanged = hubAddon && hubAddon.transportUrl !== targetHubUrl;
+
+    if (!isIdentical || hubUrlChanged || hubVerChanged || removedAddons.length > 0) {
+      changesCount = Math.max(1, removedAddons.length + (hubVerChanged ? 1 : 0) + (hubUrlChanged ? 1 : 0));
+      console.log(`  ✓ Unificación activada: purga de addons secundarios y consolidación en Hub Unificado (#0) + Cinemeta (#1)`);
+    }
+    updatedAddons = targetList;
 
     // Renderizar Diff Visual Estructurado
     renderVisualDiff(addons, updatedAddons);

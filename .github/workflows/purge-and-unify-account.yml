@@ -18,13 +18,14 @@ on:
         type: boolean
         default: false
       version:
-        description: 'Versión del Hub canónico (2.1.0 o baseline rollback)'
+        description: 'Versión del Hub canónico (3.0.0 o baseline rollback)'
         type: choice
         options:
+          - '3.0.0'
           - '2.1.0'
           - '1.4.2'
           - '1.4.1'
-        default: '2.1.0'
+        default: '3.0.0'
 
 permissions:
   contents: write

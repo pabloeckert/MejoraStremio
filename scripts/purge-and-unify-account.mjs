@@ -71,7 +71,7 @@ export function injectCacheBuster(url, buster = GLOBAL_CACHE_BUSTER) {
   return `${url}${sep}v=${buster}`;
 }
 
-export function getCanonicalHubTransportUrl(version = '2.1.0') {
+export function getCanonicalHubTransportUrl(version = '3.0.0') {
   const base = `https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=${version}`;
   return injectCacheBuster(base);
 }
@@ -361,7 +361,7 @@ async function main() {
   const cliVersion = vIdx >= 0
     ? (args[vIdx].startsWith('--version=') ? args[vIdx].split('=')[1] : args[vIdx + 1])
     : null;
-  const targetVersion = BASELINE_V141 ? '1.4.1' : (cliVersion || '2.1.0');
+  const targetVersion = BASELINE_V141 ? '1.4.1' : (cliVersion || '3.0.0');
 
   const accIdx = args.findIndex((a) => a === '--account' || a.startsWith('--account='));
   const accountArg = accIdx >= 0

@@ -73,9 +73,157 @@ export const MINISERIES_PARTIAL_TTL_MS = 60 * 60 * 1000;
 export const MINISERIES_BUDGET_MS = 25000;
 export const MINISERIES_DISCOVER_PAGES = 4;
 
+export interface LocalizedTrailerStream {
+  title: string;
+  ytId: string;
+  lang?: string;
+  official?: boolean;
+}
+
+export interface LocalizedTrailerMeta {
+  source: string;
+  type: string;
+  name?: string;
+  lang?: string;
+}
+
+/**
+ * Fallback para trailers TMDB:
+ * Si la respuesta videos de TMDB no contiene un trailer con iso_639_1 en 'es' (o 'es-MX'),
+ * realiza una búsqueda cruzada (cross-query) y formatea el objeto para que el cliente
+ * priorice siempre material localizado al español latino.
+ */
+export async function getLocalizedTrailersWithFallback(
+  tmdbId: number | string,
+  type: "movie" | "tv",
+): Promise<{ trailers: LocalizedTrailerMeta[]; trailerStreams: LocalizedTrailerStream[] }> {
+  if (!TMDB_KEY) return { trailers: [], trailerStreams: [] };
+
+  try {
+    const endpoint = type === "movie" ? `/movie/${tmdbId}/videos` : `/tv/${tmdbId}/videos`;
+
+    // 1. Ingesta primaria con language=es-MX e include_video_language=es-MX,es
+    const primaryData = await tmdbGet(endpoint, {
+      language: "es-MX",
+      include_video_language: "es-MX,es",
+    }).catch(() => null);
+
+    // deno-lint-ignore no-explicit-any
+    const rawVideos = Array.isArray(primaryData?.results) ? (primaryData.results as any[]) : [];
+
+    // deno-lint-ignore no-explicit-any
+    const isSpanish = (v: any) => {
+      if (!v) return false;
+      const lang = String(v.iso_639_1 || "").toLowerCase();
+      const name = String(v.name || "").toLowerCase();
+      return lang === "es" || lang === "es-mx" || name.includes("latino") || name.includes("doblado");
+    };
+
+    const hasSpanishTrailer = rawVideos.some(isSpanish);
+
+    // 2. Si no contiene trailer en español, fallback con búsqueda cruzada (cross-query)
+    if (!hasSpanishTrailer) {
+      const fallbackData = await tmdbGet(endpoint, {
+        language: "en-US",
+        include_video_language: "es-MX,es,en",
+      }).catch(() => null);
+      // deno-lint-ignore no-explicit-any
+      const fallbackVideos = Array.isArray(fallbackData?.results) ? (fallbackData.results as any[]) : [];
+      const existingKeys = new Set(rawVideos.map((v) => v.key));
+      for (const fv of fallbackVideos) {
+        if (fv && fv.key && !existingKeys.has(fv.key)) {
+          existingKeys.add(fv.key);
+          rawVideos.push(fv);
+        }
+      }
+    }
+
+    // 3. Filtrado y priorización de YouTube
+    // deno-lint-ignore no-explicit-any
+    const validVideos = rawVideos.filter((v: any) => v && v.key && (v.site === "YouTube" || !v.site));
+
+    const localVideos = validVideos.filter(isSpanish);
+    // deno-lint-ignore no-explicit-any
+    const otherVideos = validVideos.filter((v: any) => !isSpanish(v));
+
+    // deno-lint-ignore no-explicit-any
+    const sortVideos = (list: any[]) =>
+      list.sort((a, b) => {
+        const aTrailer = a.type === "Trailer" ? 2 : 1;
+        const bTrailer = b.type === "Trailer" ? 2 : 1;
+        if (aTrailer !== bTrailer) return bTrailer - aTrailer;
+        return (b.official ? 1 : 0) - (a.official ? 1 : 0);
+      });
+
+    const sorted = [...sortVideos(localVideos), ...sortVideos(otherVideos)];
+
+    // deno-lint-ignore no-explicit-any
+    const trailers: LocalizedTrailerMeta[] = sorted.map((v: any) => ({
+      source: v.key,
+      type: v.type || "Trailer",
+      name: isSpanish(v) ? `[Latino] ${v.name}` : v.name,
+      lang: v.iso_639_1 || (isSpanish(v) ? "es" : "en"),
+    }));
+
+    // deno-lint-ignore no-explicit-any
+    const trailerStreams: LocalizedTrailerStream[] = sorted.map((v: any) => ({
+      title: isSpanish(v) ? `[Latino] ${v.name || "Tráiler Oficial"}` : (v.name || "Tráiler"),
+      ytId: v.key,
+      lang: v.iso_639_1 || (isSpanish(v) ? "es" : "en"),
+      official: !!v.official,
+    }));
+
+    return { trailers, trailerStreams };
+  } catch {
+    return { trailers: [], trailerStreams: [] };
+  }
+}
+
+/**
+ * Interceptación de trailers en respuestas de catálogo/metadatos:
+ * Si el array de videos de TMDB no contiene un trailer con iso_639_1 === 'es',
+ * marca el objeto meta con flags tipados para que un orquestador secundario o
+ * scraper de YouTube reemplace el trailer por material en español latinoamericano.
+ */
+// deno-lint-ignore no-explicit-any
+export function interceptAndMarkTrailers(meta: any, tmdbVideos: any[]): void {
+  if (!meta || !Array.isArray(tmdbVideos)) return;
+
+  // deno-lint-ignore no-explicit-any
+  const isSpanish = (v: any) =>
+    v && (v.iso_639_1 === "es" || v.iso_639_1 === "es-MX" || /latino|doblado/i.test(v.name || ""));
+
+  const hasSpanishTrailer = tmdbVideos.some(isSpanish);
+
+  if (!hasSpanishTrailer) {
+    meta.needs_trailer_scrape = true;
+    meta.trailer_localization_status = "PENDING_LATINO_SCRAPE";
+    meta.trailer_search_query = `${meta.name || meta.title || ""} ${meta.releaseInfo || meta.year || ""} trailer oficial doblado latino`.trim();
+
+    // deno-lint-ignore no-explicit-any
+    const fallbackVideo = tmdbVideos.find((v: any) => v && (v.site === "YouTube" || !v.site) && (v.type === "Trailer" || v.type === "Teaser"));
+    if (fallbackVideo) {
+      meta.trailers = [{
+        source: fallbackVideo.key,
+        type: fallbackVideo.type || "Trailer",
+        needs_trailer_scrape: true,
+      }];
+      meta.trailerStreams = [{
+        title: `[Requiere Scrape Latino] ${fallbackVideo.name || "Tráiler Oficial"}`,
+        ytId: fallbackVideo.key,
+        needs_scrape: true,
+      }];
+    }
+  } else {
+    meta.needs_trailer_scrape = false;
+    meta.trailer_localization_status = "VERIFIED_LATINO";
+  }
+}
+
 // deno-lint-ignore no-explicit-any
 export async function tmdbGet(path: string, params: Record<string, string>): Promise<any> {
-  const qs = new URLSearchParams({ api_key: TMDB_KEY, ...params });
+  const lang = (!params.language || params.language === "es-ES") ? "es-MX" : params.language;
+  const qs = new URLSearchParams({ api_key: TMDB_KEY, ...params, language: lang });
   const r = await fetch(`${TMDB_API}${path}?${qs}`, { signal: AbortSignal.timeout(6000) });
   if (!r.ok) throw new Error(`TMDB ${path} respondió ${r.status}`);
   return await r.json();
@@ -94,7 +242,7 @@ export async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[
         with_type: "2",
         "vote_count.gte": "10",
         "first_air_date.lte": new Date().toISOString().slice(0, 10),
-        language: "es-ES",
+        language: "es-MX",
         page: String(page),
       });
       // deno-lint-ignore no-explicit-any
@@ -111,7 +259,7 @@ export async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[
     if (Date.now() > deadline) { partial = true; break; }
     try {
       const detail = await tmdbGet(`/tv/${tmdbId}`, {
-        language: "es-ES",
+        language: "es-MX",
         append_to_response: "external_ids",
       });
       const imdbId = detail?.external_ids?.imdb_id;
@@ -247,7 +395,7 @@ export async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMet
         "first_air_date.lte": new Date().toISOString().slice(0, 10),
         with_genres: "35",
         without_genres: "16,10762,10763,10766,10767",
-        language: "es-ES",
+        language: "es-MX",
         page: String(page),
       });
       // deno-lint-ignore no-explicit-any
@@ -265,7 +413,7 @@ export async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMet
     if (Date.now() > deadline) { partial = true; break; }
     const batch = candidates.slice(i, i + 8);
     const details = await Promise.all(batch.map((id) =>
-      tmdbGet(`/tv/${id}`, { language: "es-ES", append_to_response: "external_ids" }).catch(() => null)
+      tmdbGet(`/tv/${id}`, { language: "es-MX", append_to_response: "external_ids" }).catch(() => null)
     ));
     for (const detail of details) {
       const imdbId = detail?.external_ids?.imdb_id;
@@ -682,7 +830,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
     const params: Record<string, string> = {
       sort_by: `${queryDateField}.desc`,
-      language: "es-ES",
+      language: "es-MX",
       "vote_count.gte": "1",
       [`${queryDateField}.gte`]: since,
       [`${queryDateField}.lte`]: new Date().toISOString().slice(0, 10),
@@ -766,7 +914,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
 
   const params: Record<string, string> = {
     sort_by: `${dateField}.desc`,
-    language: "es-ES",
+    language: "es-MX",
     "vote_count.gte": "1",
   };
 

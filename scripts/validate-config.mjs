@@ -84,7 +84,43 @@ export function validatePreset(filePath, preset, errFn = err, warnFn = warn) {
 
     if (isStr(c.id) && DISCOVER_RE.test(c.id)) {
       const params = c.metadata?.discover?.params;
-      if (!isObj(params)) errFn(`[${filePath}] ${at} (${c.id}) es discover pero le falta metadata.discover.params`);
+      if (!isObj(params)) {
+        errFn(`[${filePath}] ${at} (${c.id}) es discover pero le falta metadata.discover.params`);
+      } else {
+        const isUpcoming = /upcoming/.test(String(c.id || ''));
+
+        // 1. Filtro Anti-Basura Obligatorio: vote_count.gte >= 150 (excepto en estrenos no lanzados)
+        if (!isUpcoming) {
+          const vc = Number(params['vote_count.gte']);
+          if (isNaN(vc) || vc < 150) {
+            errFn(`[${filePath}] ${at} ("${c.name}") carece del filtro anti-basura vote_count.gte >= 150 (tiene: ${params['vote_count.gte']})`);
+          }
+          const va = Number(params['vote_average.gte']);
+          if (isNaN(va) || va < 6.0) {
+            errFn(`[${filePath}] ${at} ("${c.name}") carece del filtro vote_average.gte >= 6.0 (tiene: ${params['vote_average.gte']})`);
+          }
+        }
+
+        // 2. Filtro Anti-Basura Obligatorio: without_original_language con hi,ko,ja,zh,tr,th
+        const withoutLang = String(params.without_original_language || '');
+        const REQUIRED_LANGS = ['hi', 'ko', 'ja', 'zh', 'tr', 'th'];
+        const missingLangs = REQUIRED_LANGS.filter((l) => !withoutLang.includes(l));
+        if (missingLangs.length > 0) {
+          errFn(`[${filePath}] ${at} ("${c.name}") carece de idiomas basura excluidos en without_original_language: faltan [${missingLangs.join(', ')}]`);
+        }
+
+        // 3. Purga Dual de Géneros Basura: without_genres: 99,10767 (excepto en nichos stremiojn)
+        const kw = String(params.with_keywords || '');
+        const isNiche = /9715|25484|10121|10649|1442|11520|10471|164629|236319|1566/.test(kw) || /deportes|business|stremiojn/i.test(c.id);
+        if (!isNiche) {
+          const withoutGenres = String(params.without_genres || '').split(',').map((g) => g.trim());
+          const hasDocu = withoutGenres.includes('99');
+          const hasTalkShow = withoutGenres.includes('10767');
+          if (!hasDocu || !hasTalkShow) {
+            errFn(`[${filePath}] ${at} ("${c.name}") debe purgar documentales y talk shows con without_genres: 99,10767 (tiene: "${params.without_genres}")`);
+          }
+        }
+      }
     }
 
     if (isStr(c.id)) {

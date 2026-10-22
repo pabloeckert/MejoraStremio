@@ -6,6 +6,8 @@
 import { cors, jsonResponse, parseStremioSubId, getKv } from "../utils/common.ts";
 import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 import { fetchCinemetaMeta } from "../utils/cinemeta.ts";
+import { getLocalizedTrailersWithFallback } from "./tmdb.ts";
+import { resolveTmdbIdFromImdb } from "./paravos.ts";
 import {
   GEMINI_API_KEY,
   OPENROUTER_API_KEY,
@@ -197,6 +199,25 @@ export async function handleSynopsis(subPath: string): Promise<Response> {
       } catch {
         // conservar sinopsis de AIOMetadata
       }
+    }
+
+    // Inyección de trailers localizados con prioridad latinoamericano y fallback
+    try {
+      const tmdbResolve = await resolveTmdbIdFromImdb(imdbId, type === "series" ? "series" : "movie");
+      if (tmdbResolve?.tmdbId) {
+        const trailerData = await getLocalizedTrailersWithFallback(
+          tmdbResolve.tmdbId,
+          type === "series" ? "tv" : "movie",
+        );
+        if (trailerData.trailers.length > 0) {
+          meta.trailers = trailerData.trailers;
+        }
+        if (trailerData.trailerStreams.length > 0) {
+          meta.trailerStreams = trailerData.trailerStreams;
+        }
+      }
+    } catch {
+      // conservar trailers previos si hubiera
     }
 
     return jsonResponse({ meta });

@@ -24,22 +24,21 @@ const WRITE = process.argv.includes('--write');
 
 // Catálogos curados de alta prioridad para la pantalla de inicio (Tope estricto <= 20)
 export const HOME_CATALOG_IDS = [
-  'tmdb.discover.movie.now_playing.pablo007',                 // 1. En Cartelera (Cine)
-  'tmdb.discover.tv.now_playing.pablo062',                    // 2. En Cartelera (Series)
-  'tmdb.discover.movie.upcoming.pablo005',                    // 3. Próximos Estrenos (Cine)
-  'tmdb.discover.tv.upcoming.pablo006',                       // 4. Próximos Estrenos (Series)
-  'tmdb.discover.movie.enc-para-ver-en-familia-cine.pablo122',// 5. Para Ver en Familia (Cine)
-  'tmdb.discover.tv.enc-para-ver-en-familia-series.pablo123', // 6. Para Ver en Familia (Series)
-  'tmdb.discover.movie.classic-crime.pablo056',               // 7. Policial Clásico
-  'tmdb.discover.movie.argentina.pablo001',                   // 8. Cine Argentina
-  'tmdb.discover.tv.argentina.pablo002',                      // 9. Series Argentina
-  'tmdb.discover.movie.latam.pablo003',                       // 10. Latinoamérica (Cine)
-  'tmdb.discover.movie.animation_movies.16',                  // 11. Cine Animación
-  'tmdb.discover.tv.animation_shows.16',                      // 12. Series Animadas
-  'tmdb.discover.movie.crime_movies.80',                      // 13. Cine Policial / Crimen
-  'tmdb.discover.tv.crime_shows.80',                          // 14. Series Policial / Crimen
-  'tmdb.discover.movie.enc-thriller-psicolo-gico-cine.pablo109',// 15. Thriller Psicológico (Cine)
-  'tmdb.discover.tv.enc-thriller-psicolo-gico-series.pablo110', // 16. Thriller Psicológico (Series)
+  'tmdb.discover.movie.now_playing.pablo007',                   // 1. En Cartelera
+  'tmdb.discover.tv.netflix.thriller.us_uk',                  // 2. Netflix Series Thriller (US/UK)
+  'tmdb.discover.movie.max.accion',                            // 3. Max Cine Acción
+  'tmdb.discover.tv.prime.scifi',                              // 4. Prime Video Series Sci-Fi
+  'tmdb.discover.tv.apple.drama',                              // 5. Apple TV+ Series Drama
+  'tmdb.discover.movie.netflix.destacadas',                    // 6. Netflix Cine Destacado
+  'tmdb.discover.tv.netflix.destacadas',                       // 7. Netflix Series Destacadas
+  'tmdb.discover.movie.max.destacadas',                        // 8. Max Cine Destacado
+  'tmdb.discover.tv.max.destacadas',                           // 9. Max Series Destacadas
+  'tmdb.discover.movie.prime.destacadas',                      // 10. Prime Video Cine Destacado
+  'tmdb.discover.tv.prime.destacadas',                         // 11. Prime Video Series Destacadas
+  'tmdb.discover.movie.apple.destacadas',                      // 12. Apple TV+ Cine Destacado
+  'tmdb.discover.tv.apple.destacadas',                         // 13. Apple TV+ Series Destacadas
+  'tmdb.discover.movie.business.management.stremiojn',          // 14. Management B2B (stremiojn)
+  'tmdb.discover.movie.deportes.motor_combate.stremiojn',       // 15. Deportes Motor & Combate (stremiojn)
 ];
 
 if (HOME_CATALOG_IDS.length > 20) {

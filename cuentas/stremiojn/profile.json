@@ -104,11 +104,12 @@
         "upcoming"
       ],
       "priorityCatalogs": [
-        "ufc-combates",
-        "mma-destacados",
-        "boxeo-campeonatos",
-        "accion-estrenos",
-        "thriller-policial"
+        "tmdb.discover.movie.deportes.motor_combate.stremiojn",
+        "tmdb.discover.movie.business.management.stremiojn",
+        "tmdb.discover.movie.deportes.ufc.stremiojn",
+        "tmdb.discover.movie.deportes.f1.stremiojn",
+        "tmdb.discover.movie.deportes.wwe.stremiojn",
+        "tmdb.discover.movie.business.wallstreet.stremiojn"
       ],
       "excludedCatalogs": [
         "infantil-kids",

@@ -26,6 +26,7 @@ import { dirname, join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { apiPost, stremioLogin } from './lib/stremio-api.mjs';
 import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
+import './lib/env.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -79,7 +80,7 @@ export function injectCacheBuster(url, sha = GIT_SHORT_SHA) {
   return `${url}${sep}v=3.0.1-${sha}`;
 }
 
-export function getCanonicalHubTransportUrl(version = '3.0.0') {
+export function getCanonicalHubTransportUrl(version = '3.0.1') {
   const base = `https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=${version}`;
   return injectCacheBuster(base);
 }
@@ -194,19 +195,25 @@ export async function unifySingleAccount(accountCreds, options = {}) {
   console.log(` Versión Hub: v${version} | Modo: ${dryRun ? 'DRY-RUN (Simulación)' : 'APPLY (En Producción Real)'}`);
   console.log('═'.repeat(75));
 
-  if (!pass || pass === 'UNCONFIGURED') {
-    const msg = `Credenciales faltantes o no configuradas para ${alias} (${email}). Se requiere contraseña (ST_PASS_${alias.toUpperCase()} o secret STREMIO_PASS_JN).`;
-    if (!dryRun) {
-      console.error(`\n❌ ERROR CRÍTICO: ${msg} Queda prohibido bypass silencioso en modo --apply.`);
-      process.exit(1);
+  let authKey = options.authKey;
+  if (!authKey) {
+    if (!pass || pass === 'UNCONFIGURED') {
+      const msg = `Credenciales faltantes o no configuradas para ${alias} (${email}). Se requiere contraseña (ST_PASS_${alias.toUpperCase()} o secret STREMIO_PASS_JN) o parámetro --auth-key.`;
+      if (!dryRun) {
+        console.error(`\n❌ ERROR CRÍTICO: ${msg} Queda prohibido bypass silencioso en modo --apply.`);
+        process.exit(1);
+      }
+      console.warn(`  ⚠️ ADVERTENCIA: ${msg}`);
+      return { success: false, skipped: true, error: msg, alias };
     }
-    console.warn(`  ⚠️ ADVERTENCIA: ${msg}`);
-    return { success: false, skipped: true, error: msg, alias };
-  }
 
-  console.log(`\n[1/4] Autenticando en la API de Stremio como ${email}...`);
-  const authKey = await stremioLogin(email, pass);
-  console.log('  ✓ Autenticación exitosa (authKey obtenida)');
+    console.log(`\n[1/4] Autenticando en la API de Stremio como ${email}...`);
+    authKey = await stremioLogin(email, pass);
+    console.log('  ✓ Autenticación exitosa (authKey obtenida)');
+  } else {
+    console.log(`\n[1/4] Utilizando authKey provista directamente para [${alias.toUpperCase()}]...`);
+    console.log('  ✓ Sesión activa inyectada');
+  }
 
   if (rollbackLast || rollbackFile) {
     return await handleRollback(authKey, alias, rollbackLast, rollbackFile, dryRun);
@@ -382,7 +389,7 @@ async function main() {
   const cliVersion = vIdx >= 0
     ? (args[vIdx].startsWith('--version=') ? args[vIdx].split('=')[1] : args[vIdx + 1])
     : null;
-  const targetVersion = BASELINE_V141 ? '1.4.1' : (cliVersion || '3.0.0');
+  const targetVersion = BASELINE_V141 ? '1.4.1' : (cliVersion || '3.0.1');
 
   const accIdx = args.findIndex((a) => a === '--account' || a.startsWith('--account='));
   const accountArg = accIdx >= 0
@@ -399,11 +406,17 @@ async function main() {
     ? (args[passIdx].startsWith('--pass=') ? args[passIdx].split('=')[1] : args[passIdx + 1])
     : null;
 
+  const authKeyIdx = args.findIndex((a) => a === '--auth-key' || a.startsWith('--auth-key=') || a === '--authKey' || a.startsWith('--authKey='));
+  const cliAuthKey = authKeyIdx >= 0
+    ? (args[authKeyIdx].includes('=') ? args[authKeyIdx].split('=')[1] : args[authKeyIdx + 1])
+    : (process.env.ST_AUTH_KEY || process.env.STREMIO_AUTH_KEY || null);
+
   const options = {
     dryRun: DRY_RUN,
     version: targetVersion,
     rollbackLast: ROLLBACK_LAST,
     rollbackFile: ROLLBACK_FILE,
+    authKey: cliAuthKey,
   };
 
   if (accountArg === 'all') {

@@ -23,6 +23,7 @@ import { execSync } from 'node:child_process';
 import { apiPost } from './lib/stremio-api.mjs';
 import { assertNoFrozenEmptyCatalogs } from './lib/collection-guard.mjs';
 import { auditLeanbackHomeCatalogs } from './prune-home-catalogs.mjs';
+import './lib/env.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');

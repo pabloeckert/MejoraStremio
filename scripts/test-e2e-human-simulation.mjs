@@ -24,6 +24,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { apiPost, stremioLogin } from './lib/stremio-api.mjs';
+import './lib/env.mjs';
 import { fetchMovieHash, computeMovieHashFromBuffers } from './deno-hub/subtitles/hasher.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

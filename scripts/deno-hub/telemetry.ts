@@ -142,7 +142,7 @@ export function getCatalogRefreshInfo(): CatalogRefreshInfo {
 
 export function getSystemTelemetry(): SystemTelemetry {
   return {
-    version: "3.0.1",
+    version: "3.1.0",
     uptimeSeconds: Math.floor((Date.now() - startTime) / 1000),
     timestamp: new Date().toISOString(),
     catalog: getCatalogRefreshInfo(),

@@ -38,6 +38,7 @@ import {
   renderConfigureHtml,
   handleUnifiedSubtitles,
   handleUnifiedHub,
+  handleMeta,
 } from "./deno-hub/unified-hub.ts";
 import { subtitlesApp } from "./deno-hub/subtitles/subtitles.ts";
 import { handleProxyStream } from "./deno-hub/catalogs/paravos.ts";
@@ -49,6 +50,7 @@ export {
   renderConfigureHtml,
   handleUnifiedSubtitles,
   handleUnifiedHub,
+  handleMeta,
 };
 export {
   cors,

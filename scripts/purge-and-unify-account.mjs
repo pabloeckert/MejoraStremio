@@ -73,14 +73,14 @@ export function injectCacheBuster(url, sha = GIT_SHORT_SHA) {
   if (/[?&]v=/.test(url)) {
     return url.replace(/([?&]v=)([^&]*)/, (m, p1, p2) => {
       const baseVer = p2.split('-')[0].split('.').slice(0, 3).join('.');
-      return `${p1}${baseVer || '3.0.1'}-${sha}`;
+      return `${p1}${baseVer || '3.1.0'}-${sha}`;
     });
   }
   const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}v=3.0.1-${sha}`;
+  return `${url}${sep}v=3.1.0-${sha}`;
 }
 
-export function getCanonicalHubTransportUrl(version = '3.0.1') {
+export function getCanonicalHubTransportUrl(version = '3.1.0') {
   const base = `https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=${version}`;
   return injectCacheBuster(base);
 }

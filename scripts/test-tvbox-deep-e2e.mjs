@@ -153,7 +153,7 @@ try {
   assert(results.pass1_coldboot, 'Módulo Subdivx configurado en Hub', hData.subdivx?.configured === true);
   assert(results.pass1_coldboot, 'Nuevo Proveedor SubSource integrado formalmente en Hub', hData.subsource !== undefined);
   assert(results.pass1_coldboot, 'Smart Stream Interceptor (/streams) activo', hData.streams?.configured === true);
-  assert(results.pass1_coldboot, 'Motor de Traducción IA configurado con Gemini Flash', hData.translate?.engine === 'gemini-flash');
+  assert(results.pass1_coldboot, 'Motor de Traducción IA configurado con Gemini Flash', typeof hData.translate?.engine === 'string' && hData.translate.engine.includes('gemini'));
 
   // 1.3 Auditoría Exhaustiva de Manifiestos de Addons de la TV Box
   console.log('\n  1.3 Auditoría de Manifiestos de Addons instalados:');

@@ -14,13 +14,14 @@ import { handleSubdl } from "./subtitles/subdl.ts";
 import { handleTranslate } from "./translate/translate.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./subtitles/smartsync.ts";
 import { handleDiscover } from "./catalogs/tmdb.ts";
+import { handleMeta } from "./catalogs/synopsis.ts";
 import { MEJORASTREMIO_HUB_MANIFEST } from "./manifest.ts";
 import { buildParaVosCatalog } from "./catalogs/paravos.ts";
 import { isCanaryActiveForProfile } from "./utils/canary_governance.ts";
 import { resolveStreamSession } from "./streams/stream_security.ts";
 import { fetchMovieHash, computeMovieHashFromBuffers } from "./subtitles/hasher.ts";
 
-export { MEJORASTREMIO_HUB_MANIFEST, fetchMovieHash, computeMovieHashFromBuffers };
+export { MEJORASTREMIO_HUB_MANIFEST, fetchMovieHash, computeMovieHashFromBuffers, handleMeta };
 
 export async function computeSha256Etag(payload: string): Promise<string> {
   const data = new TextEncoder().encode(payload);
@@ -427,7 +428,7 @@ export async function handleUnifiedHub(
     "subdl", "opensubtitles", "opensubtitles-latino", "subdivx",
     "subsource", "latino", "synopsis", "miniseries", "short-series",
     "discover", "ufc", "livetv", "iptv", "mediathek", "translate",
-    "streams", "stream", "stream_session", "subtitles", "catalog", "health", "configure", "manifest.json",
+    "streams", "stream", "stream_session", "subtitles", "catalog", "meta", "health", "configure", "manifest.json",
   ]);
 
   // 3. Manifest parametrizado: /:config/manifest.json (soporta ?v=1.4.1 y canario)
@@ -528,6 +529,25 @@ export async function handleUnifiedHub(
       return jsonResponse({ metas: [] });
     }
     return await handleDiscover(path, reqUrl);
+  }
+
+  // 11. Metadatos parametrizados: /:config/meta/:type/:id.json
+  const configMetaMatch = path.match(/^\/([^/]+)\/meta\/(movie|series)\/(.+)\.json$/);
+  if (configMetaMatch) {
+    const configSegment = configMetaMatch[1];
+    if (!RESERVED_PREFIXES.has(configSegment)) {
+      const type = configMetaMatch[2];
+      const rawId = configMetaMatch[3];
+      return await handleMeta(type, rawId, customKv);
+    }
+  }
+
+  // 12. Metadatos directos en raíz: /meta/:type/:id.json
+  const directMetaMatch = path.match(/^\/meta\/(movie|series)\/(.+)\.json$/);
+  if (directMetaMatch) {
+    const type = directMetaMatch[1];
+    const rawId = directMetaMatch[2];
+    return await handleMeta(type, rawId, customKv);
   }
 
   return null;

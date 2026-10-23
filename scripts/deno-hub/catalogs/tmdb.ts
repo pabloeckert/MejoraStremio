@@ -12,7 +12,11 @@ export const TMDB_KEY = safeEnv("TMDB_API_KEY_AISEARCH", "2d12317c428a903b661011
 export const TMDB_API = "https://api.themoviedb.org/3";
 export const PROD_HUB_UPSTREAM = "https://mejorastremio-hub.pabloeckert.deno.net";
 
-export const BLOCKED_TMDB_LANGUAGES = new Set(["hi", "ko", "ja", "zh", "tr", "th"]);
+export const BLOCKED_TMDB_LANGUAGES = new Set([
+  "hi", "ta", "te", "ml", "kn", "pa", "bn", "ur", // India y Asia del Sur
+  "ko", "ja", "zh", "th", "vi", "id", "ms", "tl", // Asia oriental y sudeste asiático
+  "tr", "ar", "fa", "he",                         // Turquía, Medio Oriente
+]);
 
 export const MINISERIES_MANIFEST = {
   id: "com.mejorastremio.miniseries",
@@ -932,19 +936,33 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     params.with_release_type = "2|3"; // Cines
     params.region = "AR";
     params.sort_by = "primary_release_date.desc";
+    params["vote_count.gte"] = "5";
+    if (genre && genre !== "Todos" && genreMap[genre]) {
+      params.with_genres = String(genreMap[genre]);
+    }
   } else if (catalogId === "nuevas-temporadas" || catalogId === "new-seasons") {
     params[`${dateField}.lte`] = today;
     params[`${dateField}.gte`] = ninetyDaysAgo;
     params.sort_by = "first_air_date.desc";
     params["vote_count.gte"] = "3";
+    if (genre && genre !== "Todos" && genreMap[genre]) {
+      params.with_genres = String(genreMap[genre]);
+    }
   } else if (catalogId === "estrenos-streaming" || catalogId === "streaming-premieres") {
     params[`${dateField}.lte`] = today;
     params[`${dateField}.gte`] = ninetyDaysAgo;
-    params.with_watch_providers = "8|9|337|1899|350"; // Netflix, Prime, Disney+, Max, Apple TV+
+    params.with_watch_providers = (service && service !== "Todos" && SERVICE_IDS[service])
+      ? String(SERVICE_IDS[service])
+      : "8|9|337|1899|350"; // Netflix, Prime, Disney+, Max, Apple TV+
     params.watch_region = DISCOVER_WATCH_REGION;
     params.sort_by = type === "movie" ? "primary_release_date.desc" : "first_air_date.desc";
+    params["vote_count.gte"] = type === "movie" ? "5" : "3";
+    if (genre && genre !== "Todos" && genreMap[genre]) {
+      params.with_genres = String(genreMap[genre]);
+    }
   } else {
     // discover-master
+    params["vote_count.gte"] = type === "movie" ? "5" : "3";
     if (type === "series") params.without_genres = "10763,10767";
     if (service && service !== "Todos" && SERVICE_IDS[service]) {
       params.with_watch_providers = String(SERVICE_IDS[service]);
@@ -1022,11 +1040,12 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     const seenTmdbIds = new Set<number>();
     // deno-lint-ignore no-explicit-any
     const results: any[] = [];
+    const isExplicitLanguageSearch = (language && language !== "Todos") || (country && country !== "Todos");
     for (const r of combinedResults) {
       if (r && r.id && !seenTmdbIds.has(r.id)) {
         const origLang = String(r.original_language || "").toLowerCase().trim();
-        if (BLOCKED_TMDB_LANGUAGES.has(origLang)) {
-          continue; // Descarte estricto L2
+        if (!isExplicitLanguageSearch && BLOCKED_TMDB_LANGUAGES.has(origLang)) {
+          continue; // Descarte estricto por defecto
         }
         seenTmdbIds.add(r.id);
         results.push(r);

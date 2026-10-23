@@ -3,8 +3,8 @@
   "account": "stremioeg@gmail.com",
   "alias": "Pablo (Principal)",
   "deviceTarget": "TV Box / Android TV (Leanback UI)",
-  "version": "3.0.1",
-  "updatedAt": "2026-09-28T22:45:00Z",
+  "version": "3.1.0",
+  "updatedAt": "2026-10-22T22:00:00Z",
   "rules": {
     "subtitles": {
       "mode": "strict_no_sdh",
@@ -29,9 +29,9 @@
       ],
       "unifiedHub": {
         "id": "com.mejorastremio.hub",
-        "name": "MejoraStremio Hub v3.0 (Enterprise)",
-        "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=3.0.1-ca3afdd",
-        "canonicalStremioUrl": "stremio://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=3.0.1-ca3afdd",
+        "name": "MejoraStremio Hub v3.1 (Enterprise)",
+        "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=3.1.0-ca3afdd",
+        "canonicalStremioUrl": "stremio://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=3.1.0-ca3afdd",
         "position": 0
       }
     },

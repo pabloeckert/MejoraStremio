@@ -23,6 +23,7 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - `data/anti-frustration-log.json`: Registro de títulos con baja disponibilidad o problemas de cobertura para seguimiento preventivo.
 - `data/premiere-radar-state.json`: Estado del radar de estrenos y sincronización de nuevos episodios.
 - `data/iptv-channels.json`: Mapeo y estado de listas de canales IPTV en vivo.
+- `docs/MAPAS_ESENCIALES_DISENO_Y_ARQUITECTURA.md`: Marco y guía canónica de los 5 mapas esenciales (Service Blueprint, System Blueprint, User Story Map, Diagrama de Flujo, Diagrama Entidad-Relación).
 
 ---
 
@@ -651,3 +652,60 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Mecanismo Zero-Touch Update Confirmado (ZTE ZXV10 B866V2)**:
   - El manifiesto parametrizado `?v=1.4.2` invalida la clave de indexación de `stremio-core` en la memoria RAM del decodificador.
   - Las cabeceras HTTP `Cache-Control: no-cache, no-store, must-revalidate, max-age=0` y `Pragma: no-cache` garantizan la recarga transparente instantánea sin requerir borrado manual de caché ni reinicio forzado en Android TV.
+
+---
+
+## 23. Sesión 2026-10-22: Formalización y Documentación de los 5 Mapas Esenciales de Diseño y Arquitectura de Software
+
+### 23.1 Consolidación de la Guía Canónica (`docs/MAPAS_ESENCIALES_DISENO_Y_ARQUITECTURA.md`)
+- **Marco Unificado de Modelado**: Se documentó formalmente en el repositorio la referencia estándar sobre los 5 mapas esenciales de ingeniería de software y diseño de productos:
+  1. **Service Blueprint**: Diseña la experiencia del servicio entero (Frontstage, Backstage, Puntos de Contacto y Procesos de Soporte).
+  2. **System Blueprint**: Diseña la arquitectura general del software (Clientes, Edge/Gateways, Microservicios, Buses de Eventos y Persistencia).
+  3. **User Story Map**: Prioriza qué funciones se programan primero (Backbone horizontal vs Releases verticales y delimitación de MVP/Slices).
+  4. **Diagrama de Flujo (Flowchart)**: Define la lógica y las reglas de negocio paso a paso (Algoritmos deterministas, bifurcaciones y rutas de fallback).
+  5. **Diagrama Entidad-Relación (DER / ERD)**: Estructura cómo se almacena y relaciona la información (Entidades, Atributos, PK/FK y restricciones de integridad).
+- **Alineación con el Ecosistema MejoraStremio**:
+  - Cada mapa cuenta con definiciones teóricas rigurosas, componentes clave, preguntas que responde y diagramas interactivos en Mermaid modelados directamente sobre los subsistemas reales de MejoraStremio (`Android TV Box Leanback`, `Deno Edge Hub v1.4.2`, `TorBox Debrid`, `Deno KV Global Cache` y `Gemini Flash AI Subtitles`).
+  - Matriz comparativa y árbol de decisión rápida para seleccionar el mapa adecuado según la interrogante técnica o de negocio en cada fase de desarrollo.
+
+---
+
+## 24. Sesión 2026-10-22 (Parte 2): Activación Canónica MejoraStremio Hub v3.1.0 — Recurso Meta con Sinopsis y Tráilers Latinos, Catálogos con Filtros Multinivel y Blindaje Anti-Basura
+
+### 24.1 Activación del Recurso "meta" en el Manifiesto del Hub (`com.mejorastremio.hub` v3.1.0)
+- **Causa Raíz Diagnosticada**: La purga atómica previa a 2 addons canónicos (`com.mejorastremio.hub` y `com.linvo.cinemeta`) suprimió el addon secundario `synopsis-proxy`. Al no exponer `"meta"` en el Hub principal, las TV Boxes consumían fichas de Cinemeta, mostrando descripciones y tráilers en inglés por defecto.
+- **Implementación Canónica Zero-Trust**:
+  - `MEJORASTREMIO_HUB_MANIFEST` elevado a versión `3.1.0`, declarando formalmente `resources: ["stream", "subtitles", "catalog", "meta"]`.
+  - Enrutamiento directo en `unified-hub.ts` (`/:config/meta/:type/:id.json` y `/meta/:type/:id.json`) conectado a `handleMeta` en `synopsis.ts`.
+  - Base sólida sobre `fetchCinemetaMeta` garantizando el 100% de la estructura de episodios (`videos`) para series y calificaciones de IMDb.
+  - Ingesta primaria TMDB en español latino (`language: "es-MX"`) para título y sinopsis enriquecida oficial, con fallback inteligente a Gemini Flash / OpenRouter si la descripción original estuviese ausente o en inglés (`needsEnrichment`).
+  - Ingesta y badging de tráilers doblados al español latino (`getLatinoTrailersHotPath` + `getLocalizedTrailersWithFallback`) con prioridad absoluta en `meta.trailers` y `meta.trailerStreams` con insignia `[🌎 LATINO]`.
+  - Persistencia de alto rendimiento en Deno KV (`["meta_latino_v2", type, cleanId]`, TTL 7 días) y caché en memoria L1 LRU (<5ms de latencia de entrega).
+
+### 24.2 Catálogos con Filtros Multinivel (Plataformas, Regiones, Países y Géneros)
+- **Integración de `discover-master`**: Incorporado directamente en el manifiesto canónico para películas y series:
+  - Selector 1: **Plataforma de Streaming** (`service`: Netflix, Disney+, Prime Video, HBO Max, Paramount+, Hulu, Apple TV+, etc.).
+  - Selector 2: **Región** (`region`: Latinoamérica, Europa, Norteamérica, Asia, Oceanía).
+  - Selector 3: **País** (`country`: Argentina, España, Francia, Alemania, México, Colombia, Chile, etc.).
+  - Selector 4: **Idioma Original** (`language`: Español, Inglés, Francés, Alemán, etc.).
+  - Selector 5: **Género** (`genre`: Acción, Aventura, Animación, Comedia, Crimen, Drama, Familia, etc.).
+  - Selector 6: **Orden** (`sort`: `released`, `premiere_date`, `year_desc`, `popularity.desc`).
+- **Filtros en Catálogos de Estreno**:
+  - `nuevos-estrenos-cine` y `nuevas-temporadas`: enriquecidos con filtro opcional de `genre`.
+  - `estrenos-streaming` (Cine y Series): enriquecido con filtros de `service` (plataforma) y `genre`.
+
+### 24.3 Blindaje Anti-Basura y Control de Calidad
+- **Expansión Exhaustiva de `BLOCKED_TMDB_LANGUAGES`**:
+  - Bloqueo por defecto de lenguajes de producciones spam / de baja relevancia en Latinoamérica: India y Asia del Sur (`hi, ta, te, ml, kn, pa, bn, ur`), Asia oriental / sudeste (`ko, ja, zh, th, vi, id, ms, tl`) y Medio Oriente / Turquía (`tr, ar, fa, he`).
+  - Respeto a filtros explícitos: Si el usuario selecciona activamente un idioma o país en el selector, el descarte por defecto se suspende para dicha consulta.
+- **Filtro de Calificación Mínima**: Se fijó `vote_count.gte >= 5` en películas y `>= 3` en series, eliminando producciones caseras, sin valoraciones o basura visual.
+
+### 24.4 Certificación de la Suite E2E
+- **Suite de Verificación Integral (`scratch/test_v310_verification.ts`)**: **5 de 5 verificaciones aprobadas (100% PASS)**:
+  1. Manifiesto v3.1.0 con 6 catálogos y recurso `meta`.
+  2. Metadatos de película (*En la cuerda floja* / `tt3488710`) con título y sinopsis en español latino y tráilers localizados.
+  3. Metadatos de serie (*HPI* / `tt14060708`) con sinopsis latina y los 40 episodios intactos.
+  4. Catálogo `discover-master` filtrado por Netflix + Latinoamérica + Acción (21 títulos verificados con póster y metadatos).
+  5. Descarte de lenguajes bloqueados y filtro de votos mínimos.
+- **Suite TV Box Deep E2E (`scripts/test-tvbox-deep-e2e.mjs`)**: **106 de 106 verificaciones superadas con éxito (100.0% PASS)** (Cold-Boot 41/41, Playback Stress 65/65).
+

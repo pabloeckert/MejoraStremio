@@ -3,11 +3,12 @@
  * Pasa AIOMetadata intacto y reescribe la sinopsis en español latino cuando es corta o está en inglés.
  */
 
-import { cors, jsonResponse, parseStremioSubId, getKv } from "../utils/common.ts";
+import { cors, jsonResponse, parseStremioSubId, getKv, safeGetKv } from "../utils/common.ts";
 import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
-import { fetchCinemetaMeta } from "../utils/cinemeta.ts";
-import { getLocalizedTrailersWithFallback } from "./tmdb.ts";
+import { fetchCinemetaMeta, canonicalImdbId } from "../utils/cinemeta.ts";
+import { getLocalizedTrailersWithFallback, tmdbGet } from "./tmdb.ts";
 import { resolveTmdbIdFromImdb } from "./paravos.ts";
+import { getLatinoTrailersHotPath } from "./trailers.ts";
 import {
   GEMINI_API_KEY,
   OPENROUTER_API_KEY,
@@ -170,6 +171,144 @@ export async function enrichSynopsis(
   return text;
 }
 
+export const META_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días en Deno KV
+
+export async function handleMeta(
+  type: string,
+  rawId: string,
+  customKv?: Deno.Kv | null,
+): Promise<Response> {
+  const cleanId = canonicalImdbId(rawId.split(":")[0]);
+  if (!cleanId.startsWith("tt")) {
+    return new Response("Invalid ID prefix", { status: 400, headers: cors });
+  }
+
+  const kv = customKv ?? (await safeGetKv());
+  const cacheKey = ["meta_latino_v2", type, cleanId];
+
+  // 1. Revisar caché KV
+  if (kv) {
+    try {
+      const cached = await kv.get<Record<string, unknown>>(cacheKey);
+      if (cached?.value) {
+        return jsonResponse({ meta: cached.value });
+      }
+    } catch {
+      // continuar
+    }
+  }
+
+  // 2. Ingesta primaria base de Cinemeta (garantiza lista de episodios completa para series e IMDb rating)
+  // deno-lint-ignore no-explicit-any
+  let meta: any = await fetchCinemetaMeta(type, cleanId);
+  if (!meta) {
+    try {
+      meta = await fetchAioMeta(type, cleanId);
+    } catch {
+      // ambos fallaron
+    }
+  }
+
+  if (!meta) {
+    return jsonResponse({ meta: null, error: "Metadatos no encontrados" }, { status: 404 });
+  }
+
+  // 3. Consulta TMDB en español latino (es-MX)
+  try {
+    const tmdbResolve = await resolveTmdbIdFromImdb(cleanId, type === "series" ? "series" : "movie");
+    if (tmdbResolve?.tmdbId) {
+      const tmdbPath = type === "series" ? `/tv/${tmdbResolve.tmdbId}` : `/movie/${tmdbResolve.tmdbId}`;
+      const tmdbDetail = await tmdbGet(tmdbPath, { language: "es-MX", append_to_response: "videos" }).catch(() => null);
+
+      if (tmdbDetail) {
+        // Enriquecer título con localización si existe
+        if (tmdbDetail.title || tmdbDetail.name) {
+          meta.name = tmdbDetail.title || tmdbDetail.name;
+        }
+
+        // Enriquecer descripción con TMDB es-MX oficial
+        const tmdbOverview = String(tmdbDetail.overview || "").trim();
+        if (tmdbOverview && tmdbOverview.length > 20 && !looksEnglish(tmdbOverview)) {
+          meta.description = tmdbOverview;
+        } else if (needsEnrichment(meta.description)) {
+          const enriched = await enrichSynopsis(cleanId, type, meta, meta.description || "");
+          if (enriched) meta.description = enriched;
+        }
+
+        // Ingesta y badging de Tráilers doblados al español latino
+        const hotTrailers = await getLatinoTrailersHotPath(tmdbResolve.tmdbId, type === "series" ? "tv" : "movie", cleanId, kv).catch(() => []);
+        const fallbackTrailers = await getLocalizedTrailersWithFallback(tmdbResolve.tmdbId, type === "series" ? "tv" : "movie").catch(() => ({ trailers: [], trailerStreams: [] }));
+
+        // Prioridad absoluta a trailers latinos verificados
+        // deno-lint-ignore no-explicit-any
+        const finalTrailers: any[] = [];
+        // deno-lint-ignore no-explicit-any
+        const finalStreams: any[] = [];
+        const seenYtKeys = new Set<string>();
+
+        // 1. HotPath trailers
+        for (const ht of hotTrailers) {
+          if (ht.ytId && !seenYtKeys.has(ht.ytId)) {
+            seenYtKeys.add(ht.ytId);
+            finalTrailers.push({
+              source: ht.ytId,
+              type: "Trailer",
+              name: `[🌎 LATINO] ${ht.name || "Tráiler Oficial"}`,
+              lang: "es-419",
+            });
+            finalStreams.push({
+              title: `[🌎 LATINO] ${ht.name || "Tráiler Oficial"}`,
+              ytId: ht.ytId,
+              lang: "es-419",
+              official: true,
+            });
+          }
+        }
+
+        // 2. Fallback trailers de TMDB
+        for (const t of fallbackTrailers.trailers) {
+          if (t.source && !seenYtKeys.has(t.source)) {
+            seenYtKeys.add(t.source);
+            finalTrailers.push(t);
+          }
+        }
+        for (const s of fallbackTrailers.trailerStreams) {
+          if (s.ytId && !seenYtKeys.has(s.ytId)) {
+            seenYtKeys.add(s.ytId);
+            finalStreams.push(s);
+          }
+        }
+
+        if (finalTrailers.length > 0) {
+          meta.trailers = finalTrailers;
+        }
+        if (finalStreams.length > 0) {
+          meta.trailerStreams = finalStreams;
+        }
+      }
+    }
+  } catch {
+    // Si la localización TMDB falla, conservar metadata de Cinemeta
+  }
+
+  // 4. Fallback de IA si aún estuviese en inglés
+  if (needsEnrichment(meta.description)) {
+    try {
+      const enriched = await enrichSynopsis(cleanId, type, meta, meta.description);
+      if (enriched) meta.description = enriched;
+    } catch {
+      // conservar descripción
+    }
+  }
+
+  // 5. Guardar en Deno KV
+  if (kv) {
+    kv.set(cacheKey, meta, { expireIn: META_CACHE_TTL_MS }).catch(() => {});
+  }
+
+  return jsonResponse({ meta });
+}
+
 export async function handleSynopsis(subPath: string): Promise<Response> {
   if (subPath === "/manifest.json") {
     return jsonResponse(SYNOPSIS_MANIFEST);
@@ -177,50 +316,7 @@ export async function handleSynopsis(subPath: string): Promise<Response> {
 
   const metaMatch = subPath.match(/^\/meta\/(movie|series)\/(.+)\.json$/);
   if (metaMatch) {
-    const [, type, rawId] = metaMatch;
-    const imdbId = parseStremioSubId(rawId).imdbId;
-
-    // deno-lint-ignore no-explicit-any
-    let meta: any;
-    try {
-      meta = await fetchAioMeta(type, rawId);
-    } catch (e) {
-      const fallback = await fetchCinemetaMeta(type, rawId);
-      if (fallback) {
-        return jsonResponse({ meta: fallback });
-      }
-      return jsonResponse({ meta: null, error: (e as Error).message }, { status: 502 });
-    }
-
-    if (needsEnrichment(meta.description)) {
-      try {
-        const enriched = await enrichSynopsis(imdbId, type, meta, meta.description);
-        if (enriched) meta.description = enriched;
-      } catch {
-        // conservar sinopsis de AIOMetadata
-      }
-    }
-
-    // Inyección de trailers localizados con prioridad latinoamericano y fallback
-    try {
-      const tmdbResolve = await resolveTmdbIdFromImdb(imdbId, type === "series" ? "series" : "movie");
-      if (tmdbResolve?.tmdbId) {
-        const trailerData = await getLocalizedTrailersWithFallback(
-          tmdbResolve.tmdbId,
-          type === "series" ? "tv" : "movie",
-        );
-        if (trailerData.trailers.length > 0) {
-          meta.trailers = trailerData.trailers;
-        }
-        if (trailerData.trailerStreams.length > 0) {
-          meta.trailerStreams = trailerData.trailerStreams;
-        }
-      }
-    } catch {
-      // conservar trailers previos si hubiera
-    }
-
-    return jsonResponse({ meta });
+    return await handleMeta(metaMatch[1], metaMatch[2]);
   }
 
   return new Response("Not found", { status: 404, headers: cors });

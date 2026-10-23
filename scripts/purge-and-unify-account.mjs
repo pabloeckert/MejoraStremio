@@ -389,7 +389,7 @@ async function main() {
   const cliVersion = vIdx >= 0
     ? (args[vIdx].startsWith('--version=') ? args[vIdx].split('=')[1] : args[vIdx + 1])
     : null;
-  const targetVersion = BASELINE_V141 ? '1.4.1' : (cliVersion || '3.0.1');
+  const targetVersion = BASELINE_V141 ? '1.4.1' : (cliVersion || '3.1.0');
 
   const accIdx = args.findIndex((a) => a === '--account' || a.startsWith('--account='));
   const accountArg = accIdx >= 0

@@ -138,7 +138,7 @@
     "genres": [],
     "isFamily": false,
     "perAddon": {
-      "MejoraStremio Hub (TorBox Latino + Subtítulos IA)": {
+      "MejoraStremio Hub v3.1 (Enterprise)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -149,7 +149,7 @@
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-10-18T17:37:05.885Z"
+    "lastCheckedAt": "2026-10-25T17:55:09.593Z"
   },
   {
     "id": "tt2380307",
@@ -1553,7 +1553,7 @@
     "genres": [],
     "isFamily": false,
     "perAddon": {
-      "MejoraStremio Hub (TorBox Latino + Subtítulos IA)": {
+      "MejoraStremio Hub v3.1 (Enterprise)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1564,7 +1564,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E03",
     "addedAt": "2026-08-23T02:20:55.820Z",
-    "lastCheckedAt": "2026-10-18T17:37:11.718Z"
+    "lastCheckedAt": "2026-10-25T17:55:10.079Z"
   },
   {
     "id": "tt23112594",
@@ -1699,7 +1699,7 @@
     "genres": [],
     "isFamily": false,
     "perAddon": {
-      "MejoraStremio Hub (TorBox Latino + Subtítulos IA)": {
+      "MejoraStremio Hub v3.1 (Enterprise)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1710,6 +1710,6 @@
     "latino": null,
     "label": "Ágata y Lola S01E09",
     "addedAt": "2026-09-04T13:17:22.882Z",
-    "lastCheckedAt": "2026-10-18T17:37:17.274Z"
+    "lastCheckedAt": "2026-10-25T17:55:11.087Z"
   }
 ]

@@ -42,7 +42,10 @@ import {
 } from "./deno-hub/unified-hub.ts";
 import { subtitlesApp } from "./deno-hub/subtitles/subtitles.ts";
 import { handleProxyStream } from "./deno-hub/catalogs/paravos.ts";
-import { getLatinoTrailersHotPath } from "./deno-hub/catalogs/trailers.ts";
+import {
+  getLatinoTrailersHotPath,
+  handleTrailersStream,
+} from "./deno-hub/catalogs/trailers.ts";
 
 // Re-exportaciones públicas canónicas para compatibilidad con tests y suites
 export {
@@ -118,6 +121,9 @@ export {
   sanitizeTorrentioBase,
   rankAndBadgeStreams,
   handleStreams,
+  buildCometTorboxUrl,
+  buildMediaFusionTorboxUrl,
+  extractTorboxApiKey,
 } from "./deno-hub/streams/streams.ts";
 
 export {
@@ -147,6 +153,7 @@ export {
   fetchOpenSubtitlesV3,
   fetchSubSource,
   fetchWyzieSubs,
+  fetchSubSense,
   translateCuesWithGemini,
   filterNonSDH,
   sanitizeLatinSpanishTracks,
@@ -216,6 +223,8 @@ export {
   getLatinoTrailersHotPath,
   runNightlyTrailerCron,
   fetchTmdbVideos,
+  handleTrailersStream,
+  TRAILERS_LATINO_MANIFEST,
   LATINO_CHANNEL_WHITELIST,
   NEGATIVE_TRAILER_TOKENS,
   DAILY_YOUTUBE_SEARCH_BUDGET,
@@ -274,6 +283,7 @@ export async function handleHubRequest(req: Request): Promise<Response> {
           "/mediathek/manifest.json",
           "/translate/manifest.json",
           "/streams/manifest.json",
+          "/trailers/manifest.json",
           "/health",
         ],
       });
@@ -371,8 +381,12 @@ export async function handleHubRequest(req: Request): Promise<Response> {
     } else if (path === "/proxy/stream" || path.startsWith("/proxy/stream")) {
       route = "proxy-stream";
       res = await handleProxyStream(url, req);
-    } else if (path.startsWith("/trailer/") || path.startsWith("/trailers/")) {
+    } else if (path.startsWith("/trailers")) {
       route = "trailers";
+      const subPath = path.slice("/trailers".length) || "/";
+      res = await handleTrailersStream(subPath, url);
+    } else if (path.startsWith("/trailer/")) {
+      route = "trailer-compat";
       const parts = path.split("/").filter(Boolean);
       const type = (parts[1] as "movie" | "tv") || "movie";
       const id = parts[2]?.replace(/\.json$/, "") || "";

@@ -429,6 +429,7 @@ export async function handleUnifiedHub(
     "subsource", "latino", "synopsis", "miniseries", "short-series",
     "discover", "ufc", "livetv", "iptv", "mediathek", "translate",
     "streams", "stream", "stream_session", "subtitles", "catalog", "meta", "health", "configure", "manifest.json",
+    "trailers", "trailer",
   ]);
 
   // 3. Manifest parametrizado: /:config/manifest.json (soporta ?v=1.4.1 y canario)

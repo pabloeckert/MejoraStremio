@@ -709,3 +709,41 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   5. Descarte de lenguajes bloqueados y filtro de votos mínimos.
 - **Suite TV Box Deep E2E (`scripts/test-tvbox-deep-e2e.mjs`)**: **106 de 106 verificaciones superadas con éxito (100.0% PASS)** (Cold-Boot 41/41, Playback Stress 65/65).
 
+---
+
+## 25. Sesión 2026-10-31: MejoraStremio v3.2.0 — Multi-Scraper Paralelo (Comet + MediaFusion), Compatibilidad Calendario Android TV v1.12.0, Addon Dedicado de Tráilers Latino, SubSense y Caché Dual Deno KV
+
+### 25.1 Multi-Scraper Paralelo y Eliminación del Punto Único de Falla (`streams.ts`)
+- **Despacho Concurrente**: Reemplazo de la consulta secuencial por consultas simultáneas en paralelo (`Promise.allSettled`) a **Torrentio**, **Comet** (`https://comet.feels.legal/`) y **MediaFusion** (`https://mediafusion.elfhosted.com/`).
+- **Extracción Dinámica de TorBox Key**: `extractTorboxApiKey` extrae la clave de TorBox desde la URL de configuración, query param o entorno, inyectándola dinámicamente en los payloads codificados en Base64 de Comet y MediaFusion.
+- **Tolerancia a Caídas de Torrentio**: Si Torrentio sufre caídas de servicio o throttling, los streams cacheados de TorBox en Comet y MediaFusion responden de inmediato evitando pantallas congeladas o portadas muertas.
+- **Preservación Inviolable de Jerarquía**: Deduplicación por `infoHash`, `url` y metadatos con ordenamiento estricto vía `rankAndBadgeStreams` (`[⚡ INSTANTÁNEO] [🌎 LATINO]` en Puesto #1).
+
+### 25.2 Compatibilidad de Metadatos con el Nuevo Calendario de Android TV v1.12.0 (`synopsis.ts` y `tmdb.ts`)
+- **Normalización Temporal ISO-8601 UTC**: Se creó `normalizeMetaDatesForAndroidTv` para asegurar que `meta.released`, `meta.firstAired` y `meta.releaseInfo` sigan estrictamente el formato ISO-8601 UTC (`YYYY-MM-DDTHH:mm:ss.sssZ` o `YYYY-MM-DD`).
+- **Enriquecimiento del Array `videos`**: Cada episodio en series cuenta con `released`, `firstAired`, `season` y `number` normalizados, permitiendo al nuevo motor de Calendario y Grid de Stremio Android TV v1.12.0 mapear visualmente los estrenos y nuevos episodios sin omisiones.
+- **Catálogos TMDB**: Enriquecimiento de `MiniseriesMeta`, `ShortSeriesMeta` y `handleDiscover` con fechas ISO UTC.
+
+### 25.3 Addon Dedicado de Tráilers Latino (`com.mejorastremio.trailers-latino`)
+- **Arquitectura de Streams para Tráilers**: Implementado en `scripts/deno-hub/catalogs/trailers.ts` y montado en `/trailers/manifest.json` y `/trailers/stream/:type/:id.json`.
+- **Filtro Anti-Castellano Implacable**: Descarte categórico de pistas peninsulares (`castellano`, `es-es`, `vose`), priorizando audio doblado latino de estudios oficiales (`LATINO_CHANNEL_WHITELIST`).
+- **Resúmenes de Temporada (Season Recaps)**: Detección contextual de recaps oficiales para episodios de temporadas posteriores (`[📺 RESUMEN T{n-1}]`).
+- **Reproducción Nativa 1080p YouTube**: Emisión de streams con `ytId` y `bingeGroup: "trailers-latino"`, permitiendo avance oficial en video con 1 clic en Android TV.
+- **Aislamiento en `unified-hub.ts`**: Registro de `"trailers"` y `"trailer"` en `RESERVED_PREFIXES` para prevenir colisiones con el addon unificado raíz.
+
+### 25.4 Ingesta de SubSense / Addic7ed como Cuarto Fallback (`subtitles.ts`)
+- **Agregador SubSense**: Incorporación de `fetchSubSense` consultando el backend de agregación comunitaria en `https://subsense.nepiraw.com/`.
+- **Filtros de Audio Latino y No-SDH**: Ingesta protegida por timeout (450ms) con purga de marcas SDH (`filterNonSDH`) y sanitización a variantes latinas (`sanitizeLatinSpanishTracks`).
+
+### 25.5 Respaldo Dual en Deno KV para Traducciones IA (`translate.ts`)
+- **Compatibilidad Dual `spl` + `spa`**: Tanto la lectura como la persistencia de traducciones de Gemini Flash en Deno KV (`getCachedSub` y `putCachedSub` con compresión Gzip chunked ≤60 KiB) registran y consultan en paralelo los códigos `spl` (LatAm) y `spa` (Español internacional). Garantiza 100% de aciertos de caché sin consumo duplicado de tokens de IA.
+
+### 25.6 Certificación Exhaustiva E2E (115/115 Verificaciones — 100% PASS)
+- **Blindaje del Runner Local en Windows (`test-tvbox-deep-e2e.mjs`)**: Detección automática del binario `deno.exe` en `%USERPROFILE%\.deno\bin\deno.exe`, ejecución con `{ shell: true }` y permisos completos `--allow-all`.
+- **Certificación Total de la Suite**:
+  - **Pasada 1 (Cold-Boot & Protocol Bootstrap)**: **42 de 42 verificaciones superadas (100% PASS)**.
+  - **Pasada 2 (Playback Stress & Timeline Audit)**: **73 de 73 verificaciones superadas (100% PASS)**.
+  - **Total**: **115 de 115 pruebas superadas exitosamente (100.0% PASS)**.
+  - `deno check` y `deno lint`: 41 archivos limpios (0 errores, 0 advertencias).
+
+

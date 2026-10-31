@@ -70,6 +70,8 @@ export interface MiniseriesMeta {
   description: string;
   genres: string[];
   releaseInfo?: string;
+  released?: string;
+  firstAired?: string;
   _d?: string;
 }
 
@@ -294,6 +296,8 @@ export async function buildMiniseriesCatalog(): Promise<{ metas: MiniseriesMeta[
           // deno-lint-ignore no-explicit-any
           genres: ((detail.genres ?? []) as any[]).map((g) => g.name),
           releaseInfo: (detail.first_air_date ?? "").slice(0, 4) || undefined,
+          released: detail.first_air_date ? `${detail.first_air_date}T00:00:00.000Z` : undefined,
+          firstAired: detail.first_air_date ? `${detail.first_air_date}T00:00:00.000Z` : undefined,
           _d: detail.first_air_date ?? "",
         });
       }
@@ -382,6 +386,8 @@ export interface ShortSeriesMeta {
   genres: string[];
   runtime: number;
   releaseInfo?: string;
+  released?: string;
+  firstAired?: string;
   _d?: string;
 }
 
@@ -448,6 +454,8 @@ export async function buildShortSeriesCatalog(): Promise<{ metas: ShortSeriesMet
           genres: ((detail.genres ?? []) as any[]).map((g) => g.name),
           runtime: maxRuntime,
           releaseInfo: (detail.first_air_date ?? "").slice(0, 4) || undefined,
+          released: detail.first_air_date ? `${detail.first_air_date}T00:00:00.000Z` : undefined,
+          firstAired: detail.first_air_date ? `${detail.first_air_date}T00:00:00.000Z` : undefined,
           _d: detail.first_air_date ?? "",
         });
       }
@@ -1063,6 +1071,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       const imdbId = imdbIdMap.get(r.id);
       if (!imdbId) return null;
       const d0 = (r.release_date ?? r.first_air_date ?? "") as string;
+      const isoDate = d0 && /^\d{4}-\d{2}-\d{2}/.test(d0) ? `${d0.slice(0, 10)}T00:00:00.000Z` : undefined;
       return {
         id: imdbId,
         type,
@@ -1070,6 +1079,8 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
         poster: r.poster_path ? `https://image.tmdb.org/t/p/w500${r.poster_path}` : null,
         description: r.overview ?? "",
         releaseInfo: d0 ? d0.slice(0, 4) : undefined,
+        released: isoDate,
+        firstAired: type === "series" ? isoDate : undefined,
         _d: d0,
       };
     });

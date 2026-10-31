@@ -13,6 +13,9 @@
  */
 
 import { TMDB_API, TMDB_KEY } from "./tmdb.ts";
+import { cors, getKv, jsonResponse, parseStremioSubId, type StremioStreamItem } from "../utils/common.ts";
+import { canonicalImdbId, fetchCinemetaMeta } from "../utils/cinemeta.ts";
+import { resolveTmdbIdFromImdb } from "./paravos.ts";
 
 export const TRAILER_KV_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
 export const DAILY_YOUTUBE_SEARCH_BUDGET = 50; // Límite estricto de búsquedas YouTube por día
@@ -350,4 +353,215 @@ export async function runNightlyTrailerCron(
     budgetUsedToday: currentUsage,
     budgetRemaining: Math.max(0, DAILY_YOUTUBE_SEARCH_BUDGET - currentUsage),
   };
+}
+
+export const TRAILERS_LATINO_MANIFEST = {
+  id: "com.mejorastremio.trailers-latino",
+  version: "1.0.0",
+  name: "Tráilers Oficiales Latino (MejoraStremio)",
+  description:
+    "Tráilers oficiales doblados al español latino (1080p YouTube), resúmenes de temporada y avances oficiales con filtro anti-castellano y cero spoilers.",
+  resources: ["stream"],
+  types: ["movie", "series"],
+  idPrefixes: ["tt"],
+  catalogs: [],
+};
+
+export async function handleTrailersStream(
+  subPath: string,
+  _url?: URL,
+): Promise<Response> {
+  if (
+    subPath === "/manifest.json" ||
+    subPath === "/manifest" ||
+    subPath === "/" ||
+    subPath === ""
+  ) {
+    return jsonResponse(TRAILERS_LATINO_MANIFEST);
+  }
+
+  const match = subPath.match(/^(?:\/stream)?\/(movie|series)\/(.+)\.json$/);
+  if (!match) {
+    return new Response("Not found", { status: 404, headers: cors });
+  }
+
+  const type = match[1] as "movie" | "series";
+  const rawId = match[2];
+  const { imdbId, season, episode } = parseStremioSubId(rawId);
+  const cleanId = canonicalImdbId(imdbId);
+
+  if (!cleanId.startsWith("tt")) {
+    return jsonResponse({ streams: [] });
+  }
+
+  const kv = await getKv().catch(() => null);
+  const cacheKey: Deno.KvKey = [
+    "trailers_addon_stream_v1",
+    type,
+    cleanId,
+    season ?? 0,
+    episode ?? 0,
+  ];
+
+  if (kv) {
+    try {
+      const cached = await kv.get<StremioStreamItem[]>(cacheKey);
+      if (cached?.value && Array.isArray(cached.value)) {
+        return jsonResponse({ streams: cached.value });
+      }
+    } catch {
+      // continuar
+    }
+  }
+
+  const streams: StremioStreamItem[] = [];
+  const seenYt = new Set<string>();
+
+  try {
+    // 1. Resolver TMDB ID
+    const tmdbRes = await resolveTmdbIdFromImdb(
+      cleanId,
+      type === "series" ? "series" : "movie",
+    );
+    const tmdbId = tmdbRes?.tmdbId;
+
+    if (tmdbId) {
+      // 2. Consultar Tráilers Latinos en el Hot Path
+      const hotTrailers = await getLatinoTrailersHotPath(
+        tmdbId,
+        type === "series" ? "tv" : "movie",
+        cleanId,
+        kv,
+      ).catch(() => []);
+
+      for (const ht of hotTrailers) {
+        if (ht.ytId && !seenYt.has(ht.ytId)) {
+          seenYt.add(ht.ytId);
+          streams.push({
+            name: "[🎬 TRÁILER LATINO]\n1080p YouTube",
+            title: `${ht.name || "Tráiler Oficial Latino"}\n▶️ Reproducir en YouTube · Audio Latinoamericano`,
+            ytId: ht.ytId,
+            behaviorHints: {
+              notWebReady: false,
+              bingeGroup: "trailers-latino",
+            },
+          });
+        }
+      }
+
+      // 3. Consultar todos los videos de TMDB
+      const tmdbVideos = await fetchTmdbVideos(
+        tmdbId,
+        type === "series" ? "tv" : "movie",
+      ).catch(() => []);
+
+      // 3.1 Filtro estricto para tráilers doblados adicionales
+      for (const v of tmdbVideos) {
+        if (isStrictLatinoTrailer(v) && v.key && !seenYt.has(v.key)) {
+          seenYt.add(v.key);
+          streams.push({
+            name: "[🎬 TRÁILER LATINO]\n1080p YouTube",
+            title: `${v.name || "Tráiler Oficial Latino"}\n▶️ Reproducir en YouTube · Audio Latinoamericano`,
+            ytId: v.key,
+            behaviorHints: {
+              notWebReady: false,
+              bingeGroup: "trailers-latino",
+            },
+          });
+        }
+      }
+
+      // 3.2 Resúmenes de temporada para series (Season Recaps si temporada > 1)
+      if (type === "series" && season && season > 1) {
+        for (const v of tmdbVideos) {
+          if (v.site === "YouTube" && v.key && !seenYt.has(v.key)) {
+            const norm = normalizeVideoText(v.name);
+            const isRecap = v.type === "Recap" ||
+              norm.includes("recap") ||
+              norm.includes("resumen") ||
+              norm.includes(`temporada ${season - 1}`) ||
+              norm.includes(`season ${season - 1}`);
+
+            const hasNeg = NEGATIVE_TRAILER_TOKENS.some((neg) =>
+              norm.includes(normalizeVideoText(neg))
+            );
+            if (isRecap && !hasNeg) {
+              seenYt.add(v.key);
+              streams.push({
+                name: `[📺 RESUMEN T${season - 1}]\n1080p YouTube`,
+                title: `${v.name || `Resumen Temporada ${season - 1}`}\n▶️ Resumen oficial antes de ver el episodio`,
+                ytId: v.key,
+                behaviorHints: {
+                  notWebReady: false,
+                  bingeGroup: "trailers-recap",
+                },
+              });
+              break;
+            }
+          }
+        }
+      }
+
+      // 3.3 Fallback de alta fidelidad: Tráiler Oficial subtitulado o de estudio si no hay doblaje latino
+      if (streams.length === 0) {
+        for (const v of tmdbVideos) {
+          if (
+            v.site === "YouTube" &&
+            v.key &&
+            !seenYt.has(v.key) &&
+            (v.type === "Trailer" || v.type === "Teaser")
+          ) {
+            const norm = normalizeVideoText(v.name);
+            const hasNeg = NEGATIVE_TRAILER_TOKENS.some((neg) =>
+              norm.includes(normalizeVideoText(neg))
+            );
+            if (!hasNeg) {
+              seenYt.add(v.key);
+              streams.push({
+                name: "[🎬 TRÁILER OFICIAL]\n1080p YouTube",
+                title: `${v.name || "Avance Oficial"}\n▶️ Tráiler oficial de estudio`,
+                ytId: v.key,
+                behaviorHints: {
+                  notWebReady: false,
+                  bingeGroup: "trailers-latino",
+                },
+              });
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // 4. Fallback final contra Cinemeta
+    if (streams.length === 0) {
+      const meta = await fetchCinemetaMeta(type, cleanId).catch(() => null);
+      // deno-lint-ignore no-explicit-any
+      const trailerYtId = ((meta?.trailerStreams as any[])?.[0]?.ytId) ||
+        // deno-lint-ignore no-explicit-any
+        ((meta?.trailers as any[])?.[0]?.source);
+
+      if (trailerYtId && !seenYt.has(String(trailerYtId))) {
+        seenYt.add(String(trailerYtId));
+        streams.push({
+          name: "[🎬 TRÁILER OFICIAL]\n1080p YouTube",
+          title: `${meta?.name || "Avance Oficial"} · Tráiler Oficial\n▶️ Reproducir en YouTube`,
+          ytId: String(trailerYtId),
+          behaviorHints: {
+            notWebReady: false,
+            bingeGroup: "trailers-latino",
+          },
+        });
+      }
+    }
+  } catch (err) {
+    console.warn(`[trailers-addon] Error resolviendo trailer para ${cleanId}: ${(err as Error).message}`);
+  }
+
+  // Guardar en Deno KV por 30 días
+  if (kv && streams.length > 0) {
+    kv.set(cacheKey, streams, { expireIn: TRAILER_KV_TTL_MS }).catch(() => {});
+  }
+
+  return jsonResponse({ streams });
 }

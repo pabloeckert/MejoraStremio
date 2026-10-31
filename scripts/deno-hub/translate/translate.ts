@@ -776,8 +776,11 @@ export async function handleTranslate(
     try {
       kv = await getKv();
       if (kv) {
-        // 1. Intento de lectura en caché fragmentada Gzip (P1 + P2)
-        const cachedSub = await getCachedSub(kv, subCacheParams);
+        // 1. Intento de lectura en caché fragmentada Gzip (P1 + P2) con compatibilidad dual spl / spa
+        let cachedSub = await getCachedSub(kv, subCacheParams);
+        if (!cachedSub?.srt && subCacheParams.lang !== "spa") {
+          cachedSub = await getCachedSub(kv, { ...subCacheParams, lang: "spa" });
+        }
         if (cachedSub?.srt) {
           return new Response(cachedSub.srt, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
         }
@@ -828,13 +831,21 @@ export async function handleTranslate(
       if (kv && done) {
         try {
           await setCompressedKvText(kv, cacheKey, srt, { expireIn: TRANSLATE_CACHE_TTL_MS });
-          // Persistencia en P1 + P2 con criterio estricto y chunking
+          // Persistencia en P1 + P2 con criterio estricto y chunking (guardar en spl y spa para reuso universal)
           await putCachedSub(kv, subCacheParams, {
             srt,
             smartSync: { ratio: 1.0 },
             allBatchesOk: true,
             timestamp: Date.now(),
           });
+          if (subCacheParams.lang === "spl") {
+            await putCachedSub(kv, { ...subCacheParams, lang: "spa" }, {
+              srt,
+              smartSync: { ratio: 1.0 },
+              allBatchesOk: true,
+              timestamp: Date.now(),
+            });
+          }
         } catch { /* sin cache */ }
       }
       return new Response(srt, {

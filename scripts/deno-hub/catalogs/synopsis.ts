@@ -3,7 +3,7 @@
  * Pasa AIOMetadata intacto y reescribe la sinopsis en español latino cuando es corta o está en inglés.
  */
 
-import { cors, jsonResponse, parseStremioSubId, getKv, safeGetKv } from "../utils/common.ts";
+import { cors, jsonResponse, getKv, safeGetKv } from "../utils/common.ts";
 import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache.ts";
 import { fetchCinemetaMeta, canonicalImdbId } from "../utils/cinemeta.ts";
 import { getLocalizedTrailersWithFallback, tmdbGet } from "./tmdb.ts";
@@ -301,12 +301,73 @@ export async function handleMeta(
     }
   }
 
-  // 5. Guardar en Deno KV
+  // 5. Compatibilidad Android TV v1.12.0: Fechas canónicas ISO-8601 para el nuevo Calendario y Grid
+  normalizeMetaDatesForAndroidTv(meta, type);
+
+  // 6. Guardar en Deno KV
   if (kv) {
     kv.set(cacheKey, meta, { expireIn: META_CACHE_TTL_MS }).catch(() => {});
   }
 
   return jsonResponse({ meta });
+}
+
+// deno-lint-ignore no-explicit-any
+export function normalizeMetaDatesForAndroidTv(meta: any, type: string): void {
+  if (!meta) return;
+
+  const toIsoDate = (val: unknown): string | undefined => {
+    if (!val) return undefined;
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      if (/^\d{4}-\d{2}-\d{2}(T|\b)/.test(trimmed)) {
+        try {
+          const d = new Date(trimmed);
+          if (!isNaN(d.getTime())) return d.toISOString();
+        } catch { /* ignore */ }
+      }
+      if (/^\d{4}$/.test(trimmed)) {
+        return `${trimmed}-01-01T00:00:00.000Z`;
+      }
+    } else if (typeof val === "number" && !isNaN(val)) {
+      try {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) return d.toISOString();
+      } catch { /* ignore */ }
+    }
+    return undefined;
+  };
+
+  const isoReleased = toIsoDate(meta.released) || toIsoDate(meta.firstAired) || toIsoDate(meta.year);
+  if (isoReleased) {
+    meta.released = isoReleased;
+  }
+
+  if (type === "series") {
+    meta.firstAired = toIsoDate(meta.firstAired) || meta.released;
+  }
+
+  if (!meta.releaseInfo && meta.released) {
+    meta.releaseInfo = String(meta.released).slice(0, 4);
+  }
+
+  if (Array.isArray(meta.videos)) {
+    for (const v of meta.videos) {
+      if (!v) continue;
+      if (typeof v.season !== "number" && v.season) v.season = parseInt(String(v.season), 10);
+      if (typeof v.number !== "number" && (v.episode || v.number)) {
+        v.number = parseInt(String(v.episode ?? v.number), 10);
+      }
+      if (v.number !== undefined && v.episode === undefined) {
+        v.episode = v.number;
+      }
+      const epDate = toIsoDate(v.released) || toIsoDate(v.firstAired);
+      if (epDate) {
+        v.released = epDate;
+        v.firstAired = epDate;
+      }
+    }
+  }
 }
 
 export async function handleSynopsis(subPath: string): Promise<Response> {

@@ -15,9 +15,9 @@ subtitlesApp.use("*", cors({ origin: "*", allowMethods: ["GET", "OPTIONS"] }));
 
 export const SUBTITLES_APP_MANIFEST = {
   id: "com.mejorastremio.subtitles",
-  version: "2.1.0",
+  version: "2.2.0",
   name: "MejoraStremio Subtítulos (Multi-Fuente + IA)",
-  description: "Ingesta multi-fuente de SubDL, OpenSubtitles v3, SubSource, Wyzie y Traducción IA Gemini Flash sin SDH.",
+  description: "Ingesta multi-fuente de SubDL, OpenSubtitles v3, SubSource, SubSense y Traducción IA Gemini Flash sin SDH.",
   resources: ["subtitles"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
@@ -193,6 +193,39 @@ export async function fetchWyzieSubs(imdbId: string, season?: number, episode?: 
   }
 }
 
+// E) SubSense / Addic7ed Aggregator API
+export async function fetchSubSense(imdbId: string, season?: number, episode?: number) {
+  try {
+    const isSeries = season !== undefined && episode !== undefined;
+    const mediaType = isSeries ? "series" : "movie";
+    const epSuffix = isSeries ? `:${season}:${episode}` : "";
+    const targetId = `${imdbId}${epSuffix}`;
+
+    const url = `https://subsense.nepiraw.com/subtitles/${mediaType}/${targetId}.json`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(4500),
+      headers: {
+        "User-Agent": "MejoraStremioHub v1.4.0",
+        "Accept": "application/json",
+      },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const subs = Array.isArray(data?.subtitles) ? data.subtitles : [];
+
+    // deno-lint-ignore no-explicit-any
+    return subs.map((s: any) => ({
+      id: `subsense-${s.id || s.url?.slice(-16) || Math.random().toString(36).slice(2)}`,
+      url: s.url,
+      lang: s.lang || "es-419",
+      name: `📡 Latino (SubSense) · ${s.name || s.filename || "WEB-DL"}`,
+      hi: Boolean(s.hi || s.hearing_impaired),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 // ============================================================================
 // 4. MOTOR DE TRADUCCIÓN IA GEMINI FLASH (<1.5s FAST-WINDOW)
 // ============================================================================
@@ -263,6 +296,7 @@ async function handleSubtitlesRoute(_type: string, rawId: string, reqUrl: URL): 
         withScraperTimeout(fetchOpenSubtitlesV3(imdbId, season, episode), 450, "opensubtitles"),
         withScraperTimeout(fetchSubSource(imdbId), 450, "subsource"),
         withScraperTimeout(fetchWyzieSubs(imdbId, season, episode), 450, "wyziesubs"),
+        withScraperTimeout(fetchSubSense(imdbId, season, episode), 450, "subsense"),
       ]);
       return results.flatMap((r) => (r.status === "fulfilled" && Array.isArray(r.value) ? r.value : []));
     },

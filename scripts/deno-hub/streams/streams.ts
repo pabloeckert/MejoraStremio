@@ -38,13 +38,68 @@ export const STREAMS_MANIFEST = {
 
 export const ALLOWED_TORRENTIO_HOSTS = new Set(["torrentio.strem.fun"]);
 
-export const COMET_TORBOX_URL =
-  "https://comet.feels.legal/eyJtYXhSZXN1bHRzUGVyUmVzb2x1dGlvbiI6MTAsIm1heFNpemUiOjAsImNhY2hlZE9ubHkiOmZhbHNlLCJyZW1vdmVUcmFzaCI6dHJ1ZSwicmVzdWx0Rm9ybWF0IjpbImFsbCJdLCJkZWJyaWRTZXJ2aWNlIjoidG9ycmVudCIsImRlYnJpZEFwaUtleSI6IiIsImRlYnJpZFN0cmVhbVByb3h5UGFzc3dvcmQiOiIiLCJsYW5ndWFnZXMiOnsiZXhjbHVkZSI6W10sInByZWZlcnJlZCI6WyJsYSIsImVuIl19LCJyZXNvbHV0aW9ucyI6eyJyMjQwcCI6ZmFsc2UsInIzNjBwIjpmYWxzZSwicjQ4MHAiOmZhbHNlLCJ1bmtub3duIjpmYWxzZX0sIm9wdGlvbnMiOnsicmVtb3ZlX3JhbmtzX3VuZGVyIjotMTAwMDAwMDAwMDAsImFsbG93X2VuZ2xpc2hfaW5fbGFuZ3VhZ2VzIjp0cnVlLCJyZW1vdmVfdW5rbm93bl9sYW5ndWFnZXMiOmZhbHNlfSwiZGVicmlkU2VydmljZXMiOlt7InNlcnZpY2UiOiJ0b3Jib3giLCJhcGlLZXkiOiI5ZmU1YzIwMi0xNWVjLTRhZWItYjRlNy04NjEzNzI4Y2YwNDQifV0sImVuYWJsZVRvcnJlbnQiOmZhbHNlLCJzb3J0Q2FjaGVkVW5jYWNoZWRUb2dldGhlciI6ZmFsc2V9/";
+export const DEFAULT_TORBOX_API_KEY = "9fe5c202-15ec-4aeb-b4e7-8613728cf044";
+
+export function extractTorboxApiKey(configSegment = "", url?: URL): string {
+  const match = configSegment.match(/torbox=([a-zA-Z0-9_-]+)/);
+  if (match) return match[1];
+  const qTorbox = url?.searchParams?.get("torbox");
+  if (qTorbox) return qTorbox;
+  const envKey = (typeof Deno !== "undefined" && Deno.env?.get?.("TORBOX_API_KEY")) ||
+    (typeof process !== "undefined" && process.env?.TORBOX_API_KEY);
+  return envKey || DEFAULT_TORBOX_API_KEY;
+}
+
+export function buildCometTorboxUrl(torboxKey = DEFAULT_TORBOX_API_KEY): string {
+  const config = {
+    maxResultsPerResolution: 10,
+    maxSize: 0,
+    cachedOnly: false,
+    removeTrash: true,
+    resultFormat: ["all"],
+    debridService: "torrent",
+    debridApiKey: "",
+    debridStreamProxyPassword: "",
+    languages: { exclude: [], preferred: ["la", "en"] },
+    resolutions: { r240p: false, r360p: false, r480p: false, unknown: false },
+    options: {
+      remove_ranks_under: -10000000000,
+      allow_english_in_languages: true,
+      remove_unknown_languages: false,
+    },
+    debridServices: [{ service: "torbox", apiKey: torboxKey }],
+    enableTorrent: false,
+    sortCachedUncachedTogether: false,
+  };
+  const b64 = btoa(JSON.stringify(config));
+  return `https://comet.feels.legal/${b64}/`;
+}
+
+export function buildMediaFusionTorboxUrl(torboxKey = DEFAULT_TORBOX_API_KEY): string {
+  const config = {
+    streaming_provider: {
+      service: "torbox",
+      token: torboxKey,
+      only_show_cached_streams: false,
+    },
+    selected_catalogs: [],
+    selected_resolutions: ["4k", "1080p", "720p"],
+    enable_catalogs: false,
+    prefer_dubbed_media: true,
+    dubbed_languages: ["Spanish (Latin America)", "Latino"],
+  };
+  const b64 = btoa(JSON.stringify(config));
+  return `https://mediafusion.elfhosted.com/${b64}/`;
+}
+
+export const COMET_TORBOX_URL = buildCometTorboxUrl(DEFAULT_TORBOX_API_KEY);
 
 export async function fetchStreamEndpoint(url: string, timeoutMs = 12000): Promise<StremioStreamItem[]> {
   const start = Date.now();
   const isTorbox = url.includes("torbox") || url.includes("comet");
   const isTorrentio = url.includes("torrentio");
+  const isComet = url.includes("comet.feels.legal");
+  const isMediaFusion = url.includes("mediafusion");
 
   try {
     const res = await fetch(url, {
@@ -57,6 +112,8 @@ export async function fetchStreamEndpoint(url: string, timeoutMs = 12000): Promi
     const duration = Date.now() - start;
     if (isTorbox) recordTorboxLatency(duration);
     if (isTorrentio) recordScraperLatency("torrentio", duration);
+    if (isComet) recordScraperLatency("comet", duration);
+    if (isMediaFusion) recordScraperLatency("mediafusion", duration);
 
     if (!res.ok) return [];
     const data = await res.json();
@@ -65,6 +122,8 @@ export async function fetchStreamEndpoint(url: string, timeoutMs = 12000): Promi
     const duration = Date.now() - start;
     if (isTorbox) recordTorboxLatency(duration);
     if (isTorrentio) recordScraperLatency("torrentio", duration, true);
+    if (isComet) recordScraperLatency("comet", duration, true);
+    if (isMediaFusion) recordScraperLatency("mediafusion", duration, true);
     return [];
   }
 }
@@ -106,9 +165,16 @@ export async function resolveFallbackStreams(
     }
   };
 
-  // 2. Consulta de fallback a Comet (TorBox Debrid) con el ID original
-  const cometStreams = await fetchStreamEndpoint(`${COMET_TORBOX_URL}stream/${type}/${cleanId}.json`, 8000);
+  // 2. Consulta de fallback a Comet (TorBox Debrid) y MediaFusion con el ID original
+  const torboxKey = extractTorboxApiKey();
+  const cometUrl = buildCometTorboxUrl(torboxKey);
+  const mediafusionUrl = buildMediaFusionTorboxUrl(torboxKey);
+  const [cometStreams, mfStreams] = await Promise.all([
+    fetchStreamEndpoint(`${cometUrl}stream/${type}/${cleanId}.json`, 8000),
+    fetchStreamEndpoint(`${mediafusionUrl}stream/${type}/${cleanId}.json`, 6000),
+  ]);
   addStreams(cometStreams);
+  addStreams(mfStreams);
 
   // 3. Si aún no hay streams y tenemos título, buscar IDs alternativos en Cinemeta por Título + Año
   if (fallbackStreams.length === 0 && title) {
@@ -375,18 +441,25 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
   const isTheWalk = cleanId.startsWith("tt3488710") || cleanId.startsWith("tt3488720");
   const targetIds = isTheWalk ? ["tt3488710", "tt3488720"] : [cleanId];
 
-  const cacheKey = ["streams_v142", type, cleanId, configSegment || "default"];
+  const torboxKey = extractTorboxApiKey(configSegment, url);
+  const cometBase = buildCometTorboxUrl(torboxKey);
+  const mediafusionBase = buildMediaFusionTorboxUrl(torboxKey);
+
+  const cacheKey = ["streams_v143", type, cleanId, configSegment || "default"];
 
   try {
     const rawStreams = await getOrSetSwrCache<StremioStreamItem[]>(
       cacheKey,
       async () => {
-        const responses = await Promise.allSettled(
-          targetIds.map(async (tid) => {
-            const targetUrl = `${upstreamBase}stream/${type}/${tid}.json`;
-            return await fetchStreamEndpoint(targetUrl, 15000);
-          })
-        );
+        // Multi-Scraper Paralelo: Torrentio + Comet (TorBox) + MediaFusion (TorBox)
+        const fetchTasks: Promise<StremioStreamItem[]>[] = [];
+        for (const tid of targetIds) {
+          fetchTasks.push(fetchStreamEndpoint(`${upstreamBase}stream/${type}/${tid}.json`, 15000));
+          fetchTasks.push(fetchStreamEndpoint(`${cometBase}stream/${type}/${tid}.json`, 8000));
+          fetchTasks.push(fetchStreamEndpoint(`${mediafusionBase}stream/${type}/${tid}.json`, 6000));
+        }
+
+        const responses = await Promise.allSettled(fetchTasks);
 
         const collected: StremioStreamItem[] = [];
         const seen = new Set<string>();

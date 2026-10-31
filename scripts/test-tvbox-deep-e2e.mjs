@@ -23,7 +23,7 @@
  * Node >= 20, sin dependencias externas.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -123,9 +123,17 @@ try {
 
   // 1.2 Inicio de Deno Hub Local para Validar Nuevas Funcionalidades
   console.log('\n  1.2 Inicialización de Edge Runtime en Cold-Boot:');
-  const denoCmd = process.platform === 'win32' ? 'deno.exe' : 'deno';
-  localServerProcess = spawn(denoCmd, ['run', '--allow-net', '--allow-env', join(ROOT, 'scripts', 'deno-hub.ts')], {
+  let denoCmd = 'deno';
+  if (process.platform === 'win32') {
+    const userProfile = process.env.USERPROFILE || '';
+    const winDeno = join(userProfile, '.deno', 'bin', 'deno.exe');
+    if (existsSync(winDeno)) {
+      denoCmd = winDeno;
+    }
+  }
+  localServerProcess = spawn(denoCmd, ['run', '--allow-all', join(ROOT, 'scripts', 'deno-hub.ts')], {
     env: { ...process.env, PORT: String(LOCAL_PORT) },
+    shell: process.platform === 'win32',
     stdio: 'ignore',
   });
 
@@ -166,6 +174,7 @@ try {
     { name: 'Smart Stream Interceptor', path: '/streams/manifest.json', id: 'com.mejorastremio.streams', resource: 'stream' },
     { name: 'Traducción IA (Gemini)', path: '/translate/manifest.json', id: 'com.mejorastremio.translate', resource: 'subtitles' },
     { name: 'Audio Latino Catálogo', path: '/latino/manifest.json', id: 'com.mejorastremio.latino-catalog', resource: 'catalog' },
+    { name: 'Tráilers Oficiales Latino', path: '/trailers/manifest.json', id: 'com.mejorastremio.trailers-latino', resource: 'stream' },
     { name: 'MejoraStremio Hub Unificado', path: '/manifest.json', id: 'com.mejorastremio.hub', resource: 'stream' },
   ];
 
@@ -465,7 +474,7 @@ try {
   const { res: srtRes, latency: srtLatency } = await fetchWithTimeout(srtUrl, {}, 20000);
   assert(results.pass2_playback, 'Descarga exitosa de archivo SRT desde el proxy', srtRes?.status === 200, `Latencia: ${srtLatency}ms`);
 
-  const srtText = await srtRes.text();
+  const srtText = srtRes && srtRes.status === 200 ? await srtRes.text() : '';
   assert(results.pass2_playback, 'Payload SRT con tamaño sustancial (>20 KB)', srtText.length > 20000, `${srtText.length} bytes`);
 
   // Parseo de cues usando estructura estandarizada { id, startMs, endMs, text }
@@ -549,6 +558,17 @@ try {
   if (trSubsInex[0]?.url) {
     const srtInexRes = await fetchWithTimeout(trSubsInex[0].url, {}, 5000);
     assert(results.pass2_playback, 'Descarga exitosa de SRT de fallback sintético universal', srtInexRes.res?.status === 200, `HTTP ${srtInexRes.res?.status}`);
+  }
+
+  // 2.4.2 Verificación de Addon de Tráilers Oficiales Latino
+  console.log('\n  2.4.2 Caso 4.2: Verificación de Tráilers Oficiales Latino (/trailers):');
+  const trailerFetch = await fetchJson(`${LOCAL_HUB_BASE}/trailers/stream/movie/tt3488710.json`);
+  const trailerStreams = trailerFetch.data?.streams || [];
+  assert(results.pass2_playback, 'Entrega de streams de trailer oficial para tt3488710', trailerStreams.length > 0, `${trailerStreams.length} trailer streams`);
+  if (trailerStreams.length > 0) {
+    const topTrailer = trailerStreams[0];
+    assert(results.pass2_playback, 'Badging semántico de trailer oficial o latino', topTrailer.name?.includes('TRÁILER'), topTrailer.name);
+    assert(results.pass2_playback, 'Inclusión de ytId para reproducción nativa en Android TV', typeof topTrailer.ytId === 'string' && topTrailer.ytId.length > 0, `ytId: ${topTrailer.ytId}`);
   }
 
   // 2.5 Caso 5: Simulación de Suspensión y Reanudación (Standby / Warm Resume)

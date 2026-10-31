@@ -106,6 +106,7 @@ export async function handleHealth(reqUrl?: URL, req?: Request): Promise<Respons
     iptv: { configured: true },
     mediathek: { configured: true },
     streams: { configured: true, upstream: "https://torrentio.strem.fun/" },
+    trailers: { configured: true, manifest: "com.mejorastremio.trailers-latino" },
     mediaflow: {
       configured: !!getMediaFlowConfig(url).proxyUrl,
       proxyHost: getMediaFlowConfig(url).proxyUrl ? "configured (redacted)" : "none",
@@ -136,6 +137,7 @@ export async function handleHealth(reqUrl?: URL, req?: Request): Promise<Respons
       iptv: { configured: true },
       mediathek: { configured: true },
       streams: { configured: true, upstream: "https://torrentio.strem.fun/" },
+      trailers: { configured: true, manifest: "com.mejorastremio.trailers-latino" },
       mediaflow: {
         configured: !!getMediaFlowConfig(url).proxyUrl,
         proxyHost: getMediaFlowConfig(url).proxyUrl ? "configured (redacted)" : "none",

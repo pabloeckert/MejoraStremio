@@ -5928,8 +5928,8 @@
                 "without_genres": "99,10767",
                 "with_release_type": "2|3",
                 "region": "AR",
-                "primary_release_date.gte": "2026-08-23",
-                "primary_release_date.lte": "2026-10-22"
+                "primary_release_date.gte": "2026-09-01",
+                "primary_release_date.lte": "2026-10-31"
               },
               "formState": {
                 "catalogName": "En Cartelera",
@@ -5965,7 +5965,9 @@
                 "runtimeRange": [
                   0,
                   400
-                ]
+                ],
+                "primaryReleaseFrom": "2026-09-01",
+                "primaryReleaseTo": "2026-10-31"
               }
             }
           }
@@ -5986,14 +5988,14 @@
               "mediaType": "series",
               "params": {
                 "sort_by": "first_air_date.desc",
-                "vote_count.gte": 5,
+                "vote_count.gte": 1,
                 "vote_average.gte": 5.5,
                 "with_original_language": "en|es|pt|fr|it|de",
                 "with_origin_country": "US|GB|AR|ES",
                 "include_adult": false,
                 "without_genres": "99,10767",
-                "first_air_date.gte": "2026-08-23",
-                "first_air_date.lte": "2026-10-22"
+                "first_air_date.gte": "2026-09-01",
+                "first_air_date.lte": "2026-10-31"
               },
               "formState": {
                 "catalogName": "En Cartelera (Series)",
@@ -6025,11 +6027,13 @@
                   5.5,
                   10
                 ],
-                "voteCountMin": 5,
+                "voteCountMin": 1,
                 "runtimeRange": [
                   0,
                   400
-                ]
+                ],
+                "firstAirFrom": "2026-09-01",
+                "firstAirTo": "2026-10-31"
               }
             }
           }
@@ -6056,7 +6060,7 @@
                 "with_origin_country": "US|GB|AR|ES",
                 "include_adult": false,
                 "without_genres": "99,10767",
-                "primary_release_date.gte": "2026-10-22",
+                "primary_release_date.gte": "2026-10-31",
                 "primary_release_date.lte": "2027-01-20"
               },
               "formState": {
@@ -6093,7 +6097,8 @@
                 "runtimeRange": [
                   0,
                   400
-                ]
+                ],
+                "primaryReleaseFrom": "2026-10-31"
               }
             }
           }
@@ -6120,7 +6125,7 @@
                 "with_origin_country": "US|GB|AR|ES",
                 "include_adult": false,
                 "without_genres": "99,10767",
-                "first_air_date.gte": "2026-10-22",
+                "first_air_date.gte": "2026-10-31",
                 "first_air_date.lte": "2027-01-20"
               },
               "formState": {
@@ -6157,7 +6162,8 @@
                 "runtimeRange": [
                   0,
                   400
-                ]
+                ],
+                "firstAirFrom": "2026-10-31"
               }
             }
           }

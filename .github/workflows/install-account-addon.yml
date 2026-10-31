@@ -10,6 +10,7 @@ on:
         description: 'Cuenta'
         type: choice
         options:
+          - eg
           - jn
           - teen
         required: true
@@ -47,6 +48,14 @@ jobs:
             echo "Formato de position inválido: $RAW" >&2
             exit 1
           fi
+
+      - name: Instalar addon (eg)
+        if: inputs.account == 'eg'
+        run: |
+          set -o pipefail
+          ST_EMAIL="${{ secrets.STREMIO_EMAIL }}" \
+          ST_PASS="${{ secrets.STREMIO_PASS }}" \
+          node scripts/install-addon.mjs "${{ inputs.manifest_url }}" ${{ steps.pos.outputs.flag }} ${{ inputs.apply == true && '--apply' || '' }}
 
       - name: Instalar addon (jn)
         if: inputs.account == 'jn'

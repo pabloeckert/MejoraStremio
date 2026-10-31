@@ -33,6 +33,13 @@
         "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=3.1.0-ca3afdd",
         "canonicalStremioUrl": "stremio://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino/manifest.json?v=3.1.0-ca3afdd",
         "position": 0
+      },
+      "trailersAddon": {
+        "id": "com.mejorastremio.trailers-latino",
+        "name": "Tráilers Oficiales Latino (MejoraStremio)",
+        "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/trailers/manifest.json",
+        "canonicalStremioUrl": "stremio://mejorastremio-hub.pabloeckert.deno.net/trailers/manifest.json",
+        "position": 1
       }
     },
     "audio": {

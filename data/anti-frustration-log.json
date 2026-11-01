@@ -142,6 +142,11 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
+      },
+      "Tráilers Oficiales Latino (MejoraStremio)": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
       }
     },
     "totalReal": 0,
@@ -149,7 +154,7 @@
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-10-25T17:55:09.593Z"
+    "lastCheckedAt": "2026-11-01T19:15:06.345Z"
   },
   {
     "id": "tt2380307",
@@ -1557,6 +1562,11 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
+      },
+      "Tráilers Oficiales Latino (MejoraStremio)": {
+        "total": 0,
+        "real": 0,
+        "unverifiable": false
       }
     },
     "totalReal": 0,
@@ -1564,7 +1574,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E03",
     "addedAt": "2026-08-23T02:20:55.820Z",
-    "lastCheckedAt": "2026-10-25T17:55:10.079Z"
+    "lastCheckedAt": "2026-11-01T19:15:08.375Z"
   },
   {
     "id": "tt23112594",
@@ -1703,13 +1713,18 @@
         "total": 0,
         "real": 0,
         "unverifiable": false
+      },
+      "Tráilers Oficiales Latino (MejoraStremio)": {
+        "total": 1,
+        "real": 1,
+        "unverifiable": false
       }
     },
-    "totalReal": 0,
+    "totalReal": 1,
     "status": "pendiente",
     "latino": null,
     "label": "Ágata y Lola S01E09",
     "addedAt": "2026-09-04T13:17:22.882Z",
-    "lastCheckedAt": "2026-10-25T17:55:11.087Z"
+    "lastCheckedAt": "2026-11-01T19:15:12.999Z"
   }
 ]

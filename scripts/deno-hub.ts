@@ -123,6 +123,8 @@ export {
   handleStreams,
   buildCometTorboxUrl,
   buildMediaFusionTorboxUrl,
+  resolveMediaFusionTorboxUrl,
+  DEFAULT_MEDIAFUSION_TOKEN,
   extractTorboxApiKey,
 } from "./deno-hub/streams/streams.ts";
 

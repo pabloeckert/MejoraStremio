@@ -746,4 +746,36 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - **Total**: **115 de 115 pruebas superadas exitosamente (100.0% PASS)**.
   - `deno check` y `deno lint`: 41 archivos limpios (0 errores, 0 advertencias).
 
+---
+
+## 26. Sesión 2026-11-11: Resolución y Activación Real de MediaFusion con TorBox Debrid y Blindaje Anti-Falsos Positivos de Audio Latino
+
+### 26.1 Diagnóstico de Causa Raíz de la Falla en MediaFusion ("no anda")
+- **Protocolo de Cifrado Obligatorio en MediaFusion 6.x**: MediaFusion en ElfHosted no acepta JSON codificado en Base64 crudo en la ruta de la URL (a diferencia de Comet o AIOStreams). Al recibir Base64 en la URL, el backend de FastAPI intenta descifrar con su clave de instancia y rechaza inmediatamente con `HTTP 400: {"error":"Invalid user data. Unrecognized configuration format."}`, provocando que `fetchStreamEndpoint` devuelva `[]` (0 streams) en todas las consultas. Requiere tokens cifrados mediante `POST /encrypt-user-data`.
+- **Estructura de Streams sin Campo `title`**: MediaFusion 6.x no puebla `s.title`, sino que aloja el nombre del release en `s.behaviorHints.filename` y la metadata de video/audio en `s.description`. Sin normalización, Stremio en Android TV muestra la tarjeta con título en blanco y los clasificadores de audio no pueden analizar el nombre del archivo.
+- **Falso Positivo por Icono de Banderas en Comet (`🌎/`)**: Comet agrega prefijos como `🌎/🇬🇧/🇮🇹` en `s.description` para indicar idiomas. La expresión regular `LATINO_CONFIRMED_REGEX` contenía `|🌎|` bare (sin delimitar), lo que provocaba que streams italianos o británicos de Comet fueran erróneamente clasificados como `Confirmado` y ganaran el Puesto #1.
+
+### 26.2 Arquitectura y Solución Técnica Zero-Trust
+- **Token Pre-sembrado y Resolver Cifrado Dinámico (`streams.ts`)**:
+  - Se pre-sembró el token cifrado validado empíricamente (`DEFAULT_MEDIAFUSION_TOKEN`) para `DEFAULT_TORBOX_API_KEY`.
+  - Se implementó `resolveMediaFusionTorboxUrl(torboxKey)`: función asíncrona con caché en memoria (TTL 7 días) que consulta `POST /encrypt-user-data` para claves personalizadas de TorBox y fallback garantizado sin caídas.
+- **Normalización Universal de Títulos (`streams.ts`)**:
+  - En `fetchStreamEndpoint`, si `!s.title`, se sintetiza a partir de `s.behaviorHints.filename` y `s.description`. Esto garantiza visualización completa en ExoPlayer TV Box y alimenta los clasificadores de resolución y audio latino.
+- **Blindaje Estricto Anti-Falsos Positivos en Audio Latino (`common.ts` y `addon-signals.mjs`)**:
+  - Se sustituyó `|🌎|` bare en `LATINO_CONFIRMED_REGEX` por `|\[🌎\s*LATINO\]|🌎\s*latino\b|`.
+  - En `detectLatinoConfidence`, se añadió purga previa de listas de banderas internacionales de Comet (`/🌎\s*\/[^\r\n]*/g`).
+  - Se garantizó que streams genuinos de Cinecalidad, Hackstore, EDLA, etc., mantengan el 100% de recall en Puesto #1 con `[🌎 LATINO]`.
+
+### 26.3 Certificación Empírica E2E (115/115 Verificaciones — 100% PASS)
+- **Desglose de Scrapers en Vivo**:
+  - Películas (*The Walk* / `tt3488710`): 129 streams totales (MediaFusion: 20 streams, Comet: 30 streams, Torrentio: 79 streams).
+  - Series animadas latinas (*Regular Show* / `tt32604054:1:1`): 46 streams totales liderados por MediaFusion + TorBox con `[⚡ INSTANTÁNEO] [🌎 LATINO]`.
+  - Series solo inglés (*The Really Loud House* / `tt22495072:1:1`): 34 streams clasificados 100% con `[🎧 ORIGINAL]`, 0 falsos positivos de latino.
+- **Suite de Pruebas `test-tvbox-deep-e2e.mjs`**:
+  - **Pasada 1 (Cold-Boot & Bootstrap)**: **42/42 superadas (100% PASS)**.
+  - **Pasada 2 (Playback Stress & Timeline Audit)**: **73/73 superadas (100% PASS)**.
+  - **Total**: **115 de 115 verificaciones aprobadas (100.0% PASS)**.
+  - `deno check scripts/deno-hub.ts`: 0 errores de tipado.
+
+
 

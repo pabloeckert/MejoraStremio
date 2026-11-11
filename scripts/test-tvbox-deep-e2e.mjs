@@ -362,7 +362,7 @@ try {
 
   // 2.1 Caso 1: Título con Doblaje Latino Disponible ("Un show más", tt32604054:1:1)
   console.log('\n  2.1 Caso 1: Solicitud de Streams para Contenido Latino ("Un show más"):');
-  const show1Fetch = await fetchJson(`${PROD_HUB_BASE}/streams/series/tt32604054:1:1.json`);
+  const show1Fetch = await fetchJson(`${LOCAL_HUB_BASE}/streams/series/tt32604054:1:1.json`);
   const show1Streams = show1Fetch.data?.streams || [];
   assert(results.pass2_playback, 'Entrega de streams para tt32604054:1:1', show1Streams.length > 0, `${show1Streams.length} streams recibidos`);
 
@@ -402,7 +402,7 @@ try {
 
   // 2.2 Caso 2: Título Exclusivamente en Inglés ("The Really Loud House", tt22495072:1:1)
   console.log('\n  2.2 Caso 2: Advertencia Preventiva en Contenido Solo Inglés ("The Really Loud House"):');
-  const show2Fetch = await fetchJson(`${PROD_HUB_BASE}/streams/series/tt22495072:1:1.json`);
+  const show2Fetch = await fetchJson(`${LOCAL_HUB_BASE}/streams/series/tt22495072:1:1.json`);
   const show2Streams = show2Fetch.data?.streams || [];
   assert(results.pass2_playback, 'Entrega de streams para tt22495072:1:1', show2Streams.length > 0, `${show2Streams.length} streams recibidos`);
 
@@ -574,7 +574,7 @@ try {
   // 2.5 Caso 5: Simulación de Suspensión y Reanudación (Standby / Warm Resume)
   console.log('\n  2.5 Caso 5: Simulación de Suspensión y Reanudación (Warm Resume):');
   await sleep(300); // Emular micro-suspensión de pantalla
-  const warmHealth = await fetchJson(`${PROD_HUB_BASE}/health`);
+  const warmHealth = await fetchJson(`${LOCAL_HUB_BASE}/health?token=test_telemetry_secret`);
   assert(results.pass2_playback, 'Reanudación instantánea desde standby sin pérdida de sesión', warmHealth.status === 200, `Latencia: ${warmHealth.latency}ms`);
 
 } finally {

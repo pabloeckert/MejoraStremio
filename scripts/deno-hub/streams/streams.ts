@@ -75,21 +75,74 @@ export function buildCometTorboxUrl(torboxKey = DEFAULT_TORBOX_API_KEY): string 
   return `https://comet.feels.legal/${b64}/`;
 }
 
+export const DEFAULT_MEDIAFUSION_TOKEN =
+  "D-sHeiR7BjnBWdrhQ6KBsamTNyEnA8A-UFgC6wHjXdAClQnueRtCAvgu1KzGcwVCUGOnBM1QOXaM1_xEfSpo0pPsqIaoiFT0fHu7A3ZzyjD1QJZoqqZ2Phb1aBUrBsZCW_2tSEZtVi6v7ftvWXEXqU14vP22mm757v2C9zUljOzwpee9dhswhydGD_FMNk5bzEgy5nd37kWk_Cc9WTBUAUo4iWarxX2jtbUO48JODc2CY87hGYjOfIUPI49QvOXKfEnTU7x5HfutxjXqSfJHNrnX_Ruh9j-xsP_Y1YPHOsrLI9XYm-Aj7rvA-RaxxND-2D";
+
+const mediafusionTokenCache = new Map<string, { token: string; expiresAt: number }>();
+mediafusionTokenCache.set(DEFAULT_TORBOX_API_KEY, {
+  token: DEFAULT_MEDIAFUSION_TOKEN,
+  expiresAt: Date.now() + 30 * 86400 * 1000,
+});
+
 export function buildMediaFusionTorboxUrl(torboxKey = DEFAULT_TORBOX_API_KEY): string {
-  const config = {
-    streaming_provider: {
-      service: "torbox",
-      token: torboxKey,
-      only_show_cached_streams: false,
-    },
-    selected_catalogs: [],
-    selected_resolutions: ["4k", "1080p", "720p"],
-    enable_catalogs: false,
-    prefer_dubbed_media: true,
-    dubbed_languages: ["Spanish (Latin America)", "Latino"],
-  };
-  const b64 = btoa(JSON.stringify(config));
-  return `https://mediafusion.elfhosted.com/${b64}/`;
+  const cached = mediafusionTokenCache.get(torboxKey);
+  const token = cached ? cached.token : DEFAULT_MEDIAFUSION_TOKEN;
+  return `https://mediafusion.elfhosted.com/${token}/`;
+}
+
+export async function resolveMediaFusionTorboxUrl(torboxKey = DEFAULT_TORBOX_API_KEY): Promise<string> {
+  const cached = mediafusionTokenCache.get(torboxKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return `https://mediafusion.elfhosted.com/${cached.token}/`;
+  }
+
+  try {
+    const config = {
+      streaming_provider: {
+        name: "TorBox",
+        service: "torbox",
+        token: torboxKey,
+        only_show_cached_streams: false,
+        enabled: true,
+        priority: 0,
+        use_mediaflow: false,
+      },
+      streaming_providers: [
+        {
+          name: "TorBox",
+          service: "torbox",
+          token: torboxKey,
+          only_show_cached_streams: false,
+          enabled: true,
+          priority: 0,
+          use_mediaflow: false,
+        },
+      ],
+      selected_resolutions: ["4k", "1080p", "720p"],
+      enable_catalogs: false,
+      enable_imdb_metadata: true,
+    };
+
+    const res = await fetch("https://mediafusion.elfhosted.com/encrypt-user-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (!res.ok) return buildMediaFusionTorboxUrl(torboxKey);
+    const data = await res.json();
+    if (!data?.encrypted_str) return buildMediaFusionTorboxUrl(torboxKey);
+
+    mediafusionTokenCache.set(torboxKey, {
+      token: data.encrypted_str,
+      expiresAt: Date.now() + 7 * 86400 * 1000,
+    });
+
+    return `https://mediafusion.elfhosted.com/${data.encrypted_str}/`;
+  } catch {
+    return buildMediaFusionTorboxUrl(torboxKey);
+  }
 }
 
 export const COMET_TORBOX_URL = buildCometTorboxUrl(DEFAULT_TORBOX_API_KEY);
@@ -117,7 +170,19 @@ export async function fetchStreamEndpoint(url: string, timeoutMs = 12000): Promi
 
     if (!res.ok) return [];
     const data = await res.json();
-    return Array.isArray(data?.streams) ? (data.streams as StremioStreamItem[]) : [];
+    const rawStreams = Array.isArray(data?.streams) ? (data.streams as StremioStreamItem[]) : [];
+    return rawStreams.map((s) => {
+      let title = s.title;
+      if (!title) {
+        const fn = (s.behaviorHints as { filename?: string })?.filename || "";
+        if (fn && s.description) {
+          title = `${fn}\n${s.description}`;
+        } else {
+          title = s.description || fn || "";
+        }
+      }
+      return { ...s, title };
+    });
   } catch {
     const duration = Date.now() - start;
     if (isTorbox) recordTorboxLatency(duration);
@@ -168,7 +233,7 @@ export async function resolveFallbackStreams(
   // 2. Consulta de fallback a Comet (TorBox Debrid) y MediaFusion con el ID original
   const torboxKey = extractTorboxApiKey();
   const cometUrl = buildCometTorboxUrl(torboxKey);
-  const mediafusionUrl = buildMediaFusionTorboxUrl(torboxKey);
+  const mediafusionUrl = await resolveMediaFusionTorboxUrl(torboxKey);
   const [cometStreams, mfStreams] = await Promise.all([
     fetchStreamEndpoint(`${cometUrl}stream/${type}/${cleanId}.json`, 8000),
     fetchStreamEndpoint(`${mediafusionUrl}stream/${type}/${cleanId}.json`, 6000),
@@ -443,7 +508,7 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
 
   const torboxKey = extractTorboxApiKey(configSegment, url);
   const cometBase = buildCometTorboxUrl(torboxKey);
-  const mediafusionBase = buildMediaFusionTorboxUrl(torboxKey);
+  const mediafusionBase = await resolveMediaFusionTorboxUrl(torboxKey);
 
   const cacheKey = ["streams_v143", type, cleanId, configSegment || "default"];
 

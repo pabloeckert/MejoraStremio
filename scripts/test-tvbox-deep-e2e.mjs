@@ -293,6 +293,14 @@ try {
   }
   assert(results.pass1_coldboot, 'Top 5 títulos de Estrenos Streaming con streams activos y funcionales', topStreamingStreamsOk, `${topStreaming.length} testeados`);
 
+  const catMiniFetch = await fetchJson(`${LOCAL_HUB_BASE}/discover/catalog/series/miniseries.json`);
+  const miniMetas = catMiniFetch.data?.metas || [];
+  assert(results.pass1_coldboot, 'Entrega de catálogo Miniseries de Fin de Semana en Hub (>10 títulos)', miniMetas.length > 10, `${miniMetas.length} títulos`);
+
+  const catShortFetch = await fetchJson(`${LOCAL_HUB_BASE}/discover/catalog/series/short-series.json`);
+  const shortMetas = catShortFetch.data?.metas || [];
+  assert(results.pass1_coldboot, 'Entrega de catálogo Comedias de Bolsillo en Hub (>10 títulos)', shortMetas.length > 10, `${shortMetas.length} títulos`);
+
   const recentFetch = await fetchJson(`${LOCAL_HUB_BASE}/discover/recent?type=movie&days=30`);
   const recentItems = recentFetch.data?.items || [];
   assert(results.pass1_coldboot, 'Feed de estrenos recientes (/discover/recent) responde con items', recentItems.length > 0, `${recentItems.length} items`);

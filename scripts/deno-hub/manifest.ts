@@ -46,6 +46,25 @@ export const MEJORASTREMIO_HUB_MANIFEST = {
       ],
     },
     {
+      type: "series",
+      id: "miniseries",
+      name: "Miniseries de Fin de Semana",
+      extra: [
+        { name: "genre", options: ["Todos", ...Object.keys(GENRE_IDS_SERIES)], isRequired: false },
+        { name: "sort", options: ["released", "premiere_date", "year_desc", "popularity.desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
+      type: "series",
+      id: "short-series",
+      name: "Comedias de Bolsillo (≤30 min)",
+      extra: [
+        { name: "sort", options: ["released", "premiere_date", "year_desc", "popularity.desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
       type: "movie",
       id: "estrenos-streaming",
       name: "Estrenos Streaming (Cine)",

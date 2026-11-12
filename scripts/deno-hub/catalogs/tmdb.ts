@@ -515,44 +515,44 @@ export async function handleShortSeries(subPath: string): Promise<Response> {
 
 export const SERVICE_IDS: Record<string, number> = {
   "Netflix": 8,
-  "Disney+": 337,
-  "Prime Video": 9,
   "HBO Max": 1899,
-  "Paramount+": 2303,
-  "Hulu": 15,
-  "Peacock": 386,
+  "Prime Video": 9,
+  "Disney+": 337,
   "Apple TV+": 350,
-  "Starz": 43,
+  "Paramount+": 2303,
   "Mubi": 11,
-  "Criterion Channel": 258,
-  "Shudder": 99,
-  "Acorn TV": 87,
-  "BritBox": 151,
-  "Crunchyroll": 283,
 };
 export const DISCOVER_WATCH_REGION = "AR";
 
 export const COUNTRY_IDS: Record<string, string> = {
-  "Argentina": "AR", "España": "ES", "Francia": "FR", "Alemania": "DE",
-  "Italia": "IT", "Reino Unido": "GB", "Portugal": "PT", "México": "MX",
-  "Colombia": "CO", "Chile": "CL", "Brasil": "BR", "Perú": "PE",
-  "Estados Unidos": "US", "Canadá": "CA", "Australia": "AU", "Nueva Zelanda": "NZ",
-  "Japón": "JP", "Corea": "KR", "China": "CN", "Taiwán": "TW",
-  "Tailandia": "TH", "Hong Kong": "HK", "India": "IN",
+  "Argentina": "AR",
+  "España": "ES",
+  "México": "MX",
+  "Estados Unidos": "US",
+  "Reino Unido": "GB",
+  "Francia": "FR",
+  "Italia": "IT",
+  "Alemania": "DE",
+  "Corea": "KR",
+  "Japón": "JP",
 };
 
 export const REGION_IDS: Record<string, string> = {
-  "Latinoamérica": "AR|MX|CO|CL|BR|PE",
+  "Latinoamérica": "AR|MX|CO|CL|BR|PE|UY",
   "Europa": "ES|FR|DE|IT|GB|PT",
   "Norteamérica": "US|CA",
   "Asia": "JP|KR|CN|TW|TH|HK|IN",
-  "Oceanía": "AU|NZ",
 };
 
 export const LANGUAGE_IDS: Record<string, string> = {
-  "Español": "es", "Inglés": "en", "Francés": "fr", "Alemán": "de",
-  "Italiano": "it", "Portugués": "pt", "Japonés": "ja", "Coreano": "ko",
-  "Chino": "zh", "Hindi": "hi", "Tailandés": "th",
+  "Español": "es",
+  "Inglés": "en",
+  "Francés": "fr",
+  "Italiano": "it",
+  "Alemán": "de",
+  "Portugués": "pt",
+  "Coreano": "ko",
+  "Japonés": "ja",
 };
 
 export const GENRE_IDS_MOVIE: Record<string, number> = {
@@ -653,7 +653,7 @@ export const DISCOVER_PAGE_LRU_TTL_FRESH_MS = 30 * 60 * 1000; // 30 minutos en m
 
 export function isRecentPremiereQuery(catalogId: string, subPath: string, extraStr?: string): boolean {
   if (subPath.startsWith("/recent")) return true;
-  if (/nuevos-estrenos|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|cartelera|now_playing|upcoming/i.test(catalogId)) return true;
+  if (/nuevos-estrenos|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|miniseries|short-series|cartelera|now_playing|upcoming/i.test(catalogId)) return true;
   if (extraStr && /sort=(?:released|premiere_date|year_desc)/i.test(extraStr)) return true;
   return false;
 }
@@ -880,7 +880,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     return new Response("Not found", { status: 404, headers: cors });
   }
   const [, type, catalogId, extraStr] = catalogMatch;
-  const isRecognizedCatalog = /^(discover-master|nuevos-estrenos-cine|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres)$/.test(catalogId);
+  const isRecognizedCatalog = /^(discover-master|nuevos-estrenos-cine|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|miniseries|short-series)$/.test(catalogId);
   if (!isRecognizedCatalog) {
     return new Response("Not found", { status: 404, headers: cors });
   }
@@ -893,7 +893,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
   const country = extra.get("country");
   const language = extra.get("language");
   const genre = extra.get("genre");
-  const sortParam = extra.get("sort") || url.searchParams.get("sort") || "";
+  const sortParam = extra.get("sort") || url?.searchParams?.get("sort") || "";
   const PAGE_SIZE = 25;
   const skip = parseInt(extra.get("skip") ?? "0", 10);
   const page = Math.floor(skip / PAGE_SIZE) + 1;
@@ -968,6 +968,22 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     if (genre && genre !== "Todos" && genreMap[genre]) {
       params.with_genres = String(genreMap[genre]);
     }
+  } else if (catalogId === "miniseries") {
+    params.with_type = "2"; // Miniseries en TMDB (1 sola temporada, historia cerrada)
+    params.with_status = "3"; // Concluidas / Finalizadas
+    params.sort_by = "first_air_date.desc";
+    params["vote_count.gte"] = "20";
+    params["vote_average.gte"] = "6.5";
+    if (genre && genre !== "Todos" && genreMap[genre]) {
+      params.with_genres = String(genreMap[genre]);
+    }
+  } else if (catalogId === "short-series") {
+    params.with_genres = "35"; // Comedia
+    params.without_genres = "16"; // Live-action (sin animación infantil/anime)
+    params["with_runtime.lte"] = "32"; // ≤ 30 minutos promedio por episodio
+    params.sort_by = "first_air_date.desc";
+    params["vote_count.gte"] = "20";
+    params["vote_average.gte"] = "6.0";
   } else {
     // discover-master
     params["vote_count.gte"] = type === "movie" ? "5" : "3";

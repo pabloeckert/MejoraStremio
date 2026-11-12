@@ -379,6 +379,22 @@ function deduplicateStreamBucket<T extends StremioStreamItem>(items: T[], maxPer
   return result;
 }
 
+function hasEmbeddedSpanishSubtitles(s: StremioStreamItem): boolean {
+  const fn = (s.behaviorHints as { filename?: string })?.filename || "";
+  const desc = (s as { description?: string })?.description || "";
+  const text = `${s.name || ""} ${s.title || ""} ${fn} ${desc}`.toLowerCase();
+
+  return (
+    /\b(multisubs?|multi-subs?|multi-subtitles?|vose|subtitulad[oa]s?|subpack)\b/i.test(text) ||
+    /\b(?:sub(?:bed)?|subs?)[\s._-]*(?:spa(?:nish)?|lat(?:ino)?|es)\b/i.test(text) ||
+    /\b(?:spa(?:nish)?|lat(?:ino)?|es)[\s._-]*(?:sub(?:bed)?|subs?)\b/i.test(text) ||
+    /💬[^\r\n]*(?:es|spa|spanish|latino)\b/i.test(text) ||
+    /\b(?:subtitles?|subtítulos?)\s*:\s*[^\r\n]*(?:spanish|español|latino|es)\b/i.test(text) ||
+    /\b(?:eng|spa|lat)[\s._-]*sub(?:s)?\b/i.test(text) ||
+    /\bdual[\s._-]*(?:sub|subs)\b/i.test(text)
+  );
+}
+
 function sortStreamBucket<T extends StremioStreamItem>(items: T[]): T[] {
   return [...items].sort((a, b) => {
     const resA = getStreamResolutionRank(a);
@@ -453,9 +469,18 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
     else if (cat === "castellano") langPrefix = "[🇪🇸 CASTELLANO]";
     else if (cat === "portuguese") langPrefix = "[🇧🇷 PORTUGUÉS]";
 
+    // Mejora 2: Micro-distintivo de subtítulos incrustados para streams en audio original
+    const subBadge = (cat === "original" && hasEmbeddedSpanishSubtitles(s)) ? " · SUB" : "";
+
+    // Mejora 1: Binge-Watching Cohesivo — Semántica unificada de bingeGroup para auto-play en TV Box
+    const hints = { ...((s.behaviorHints as Record<string, unknown>) || {}) };
+    const speedSegment = isFast ? "fast" : "buf";
+    hints.bingeGroup = `mejorastremio-${cat}-${speedSegment}`;
+
     return {
       ...s,
-      name: `${speedPrefix} ${langPrefix} ${raw}`,
+      name: `${speedPrefix} ${langPrefix} ${raw}${subBadge}`,
+      behaviorHints: hints,
     };
   };
 
@@ -465,9 +490,12 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
       .replace(/^\[(⚡ INSTANTÁNEO|⏳ REQUIERE BUFFER)\]\s*/g, "")
       .replace(/^\[(🌎 LATINO|🎧 ORIGINAL|🇪🇸 CASTELLANO|🇧🇷 PORTUGUÉS|⚠️ SOLO INGLÉS|🇪🇸 LATINO)\]\s*/g, "")
       .trim();
+    const hints = { ...((s.behaviorHints as Record<string, unknown>) || {}) };
+    hints.bingeGroup = "mejorastremio-incompatible";
     return {
       ...s,
       name: `${item.label} ${raw}`,
+      behaviorHints: hints,
     };
   };
 

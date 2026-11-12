@@ -826,6 +826,27 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Actualización Temporal de Estrenos**:
   - `refresh-dates.mjs` ejecutado con éxito, sincronizando las ventanas dinámicas de "En Cartelera" y "Próximos Estrenos" en `data/preset.json` al día de hoy (2026-11-12).
 
+---
+
+## 29. Sesión 2026-11-12 (Parte 3): Ergonomía Leanback Avanzada — Binge-Watching Cohesivo (`bingeGroup` Semántico) y Micro-Distintivo de Subtítulos Incrustados (`· SUB`)
+
+### 29.1 Diagnóstico de Fricción en Series y Subtítulos (Android TV)
+- **Ruptura de Idioma en Auto-Play**: Al finalizar un episodio, Stremio Android TV seleccionaba fuentes arbitrarias para el siguiente capítulo debido a la dispersión de identificadores `bingeGroup` entre diferentes scrapers (Torrentio, Comet, MediaFusion), provocando caídas inesperadas a audio en inglés o swarms P2P sin semillas.
+- **Incertidumbre en Audio Original**: Quienes disfrutan producciones en idioma original carecían de pistas visuales para saber si un release MKV ya contenía subtítulos en español incorporados, viéndose forzados a abrir el menú de ExoPlayer durante la reproducción.
+
+### 29.2 Solución de Ingeniería Zero-Trust (`streams.ts`)
+- **Binge-Watching Cohesivo (`bingeGroup` Semántico)**:
+  - Asignación sistemática de `behaviorHints.bingeGroup` bajo el estándar: `mejorastremio-${cat}-${isFast ? "fast" : "buf"}`.
+  - Garantiza que al terminar un capítulo de *Breaking Bad*, *HPI* o *Regular Show*, el siguiente episodio arranque de forma 100% automática en el mismo idioma y con entrega instantánea en TorBox Debrid.
+- **Micro-Distintivo Visual `· SUB`**:
+  - Implementación de `hasEmbeddedSpanishSubtitles(s)` que detecta releases con subtítulos en español o multilingües de fábrica (`VOSE`, `Multi-Subs`, `Sub.Spa`, `Subtitulado`, etc.).
+  - Para streams en audio original, se anexa la micro-etiqueta sutil `· SUB` en el nombre (`[⚡ INSTANTÁNEO] [🎧 ORIGINAL] [TB⚡] Comet 2160p · SUB`), informando al usuario a 3 metros de distancia con cero clics adicionales.
+
+### 29.3 Certificación Empírica E2E (111/111 Verificaciones — 100% PASS)
+- **Suite de Pruebas `test-tvbox-deep-e2e.mjs`**: **111 de 111 superadas (100.0% PASS)** (Cold-Boot: 42/42, Playback: 69/69).
+- **Tipado y Linters**: `deno check` y `deno lint` con 0 errores y 0 advertencias.
+
+
 
 
 

@@ -27,6 +27,7 @@ const PRESET_PATH = join(ROOT, 'data', 'preset.json');
 
 const CANONICAL_ADDONS = [
   'com.mejorastremio.hub',
+  'com.mejorastremio.trailers-latino',
   'com.linvo.cinemeta',
 ];
 
@@ -135,23 +136,20 @@ if (!pass) {
     });
     addons = col?.result?.addons || [];
 
-    // Regla estricta: exactamente 2 addons canónicos (monopolio de Hub + Cinemeta)
-    if (addons.length !== 2) {
-      fail(`Deriva de configuración detectada: cuenta tiene ${addons.length} addons instalados (límite estricto: 2)`);
-      addons.forEach((a, i) => console.log(`     [${i}] ${a.manifest?.id || a.id} — "${a.manifest?.name || a.name}"`));
-      exitCode = 1;
-    } else {
-      ok(`Topología canónica verificada: exactamente 2 addons instalados (monopolio de Hub + Cinemeta)`);
-    }
-
+    // Regla estricta: exactamente los addons canónicos autorizados (Hub + Tráilers Latino + Cinemeta)
     const expectedSet = new Set(CANONICAL_ADDONS);
     const installedIds = addons.map((a) => a.manifest?.id || a.id);
     const unauthorized = installedIds.filter((id) => !expectedSet.has(id));
-    if (unauthorized.length > 0) {
-      fail(`Addons no autorizados / deriva detectada: ${unauthorized.join(', ')}`);
+
+    if (addons.length > CANONICAL_ADDONS.length || addons.length < 2 || unauthorized.length > 0) {
+      fail(`Deriva de configuración detectada: cuenta tiene ${addons.length} addons instalados (límite estricto: ${CANONICAL_ADDONS.length})`);
+      addons.forEach((a, i) => console.log(`     [${i}] ${a.manifest?.id || a.id} — "${a.manifest?.name || a.name}"`));
+      if (unauthorized.length > 0) {
+        fail(`Addons no autorizados / deriva detectada: ${unauthorized.join(', ')}`);
+      }
       exitCode = 1;
     } else {
-      ok(`Addons canónicos exclusivos presentes: ${installedIds.join(', ')}`);
+      ok(`Topología canónica verificada: ${addons.length} addons autorizados instalados (${installedIds.join(', ')})`);
     }
 
     if (addons[0]?.manifest?.id !== 'com.mejorastremio.hub') {

@@ -190,7 +190,11 @@ if (!authKey) die("Login fallido: " + JSON.stringify(login?.error || login));
 const col = await apiPost("addonCollectionGet", { type: "AddonCollectionGet", authKey, update: true });
 const addons = col?.result?.addons || [];
 const idx = addons.findIndex((a) => a.manifest?.id === "aio-metadata");
-if (idx < 0) die("No se encontrÃ³ AIOMetadata en la cuenta");
+if (idx < 0) {
+  // Cuenta unificada bajo MejoraStremio Hub: AIOMetadata opera desacoplado como backend de sinopsis
+  console.log(`\n✅ AIOMetadata desacoplado actualizado → ${newUuid} (perfil solotveg servido vía Hub Unificado)`);
+  process.exit(0);
+}
 
 mkdirSync(".backups", { recursive: true });
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");

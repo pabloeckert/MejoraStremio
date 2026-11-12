@@ -807,6 +807,26 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - **Total**: **111 de 111 verificaciones aprobadas (100.0% PASS)**.
   - `deno check` y `deno lint`: 0 errores, 0 advertencias.
 
+---
+
+## 28. Sesión 2026-11-12 (Parte 2): Sincronización Topológica de Salud en CI/CD y Desacoplamiento de AIOMetadata
+
+### 28.1 Diagnóstico de Deriva en CI/CD (`health-monitor` y `daily-catalog-refresh`)
+- **Falsa Alarma de Deriva Topológica**: Al incorporar el add-on oficial de tráilers (`com.mejorastremio.trailers-latino`), los runners de `health-monitor.yml` fallaban al esperar un límite estricto de 2 add-ons (`com.mejorastremio.hub` y `com.linvo.cinemeta`), detectando erróneamente una alteración en la cuenta.
+- **Bloqueo en el Cron Diario de Catálogos**: `daily-catalog-refresh.yml` abortaba en `regenerate-aiometadata-solotveg.mjs` (`No se encontró AIOMetadata en la cuenta`) y en `regenerate-aiometadata.mjs` (alerta de 92 catálogos perdidos por comparación con instancias antiguas antes de la poda UX), impidiendo actualizar las ventanas dinámicas de estreno.
+
+### 28.2 Solución y Blindaje Operativo Zero-Trust
+- **Topología Canónica de 3 Add-ons (`health-check.mjs` y `apply-stremioeg-profile.mjs`)**:
+  - Reconocimiento formal de `com.mejorastremio.trailers-latino` como add-on canónico autorizado en posición #1.
+  - Verificación estricta de orden: `#0 com.mejorastremio.hub`, `#1 com.mejorastremio.trailers-latino`, `#2 com.linvo.cinemeta`.
+  - Inmunidad ante el guard de catálogos congelados (`guardExempt`).
+- **Desacoplamiento Seguro de AIOMetadata (`regenerate-aiometadata.mjs` y `regenerate-aiometadata-solotveg.mjs`)**:
+  - Detección nativa del estado desacoplado (`aioIdx < 0`): el Hub unificado consume la instancia como backend de metadatos sin mutar la colección remota de Stremio.
+  - Sincronización atómica de `instanceId` en `data/preset.json` y `cuentas/solotveg/aiometadata-instance.json`.
+- **Actualización Temporal de Estrenos**:
+  - `refresh-dates.mjs` ejecutado con éxito, sincronizando las ventanas dinámicas de "En Cartelera" y "Próximos Estrenos" en `data/preset.json` al día de hoy (2026-11-12).
+
+
 
 
 

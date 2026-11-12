@@ -267,6 +267,7 @@ export const COMPETING_SUBTITLE_ADDON_IDS = new Set([
 
 export const CANONICAL_WHITELIST_ADDON_IDS = new Set([
   'com.mejorastremio.hub',
+  'com.mejorastremio.trailers-latino',
   'com.linvo.cinemeta',
   'com.stremio.cinemeta',
 ]);
@@ -689,18 +690,30 @@ async function runProfileManager() {
       manifest: manifestToUse,
       flags: { official: false, protected: false },
     };
+    const trailersUrl = profile.rules?.subtitles?.trailersAddon?.transportUrl || 'https://mejorastremio-hub.pabloeckert.deno.net/trailers/manifest.json';
+    const finalTrailers = {
+      transportUrl: trailersUrl,
+      transportName: '',
+      manifest: {
+        id: 'com.mejorastremio.trailers-latino',
+        name: 'Tráilers Oficiales Latino (MejoraStremio)',
+        version: '1.0.0',
+      },
+      flags: { official: false, protected: false },
+    };
     const finalCinemeta = {
       transportUrl: 'https://v3-cinemeta.strem.io/manifest.json',
       transportName: '',
       manifest: { id: 'com.linvo.cinemeta', name: 'Cinemeta', version: '3.0.14' },
       flags: { official: true, protected: true },
     };
-    const targetSimulated = [finalHub, finalCinemeta];
+    const targetSimulated = [finalHub, finalTrailers, finalCinemeta];
 
     renderVisualDiff(simulatedCurrentAddons, targetSimulated);
 
     const guardOk = await assertNoFrozenEmptyCatalogs(targetSimulated, [
       'com.mejorastremio.hub',
+      'com.mejorastremio.trailers-latino',
       'com.linvo.cinemeta',
     ]);
     if (!guardOk) {
@@ -710,7 +723,8 @@ async function runProfileManager() {
     console.log(`\n  ✓ Simulación de topología canónica para ${TARGET_ACCOUNT} exitosa:`);
     console.log(`    - Posición #0: ${targetSimulated[0].manifest.id} (${targetSimulated[0].manifest.name})`);
     console.log(`    - Posición #1: ${targetSimulated[1].manifest.id} (${targetSimulated[1].manifest.name})`);
-    console.log(`    - Total addons resultantes: ${targetSimulated.length} (monopolio de 2 addons canónicos verificado)`);
+    console.log(`    - Posición #2: ${targetSimulated[2].manifest.id} (${targetSimulated[2].manifest.name})`);
+    console.log(`    - Total addons resultantes: ${targetSimulated.length} (topología canónica de 3 addons verificada)`);
   } else {
     console.log('\n[ 2/3 ] Conectando a la cuenta Stremio...');
     const login = await apiPost('login', { authKey: null, email, password: pass });
@@ -744,21 +758,34 @@ async function runProfileManager() {
     const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)(1\.4\.2|2\.1\.0)/, '$13.0.0'));
     console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
     const hubAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
+    const trailersAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.trailers-latino');
     const cinemetaAddon = addons.find((a) => a.manifest?.id === 'com.linvo.cinemeta' || a.manifest?.id === 'com.stremio.cinemeta');
 
-    // 1. Filtrado Estricto (Whitelist): Purgar todo addon que no sea com.mejorastremio.hub o Cinemeta
+    // 1. Filtrado Estricto (Whitelist): Purgar todo addon que no sea com.mejorastremio.hub, trailers-latino o Cinemeta
     const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(addons);
     if (removedAddons.length > 0) {
       console.log(`  ✓ Purga estricta Whitelist: ${removedAddons.length} add-on(s) no autorizados eliminados:`);
       removedAddons.forEach((ra) => console.log(`     [-] [${ra.manifest?.id || ra.id}] ${ra.manifest?.name || ra.name}`));
     }
 
-    // 2. Componer la lista canónica estricta de 2 addons: Posición #0 = Hub, Posición #1 = Cinemeta
+    // 2. Componer la lista canónica estricta de 3 addons: Posición #0 = Hub, Posición #1 = Tráilers Latino, Posición #2 = Cinemeta
     const finalHub = {
       ...(hubAddon || {}),
       transportUrl: targetHubUrl,
       transportName: '',
       manifest: manifestToUse,
+      flags: { official: false, protected: false },
+    };
+
+    const trailersUrl = profile.rules?.subtitles?.trailersAddon?.transportUrl || 'https://mejorastremio-hub.pabloeckert.deno.net/trailers/manifest.json';
+    const finalTrailers = trailersAddon || {
+      transportUrl: trailersUrl,
+      transportName: '',
+      manifest: {
+        id: 'com.mejorastremio.trailers-latino',
+        name: 'Tráilers Oficiales Latino (MejoraStremio)',
+        version: '1.0.0',
+      },
       flags: { official: false, protected: false },
     };
 
@@ -769,7 +796,7 @@ async function runProfileManager() {
       flags: { official: true, protected: true },
     };
 
-    const targetList = [finalHub, finalCinemeta];
+    const targetList = [finalHub, finalTrailers, finalCinemeta];
 
     // 3. Evaluar cambios respecto a la colección actual
     const idsCurrent = addons.map((a) => a.manifest?.id);
@@ -791,6 +818,7 @@ async function runProfileManager() {
       console.log('\n  Aplicando cambios con guard anti-catálogos-congelados...');
       const guardExempt = [
         'com.mejorastremio.hub',
+        'com.mejorastremio.trailers-latino',
         'com.mejorastremio.streams',
         'com.stremio.torrentio.addon',
         'stremio.comet.fast',
@@ -833,15 +861,17 @@ async function runProfileManager() {
         console.log(`    [${i}] ${a.manifest?.name} (${a.manifest?.id}) v${a.manifest?.version}`);
       });
 
-      if (readBackAddons.length !== 2) {
-        console.error(`❌ ERROR CRÍTICO: Read-back falló. result.addons.length es ${readBackAddons.length} (se esperaba matemáticamente 2).`);
+      if (readBackAddons.length !== 3) {
+        console.error(`❌ ERROR CRÍTICO: Read-back falló. result.addons.length es ${readBackAddons.length} (se esperaba matemáticamente 3).`);
         process.exit(1);
       }
-      if (readBackAddons[0]?.manifest?.id !== 'com.mejorastremio.hub' || readBackAddons[1]?.manifest?.id !== 'com.linvo.cinemeta') {
-        console.error(`❌ ERROR CRÍTICO: Read-back falló. El orden debe ser estrictamente [com.mejorastremio.hub, com.linvo.cinemeta], recibido: [${readBackAddons.map(a => a.manifest?.id).join(', ')}]`);
+      if (readBackAddons[0]?.manifest?.id !== 'com.mejorastremio.hub' ||
+          readBackAddons[1]?.manifest?.id !== 'com.mejorastremio.trailers-latino' ||
+          (readBackAddons[2]?.manifest?.id !== 'com.linvo.cinemeta' && readBackAddons[2]?.manifest?.id !== 'com.stremio.cinemeta')) {
+        console.error(`❌ ERROR CRÍTICO: Read-back falló. El orden debe ser estrictamente [com.mejorastremio.hub, com.mejorastremio.trailers-latino, com.linvo.cinemeta], recibido: [${readBackAddons.map(a => a.manifest?.id).join(', ')}]`);
         process.exit(1);
       }
-      console.log('  ✓ Verificación Read-Back Matemática EXITOSA: Monopolio estricto de 2 addons confirmado en la nube.');
+      console.log('  ✓ Verificación Read-Back Matemática EXITOSA: Topología estricta de 3 addons confirmada en la nube.');
     } else if (changesCount === 0) {
       console.log('\n  ✓ Add-ons de la cuenta ya cumplen estrictamente con la configuración.');
     } else {

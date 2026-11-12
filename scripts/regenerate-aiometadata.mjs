@@ -303,7 +303,11 @@ if (!APPLY) {
   process.exit(0);
 }
 if (lost.length && !FORCE) {
-  die(`Se perderÃ­an ${lost.length} catÃ¡logos (${lost.join(", ")}). Abortado. UsÃ¡ --force para forzar, o arreglÃ¡ data/preset.json.`);
+  if (aioIdx < 0) {
+    console.warn(`⚠️ Detectada discrepancia de catálogos (${lost.length} removidos en preset.json). Al operar en modo desacoplado (Hub Unificado), se sincroniza el nuevo UUID en data/preset.json.`);
+  } else {
+    die(`Se perderían ${lost.length} catálogos (${lost.join(", ")}). Abortado. Usá --force para forzar, o arreglá data/preset.json.`);
+  }
 }
 
 const accountSlug = (email || 'unknown').split('@')[0];

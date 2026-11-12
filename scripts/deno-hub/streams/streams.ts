@@ -352,6 +352,33 @@ function getStreamSeedCount(s: StremioStreamItem): number {
   return m ? parseInt(m[1].replace(/[,.]/g, ""), 10) : 0;
 }
 
+function cleanReleaseDedupeKey(title: string): string {
+  return (title || "")
+    .toLowerCase()
+    .replace(/^(?:📄|📺|\s)+/g, "")
+    .replace(/\.(?:mkv|mp4|avi)$/i, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function deduplicateStreamBucket<T extends StremioStreamItem>(items: T[], maxPerRelease = 1): T[] {
+  const seen = new Map<string, number>();
+  const result: T[] = [];
+  for (const item of items) {
+    const fn = ((item.behaviorHints as { filename?: string })?.filename || item.title || "");
+    const key = cleanReleaseDedupeKey(fn);
+    if (key.length >= 10) {
+      const count = seen.get(key) || 0;
+      if (count < maxPerRelease) {
+        seen.set(key, count + 1);
+        result.push(item);
+      }
+    } else {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
 function sortStreamBucket<T extends StremioStreamItem>(items: T[]): T[] {
   return [...items].sort((a, b) => {
     const resA = getStreamResolutionRank(a);
@@ -409,9 +436,15 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
   }
 
   const badge = (s: T, cat: StreamAudioCategory, isFast: boolean): T => {
-    const raw = (s.name || "Torrentio")
+    let raw = (s.name || "Torrentio")
       .replace(/^\[(⚡ INSTANTÁNEO|⏳ REQUIERE BUFFER)\]\s*/g, "")
       .replace(/^\[(🌎 LATINO|🎧 ORIGINAL|🇪🇸 CASTELLANO|🇧🇷 PORTUGUÉS|⚠️ SOLO INGLÉS|🇪🇸 LATINO)\]\s*/g, "")
+      .trim();
+
+    // Micro-Badging Atómico: Eliminar etiquetas redundantes y ruido de proveedores
+    raw = raw
+      .replace(/MediaFusion\s*\|\s*ElfHosted\s*[🧲\s]*TRB\s*[⚡️\s]*/gi, "[TB+] MediaFusion ")
+      .replace(/\s+/g, " ")
       .trim();
 
     const speedPrefix = isFast ? "[⚡ INSTANTÁNEO]" : "[⏳ REQUIERE BUFFER]";
@@ -438,17 +471,27 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
     };
   };
 
+  // The Considerate Player: Curaduría inteligente, deduplicación por release y top conciso
+  const sortedLatinoCached = deduplicateStreamBucket(sortStreamBucket(latinoCached)).slice(0, 15);
+  const sortedOriginalCached = deduplicateStreamBucket(sortStreamBucket(originalCached)).slice(0, 15);
+  const sortedLatinoBuffer = deduplicateStreamBucket(sortStreamBucket(latinoBuffer)).slice(0, 3);
+  const sortedOriginalBuffer = deduplicateStreamBucket(sortStreamBucket(originalBuffer)).slice(0, 3);
+  const sortedCastellanoCached = sortStreamBucket(castellanoCached).slice(0, 2);
+  const sortedPortugueseCached = sortStreamBucket(portugueseCached).slice(0, 2);
+  const sortedCastellanoBuffer = sortStreamBucket(castellanoBuffer).slice(0, 2);
+  const sortedPortugueseBuffer = sortStreamBucket(portugueseBuffer).slice(0, 2);
+
   // 2. CONFIRMADO Audio Latino #1 -> 3. Caché TorBox -> 4. Mayor resolución -> 5. Bitrate y semillas
   return [
-    ...sortStreamBucket(latinoCached).map((s) => badge(s, "latino", true)),
-    ...sortStreamBucket(originalCached).map((s) => badge(s, "original", true)),
-    ...sortStreamBucket(latinoBuffer).map((s) => badge(s, "latino", false)),
-    ...sortStreamBucket(originalBuffer).map((s) => badge(s, "original", false)),
-    ...sortStreamBucket(castellanoCached).map((s) => badge(s, "castellano", true)),
-    ...sortStreamBucket(portugueseCached).map((s) => badge(s, "portuguese", true)),
-    ...sortStreamBucket(castellanoBuffer).map((s) => badge(s, "castellano", false)),
-    ...sortStreamBucket(portugueseBuffer).map((s) => badge(s, "portuguese", false)),
-    ...incompatibleZte.map(badgeIncompatible),
+    ...sortedLatinoCached.map((s) => badge(s, "latino", true)),
+    ...sortedOriginalCached.map((s) => badge(s, "original", true)),
+    ...sortedLatinoBuffer.map((s) => badge(s, "latino", false)),
+    ...sortedOriginalBuffer.map((s) => badge(s, "original", false)),
+    ...sortedCastellanoCached.map((s) => badge(s, "castellano", true)),
+    ...sortedPortugueseCached.map((s) => badge(s, "portuguese", true)),
+    ...sortedCastellanoBuffer.map((s) => badge(s, "castellano", false)),
+    ...sortedPortugueseBuffer.map((s) => badge(s, "portuguese", false)),
+    ...incompatibleZte.slice(0, 2).map(badgeIncompatible),
   ];
 }
 

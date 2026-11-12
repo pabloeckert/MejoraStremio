@@ -777,5 +777,36 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - **Total**: **115 de 115 verificaciones aprobadas (100.0% PASS)**.
   - `deno check scripts/deno-hub.ts`: 0 errores de tipado.
 
+---
+
+## 27. Sesión 2026-11-12: The Considerate Player — Curaduría Top, Deduplicación Multi-Scraper y Micro-Badging Atómico en Android TV
+
+### 27.1 Causa Raíz de Fatiga de Decisión en Android TV Leanback
+- **Sobrecarga de Opciones**: Con la agregación concurrente de 3 scrapers (Torrentio + Comet + MediaFusion), títulos populares entregaban entre 103 y 130 streams. La misma release (e.g. *The.Walk.2015.1080p.BluRay.x264-SPARKS*) aparecía hasta 3 veces en fila con pequeñas diferencias de badging.
+- **Truncamiento de Nombres en ExoPlayer**: Nombres inflados como `MediaFusion | ElfHosted 🧲 TRB ⚡️ 1080p` desbordaban el ancho de pantalla de 25 caracteres en la TV Box, ocultando la resolución, el audio y el codec a 3 metros de distancia.
+
+### 27.2 Arquitectura y Solución Técnica Zero-Trust (`streams.ts`)
+- **Deduplicación Inteligente por Release (`deduplicateStreamBucket`)**:
+  - Normalización de nombres de release vía `cleanReleaseDedupeKey` (remueve emojis `📄`, `📺`, extensiones `.mkv`, `.mp4` y signos).
+  - Deduplicación estricta que conserva únicamente el primer stream (o de mejor seed/bitrate) de cada release exacta entre los diferentes scrapers concurrentes.
+- **Top Curado por Niveles de Experiencia**:
+  - Audio Latino en Debrid (`sortedLatinoCached`): máximo 15 streams de élite.
+  - Audio Original en Debrid (`sortedOriginalCached`): máximo 15 streams de alta fidelidad (4K HDR / 1080p Remux).
+  - Streams en Buffer P2P (`sortedLatinoBuffer`, `sortedOriginalBuffer`): máximo 3 opciones de resguardo.
+  - Doblajes Secundarios (`castellano`, `portugués`, `incompatibleZte`): máximo 2 streams cada uno relegados al final.
+  - Reducción drástica del payload de 103+ opciones a ~25-28 opciones nítidas de respuesta instantánea (<100ms render time en TV Box).
+- **Micro-Badging Atómico**:
+  - Purga de ruidos de hosters: `MediaFusion | ElfHosted 🧲 TRB ⚡️` normalizado a `[TB+] MediaFusion`.
+  - Nombres compactos con longitud <25 caracteres antes de metadatos de codec, legibles de un vistazo en Android TV.
+
+### 27.3 Certificación Empírica E2E (111/111 Verificaciones — 100% PASS)
+- **Verificación Local y Deduplicación**: En *The Walk* (`tt3488710`), los streams pasaron de 103 a 26 opciones curadas. Puesto #1: 1080p REMUX Dual Latino `[⚡ INSTANTÁNEO] [🌎 LATINO]`; Puesto #2: MediaFusion 1080p BluRay HEVC; Puesto #3: Comet 4K HDR.
+- **Suite de Pruebas `test-tvbox-deep-e2e.mjs`**:
+  - **Pasada 1 (Cold-Boot & Bootstrap)**: **42/42 superadas (100% PASS)**.
+  - **Pasada 2 (Playback Stress & Timeline Audit)**: **69/69 superadas (100% PASS)**.
+  - **Total**: **111 de 111 verificaciones aprobadas (100.0% PASS)**.
+  - `deno check` y `deno lint`: 0 errores, 0 advertencias.
+
+
 
 

@@ -137,9 +137,78 @@
     "catalogs": {
       "standard": [
         {
-          "id": "tmdb.discover.tv.netflix.thriller.us_uk",
+          "id": "tmdb.discover.movie.now_playing.pablo007",
+          "type": "movie",
+          "name": "En Cartelera",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "vote_count.gte": 3,
+                "vote_average.gte": 5.5,
+                "with_original_language": "en|es|pt|fr|it|de",
+                "with_origin_country": "US|GB|AR|ES",
+                "include_adult": false,
+                "without_genres": "99,10767",
+                "with_release_type": "2|3",
+                "region": "AR",
+                "primary_release_date.gte": "2026-09-13",
+                "primary_release_date.lte": "2026-11-12"
+              },
+              "formState": {
+                "catalogName": "En Cartelera",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en|es|pt|fr|it|de",
+                "originCountry": "US|GB|AR|ES",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "AR",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5.5,
+                  10
+                ],
+                "voteCountMin": 3,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "2026-09-13",
+                "primaryReleaseTo": "2026-11-12",
+                "releaseRegion": "AR"
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.now_playing.pablo062",
           "type": "series",
-          "name": "Netflix | Series | Thriller (US/UK)",
+          "name": "En Cartelera (Series)",
           "enabled": true,
           "showInHome": true,
           "source": "tmdb",
@@ -152,6 +221,386 @@
               "mediaType": "series",
               "params": {
                 "sort_by": "first_air_date.desc",
+                "vote_count.gte": 3,
+                "vote_average.gte": 5.5,
+                "with_original_language": "en|es|pt|fr|it|de",
+                "with_origin_country": "US|GB|AR|ES",
+                "include_adult": false,
+                "without_genres": "99,10767",
+                "first_air_date.gte": "2026-09-13",
+                "first_air_date.lte": "2026-11-12"
+              },
+              "formState": {
+                "catalogName": "En Cartelera (Series)",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en|es|pt|fr|it|de",
+                "originCountry": "US|GB|AR|ES",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "AR",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5.5,
+                  10
+                ],
+                "voteCountMin": 3,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "firstAirFrom": "2026-09-13",
+                "firstAirTo": "2026-11-12"
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.netflix.animacion",
+          "type": "movie",
+          "name": "Netflix | Cine | Animación",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "vote_count.gte": 50,
+                "vote_average.gte": 6,
+                "with_original_language": "en|es|pt|fr|it|de",
+                "with_origin_country": "US|GB",
+                "include_adult": false,
+                "without_genres": "99,10767",
+                "with_networks": "213",
+                "with_watch_providers": "8",
+                "watch_region": "AR",
+                "with_genres": "16"
+              },
+              "formState": {
+                "catalogName": "Netflix | Cine | Animación",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en|es|pt|fr|it|de",
+                "originCountry": "US|GB",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "AR",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  6,
+                  10
+                ],
+                "voteCountMin": 50,
+                "runtimeRange": [
+                  0,
+                  400
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.argentina.pablo001",
+          "type": "movie",
+          "name": "Cine Argentina",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "vote_count.gte": 5,
+                "vote_average.gte": 5,
+                "with_original_language": "en|es|pt|fr|it|de",
+                "with_origin_country": "AR",
+                "include_adult": false,
+                "without_genres": "99,10767"
+              },
+              "formState": {
+                "catalogName": "Cine Argentina",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en|es|pt|fr|it|de",
+                "originCountry": "AR",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "AR",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5,
+                  10
+                ],
+                "voteCountMin": 5,
+                "runtimeRange": [
+                  0,
+                  400
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.argentina.pablo002",
+          "type": "series",
+          "name": "Series Argentina",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (series)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "series",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "vote_count.gte": 5,
+                "vote_average.gte": 5,
+                "with_original_language": "en|es|pt|fr|it|de",
+                "with_origin_country": "AR",
+                "include_adult": false,
+                "without_genres": "99,10767"
+              },
+              "formState": {
+                "catalogName": "Series Argentina",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en|es|pt|fr|it|de",
+                "originCountry": "AR",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "AR",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5,
+                  10
+                ],
+                "voteCountMin": 5,
+                "runtimeRange": [
+                  0,
+                  400
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.latam.pablo003",
+          "type": "movie",
+          "name": "Latinoamérica | Cine",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "vote_count.gte": 5,
+                "vote_average.gte": 5,
+                "with_original_language": "en|es|pt|fr|it|de",
+                "with_origin_country": "AR|MX|CO|CL",
+                "include_adult": false,
+                "without_genres": "99,10767"
+              },
+              "formState": {
+                "catalogName": "Latinoamérica | Cine",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en|es|pt|fr|it|de",
+                "originCountry": "AR|MX|CO|CL",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "AR",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5,
+                  10
+                ],
+                "voteCountMin": 5,
+                "runtimeRange": [
+                  0,
+                  400
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.latam.pablo004",
+          "type": "series",
+          "name": "Latinoamérica | Series",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (series)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "series",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "vote_count.gte": 5,
+                "vote_average.gte": 5,
+                "with_original_language": "en|es|pt|fr|it|de",
+                "with_origin_country": "AR|MX|CO|CL",
+                "include_adult": false,
+                "without_genres": "99,10767"
+              },
+              "formState": {
+                "catalogName": "Latinoamérica | Series",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en|es|pt|fr|it|de",
+                "originCountry": "AR|MX|CO|CL",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "AR",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  5,
+                  10
+                ],
+                "voteCountMin": 5,
+                "runtimeRange": [
+                  0,
+                  400
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.netflix.crimen",
+          "type": "movie",
+          "name": "Netflix | Cine | Crimen & Policial",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
                 "vote_count.gte": 150,
                 "vote_average.gte": 6,
                 "with_original_language": "en|es|pt|fr|it|de",
@@ -159,14 +608,16 @@
                 "include_adult": false,
                 "without_genres": "99,10767",
                 "with_networks": "213",
-                "with_genres": "53"
+                "with_watch_providers": "8",
+                "watch_region": "AR",
+                "with_genres": "80"
               },
               "formState": {
-                "catalogName": "Netflix | Series | Thriller (US/UK)",
+                "catalogName": "Netflix | Cine | Crimen & Policial",
                 "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
-                "catalogType": "series",
+                "catalogType": "movie",
                 "includeGenres": [],
                 "excludeGenres": [],
                 "genreJoinMode": "or",
@@ -196,6 +647,136 @@
                   0,
                   400
                 ]
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.movie.upcoming.pablo005",
+          "type": "movie",
+          "name": "Próximos Estrenos",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (movie)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "movie",
+              "params": {
+                "sort_by": "primary_release_date.desc",
+                "vote_count.gte": 0,
+                "vote_average.gte": 0,
+                "with_original_language": "en|es|pt|fr|it|de",
+                "with_origin_country": "US|GB|AR|ES",
+                "include_adult": false,
+                "without_genres": "99,10767",
+                "primary_release_date.gte": "2026-11-12",
+                "primary_release_date.lte": "2027-01-20"
+              },
+              "formState": {
+                "catalogName": "Próximos Estrenos",
+                "discoverSource": "tmdb",
+                "sortBy": "primary_release_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "movie",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en|es|pt|fr|it|de",
+                "originCountry": "US|GB|AR|ES",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "AR",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  6,
+                  10
+                ],
+                "voteCountMin": 150,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "primaryReleaseFrom": "2026-11-12"
+              }
+            }
+          }
+        },
+        {
+          "id": "tmdb.discover.tv.upcoming.pablo006",
+          "type": "series",
+          "name": "Próximos Estrenos (Series)",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (series)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "series",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "vote_count.gte": 0,
+                "vote_average.gte": 0,
+                "with_original_language": "en|es|pt|fr|it|de",
+                "with_origin_country": "US|GB|AR|ES",
+                "include_adult": false,
+                "without_genres": "99,10767",
+                "first_air_date.gte": "2026-11-12",
+                "first_air_date.lte": "2027-01-20"
+              },
+              "formState": {
+                "catalogName": "Próximos Estrenos (Series)",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en|es|pt|fr|it|de",
+                "originCountry": "US|GB|AR|ES",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "AR",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  6,
+                  10
+                ],
+                "voteCountMin": 150,
+                "runtimeRange": [
+                  0,
+                  400
+                ],
+                "firstAirFrom": "2026-11-12"
               }
             }
           }
@@ -267,11 +848,75 @@
           }
         },
         {
+          "id": "tmdb.discover.tv.netflix.thriller.us_uk",
+          "type": "series",
+          "name": "Netflix | Series | Thriller (US/UK)",
+          "enabled": true,
+          "showInHome": true,
+          "source": "tmdb",
+          "cacheTTL": 86400,
+          "metadata": {
+            "description": "TMDB Discover (series)",
+            "discover": {
+              "version": 2,
+              "source": "tmdb",
+              "mediaType": "series",
+              "params": {
+                "sort_by": "first_air_date.desc",
+                "vote_count.gte": 150,
+                "vote_average.gte": 6,
+                "with_original_language": "en|es|pt|fr|it|de",
+                "with_origin_country": "US|GB",
+                "include_adult": false,
+                "without_genres": "99,10767",
+                "with_networks": "213",
+                "with_genres": "53"
+              },
+              "formState": {
+                "catalogName": "Netflix | Series | Thriller (US/UK)",
+                "discoverSource": "tmdb",
+                "sortBy": "first_air_date.desc",
+                "cacheTTL": 86400,
+                "catalogType": "series",
+                "includeGenres": [],
+                "excludeGenres": [],
+                "genreJoinMode": "or",
+                "originalLanguage": "en|es|pt|fr|it|de",
+                "originCountry": "US|GB",
+                "certificationCountry": "",
+                "certificationValue": "",
+                "includeAdult": false,
+                "releasedOnly": false,
+                "selectedPeople": [],
+                "peopleJoinMode": "or",
+                "withCompanies": [],
+                "withoutCompanies": [],
+                "companyJoinMode": "or",
+                "withKeywords": [],
+                "withoutKeywords": [],
+                "keywordJoinMode": "or",
+                "watchRegion": "AR",
+                "watchProviders": [],
+                "providerJoinMode": "or",
+                "voteAverageRange": [
+                  6,
+                  10
+                ],
+                "voteCountMin": 150,
+                "runtimeRange": [
+                  0,
+                  400
+                ]
+              }
+            }
+          }
+        },
+        {
           "id": "tmdb.discover.tv.prime.scifi",
           "type": "series",
           "name": "Prime Video | Series | Sci-Fi & Fantasía",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -335,7 +980,7 @@
           "type": "series",
           "name": "Apple TV+ | Series | Drama de Prestigio",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -399,7 +1044,7 @@
           "type": "movie",
           "name": "Netflix | Cine Destacado",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -464,7 +1109,7 @@
           "type": "series",
           "name": "Netflix | Series Destacadas",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -527,7 +1172,7 @@
           "type": "movie",
           "name": "Max | Cine Destacado",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -592,7 +1237,7 @@
           "type": "series",
           "name": "Max | Series Destacadas",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -655,7 +1300,7 @@
           "type": "movie",
           "name": "Prime Video | Cine Destacado",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -720,7 +1365,7 @@
           "type": "series",
           "name": "Prime Video | Series Destacadas",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -783,7 +1428,7 @@
           "type": "movie",
           "name": "Apple TV+ | Cine Destacado",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -848,7 +1493,7 @@
           "type": "series",
           "name": "Apple TV+ | Series Destacadas",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -911,7 +1556,7 @@
           "type": "movie",
           "name": "stremiojn | Management & Negocios B2B",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -1037,7 +1682,7 @@
           "type": "movie",
           "name": "stremiojn | Deportes de Motor & Combate (F1 / UFC / WWE)",
           "enabled": true,
-          "showInHome": true,
+          "showInHome": false,
           "source": "tmdb",
           "cacheTTL": 86400,
           "metadata": {
@@ -1703,138 +2348,6 @@
               },
               "formState": {
                 "catalogName": "Netflix | Cine | Ciencia Ficción",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en|es|pt|fr|it|de",
-                "originCountry": "US|GB",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "AR",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  6,
-                  10
-                ],
-                "voteCountMin": 150,
-                "runtimeRange": [
-                  0,
-                  400
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.netflix.crimen",
-          "type": "movie",
-          "name": "Netflix | Cine | Crimen & Policial",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "vote_count.gte": 150,
-                "vote_average.gte": 6,
-                "with_original_language": "en|es|pt|fr|it|de",
-                "with_origin_country": "US|GB",
-                "include_adult": false,
-                "without_genres": "99,10767",
-                "with_networks": "213",
-                "with_watch_providers": "8",
-                "watch_region": "AR",
-                "with_genres": "80"
-              },
-              "formState": {
-                "catalogName": "Netflix | Cine | Crimen & Policial",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en|es|pt|fr|it|de",
-                "originCountry": "US|GB",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "AR",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  6,
-                  10
-                ],
-                "voteCountMin": 150,
-                "runtimeRange": [
-                  0,
-                  400
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.netflix.animacion",
-          "type": "movie",
-          "name": "Netflix | Cine | Animación",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "vote_count.gte": 150,
-                "vote_average.gte": 6,
-                "with_original_language": "en|es|pt|fr|it|de",
-                "with_origin_country": "US|GB",
-                "include_adult": false,
-                "without_genres": "99,10767",
-                "with_networks": "213",
-                "with_watch_providers": "8",
-                "watch_region": "AR",
-                "with_genres": "16"
-              },
-              "formState": {
-                "catalogName": "Netflix | Cine | Animación",
                 "discoverSource": "tmdb",
                 "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
@@ -5876,518 +6389,6 @@
                 "genreJoinMode": "or",
                 "originalLanguage": "en|es|pt|fr|it|de",
                 "originCountry": "US|GB",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "AR",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  6,
-                  10
-                ],
-                "voteCountMin": 150,
-                "runtimeRange": [
-                  0,
-                  400
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.now_playing.pablo007",
-          "type": "movie",
-          "name": "En Cartelera",
-          "enabled": true,
-          "showInHome": true,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "vote_count.gte": 5,
-                "vote_average.gte": 5.5,
-                "with_original_language": "en|es|pt|fr|it|de",
-                "with_origin_country": "US|GB|AR|ES",
-                "include_adult": false,
-                "without_genres": "99,10767",
-                "with_release_type": "2|3",
-                "region": "AR",
-                "primary_release_date.gte": "2026-09-13",
-                "primary_release_date.lte": "2026-11-12"
-              },
-              "formState": {
-                "catalogName": "En Cartelera",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en|es|pt|fr|it|de",
-                "originCountry": "US|GB|AR|ES",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "AR",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  5.5,
-                  10
-                ],
-                "voteCountMin": 5,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "2026-09-13",
-                "primaryReleaseTo": "2026-11-12"
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.now_playing.pablo062",
-          "type": "series",
-          "name": "En Cartelera (Series)",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (series)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "series",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "vote_count.gte": 1,
-                "vote_average.gte": 5.5,
-                "with_original_language": "en|es|pt|fr|it|de",
-                "with_origin_country": "US|GB|AR|ES",
-                "include_adult": false,
-                "without_genres": "99,10767",
-                "first_air_date.gte": "2026-09-13",
-                "first_air_date.lte": "2026-11-12"
-              },
-              "formState": {
-                "catalogName": "En Cartelera (Series)",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en|es|pt|fr|it|de",
-                "originCountry": "US|GB|AR|ES",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "AR",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  5.5,
-                  10
-                ],
-                "voteCountMin": 1,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "firstAirFrom": "2026-09-13",
-                "firstAirTo": "2026-11-12"
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.upcoming.pablo005",
-          "type": "movie",
-          "name": "Próximos Estrenos",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "vote_count.gte": 0,
-                "vote_average.gte": 0,
-                "with_original_language": "en|es|pt|fr|it|de",
-                "with_origin_country": "US|GB|AR|ES",
-                "include_adult": false,
-                "without_genres": "99,10767",
-                "primary_release_date.gte": "2026-11-12",
-                "primary_release_date.lte": "2027-01-20"
-              },
-              "formState": {
-                "catalogName": "Próximos Estrenos",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en|es|pt|fr|it|de",
-                "originCountry": "US|GB|AR|ES",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "AR",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  6,
-                  10
-                ],
-                "voteCountMin": 150,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "primaryReleaseFrom": "2026-11-12"
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.upcoming.pablo006",
-          "type": "series",
-          "name": "Próximos Estrenos (Series)",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (series)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "series",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "vote_count.gte": 0,
-                "vote_average.gte": 0,
-                "with_original_language": "en|es|pt|fr|it|de",
-                "with_origin_country": "US|GB|AR|ES",
-                "include_adult": false,
-                "without_genres": "99,10767",
-                "first_air_date.gte": "2026-11-12",
-                "first_air_date.lte": "2027-01-20"
-              },
-              "formState": {
-                "catalogName": "Próximos Estrenos (Series)",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en|es|pt|fr|it|de",
-                "originCountry": "US|GB|AR|ES",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "AR",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  6,
-                  10
-                ],
-                "voteCountMin": 150,
-                "runtimeRange": [
-                  0,
-                  400
-                ],
-                "firstAirFrom": "2026-11-12"
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.argentina.pablo001",
-          "type": "movie",
-          "name": "Cine Argentina",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "vote_count.gte": 150,
-                "vote_average.gte": 6,
-                "with_original_language": "en|es|pt|fr|it|de",
-                "with_origin_country": "AR",
-                "include_adult": false,
-                "without_genres": "99,10767"
-              },
-              "formState": {
-                "catalogName": "Cine Argentina",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en|es|pt|fr|it|de",
-                "originCountry": "AR",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "AR",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  6,
-                  10
-                ],
-                "voteCountMin": 150,
-                "runtimeRange": [
-                  0,
-                  400
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.argentina.pablo002",
-          "type": "series",
-          "name": "Series Argentina",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (series)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "series",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "vote_count.gte": 150,
-                "vote_average.gte": 6,
-                "with_original_language": "en|es|pt|fr|it|de",
-                "with_origin_country": "AR",
-                "include_adult": false,
-                "without_genres": "99,10767"
-              },
-              "formState": {
-                "catalogName": "Series Argentina",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en|es|pt|fr|it|de",
-                "originCountry": "AR",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "AR",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  6,
-                  10
-                ],
-                "voteCountMin": 150,
-                "runtimeRange": [
-                  0,
-                  400
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.movie.latam.pablo003",
-          "type": "movie",
-          "name": "Latinoamérica | Cine",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (movie)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "movie",
-              "params": {
-                "sort_by": "primary_release_date.desc",
-                "vote_count.gte": 150,
-                "vote_average.gte": 6,
-                "with_original_language": "en|es|pt|fr|it|de",
-                "with_origin_country": "AR|MX|CO|CL",
-                "include_adult": false,
-                "without_genres": "99,10767"
-              },
-              "formState": {
-                "catalogName": "Latinoamérica | Cine",
-                "discoverSource": "tmdb",
-                "sortBy": "primary_release_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "movie",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en|es|pt|fr|it|de",
-                "originCountry": "AR|MX|CO|CL",
-                "certificationCountry": "",
-                "certificationValue": "",
-                "includeAdult": false,
-                "releasedOnly": false,
-                "selectedPeople": [],
-                "peopleJoinMode": "or",
-                "withCompanies": [],
-                "withoutCompanies": [],
-                "companyJoinMode": "or",
-                "withKeywords": [],
-                "withoutKeywords": [],
-                "keywordJoinMode": "or",
-                "watchRegion": "AR",
-                "watchProviders": [],
-                "providerJoinMode": "or",
-                "voteAverageRange": [
-                  6,
-                  10
-                ],
-                "voteCountMin": 150,
-                "runtimeRange": [
-                  0,
-                  400
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": "tmdb.discover.tv.latam.pablo004",
-          "type": "series",
-          "name": "Latinoamérica | Series",
-          "enabled": true,
-          "showInHome": false,
-          "source": "tmdb",
-          "cacheTTL": 86400,
-          "metadata": {
-            "description": "TMDB Discover (series)",
-            "discover": {
-              "version": 2,
-              "source": "tmdb",
-              "mediaType": "series",
-              "params": {
-                "sort_by": "first_air_date.desc",
-                "vote_count.gte": 150,
-                "vote_average.gte": 6,
-                "with_original_language": "en|es|pt|fr|it|de",
-                "with_origin_country": "AR|MX|CO|CL",
-                "include_adult": false,
-                "without_genres": "99,10767"
-              },
-              "formState": {
-                "catalogName": "Latinoamérica | Series",
-                "discoverSource": "tmdb",
-                "sortBy": "first_air_date.desc",
-                "cacheTTL": 86400,
-                "catalogType": "series",
-                "includeGenres": [],
-                "excludeGenres": [],
-                "genreJoinMode": "or",
-                "originalLanguage": "en|es|pt|fr|it|de",
-                "originCountry": "AR|MX|CO|CL",
                 "certificationCountry": "",
                 "certificationValue": "",
                 "includeAdult": false,

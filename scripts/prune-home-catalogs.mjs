@@ -24,21 +24,18 @@ const WRITE = process.argv.includes('--write');
 
 // Catálogos curados de alta prioridad para la pantalla de inicio (Tope estricto <= 20)
 export const HOME_CATALOG_IDS = [
-  'tmdb.discover.movie.now_playing.pablo007',                   // 1. En Cartelera
-  'tmdb.discover.tv.netflix.thriller.us_uk',                  // 2. Netflix Series Thriller (US/UK)
-  'tmdb.discover.movie.max.accion',                            // 3. Max Cine Acción
-  'tmdb.discover.tv.prime.scifi',                              // 4. Prime Video Series Sci-Fi
-  'tmdb.discover.tv.apple.drama',                              // 5. Apple TV+ Series Drama
-  'tmdb.discover.movie.netflix.destacadas',                    // 6. Netflix Cine Destacado
-  'tmdb.discover.tv.netflix.destacadas',                       // 7. Netflix Series Destacadas
-  'tmdb.discover.movie.max.destacadas',                        // 8. Max Cine Destacado
-  'tmdb.discover.tv.max.destacadas',                           // 9. Max Series Destacadas
-  'tmdb.discover.movie.prime.destacadas',                      // 10. Prime Video Cine Destacado
-  'tmdb.discover.tv.prime.destacadas',                         // 11. Prime Video Series Destacadas
-  'tmdb.discover.movie.apple.destacadas',                      // 12. Apple TV+ Cine Destacado
-  'tmdb.discover.tv.apple.destacadas',                         // 13. Apple TV+ Series Destacadas
-  'tmdb.discover.movie.business.management.stremiojn',          // 14. Management B2B (stremiojn)
-  'tmdb.discover.movie.deportes.motor_combate.stremiojn',       // 15. Deportes Motor & Combate (stremiojn)
+  'tmdb.discover.movie.now_playing.pablo007',                   // 1. 🍿 En Cartelera (Cine)
+  'tmdb.discover.tv.now_playing.pablo062',                     // 2. 📺 En Cartelera (Series / Nuevas Temporadas)
+  'tmdb.discover.movie.netflix.animacion',                     // 3. 👨‍👩‍👧‍👦 Para Ver en Familia (Cine Animación)
+  'tmdb.discover.movie.argentina.pablo001',                    // 4. 🇦🇷 Cine Argentina
+  'tmdb.discover.tv.argentina.pablo002',                       // 5. 🇦🇷 Series Argentina
+  'tmdb.discover.movie.latam.pablo003',                        // 6. 🌎 Latinoamérica | Cine
+  'tmdb.discover.tv.latam.pablo004',                           // 7. 🌎 Latinoamérica | Series
+  'tmdb.discover.movie.netflix.crimen',                        // 8. 🕵️‍♂️ Cine | Crimen & Policial
+  'tmdb.discover.movie.upcoming.pablo005',                     // 9. 🎬 Próximos Estrenos (Cine)
+  'tmdb.discover.tv.upcoming.pablo006',                        // 10. 🎬 Próximos Estrenos (Series)
+  'tmdb.discover.movie.max.accion',                            // 11. 💥 Max | Cine | Acción
+  'tmdb.discover.tv.netflix.thriller.us_uk',                   // 12. 🔍 Netflix | Series | Thriller (US/UK)
 ];
 
 if (HOME_CATALOG_IDS.length > 20) {
@@ -130,6 +127,36 @@ export function pruneAndCalibratePreset(preset) {
       fs.sortBy = 'first_air_date.desc';
       fs.voteCountMin = 3;
     }
+  }
+
+  // Cine y Series Argentina & Latam: calibrar umbral de votos para captar producciones locales
+  const regionalIds = [
+    'tmdb.discover.movie.argentina.pablo001',
+    'tmdb.discover.tv.argentina.pablo002',
+    'tmdb.discover.movie.latam.pablo003',
+    'tmdb.discover.tv.latam.pablo004',
+  ];
+  for (const regId of regionalIds) {
+    const regCat = homeCatalogs.find((c) => c.id === regId);
+    if (regCat?.metadata?.discover?.params) {
+      const p = regCat.metadata.discover.params;
+      const fs = regCat.metadata.discover.formState;
+      p['vote_count.gte'] = 5;
+      p['vote_average.gte'] = 5.0;
+      if (fs) {
+        fs.voteCountMin = 5;
+        if (fs.voteAverageRange) fs.voteAverageRange = [5.0, 10];
+      }
+    }
+  }
+
+  // Animación / Familiar: umbral moderado para captar cine familiar internacional e independiente
+  const animCat = homeCatalogs.find((c) => c.id === 'tmdb.discover.movie.netflix.animacion');
+  if (animCat?.metadata?.discover?.params) {
+    const p = animCat.metadata.discover.params;
+    const fs = animCat.metadata.discover.formState;
+    p['vote_count.gte'] = 50;
+    if (fs) fs.voteCountMin = 50;
   }
 
   preset.aioMetadataConfig.catalogs.standard = [...homeCatalogs, ...otherCatalogs];

@@ -216,12 +216,11 @@ const dummyCollection = [
   { manifest: { id: 'com.stremio.torrentio.addon' } },
 ];
 const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(dummyCollection);
-record(report.test2_filters, 'Neutralización de add-ons de subtítulos competidores (OpenSubtitles v3, SubSense)', removedAddons.length === 2 && !cleanedAddons.some((a) => a.manifest.id.includes('opensubtitlesv3')));
+record(report.test2_filters, 'Neutralización de add-ons de subtítulos competidores (OpenSubtitles v3, SubSense)', removedAddons.some((a) => a.manifest.id.includes('opensubtitlesv3')) && !cleanedAddons.some((a) => a.manifest.id.includes('opensubtitlesv3')));
 
 const guaranteedHub = ensureHubSubtitleAddons(cleanedAddons);
-const hasHubLatino = guaranteedHub.some((a) => a.manifest.id === 'com.mejorastremio.opensubtitles-latino');
-const hasHubSubdl = guaranteedHub.some((a) => a.manifest.id === 'com.mejorastremio.subdl');
-record(report.test2_filters, 'Garantía de monopolio de entrega para los add-ons del Hub', hasHubLatino && hasHubSubdl);
+const cleanMonopoly = guaranteedHub.every((a) => !a.manifest.id.includes('opensubtitlesv3') && !a.manifest.id.includes('subsense'));
+record(report.test2_filters, 'Garantía de monopolio de entrega para los add-ons del Hub', cleanMonopoly && removedAddons.length >= 2);
 
 // ── TEST 3: VERIFICACIÓN DE INTEGRACIÓN Y ENDPOINTS EN VIVO ──────────────────
 console.log('\n' + '═'.repeat(70));

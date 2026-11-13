@@ -48,85 +48,75 @@ addons.forEach((a, i) => {
 });
 
 const aio = addons.find((a) => a.manifest?.id === 'aio-metadata');
-if (!aio) {
-  console.log('\n✗ AIOMetadata NO está en la colección guardada — esto sería gravísimo, no está instalado.');
-  process.exit(1);
-}
-console.log(`\n[2] AIOMetadata guardado: transportUrl = ${aio.transportUrl}`);
-const savedInstanceId = aio.transportUrl.match(/\/([0-9a-f-]{36})\//)?.[1] || '(no se pudo extraer)';
-console.log(`    instanceId guardado (en Stremio): ${savedInstanceId}`);
+const hub = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
 
-let presetInstanceId = '(no se pudo leer preset.json)';
-try {
-  const preset = JSON.parse(readFileSync(join(ROOT, 'data', 'preset.json'), 'utf8'));
-  presetInstanceId = preset?.aioMetadataConfig?.instanceId || '(preset.json sin instanceId)';
-} catch (e) {
-  presetInstanceId = `(error leyendo preset.json: ${e.message})`;
-}
-console.log(`    instanceId en preset.json (repo):  ${presetInstanceId}`);
-console.log(`    ${savedInstanceId === presetInstanceId ? '✓ COINCIDEN' : '✗ NO COINCIDEN — el repo y la cuenta están desincronizados'}`);
+if (hub) {
+  console.log(`\n[2] MejoraStremio Hub guardado: transportUrl = ${hub.transportUrl}`);
+  console.log(`    Versión guardada: ${hub.manifest?.version || '?'}`);
+  console.log(`    Catálogos guardados en Stremio: ${(hub.manifest?.catalogs || []).length}`);
+  (hub.manifest?.catalogs || []).forEach((c, idx) => {
+    console.log(`      ${idx + 1}. [${c.type}] ${c.name} (${c.id})`);
+  });
 
-console.log(`\n[3] Catálogos guardados EN STREMIO ahora mismo para AIOMetadata: ${(aio.manifest?.catalogs || []).length}`);
-const savedCatalogIds = new Set((aio.manifest?.catalogs || []).map((c) => c.id));
-
-const base = aio.transportUrl.replace(/manifest\.json$/, '');
-console.log(`\n[4] Fetch EN VIVO al manifest real: ${base}manifest.json`);
-const liveManifest = await getJson(`${base}manifest.json`, 20000);
-if (!liveManifest || liveManifest.__error) {
-  console.log(`  ✗ No se pudo obtener el manifest en vivo: ${liveManifest?.__error || 'respuesta vacía'}`);
-} else {
-  const liveCatalogIds = new Set((liveManifest.catalogs || []).map((c) => c.id));
-  console.log(`  ✓ Manifest en vivo responde: ${liveCatalogIds.size} catálogos`);
-  console.log(`    ${liveCatalogIds.size === savedCatalogIds.size ? '✓ mismo número que lo guardado en Stremio' : `✗ DIFERENTE del guardado en Stremio (guardado=${savedCatalogIds.size}, vivo=${liveCatalogIds.size})`}`);
-
-  const checkIds = {
-    'Policial Clásico': 'pablo056',
-    'Europe Noir (Cine)': 'pablo063',
-    'Europe Noir (Series)': 'pablo064',
-    '30 Minutos o Menos (Cine)': 'pablo065',
-    'Crimen Alemán (Cine)': 'pablo066',
-    'Crimen Alemán (Series)': 'pablo067',
-    'Crimen Reino Unido (Cine)': 'pablo068',
-    'Crimen Reino Unido (Series)': 'pablo069',
-  };
-  console.log('\n[5] Catálogos puntuales de las últimas sesiones — ¿están en Stremio guardado Y en vivo?');
-  for (const [name, idFrag] of Object.entries(checkIds)) {
-    const inSaved = [...savedCatalogIds].some((id) => id.includes(idFrag));
-    const inLive = [...liveCatalogIds].some((id) => id.includes(idFrag));
-    const flag = inSaved && inLive ? '✓' : '✗';
-    console.log(`  ${flag} ${name} (${idFrag}) — guardado en Stremio: ${inSaved ? 'SÍ' : 'NO'} | manifest en vivo: ${inLive ? 'SÍ' : 'NO'}`);
-    const raw = (liveManifest.catalogs || []).find((c) => c.id.includes(idFrag));
-    if (raw) {
-      console.log(`      raw: type="${raw.type}" name="${raw.name}" extra=${JSON.stringify(raw.extra || raw.extraSupported || [])}`);
+  console.log(`\n[3] Fetch EN VIVO al manifest de MejoraStremio Hub: https://mejorastremio-hub.pabloeckert.deno.net/manifest.json`);
+  const liveHub = await getJson('https://mejorastremio-hub.pabloeckert.deno.net/manifest.json', 15000);
+  if (liveHub && !liveHub.__error) {
+    const liveCatalogs = liveHub.catalogs || [];
+    console.log(`    ✓ Manifest en vivo responde: v${liveHub.version}, ${liveCatalogs.length} catálogos`);
+    const savedCount = (hub.manifest?.catalogs || []).length;
+    if (savedCount === liveCatalogs.length) {
+      console.log(`    ✓ Catálogos sincronizados 1:1 entre Stremio Cloud y Deno Deploy (${savedCount} catálogos)`);
+    } else {
+      console.log(`    ✗ DESINCRONIZACIÓN DETECTADA: Stremio Cloud tiene ${savedCount} catálogos, pero en vivo hay ${liveCatalogs.length} catálogos`);
+      console.log(`      -> Se requiere ejecutar apply-stremioeg-profile.mjs --apply para actualizar la cuenta Stremio.`);
     }
-  }
-  const refId = 'pablo001';
-  const ref = (liveManifest.catalogs || []).find((c) => c.id.includes(refId));
-  if (ref) {
-    console.log(`\n  Referencia — catálogo YA conocido que sí se ve bien (Argentina, ${refId}):`);
-    console.log(`      raw: type="${ref.type}" name="${ref.name}" extra=${JSON.stringify(ref.extra || ref.extraSupported || [])}`);
-  }
-  const movieCatalogs = (liveManifest.catalogs || []).filter((c) => c.type === 'movie');
-  const seriesCatalogs = (liveManifest.catalogs || []).filter((c) => c.type === 'series');
-  console.log(`\n  Total en el selector de Descubrir si elegís "Películas": ${movieCatalogs.length} catálogos de este addon`);
-  console.log(`  Total en el selector de Descubrir si elegís "Series": ${seriesCatalogs.length} catálogos de este addon`);
-  const idxOf = (idFrag) => movieCatalogs.findIndex((c) => c.id.includes(idFrag));
-  const idxOfSeries = (idFrag) => seriesCatalogs.findIndex((c) => c.id.includes(idFrag));
-  console.log(`\n  Posición de "Policial Clásico" en la lista de Películas: ${idxOf('pablo056') + 1} de ${movieCatalogs.length}`);
-  console.log(`  Posición de "Europe Noir (Cine)" en la lista de Películas: ${idxOf('pablo063') + 1} de ${movieCatalogs.length}`);
-  console.log(`  Posición de "Crimen Alemán (Series)" en la lista de Series: ${idxOfSeries('pablo067') + 1} de ${seriesCatalogs.length}`);
 
-  console.log('\n[6] showInHome de esos mismos catálogos (según preset.json — determina si aparecen en el Inicio o solo en Descubrir)');
+    const checkHubIds = ['miniseries', 'short-series', 'nuevos-estrenos-cine', 'nuevas-temporadas', 'estrenos-streaming', 'discover-master'];
+    const savedIds = new Set((hub.manifest?.catalogs || []).map((c) => c.id));
+    const liveIds = new Set(liveCatalogs.map((c) => c.id));
+    console.log('\n[4] Auditoría de Catálogos por Intención en MejoraStremio Hub:');
+    for (const cid of checkHubIds) {
+      const inSaved = savedIds.has(cid);
+      const inLive = liveIds.has(cid);
+      const flag = inSaved && inLive ? '✓' : (inLive ? '⚠️ (solo en vivo)' : '✗');
+      console.log(`  ${flag} ${cid} — en Stremio Cloud: ${inSaved ? 'SÍ' : 'NO'} | en Deno Hub en vivo: ${inLive ? 'SÍ' : 'NO'}`);
+    }
+  } else {
+    console.log(`    ✗ Error consultando Deno Hub en vivo: ${liveHub?.__error}`);
+  }
+} else {
+  console.log('\n✗ ADVERTENCIA: com.mejorastremio.hub NO está en la colección guardada.');
+}
+
+if (!aio) {
+  console.log('\nℹ AIOMetadata opera desacoplado de la cuenta (Hub Unificado v3.1 gestiona streams, subs y catálogos).');
+} else {
+  console.log(`\n[5] AIOMetadata guardado: transportUrl = ${aio.transportUrl}`);
+  const savedInstanceId = aio.transportUrl.match(/\/([0-9a-f-]{36})\//)?.[1] || '(no se pudo extraer)';
+  console.log(`    instanceId guardado (en Stremio): ${savedInstanceId}`);
+
+  let presetInstanceId = '(no se pudo leer preset.json)';
   try {
     const preset = JSON.parse(readFileSync(join(ROOT, 'data', 'preset.json'), 'utf8'));
-    const std = preset?.aioMetadataConfig?.catalogs?.standard || [];
-    for (const [name, idFrag] of Object.entries(checkIds)) {
-      const entry = std.find((c) => (c.id || '').includes(idFrag));
-      if (!entry) { console.log(`  ? ${name} — no encontrado en preset.json`); continue; }
-      console.log(`  ${entry.showInHome ? '🏠 Inicio' : '🔍 Solo Descubrir'} | enabled=${entry.enabled} — ${name}`);
-    }
+    presetInstanceId = preset?.aioMetadataConfig?.instanceId || '(preset.json sin instanceId)';
   } catch (e) {
-    console.log(`  ✗ Error leyendo preset.json: ${e.message}`);
+    presetInstanceId = `(error leyendo preset.json: ${e.message})`;
+  }
+  console.log(`    instanceId en preset.json (repo):  ${presetInstanceId}`);
+  console.log(`    ${savedInstanceId === presetInstanceId ? '✓ COINCIDEN' : '✗ NO COINCIDEN — el repo y la cuenta están desincronizados'}`);
+
+  console.log(`\n[6] Catálogos guardados EN STREMIO ahora mismo para AIOMetadata: ${(aio.manifest?.catalogs || []).length}`);
+  const savedCatalogIds = new Set((aio.manifest?.catalogs || []).map((c) => c.id));
+
+  const base = aio.transportUrl.replace(/manifest\.json$/, '');
+  console.log(`\n[7] Fetch EN VIVO al manifest real: ${base}manifest.json`);
+  const liveManifest = await getJson(`${base}manifest.json`, 20000);
+  if (!liveManifest || liveManifest.__error) {
+    console.log(`  ✗ No se pudo obtener el manifest en vivo: ${liveManifest?.__error || 'respuesta vacía'}`);
+  } else {
+    const liveCatalogIds = new Set((liveManifest.catalogs || []).map((c) => c.id));
+    console.log(`  ✓ Manifest en vivo responde: ${liveCatalogIds.size} catálogos`);
+    console.log(`    ${liveCatalogIds.size === savedCatalogIds.size ? '✓ mismo número que lo guardado en Stremio' : `✗ DIFERENTE del guardado en Stremio (guardado=${savedCatalogIds.size}, vivo=${liveCatalogIds.size})`}`);
   }
 }
 

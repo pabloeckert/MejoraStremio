@@ -880,7 +880,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     return new Response("Not found", { status: 404, headers: cors });
   }
   const [, type, catalogId, extraStr] = catalogMatch;
-  const isRecognizedCatalog = /^(discover-master|nuevos-estrenos-cine|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|miniseries|short-series)$/.test(catalogId);
+  const isRecognizedCatalog = /^(discover-master|nuevos-estrenos-cine|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|miniseries|short-series|familia|cine-argentina|series-argentina)$/.test(catalogId);
   if (!isRecognizedCatalog) {
     return new Response("Not found", { status: 404, headers: cors });
   }
@@ -984,6 +984,27 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     params.sort_by = "first_air_date.desc";
     params["vote_count.gte"] = "20";
     params["vote_average.gte"] = "6.0";
+  } else if (catalogId === "familia") {
+    params.with_genres = "10751"; // Familiar (Family)
+    params.sort_by = "primary_release_date.desc";
+    params["vote_count.gte"] = "50";
+    if (genre && genre !== "Todos" && genreMap[genre]) {
+      params.with_genres = `10751,${genreMap[genre]}`;
+    }
+  } else if (catalogId === "cine-argentina") {
+    params.with_origin_country = "AR";
+    params.sort_by = "primary_release_date.desc";
+    params["vote_count.gte"] = "5";
+    if (genre && genre !== "Todos" && genreMap[genre]) {
+      params.with_genres = String(genreMap[genre]);
+    }
+  } else if (catalogId === "series-argentina") {
+    params.with_origin_country = "AR";
+    params.sort_by = "first_air_date.desc";
+    params["vote_count.gte"] = "5";
+    if (genre && genre !== "Todos" && genreMap[genre]) {
+      params.with_genres = String(genreMap[genre]);
+    }
   } else {
     // discover-master
     params["vote_count.gte"] = type === "movie" ? "5" : "3";

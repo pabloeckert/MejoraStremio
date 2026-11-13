@@ -46,6 +46,36 @@ export const MEJORASTREMIO_HUB_MANIFEST = {
       ],
     },
     {
+      type: "movie",
+      id: "familia",
+      name: "Para Ver en Familia",
+      extra: [
+        { name: "genre", options: ["Todos", ...Object.keys(GENRE_IDS_MOVIE)], isRequired: false },
+        { name: "sort", options: ["released", "premiere_date", "year_desc", "popularity.desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
+      type: "movie",
+      id: "cine-argentina",
+      name: "Cine Argentina",
+      extra: [
+        { name: "genre", options: ["Todos", ...Object.keys(GENRE_IDS_MOVIE)], isRequired: false },
+        { name: "sort", options: ["released", "premiere_date", "year_desc", "popularity.desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
+      type: "series",
+      id: "series-argentina",
+      name: "Series Argentina",
+      extra: [
+        { name: "genre", options: ["Todos", ...Object.keys(GENRE_IDS_SERIES)], isRequired: false },
+        { name: "sort", options: ["released", "premiere_date", "year_desc", "popularity.desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
       type: "series",
       id: "miniseries",
       name: "Miniseries de Fin de Semana",

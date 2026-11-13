@@ -5,7 +5,7 @@
  * purga de marcas auditivas/SDH y emisión de pistas duales ('spl' + 'spa') para Stremio Core.
  */
 
-import { srtTimeToMs, msToSrtTime } from "../utils/common.ts";
+import { srtTimeToMs, msToSrtTime, decodeSubtitleEntities } from "../utils/common.ts";
 
 export const EUROPEAN_SHOW_IDS = new Set([
   "tt14060708", // HPI: Haut Potentiel Intellectuel
@@ -411,7 +411,7 @@ export function cleanSrt(srtContent: string): string {
 
     const cleanedLines = rawLines
       .map((line) => {
-        let l = line;
+        let l = decodeSubtitleEntities(line);
         // 1. Purgar siempre corchetes [...]
         l = l.replace(/\[[^\]]*\]/g, "");
 

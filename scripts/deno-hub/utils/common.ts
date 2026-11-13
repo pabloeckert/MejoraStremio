@@ -130,8 +130,32 @@ export function decodeSubtitleText(buf: Uint8Array): string {
   return sanitizeSubtitleArtifacts(raw);
 }
 
-export function sanitizeSubtitleArtifacts(text: string): string {
+/**
+ * Decodifica entidades HTML/numéricas frecuentes en subtítulos comunitarios
+ * y colapsa apóstrofes duplicados internos sin alterar palabras con acento.
+ */
+export function decodeSubtitleEntities(text: string): string {
+  if (!text) return "";
   return text
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0*39;|&apos;|&#x0*27;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#(\d+);/g, (_m, dec) => {
+      const code = parseInt(dec, 10);
+      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : _m;
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_m, hex) => {
+      const code = parseInt(hex, 16);
+      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : _m;
+    })
+    .replace(/&amp;/gi, "&")
+    .replace(/([a-zA-ZáéíóúñÁÉÍÓÚÑ])''([a-zA-ZáéíóúñÁÉÍÓÚÑ])/g, "$1'$2");
+}
+
+export function sanitizeSubtitleArtifacts(text: string): string {
+  return decodeSubtitleEntities(text)
     .replace(/\uFEFF/g, "")            // BOM suelto en medio del texto
     .replace(/\r\n?/g, "\n")          // CRLF/CR reales -> LF
     .replace(/\\[rn]/g, " ")          // "\r" / "\n" LITERALES (2 chars, artefacto de conversión rota) -> espacio

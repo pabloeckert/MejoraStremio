@@ -59,6 +59,7 @@ export {
   cors,
   jsonResponse,
   parseStremioSubId,
+  decodeSubtitleEntities,
   cleanReleaseName,
   classifyStreamAudio,
   detectLatinoConfidence,

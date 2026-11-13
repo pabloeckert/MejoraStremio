@@ -460,6 +460,7 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
     // Micro-Badging Atómico: Eliminar etiquetas redundantes y ruido de proveedores
     raw = raw
       .replace(/MediaFusion\s*\|\s*ElfHosted\s*[🧲\s]*TRB\s*[⚡️\s]*/gi, "[TB+] MediaFusion ")
+      .replace(/Comet\s*\|\s*ElfHosted/gi, "Comet")
       .replace(/\s+/g, " ")
       .trim();
 
@@ -500,8 +501,8 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
   };
 
   // The Considerate Player: Curaduría inteligente, deduplicación por release y top conciso
-  const sortedLatinoCached = deduplicateStreamBucket(sortStreamBucket(latinoCached)).slice(0, 15);
-  const sortedOriginalCached = deduplicateStreamBucket(sortStreamBucket(originalCached)).slice(0, 15);
+  const sortedLatinoCached = deduplicateStreamBucket(sortStreamBucket(latinoCached)).slice(0, 10);
+  const sortedOriginalCached = deduplicateStreamBucket(sortStreamBucket(originalCached)).slice(0, 8);
   const sortedLatinoBuffer = deduplicateStreamBucket(sortStreamBucket(latinoBuffer)).slice(0, 3);
   const sortedOriginalBuffer = deduplicateStreamBucket(sortStreamBucket(originalBuffer)).slice(0, 3);
   const sortedCastellanoCached = sortStreamBucket(castellanoCached).slice(0, 2);

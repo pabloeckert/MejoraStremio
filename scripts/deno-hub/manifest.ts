@@ -1,5 +1,5 @@
 /**
- * manifest.ts — Manifiesto canónico de MejoraStremio Hub (v3.2.0).
+ * manifest.ts — Manifiesto canónico de MejoraStremio Hub (v3.2.1).
  *
  * Provee la definición única y estandarizada del Addon Unificado de MejoraStremio,
  * optimizado para Android TV / Leanback UI en TV Box ZTE B866V2.
@@ -17,8 +17,8 @@ import {
 
 export const MEJORASTREMIO_HUB_MANIFEST = {
   id: "com.mejorastremio.hub",
-  version: "3.2.0",
-  name: "MejoraStremio Hub v3.2 (Enterprise)",
+  version: "3.2.1",
+  name: "MejoraStremio Hub v3.2.1 (Enterprise)",
   description:
     "Suite integral de MejoraStremio para TV Box: Streams con prioridad absoluta de Audio Latino [🌎 LATINO] y TorBox instantáneo, subtítulos sin SDH, SmartSync PAL 25->23.976fps, traducción IA Gemini Flash bajo demanda, sinopsis y tráilers en español latino, y catálogos con filtros por plataforma, región, país y género.",
   resources: ["stream", "subtitles", "catalog", "meta"],

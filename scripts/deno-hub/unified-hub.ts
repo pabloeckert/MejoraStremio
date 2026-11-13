@@ -11,6 +11,9 @@
 import { cors, jsonResponse, safeGetKv } from "./utils/common.ts";
 import { handleStreams } from "./streams/streams.ts";
 import { handleSubdl } from "./subtitles/subdl.ts";
+import { handleOpenSubtitles, OPENSUBTITLES_LATINO_MANIFEST } from "./subtitles/opensubtitles.ts";
+import { handleSubsource } from "./subtitles/subsource.ts";
+import { handleSubdivx } from "./subtitles/subdivx.ts";
 import { handleTranslate } from "./translate/translate.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./subtitles/smartsync.ts";
 import { handleDiscover } from "./catalogs/tmdb.ts";
@@ -205,7 +208,7 @@ export function renderConfigureHtml(configSegment: string, origin: string): stri
 </head>
 <body>
   <div class="container">
-    <span class="badge">MejoraStremio v3.0 (Enterprise)</span>
+    <span class="badge">MejoraStremio v${MEJORASTREMIO_HUB_MANIFEST.version} (Enterprise)</span>
     <h1>Hub Unificado de MejoraStremio</h1>
     <p class="desc">
       Smart Stream Interceptor (TorBox + Audio Latino) y suite completa de subtítulos limpios sin SDH, SmartSync (PAL 25 ➔ 23.976fps) y traducción IA Gemini Flash en un solo addon.
@@ -253,9 +256,34 @@ export function renderConfigureHtml(configSegment: string, origin: string): stri
 </html>`;
 }
 
+async function fetchSubtitleProvider(
+  promise: Promise<Response>,
+  timeoutMs = 4500,
+): Promise<SubtitleTrackPayload[]> {
+  let timerId: number | undefined;
+  const safePromise = promise.catch(() => null);
+  try {
+    const res = await Promise.race([
+      safePromise,
+      new Promise<null>((resolve) => {
+        // @ts-ignore timer
+        timerId = setTimeout(() => resolve(null), timeoutMs);
+      }),
+    ]);
+    if (!res || !res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.subtitles) ? (data.subtitles as SubtitleTrackPayload[]) : [];
+  } catch {
+    return [];
+  } finally {
+    if (timerId !== undefined) clearTimeout(timerId);
+  }
+}
+
 /**
  * Agregador de Subtítulos para el Addon Unificado (/subtitles/:type/:id.json).
- * Consulta SubDL, SubSource y Translate en paralelo para ofrecer la mejor combinación.
+ * Consulta SubDL, OpenSubtitles Latino, SubSource, Subdivx y Translate en paralelo
+ * con aislamiento por timeout para garantizar la mejor combinación sin bloqueos.
  */
 export async function handleUnifiedSubtitles(
   subPath: string,
@@ -263,35 +291,46 @@ export async function handleUnifiedSubtitles(
   reqUrl: URL,
 ): Promise<Response> {
   const subtitles: SubtitleTrackPayload[] = [];
+  const seenIds = new Set<string>();
   const origin = reqUrl.origin;
 
-  // Ejecución paralela resiliente
-  const [subdlRes, transRes] = await Promise.allSettled([
-    handleSubdl(subPath, `${origin}/subdl`, reqUrl).then((r) => r.ok ? r.json() : null),
-    handleTranslate(subPath, `${origin}/translate`, reqUrl).then((r) => r.ok ? r.json() : null),
+  const [subdlSubs, osLatinoSubs, subsourceSubs, subdivxSubs, transSubs] = await Promise.all([
+    fetchSubtitleProvider(handleSubdl(subPath, `${origin}/subdl`, reqUrl)),
+    fetchSubtitleProvider(
+      handleOpenSubtitles(
+        subPath,
+        `${origin}/opensubtitles-latino`,
+        OPENSUBTITLES_LATINO_MANIFEST,
+        "ea",
+        "mshub-oslat",
+        "OpenSubtitles Latino",
+        reqUrl,
+      ),
+    ),
+    fetchSubtitleProvider(handleSubsource(subPath, `${origin}/subsource`, reqUrl)),
+    fetchSubtitleProvider(handleSubdivx(subPath, `${origin}/subdivx`, reqUrl)),
+    fetchSubtitleProvider(handleTranslate(subPath, `${origin}/translate`, reqUrl)),
   ]);
 
-  // 1. Agregar subtítulos comunitarios limpios (SubDL)
-  if (subdlRes.status === "fulfilled" && subdlRes.value?.subtitles) {
-    const list = subdlRes.value.subtitles as SubtitleTrackPayload[];
+  const appendUnique = (list: SubtitleTrackPayload[]) => {
     for (const sub of list) {
-      if (!subtitles.some((s) => s.id === sub.id)) {
+      if (sub?.id && !seenIds.has(sub.id)) {
+        seenIds.add(sub.id);
         subtitles.push(sub);
       }
     }
-  }
+  };
 
-  // 2. Agregar traducción IA Gemini Flash como fallback garantizado
-  if (transRes.status === "fulfilled" && transRes.value?.subtitles) {
-    const list = transRes.value.subtitles as SubtitleTrackPayload[];
-    for (const sub of list) {
-      if (!subtitles.some((s) => s.id === sub.id)) {
-        subtitles.push(sub);
-      }
-    }
-  }
+  // 1. Pistas comunitarias limpias y SmartSync primero (SubDL, OpenSubtitles Latino, SubSource, Subdivx)
+  appendUnique(subdlSubs);
+  appendUnique(osLatinoSubs);
+  appendUnique(subsourceSubs);
+  appendUnique(subdivxSubs);
 
-  // Si ambos fallaron o quedaron vacíos, garantizar subtítulo IA de última instancia
+  // 2. Traducción IA Gemini Flash siempre disponible como respaldo completo
+  appendUnique(transSubs);
+
+  // 3. Red de seguridad última si los proveedores externos respondieron vacío
   if (subtitles.length === 0) {
     pushDualSubtitles(subtitles, {
       id: "ia-unified-fallback",

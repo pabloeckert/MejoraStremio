@@ -1008,10 +1008,10 @@ export function runUnitTests() {
     { manifest: { id: 'com.stremio.torrentio.addon', name: 'Torrentio' }, transportUrl: 'https://torrentio.strem.fun/manifest.json' },
   ];
   const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(sampleAddonCollection);
-  assertTest('Filtra OpenSubtitles v3 y SubSense de la colección', removedAddons.length === 2 && !cleanedAddons.some(a => a.manifest.id.includes('subtitlesv3') || a.manifest.id.includes('subsense')));
+  assertTest('Filtra OpenSubtitles v3, SubSense y Torrentio directo de la colección (v3.2 Whitelist)', removedAddons.length === 3 && !cleanedAddons.some(a => a.manifest.id.includes('subtitlesv3') || a.manifest.id.includes('subsense') || a.manifest.id.includes('torrentio')));
 
   const withHubMonopoly = ensureHubSubtitleAddons(cleanedAddons);
-  assertTest('Inyecta los 3 add-ons del Hub al inicio de la colección', withHubMonopoly.some(a => a.manifest.id === 'com.mejorastremio.opensubtitles-latino') && withHubMonopoly.some(a => a.manifest.id === 'com.mejorastremio.subdl'));
+  assertTest('Delega subtítulos al Hub Unificado sin inyectar add-ons satélite legacy', withHubMonopoly.length === cleanedAddons.length && withHubMonopoly[0]?.manifest.id === 'com.linvo.cinemeta');
 
   // 5. Gobernanza Leanback UX (Home <= 20, vote_count.gte >= 3, dynamic sort)
   if (existsSync(PRESET_PATH)) {

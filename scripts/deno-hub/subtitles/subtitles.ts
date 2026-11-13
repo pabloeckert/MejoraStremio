@@ -50,7 +50,7 @@ export function sanitizeLatinSpanishTracks(rawTracks: any[]): any[] {
   return rawTracks.filter((track: any) => {
     const lang = (track.lang || track.language || "").toLowerCase();
     if (lang === "es-es" || lang === "spanish" || lang === "castellano") return false;
-    return ["es-419", "spl", "spa-lat", "es-mx", "es-ar", "pob", "spa"].includes(lang);
+    return ["es-419", "ea", "spl", "spa-lat", "es-mx", "es-ar", "spa", "es"].includes(lang);
   });
 }
 
@@ -121,7 +121,7 @@ export async function fetchSubDL(imdbId: string, season?: number, episode?: numb
 // B) OpenSubtitles REST API v3 (Excluye Machine Translation y SDH)
 export async function fetchOpenSubtitlesV3(imdbId: string, season?: number, episode?: number) {
   try {
-    let url = `https://api.opensubtitles.com/api/v1/subtitles?imdb_id=${imdbId.replace("tt", "")}&languages=es-MX,es-419,pob&hearing_impaired=false&machine_translated=exclude`;
+    let url = `https://api.opensubtitles.com/api/v1/subtitles?imdb_id=${imdbId.replace("tt", "")}&languages=es-MX,es-419,ea&hearing_impaired=false&machine_translated=exclude`;
     if (season && episode) url += `&season_number=${season}&episode_number=${episode}`;
     const res = await fetch(url, {
       headers: {
@@ -169,28 +169,32 @@ export async function fetchSubSource(imdbId: string) {
   }
 }
 
-// D) Wyzie Subs API
+// D) Wyzie Subs API (sub.wyzie.io primario con fallback a sub.wyzie.ru)
 export async function fetchWyzieSubs(imdbId: string, season?: number, episode?: number) {
   const apiKey = Deno.env.get("WYZIE_API_KEY");
-  try {
-    let url = `https://sub.wyzie.ru/search?id=${imdbId}&language=es&sdh=false`;
-    if (season && episode) url += `&season=${season}&episode=${episode}`;
-    const headers: Record<string, string> = {};
-    if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-    const res = await fetch(url, { headers, signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return [];
-    const data = await res.json();
-    // deno-lint-ignore no-explicit-any
-    return (data || []).map((w: any) => ({
-      id: `wyzie-${w.id}`,
-      url: w.url,
-      lang: "es-419",
-      name: `🔍 Latino (Wyzie) · ${w.display_name}`,
-      hi: false,
-    }));
-  } catch {
-    return [];
+  const querySuffix = `id=${imdbId}&language=es&sdh=false${season && episode ? `&season=${season}&episode=${episode}` : ""}`;
+  const headers: Record<string, string> = {};
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
+  for (const host of ["https://sub.wyzie.io", "https://sub.wyzie.ru"]) {
+    try {
+      const res = await fetch(`${host}/search?${querySuffix}`, { headers, signal: AbortSignal.timeout(4500) });
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!Array.isArray(data)) continue;
+      // deno-lint-ignore no-explicit-any
+      return data.map((w: any) => ({
+        id: `wyzie-${w.id}`,
+        url: w.url,
+        lang: "es-419",
+        name: `🔍 Latino (Wyzie) · ${w.display || w.display_name || w.language || "ES"}`,
+        hi: false,
+      }));
+    } catch {
+      // Probar siguiente espejo Wyzie
+    }
   }
+  return [];
 }
 
 // E) SubSense / Addic7ed Aggregator API

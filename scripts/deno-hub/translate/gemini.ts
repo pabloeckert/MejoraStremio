@@ -4,7 +4,7 @@
  */
 
 import { PRESERVED_SPEAKER_ACRONYMS } from "../subtitles/smartsync.ts";
-import { safeEnv } from "../utils/common.ts";
+import { safeEnv, decodeSubtitleEntities } from "../utils/common.ts";
 import {
   checkGeminiDailyQuota,
   checkGemini429Circuit,
@@ -218,9 +218,10 @@ const SOUND_WORDS_RE = /\b(?:m[uú]sica|musique|music|sonido|sound|audio|disparo
 export function cleanCueForTranslation(text: string): string {
   if (!text) return "";
   let t = text;
-  // 1. Eliminar etiquetas HTML y estilos
+  // 1. Eliminar etiquetas HTML, estilos y decodificar entidades
   t = t.replace(/<[^>]+>/g, "");
   t = t.replace(/\{[^}]+\}/g, "");
+  t = decodeSubtitleEntities(t);
   // 2. Eliminar acotaciones sonoras entre corchetes siempre; y entre paréntesis preservando siglas legítimas y narrativos en minúsculas
   t = t.replace(/\[[\s\S]*?\]/g, "");
   t = t.replace(/\(([^)]*)\)/g, (fullMatch, inner) => {

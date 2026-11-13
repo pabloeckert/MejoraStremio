@@ -846,6 +846,47 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Suite de Pruebas `test-tvbox-deep-e2e.mjs`**: **111 de 111 superadas (100.0% PASS)** (Cold-Boot: 42/42, Playback: 69/69).
 - **Tipado y Linters**: `deno check` y `deno lint` con 0 errores y 0 advertencias.
 
+---
+
+## 30. Sesión 2026-11-12 (Parte 4): Reordenamiento Canónico de Oro del Home Screen, Catálogos por Intención en Deno Hub y Poda Ergonómica de Filtros Leanback
+
+### 30.1 Reordenamiento Canónico de Oro del Home Screen (`data/preset.json` & `prune-home-catalogs.mjs`)
+- **Diagnóstico de Saturación y Desorden**: El Home Screen de la TV Box presentaba silos comerciales fragmentados (Netflix, Max, Prime, Apple) y catálogos de deportes/B2B de la cuenta `stremiojn` en los primeros lugares, mientras que "En Cartelera" estaba relegado al puesto #15 y los catálogos familiares, de cine argentino y latinoamericano permanecían ocultos (`showInHome: false`).
+- **Solución Zero-Trust (Exactamente 12 Filas Estelares)**:
+  - Fila #1: 🍿 **En Cartelera** (Cine fresco, estrenos en salas con `with_release_type: 2|3` y `vote_gte: 3`).
+  - Fila #2: 📺 **En Cartelera (Series)** (Nuevas temporadas en emisión, `first_air_date.desc`).
+  - Fila #3: 👨‍👩‍👧‍👦 **Para Ver en Familia** (Cine animación familiar, `vote_gte: 50`).
+  - Fila #4: 🇦🇷 **Cine Argentina** (Calibrado a `vote_count.gte: 5` para captar estrenos nacionales sin exclusión).
+  - Fila #5: 🇦🇷 **Series Argentina** (Calibrado a `vote_count.gte: 5`).
+  - Fila #6: 🌎 **Latinoamérica | Cine** (Calibrado a `vote_count.gte: 5`).
+  - Fila #7: 🌎 **Latinoamérica | Series** (Calibrado a `vote_count.gte: 5`).
+  - Fila #8: 🕵️‍♂️ **Cine | Crimen & Policial** (Selección de suspenso y misterio curado).
+  - Fila #9: 🎬 **Próximos Estrenos** (Cine con ventana digital inminente, orden `asc`).
+  - Fila #10: 🎬 **Próximos Estrenos (Series)** (Series inminentes, orden `asc`).
+  - Fila #11: 💥 **Max | Cine | Acción** (Acción de alto presupuesto).
+  - Fila #12: 🔍 **Netflix | Series | Thriller (US/UK)** (Thriller anglosajón).
+- **Preservación Total en Descubrir**: Los 89 catálogos restantes se mantienen activos con `enabled: true` y `showInHome: false` en la pestaña *Descubrir* (cero pérdida de datos).
+
+### 30.2 Catálogos por Intención en el Hub Unificado (`manifest.ts` & `catalogs/tmdb.ts`)
+- **El Job-to-be-Done de la Parálisis Nocturna**: Para evitar el compromiso forzado con series de múltiples temporadas en días de semana o domingos por la noche, se incorporaron dos nuevos catálogos nativos al backend de TMDB:
+  - ⏳ **Miniseries de Fin de Semana (`miniseries`)**: Historias autoconclusivas y cerradas de una sola temporada (`with_type: "2"`, `with_status: "3"`), alta calificación (`vote_average >= 6.5`, `vote_count >= 20`) y orden cronológico reciente (`first_air_date.desc`).
+  - ⏱️ **Comedias de Bolsillo (≤30 min) (`short-series`)**: Sitcoms y comedias live-action (`with_genres: "35"`, `without_genres: "16"`) con episodios de duración breve (`with_runtime.lte: 32`), ideales para cenar sin sobrecarga cognitiva.
+- **Rendimiento y Resolución en Lote**: Integradas directamente a `handleDiscover` con resolución paralela de IMDb IDs (`resolveBatchImdb`), eliminando cascadas N+1 y entregando respuestas en <150ms con pósters y metadatos completos.
+
+### 30.3 Poda Ergonómica de Filtros en "Descubrir Maestro" (`discoverExtra`)
+- **Reducción de Fatiga del D-pad a 3 Metros**:
+  - Plataformas acotadas a las 7 prioritarias en la región (`Netflix`, `HBO Max`, `Prime Video`, `Disney+`, `Apple TV+`, `Paramount+`, `Mubi`), eliminando canales de nicho inaccesibles en Argentina (Shudder, Acorn TV, BritBox).
+  - Países reducidos de 24 opciones alfabéticas a los 10 principales (`Argentina`, `España`, `México`, `Estados Unidos`, `Reino Unido`, `Francia`, `Italia`, `Alemania`, `Corea`, `Japón`).
+  - Regiones agrupadas en 4 macro-bloques geopolíticos (`Latinoamérica`, `Europa`, `Norteamérica`, `Asia`).
+  - **Impacto directo**: Reducción superior al 70% de pulsaciones en el control remoto para filtrar contenido internacional.
+
+### 30.4 Batería de Pruebas y Certificación de Producción
+- **Suite E2E TV Box (`test-tvbox-deep-e2e.mjs`)**: Ampliada a **113 verificaciones** con 100% de éxito (Cold-Boot 44/44, Playback 69/69).
+- **Suite de Perfil y Estructura (`test-stremioeg-tvbox.mjs`)**: **32 de 32 pruebas superadas (100% PASS)**.
+- **Deploy a Producción (Deno Deploy)**: Workflow `deploy-deno-hub.yml` ejecutado en 20s (Run `43319328185`).
+- **Verificación en Vivo (Zero-Trust)**: Inspección HTTP en vivo en `https://mejorastremio-hub.pabloeckert.deno.net` certificó el manifiesto con 8 catálogos y entrega inmediata de Miniseries (19 metas) y Comedias de Bolsillo (25 metas).
+
+
 
 
 

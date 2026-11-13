@@ -307,16 +307,16 @@ export function getGitShortSha() {
 
 export const GIT_SHORT_SHA = getGitShortSha();
 
-export function injectCacheBuster(url, sha = GIT_SHORT_SHA) {
+export function injectCacheBuster(url, sha = GIT_SHORT_SHA, manifestVersion = null) {
   if (!url) return url;
   if (/[?&]v=/.test(url)) {
     return url.replace(/([?&]v=)([^&]*)/, (m, p1, p2) => {
-      const baseVer = p2.split('-')[0].split('.').slice(0, 3).join('.');
-      return `${p1}${baseVer || '3.0.1'}-${sha}`;
+      const baseVer = manifestVersion || p2.split('-')[0].split('.').slice(0, 3).join('.');
+      return `${p1}${baseVer || '3.2.0'}-${sha}`;
     });
   }
   const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}v=3.0.1-${sha}`;
+  return `${url}${sep}v=${manifestVersion || '3.2.0'}-${sha}`;
 }
 
 export const CANONICAL_HUB_URL =
@@ -496,13 +496,16 @@ export function renderVisualDiff(currentAddons, targetAddons) {
       const { addon: c, pos: oldPos } = currentMap.get(id);
       const urlChanged = c.transportUrl !== t.transportUrl;
       const verChanged = c.manifest?.version !== t.manifest?.version;
+      const catsChanged = (c.manifest?.catalogs?.length || 0) !== (t.manifest?.catalogs?.length || 0);
       const posChanged = oldPos !== newPos;
 
-      if (urlChanged || verChanged) {
+      if (urlChanged || verChanged || catsChanged) {
         modified++;
         const note = verChanged
           ? `v${c.manifest?.version || '?'}>v${t.manifest?.version || '?'}`
-          : (posChanged ? `pos ${oldPos}->${newPos} + url` : 'url modif');
+          : (catsChanged
+            ? `cats ${c.manifest?.catalogs?.length || 0}>${t.manifest?.catalogs?.length || 0}`
+            : (posChanged ? `pos ${oldPos}->${newPos} + url` : 'url modif'));
         console.log(`│ ${posStr} │ ${name} │ [~] MODIFICADO       │ ${note.slice(0, 13).padEnd(13)} │`);
       } else if (posChanged) {
         reordered++;
@@ -682,7 +685,11 @@ async function runProfileManager() {
     };
 
     const baseHubUrl = profile.rules?.subtitles?.unifiedHub?.transportUrl || CANONICAL_HUB_URL;
-    const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)(1\.4\.2|2\.1\.0)/, '$13.0.0'));
+    const targetHubUrl = injectCacheBuster(
+      baseHubUrl.replace(/([?&]v=)(1\.4\.2|2\.1\.0)/, '$13.0.0'),
+      GIT_SHORT_SHA,
+      manifestToUse.version,
+    );
     console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
     const finalHub = {
       transportUrl: targetHubUrl,
@@ -755,7 +762,11 @@ async function runProfileManager() {
     };
 
     const baseHubUrl = profile.rules?.subtitles?.unifiedHub?.transportUrl || CANONICAL_HUB_URL;
-    const targetHubUrl = injectCacheBuster(baseHubUrl.replace(/([?&]v=)(1\.4\.2|2\.1\.0)/, '$13.0.0'));
+    const targetHubUrl = injectCacheBuster(
+      baseHubUrl.replace(/([?&]v=)(1\.4\.2|2\.1\.0)/, '$13.0.0'),
+      GIT_SHORT_SHA,
+      manifestToUse.version,
+    );
     console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
     const hubAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
     const trailersAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.trailers-latino');
@@ -804,9 +815,15 @@ async function runProfileManager() {
     const isIdentical = idsCurrent.length === idsTarget.length && idsCurrent.every((id, i) => id === idsTarget[i]);
     const hubVerChanged = hubAddon && hubAddon.manifest?.version !== finalHub.manifest?.version;
     const hubUrlChanged = hubAddon && hubAddon.transportUrl !== targetHubUrl;
+    const hubCatsChanged = Boolean(
+      hubAddon && JSON.stringify(hubAddon.manifest?.catalogs || []) !== JSON.stringify(finalHub.manifest?.catalogs || [])
+    );
 
-    if (!isIdentical || hubUrlChanged || hubVerChanged || removedAddons.length > 0) {
-      changesCount = Math.max(1, removedAddons.length + (hubVerChanged ? 1 : 0) + (hubUrlChanged ? 1 : 0));
+    if (!isIdentical || hubUrlChanged || hubVerChanged || hubCatsChanged || removedAddons.length > 0) {
+      changesCount = Math.max(
+        1,
+        removedAddons.length + (hubVerChanged ? 1 : 0) + (hubUrlChanged ? 1 : 0) + (hubCatsChanged ? 1 : 0),
+      );
       console.log(`  ✓ Unificación activada: purga de addons secundarios y consolidación en Hub Unificado (#0) + Cinemeta (#1)`);
     }
     updatedAddons = targetList;

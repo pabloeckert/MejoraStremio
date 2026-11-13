@@ -28,6 +28,20 @@ export function autoLoadEnv() {
       }
     }
   }
+
+  // Normalizar credenciales por defecto para scripts que leen ST_EMAIL/ST_PASS o STREMIO_EMAIL/STREMIO_PASS
+  if (process.env.ST_EMAIL_EG && !process.env.ST_EMAIL) {
+    process.env.ST_EMAIL = process.env.ST_EMAIL_EG;
+  }
+  if (process.env.ST_PASS_EG && !process.env.ST_PASS) {
+    process.env.ST_PASS = process.env.ST_PASS_EG;
+  }
+  if (process.env.ST_EMAIL_EG && !process.env.STREMIO_EMAIL) {
+    process.env.STREMIO_EMAIL = process.env.ST_EMAIL_EG;
+  }
+  if (process.env.ST_PASS_EG && !process.env.STREMIO_PASS) {
+    process.env.STREMIO_PASS = process.env.ST_PASS_EG;
+  }
 }
 
 autoLoadEnv();

@@ -7,6 +7,8 @@
  * script futuro lo reuse en vez de reimplementarlo.
  */
 
+import './env.mjs';
+
 export const STREMIO_API = 'https://api.strem.io/api';
 
 export const apiPost = (path, body, { timeout = 25000 } = {}) =>

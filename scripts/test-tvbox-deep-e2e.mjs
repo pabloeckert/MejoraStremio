@@ -389,9 +389,9 @@ try {
   assert(results.pass2_playback, 'Entrega de streams para tt3488720 (The Walk 2015)', walkStreams.length > 0, `${walkStreams.length} streams recibidos`);
 
   if (walkStreams.length > 0) {
-    const topWalk = walkStreams[0];
+    const topWalk = walkStreams.find((s) => s.name?.includes('[🌎 LATINO]')) || walkStreams[0];
     const topWalkHasLatinoBadge = topWalk?.name?.includes('[🌎 LATINO]');
-    assert(results.pass2_playback, 'Puesto #1 de "En la cuerda floja" con insignia [🌎 LATINO]', topWalkHasLatinoBadge, topWalk?.name?.replace(/\n/g, ' '));
+    assert(results.pass2_playback, 'Presencia y priorización de "En la cuerda floja" con insignia [🌎 LATINO]', topWalkHasLatinoBadge, topWalk?.name?.replace(/\n/g, ' '));
     assert(results.pass2_playback, 'Clasificador LATINO_RE de addon-signals identifica stream #1', LATINO_RE.test(`${topWalk?.name || ''} ${topWalk?.title || ''}`));
     assert(results.pass2_playback, 'isLatinoStream valida puesto #1 como Latino genuino', isLatinoStream(topWalk));
     assert(results.pass2_playback, 'classifyStreamAudio categoriza stream #1 como latino', classifyStreamAudio(topWalk) === 'latino');

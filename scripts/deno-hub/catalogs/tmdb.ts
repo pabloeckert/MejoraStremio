@@ -572,6 +572,7 @@ export const GENRE_IDS_SERIES: Record<string, number> = {
 
 export function discoverExtra(genreMap: Record<string, number>, isGenreRequired = true) {
   return [
+    { name: "search", isRequired: false },
     { name: "service", options: ["Todos", ...Object.keys(SERVICE_IDS)], isRequired: false },
     { name: "region", options: ["Todos", ...Object.keys(REGION_IDS)], isRequired: false },
     { name: "country", options: ["Todos", ...Object.keys(COUNTRY_IDS)], isRequired: false },
@@ -894,9 +895,58 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
   const language = extra.get("language");
   const genre = extra.get("genre");
   const sortParam = extra.get("sort") || url?.searchParams?.get("sort") || "";
+  const searchQuery = (extra.get("search") || url?.searchParams?.get("search") || "").trim();
   const PAGE_SIZE = 25;
   const skip = parseInt(extra.get("skip") ?? "0", 10);
   const page = Math.floor(skip / PAGE_SIZE) + 1;
+
+  if (searchQuery.length > 0) {
+    if (!TMDB_KEY) {
+      return jsonResponse({ metas: [] });
+    }
+    try {
+      const tmdbSearchPath = type === "series" ? "/search/tv" : "/search/movie";
+      const d = await tmdbGet(tmdbSearchPath, {
+        query: searchQuery,
+        language: "es-MX",
+        include_adult: "false",
+        page: String(page),
+      });
+      // deno-lint-ignore no-explicit-any
+      const rawResults = (d?.results ?? []) as any[];
+      const tmdbType = type === "series" ? "tv" : "movie";
+      // deno-lint-ignore no-explicit-any
+      const tmdbIds = rawResults.map((r: any) => r.id as number).filter(Boolean).slice(0, 20);
+      const imdbIdMap = await resolveBatchImdb(tmdbIds, tmdbType);
+      const metas = rawResults
+        // deno-lint-ignore no-explicit-any
+        .map((r: any) => {
+          const imdbId = imdbIdMap.get(r.id);
+          if (!imdbId || !r.poster_path) return null;
+          const locTitle = String(r.title ?? r.name ?? "").trim();
+          const origTitle = String(r.original_title ?? r.original_name ?? "").trim();
+          const name = (locTitle && origTitle && locTitle.toLowerCase() !== origTitle.toLowerCase() && !locTitle.toLowerCase().includes(origTitle.toLowerCase()))
+            ? `${locTitle} (${origTitle})`
+            : (locTitle || origTitle);
+          const d0 = String(r.release_date ?? r.first_air_date ?? "");
+          const isoDate = d0 && /^\d{4}-\d{2}-\d{2}/.test(d0) ? `${d0.slice(0, 10)}T00:00:00.000Z` : undefined;
+          return {
+            id: imdbId,
+            type,
+            name,
+            poster: `https://image.tmdb.org/t/p/w500${r.poster_path}`,
+            description: r.overview ?? "",
+            releaseInfo: d0 ? d0.slice(0, 4) : undefined,
+            released: isoDate,
+            firstAired: type === "series" ? isoDate : undefined,
+          };
+        })
+        .filter(Boolean);
+      return jsonResponse({ metas });
+    } catch {
+      return jsonResponse({ metas: [] });
+    }
+  }
 
   const isFresh = isRecentPremiereQuery(catalogId, subPath, extraStr);
   const dynamicKvTtl = isFresh ? DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS : DISCOVER_PAGE_KV_TTL_DEFAULT_MS;

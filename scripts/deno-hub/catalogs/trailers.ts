@@ -153,18 +153,19 @@ export function isStrictLatinoTrailer(video: TmdbVideoItem): boolean {
 }
 
 /**
- * Ingesta Primaria TMDB First: Consulta /movie|tv/{id}/videos con include_video_language=es-MX,es.
+ * Ingesta Primaria TMDB First: Consulta /movie|tv/{id}/videos con include_video_language=es-MX,es (o +en si includeEn=true).
  */
 export async function fetchTmdbVideos(
   tmdbId: number | string,
   type: "movie" | "tv",
+  includeEn = false,
 ): Promise<TmdbVideoItem[]> {
   if (!TMDB_KEY) return [];
   try {
     const endpoint = type === "movie" ? `/movie/${tmdbId}/videos` : `/tv/${tmdbId}/videos`;
     const qs = new URLSearchParams({
       api_key: TMDB_KEY,
-      include_video_language: "es-MX,es",
+      include_video_language: includeEn ? "es-MX,es,en" : "es-MX,es",
     });
     const res = await fetch(`${TMDB_API}${endpoint}?${qs}`, {
       signal: AbortSignal.timeout(4000),
@@ -396,7 +397,7 @@ export async function handleTrailersStream(
 
   const kv = await getKv().catch(() => null);
   const cacheKey: Deno.KvKey = [
-    "trailers_addon_stream_v1",
+    "trailers_addon_stream_v2",
     type,
     cleanId,
     season ?? 0,
@@ -502,9 +503,12 @@ export async function handleTrailersStream(
         }
       }
 
-      // 3.3 Fallback de alta fidelidad: Tráiler Oficial subtitulado o de estudio si no hay doblaje latino
+      // 3.3 Fallback de alta fidelidad: Tráiler Oficial subtitulado o de estudio si no hay doblaje latino (incluye videos en 'en')
       if (streams.length === 0) {
-        for (const v of tmdbVideos) {
+        const allTmdbVideos = tmdbVideos.length > 0
+          ? tmdbVideos
+          : await fetchTmdbVideos(tmdbId, type === "series" ? "tv" : "movie", true).catch(() => []);
+        for (const v of allTmdbVideos) {
           if (
             v.site === "YouTube" &&
             v.key &&
@@ -526,7 +530,7 @@ export async function handleTrailersStream(
                   bingeGroup: "trailers-latino",
                 },
               });
-              break;
+              if (streams.length >= 2) break;
             }
           }
         }

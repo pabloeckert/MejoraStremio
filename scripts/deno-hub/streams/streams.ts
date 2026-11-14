@@ -7,6 +7,7 @@
 import {
   cors,
   jsonResponse,
+  cleanReleaseName,
   classifyStreamAudio,
   detectLatinoConfidence,
   isCachedOrInstantStream,
@@ -15,6 +16,8 @@ import {
   type StreamAudioCategory,
 } from "../utils/common.ts";
 import { CINEMETA_BASE, fetchCinemetaMeta } from "../utils/cinemeta.ts";
+import { resolveTmdbIdFromImdb } from "../catalogs/paravos.ts";
+import { getLocalizedTrailersWithFallback, tmdbGet } from "../catalogs/tmdb.ts";
 import {
   getMediaFlowConfig,
   applyMediaFlowToStreams,
@@ -248,14 +251,17 @@ export async function resolveFallbackStreams(
       const sRes = await fetch(searchUrl, { signal: AbortSignal.timeout(6000) });
       if (sRes.ok) {
         const sData = await sRes.json();
-        const candMetas = (sData?.metas || []) as Array<{ id?: string; name?: string; year?: number | string }>;
+        const candMetas = (sData?.metas || []) as Array<{ id?: string; name?: string; year?: number | string; releaseInfo?: number | string }>;
         const altIds: string[] = [];
 
+        const targetNorm = cleanReleaseName(title);
         for (const m of candMetas) {
           if (m.id && m.id.startsWith("tt") && m.id !== showId) {
-            const mYear = parseInt(String(m.year || 0), 10);
-            const yearMatch = !year || !mYear || Math.abs(year - mYear) <= 1;
-            if (yearMatch) {
+            const candNorm = cleanReleaseName(m.name || "");
+            const mYear = parseInt(String(m.year || m.releaseInfo || 0).slice(0, 4), 10);
+            const titleMatch = targetNorm.length > 0 && candNorm === targetNorm;
+            const yearMatch = year > 0 && mYear > 0 && Math.abs(year - mYear) <= 1;
+            if (titleMatch && yearMatch) {
               altIds.push(m.id);
             }
           }
@@ -281,14 +287,68 @@ export async function resolveFallbackStreams(
     }
   }
 
-  // 4. Garantía Anti-Portada Muerta: si aún no hay streams, inyectar Trailer Oficial HD o TorBox Resilient Stream
+  // 4. Garantía Anti-Portada Muerta: si aún no hay streams, inyectar Trailer Oficial HD (Cinemeta / TMDB) o TorBox Resilient Stream
   if (fallbackStreams.length === 0) {
     // deno-lint-ignore no-explicit-any
-    const trailerYtId = ((meta?.trailerStreams as any[])?.[0]?.ytId) || ((meta?.trailers as any[])?.[0]?.source);
-    if (trailerYtId) {
+    let trailerYtId = ((meta?.trailerStreams as any[])?.[0]?.ytId) || ((meta?.trailers as any[])?.[0]?.source);
+    let releaseDate = "";
+    let displayTitle = title || "Estreno";
+    let extraTrailers: Array<{ ytId: string; title: string }> = [];
+
+    if (!trailerYtId) {
+      try {
+        const tmdbRes = await resolveTmdbIdFromImdb(showId, isSeries ? "series" : "movie");
+        if (tmdbRes?.tmdbId) {
+          const tmdbType = isSeries ? "tv" : "movie";
+          const tmdbPath = isSeries ? `/tv/${tmdbRes.tmdbId}` : `/movie/${tmdbRes.tmdbId}`;
+          const [tmdbDetail, tmdbTrailers] = await Promise.all([
+            tmdbGet(tmdbPath, { language: "es-MX" }).catch(() => null),
+            getLocalizedTrailersWithFallback(tmdbRes.tmdbId, tmdbType).catch(() => ({ trailers: [], trailerStreams: [] })),
+          ]);
+          releaseDate = String(tmdbDetail?.release_date || tmdbDetail?.first_air_date || "").slice(0, 10);
+          const esTitle = String(tmdbDetail?.title || tmdbDetail?.name || "").trim();
+          if (esTitle && title && esTitle.toLowerCase() !== title.toLowerCase()) {
+            displayTitle = `${esTitle} (${title})`;
+          } else if (esTitle) {
+            displayTitle = esTitle;
+          }
+          if (tmdbTrailers.trailerStreams.length > 0) {
+            extraTrailers = tmdbTrailers.trailerStreams.slice(0, 2).map((ts) => ({
+              ytId: String(ts.ytId),
+              title: String(ts.title || "Avance Oficial"),
+            }));
+            trailerYtId = extraTrailers[0]?.ytId;
+          }
+        }
+      } catch {
+        // continuar con fallback de contingencia
+      }
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const isUpcoming = releaseDate.length === 10 && releaseDate > todayStr;
+    const premiereNote = isUpcoming ? ` · 📅 Estreno: ${releaseDate}` : "";
+
+    if (extraTrailers.length > 0) {
+      for (const tr of extraTrailers) {
+        fallbackStreams.push({
+          name: isUpcoming
+            ? `[⚡ INSTANTÁNEO] [🎬 TRAILER HD · ESTRENO ${releaseDate}]`
+            : "[⚡ INSTANTÁNEO] [🎬 TRAILER HD] TorBox Airlock\n1080p",
+          title: `${displayTitle} (${yearStr || new Date().getFullYear()})${premiereNote}\n🎬 ${tr.title} · Avance Oficial HD`,
+          ytId: tr.ytId,
+          behaviorHints: {
+            notWebReady: false,
+            bingeGroup: "resilient-preview",
+          },
+        });
+      }
+    } else if (trailerYtId) {
       fallbackStreams.push({
-        name: "[⚡ INSTANTÁNEO] [🎬 TRAILER HD] TorBox Airlock\n1080p",
-        title: `${title || "Estreno"} (${yearStr || new Date().getFullYear()}) · Avance Oficial HD\n⚙️ TorBox Airlock · MejoraStremio Resilient Stream`,
+        name: isUpcoming
+          ? `[⚡ INSTANTÁNEO] [🎬 TRAILER HD · ESTRENO ${releaseDate}]`
+          : "[⚡ INSTANTÁNEO] [🎬 TRAILER HD] TorBox Airlock\n1080p",
+        title: `${displayTitle} (${yearStr || new Date().getFullYear()})${premiereNote} · Avance Oficial HD\n⚙️ TorBox Airlock · MejoraStremio Resilient Stream`,
         ytId: String(trailerYtId),
         behaviorHints: {
           notWebReady: false,
@@ -452,6 +512,11 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
   }
 
   const badge = (s: T, cat: StreamAudioCategory, isFast: boolean): T => {
+    const hintsRaw = (s.behaviorHints as Record<string, unknown>) || {};
+    if (Boolean(s.ytId) || hintsRaw.bingeGroup === "resilient-preview" || (s.name || "").includes("🎬")) {
+      return s;
+    }
+
     let raw = (s.name || "Torrentio")
       .replace(/^\[(⚡ INSTANTÁNEO|⏳ REQUIERE BUFFER)\]\s*/g, "")
       .replace(/^\[(🌎 LATINO|🎧 ORIGINAL|🇪🇸 CASTELLANO|🇧🇷 PORTUGUÉS|⚠️ SOLO INGLÉS|🇪🇸 LATINO)\]\s*/g, "")
@@ -582,7 +647,7 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
   const cometBase = buildCometTorboxUrl(torboxKey);
   const mediafusionBase = await resolveMediaFusionTorboxUrl(torboxKey);
 
-  const cacheKey = ["streams_v143", type, cleanId, configSegment || "default"];
+  const cacheKey = ["streams_v322", type, cleanId, configSegment || "default"];
 
   try {
     const rawStreams = await getOrSetSwrCache<StremioStreamItem[]>(

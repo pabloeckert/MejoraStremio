@@ -184,7 +184,7 @@ export async function handleMeta(
   }
 
   const kv = customKv ?? (await safeGetKv());
-  const cacheKey = ["meta_latino_v2", type, cleanId];
+  const cacheKey = ["meta_latino_v3", type, cleanId];
 
   // 1. Revisar caché KV
   if (kv) {
@@ -221,9 +221,28 @@ export async function handleMeta(
       const tmdbDetail = await tmdbGet(tmdbPath, { language: "es-MX", append_to_response: "videos" }).catch(() => null);
 
       if (tmdbDetail) {
-        // Enriquecer título con localización si existe
-        if (tmdbDetail.title || tmdbDetail.name) {
-          meta.name = tmdbDetail.title || tmdbDetail.name;
+        // Enriquecer título conservando nombre original en paréntesis cuando difiera (ej. "Misión bolsa mágica (The Man with the Bag)")
+        const origName = String(meta.name || tmdbDetail.original_title || tmdbDetail.original_name || "").trim();
+        const tmdbTitle = String(tmdbDetail.title || tmdbDetail.name || "").trim();
+        if (tmdbTitle) {
+          if (origName && tmdbTitle.toLowerCase() !== origName.toLowerCase() && !tmdbTitle.toLowerCase().includes(origName.toLowerCase())) {
+            meta.name = `${tmdbTitle} (${origName})`;
+          } else {
+            meta.name = tmdbTitle;
+          }
+        }
+
+        // Localizar géneros al español si TMDB los entrega
+        if (Array.isArray(tmdbDetail.genres) && tmdbDetail.genres.length > 0) {
+          // deno-lint-ignore no-explicit-any
+          const esGenres = tmdbDetail.genres.map((g: any) => String(g?.name || "").trim()).filter(Boolean);
+          if (esGenres.length > 0) meta.genres = esGenres;
+        }
+
+        // Fecha exacta de estreno desde TMDB
+        const tmdbReleaseDate = String(tmdbDetail.release_date || tmdbDetail.first_air_date || "").trim().slice(0, 10);
+        if (tmdbReleaseDate) {
+          meta.release_date = tmdbReleaseDate;
         }
 
         // Enriquecer descripción con TMDB es-MX oficial
@@ -235,46 +254,57 @@ export async function handleMeta(
           if (enriched) meta.description = enriched;
         }
 
+        const todayStr = new Date().toISOString().slice(0, 10);
+        if (meta.release_date && String(meta.release_date) > todayStr && !String(meta.description || "").includes("Próximo estreno:")) {
+          meta.description = `📅 Próximo estreno: ${meta.release_date}\n\n${meta.description || ""}`.trim();
+        }
+
         // Ingesta y badging de Tráilers doblados al español latino
         const hotTrailers = await getLatinoTrailersHotPath(tmdbResolve.tmdbId, type === "series" ? "tv" : "movie", cleanId, kv).catch(() => []);
         const fallbackTrailers = await getLocalizedTrailersWithFallback(tmdbResolve.tmdbId, type === "series" ? "tv" : "movie").catch(() => ({ trailers: [], trailerStreams: [] }));
 
-        // Prioridad absoluta a trailers latinos verificados
+        // Prioridad absoluta a trailers latinos verificados (sets independientes para trailers vs trailerStreams)
         // deno-lint-ignore no-explicit-any
         const finalTrailers: any[] = [];
         // deno-lint-ignore no-explicit-any
         const finalStreams: any[] = [];
-        const seenYtKeys = new Set<string>();
+        const seenTrailerKeys = new Set<string>();
+        const seenStreamKeys = new Set<string>();
 
         // 1. HotPath trailers
         for (const ht of hotTrailers) {
-          if (ht.ytId && !seenYtKeys.has(ht.ytId)) {
-            seenYtKeys.add(ht.ytId);
-            finalTrailers.push({
-              source: ht.ytId,
-              type: "Trailer",
-              name: `[🌎 LATINO] ${ht.name || "Tráiler Oficial"}`,
-              lang: "es-419",
-            });
-            finalStreams.push({
-              title: `[🌎 LATINO] ${ht.name || "Tráiler Oficial"}`,
-              ytId: ht.ytId,
-              lang: "es-419",
-              official: true,
-            });
+          if (ht.ytId) {
+            if (!seenTrailerKeys.has(ht.ytId)) {
+              seenTrailerKeys.add(ht.ytId);
+              finalTrailers.push({
+                source: ht.ytId,
+                type: "Trailer",
+                name: `[🌎 LATINO] ${ht.name || "Tráiler Oficial"}`,
+                lang: "es-419",
+              });
+            }
+            if (!seenStreamKeys.has(ht.ytId)) {
+              seenStreamKeys.add(ht.ytId);
+              finalStreams.push({
+                title: `[🌎 LATINO] ${ht.name || "Tráiler Oficial"}`,
+                ytId: ht.ytId,
+                lang: "es-419",
+                official: true,
+              });
+            }
           }
         }
 
         // 2. Fallback trailers de TMDB
         for (const t of fallbackTrailers.trailers) {
-          if (t.source && !seenYtKeys.has(t.source)) {
-            seenYtKeys.add(t.source);
+          if (t.source && !seenTrailerKeys.has(t.source)) {
+            seenTrailerKeys.add(t.source);
             finalTrailers.push(t);
           }
         }
         for (const s of fallbackTrailers.trailerStreams) {
-          if (s.ytId && !seenYtKeys.has(s.ytId)) {
-            seenYtKeys.add(s.ytId);
+          if (s.ytId && !seenStreamKeys.has(s.ytId)) {
+            seenStreamKeys.add(s.ytId);
             finalStreams.push(s);
           }
         }

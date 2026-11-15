@@ -886,6 +886,44 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Deploy a Producción (Deno Deploy)**: Workflow `deploy-deno-hub.yml` ejecutado en 20s (Run `43319328185`).
 - **Verificación en Vivo (Zero-Trust)**: Inspección HTTP en vivo en `https://mejorastremio-hub.pabloeckert.deno.net` certificó el manifiesto con 8 catálogos y entrega inmediata de Miniseries (19 metas) y Comedias de Bolsillo (25 metas).
 
+---
+
+## 31. Sesión 2026-11-15: Recomendador Personal IA de Biblioteca, Catálogo Acción ATP Familiar Latino y Calibración SmartSync HPI
+
+### 31.1 Calibración Quirúrgica de SmartSync en HPI / ACI (`smartsync.ts`)
+- **Causa Raíz de Desfasaje Descubierta**: `detectFramerate` y `resolveSmartSync` forzaban ciegamente `fps: 25.0` y reescalado obligatorio (`ratio = 1.0427083`, +153.75 s/h) para HPI antes de verificar si el subtítulo ya venía sincronizado para WEB-DL. Como consecuencia, subtítulos extraídos de WEB-DL (como `HPI.S01E01.VFF.1080p.WEBr`) eran estirados artificialmente un 4.27%, dejando el último cue a los 55:31 (más de 2 minutos y 16 segundos después del final del video a los 53:15).
+- **Corrección Zero-Trust**: Se reordenó la jerarquía de detección: las marcas explícitas de formato (`webr`, `web-?dl`, `amzn`, `nf`, etc.) tienen prioridad absoluta, asignando `23.976 fps` (NTSC_WEB). Si el video y el subtítulo coinciden nativamente, se entrega con `needsRescale: false` y badge `✅ 1. Latino (Nativo)`. El time-stretch solo se aplica a emisiones televisivas europeas genuinas (TF1/PAL/HDTV a 25fps).
+
+### 31.2 Motor de Recomendaciones Personales IA ("Para vos" · `paravos.ts`)
+- **Ingesta Real de Biblioteca Stremio**: Se conectó con la API de Stremio (`datastoreGet: libraryItem`) ingiriendo los 713 ítems del perfil `stremioeg@gmail.com` mediante el nuevo endpoint `/api/sync-library` hacia Deno KV.
+- **Acotamiento Defensivo (<64 KiB)**: Se dividió el almacenamiento en Deno KV entre `["user_watched", norm]` (IDs compactos de los 324 títulos ya vistos) y `["user_library", norm]` (120 ítems de mayor afinidad).
+- **Algoritmo de Afinidad y Exclusión Estricta**:
+  - Re-vistos (`timesWatched > 1` / loved): peso x4 (`Porque te encantó [Título]`).
+  - Recientemente vistos (`lastWatched`): peso x3 (`Porque viste [Título]`).
+  - Guardados en biblioteca (`saved: true`): peso x2 (`Porque guardaste [Título] en tu biblioteca`).
+  - **Exclusión total de lo ya visto**: 100% de los 324 títulos vistos son vetados del catálogo para evitar recomendaciones repetidas.
+  - Validación de audio latino mediante `lat_idx` en Deno KV con badge `[🌎 Doblaje Latino]`.
+
+### 31.3 Catálogo "Acción ATP & Familiar Latino" (`tmdb.ts`)
+- **Criterio Curatorial Leanback**: Filtro estricto de certificación familiar US: G, PG, PG-13 (excluye `R` y `18+`), géneros de acción (`28`) y aventura (`12`), comedia (`35`), sin terror (`27`) ni erotismo adulto (`10749`).
+- **Subfiltros por Género en UI**:
+  - "Shawn Levy & Free Guy" (`with_people=17825`: *Free Guy*, *Gigantes de Acero*, *Una noche en el museo*, *El proyecto Adam*, *La Llegada*).
+  - "Comedia de Acción" (`28,35`).
+  - "Acción y Aventura" (`28,12`).
+  - "Superhéroes ATP" (`28,878`).
+  - "Ciencia Ficción Familiar" (`878,10751`).
+- **Verificación Latina**: Validado contra el índice latino del Hub con enriquecimiento `[ATP · Acción Familiar Latino]`.
+
+### 31.4 Diagnóstico "Un monstruo en París" (A Monster in Paris · `tt0961097`)
+- **IMDb ID Canónico**: `tt0961097` (*Un monstre à Paris*, 2011).
+- **Estado de Fuentes**: Torrents comunitarios latinos en TPB (`[3D-SBS][Latino]` y `DVDR R4 NTSC`) cuentan actualmente con 0 seeders comunitarios, mostrándose con `[⏳ REQUIERE BUFFER] [🌎 LATINO]`.
+- **Reproducción Inmediata Certificada**: Stream 1080p BluRay original en TorBox (`[⚡ INSTANTÁNEO] [🎧 ORIGINAL] [TB+] MediaFusion`) reproduce al instante sin buffer, con 15 pistas de subtítulos en español latino sin SDH provistas por el Hub (SubDL nativo sincronizado + IA Gemini Flash).
+
+### 31.5 Certificación E2E y Despliegue en Producción
+- **Hub v3.3.0 desplegado en Deno Deploy** vía workflow `deploy-deno-hub.yml` (Run `43671881649`).
+- **Colección de Stremio Cloud actualizada y verificada** con 15 catálogos sincronizados 1:1.
+- **Suite Deep E2E (113/113 checks PASS)** y **Tests Unitarios (17/17 checks PASS)**.
+
 
 
 

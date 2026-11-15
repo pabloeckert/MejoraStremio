@@ -154,8 +154,15 @@ export function buildLibraryKey(profile: string): Deno.KvKey {
   return ["user_library", norm];
 }
 
+export function buildWatchedKey(profile: string): Deno.KvKey {
+  const norm = profile.trim().toLowerCase().replace(/@gmail\.com$/, "");
+  return ["user_watched", norm];
+}
+
 /**
  * Persiste la colección de biblioteca (vistos, guardados, likes) en Deno KV.
+ * Aplica acotamiento defensivo (bounded footprint < 64 KiB para KV) seleccionando
+ * los 120 ítems de mayor afinidad y compactando la lista de IDs vistos.
  */
 export async function saveUserLibrary(
   kv: Deno.Kv,
@@ -163,20 +170,45 @@ export async function saveUserLibrary(
   items: StremioUserLibraryEntry[],
   ttlMs: number = HISTORY_KV_TTL_MS,
 ): Promise<void> {
-  const key = buildLibraryKey(profile);
-  await kv.set(key, items, { expireIn: ttlMs });
+  const norm = profile.trim().toLowerCase().replace(/@gmail\.com$/, "");
+
+  // 1. Extraer todos los IDs de títulos ya vistos (compactos, ~10 bytes c/u)
+  const watchedIds: string[] = [];
+  for (const it of items) {
+    if ((it.timesWatched && it.timesWatched > 0) || it.flaggedWatched === 1) {
+      const cleanId = String(it.id).toLowerCase();
+      if (!watchedIds.includes(cleanId)) watchedIds.push(cleanId);
+    }
+  }
+  await kv.set(buildWatchedKey(norm), watchedIds, { expireIn: ttlMs });
+
+  // 2. Ordenar ítems por afinidad para conservar los mejores 120 como semillas ricas
+  const sorted = [...items].sort((a, b) => {
+    const scoreA = (a.timesWatched || 0) * 10 + (a.saved ? 5 : 0) + (a.lastWatched ? 20 : 0);
+    const scoreB = (b.timesWatched || 0) * 10 + (b.saved ? 5 : 0) + (b.lastWatched ? 20 : 0);
+    return scoreB - scoreA;
+  });
+
+  const boundedItems = sorted.slice(0, 120);
+  await kv.set(buildLibraryKey(norm), boundedItems, { expireIn: ttlMs });
 }
 
 /**
- * Recupera la biblioteca de Stremio del perfil desde Deno KV.
+ * Recupera la biblioteca de Stremio y los IDs vistos del perfil desde Deno KV.
  */
 export async function getUserLibrary(
   kv: Deno.Kv,
   profile: string,
-): Promise<StremioUserLibraryEntry[] | null> {
-  const key = buildLibraryKey(profile);
-  const entry = await kv.get<StremioUserLibraryEntry[]>(key);
-  return entry?.value || null;
+): Promise<{ library: StremioUserLibraryEntry[]; watchedIds: string[] }> {
+  const norm = profile.trim().toLowerCase().replace(/@gmail\.com$/, "");
+  const [libEntry, watchedEntry] = await Promise.all([
+    kv.get<StremioUserLibraryEntry[]>(buildLibraryKey(norm)),
+    kv.get<string[]>(buildWatchedKey(norm)),
+  ]);
+  return {
+    library: libEntry?.value || [],
+    watchedIds: watchedEntry?.value || [],
+  };
 }
 
 /**
@@ -379,10 +411,10 @@ export async function buildParaVosCatalog(
   catalogType: "movie" | "series" = "movie",
 ): Promise<{ metas: ParaVosCatalogMeta[] }> {
   const history = await getProfileHistory(kv, profile);
-  const library = await getUserLibrary(kv, profile);
+  const { library, watchedIds: storedWatchedIds } = await getUserLibrary(kv, profile);
 
   // 1. Recolectar conjunto de exclusión (lo ya visto o en biblioteca)
-  const watchedIds = new Set<string>();
+  const watchedIds = new Set<string>(storedWatchedIds.map((id) => id.toLowerCase()));
   const knownLibraryIds = new Set<string>();
 
   if (history) {
@@ -391,7 +423,7 @@ export async function buildParaVosCatalog(
     }
   }
 
-  if (library) {
+  if (library && library.length > 0) {
     for (const lib of library) {
       const cleanId = String(lib.id).toLowerCase();
       knownLibraryIds.add(cleanId);

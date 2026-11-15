@@ -32,6 +32,7 @@ const BACKUPS = join(ROOT, '.backups');
 
 const args = process.argv.slice(2);
 const APPLY = args.includes('--apply');
+const SYNC_LIBRARY = args.includes('--sync-library');
 const ROLLBACK_LAST = args.includes('--rollback-last');
 const rbIdx = args.indexOf('--rollback');
 const ROLLBACK_FILE = rbIdx >= 0 ? args[rbIdx + 1] : null;
@@ -531,6 +532,48 @@ export function renderVisualDiff(currentAddons, targetAddons) {
   console.log(`  Resumen: ${added} agregados, ${removed} removidos, ${modified} modificados, ${reordered} reordenados, ${unchanged} sin cambios.`);
 }
 
+// ── Sincronización de Biblioteca con el Hub IA ────────────────────────────────
+export async function syncLibraryToHub(authKey, profile = 'stremioeg') {
+  try {
+    console.log(`\n  • Sincronizando biblioteca de Stremio (${profile}) con el recomendador IA del Hub...`);
+    const libRes = await apiPost('datastoreGet', { authKey, collection: 'libraryItem', all: true });
+    const rawItems = libRes?.result || [];
+    if (!Array.isArray(rawItems) || rawItems.length === 0) {
+      console.log('    ℹ Sin ítems de biblioteca para sincronizar.');
+      return;
+    }
+    const cleanItems = rawItems.map((it) => ({
+      id: it._id,
+      name: it.name || it._id,
+      type: it.type || 'movie',
+      timesWatched: it.state?.timesWatched || 0,
+      timeWatched: it.state?.timeWatched || 0,
+      duration: it.state?.duration || 0,
+      flaggedWatched: it.state?.flaggedWatched || 0,
+      lastWatched: it.state?.lastWatched,
+      saved: !it.temp && !it.removed,
+      mtime: it._mtime || Date.now(),
+    }));
+
+    const hubBase = process.env.MEJORASTREMIO_HUB_URL || 'https://mejorastremio-hub.pabloeckert.deno.net';
+    const syncUrl = `${hubBase}/api/sync-library?profile=${profile}`;
+    const res = await fetch(syncUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile, items: cleanItems }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      console.log(`    ✓ Biblioteca sincronizada exitosamente: ${data.synced_items} títulos aprendidos por la IA.`);
+    } else {
+      console.warn(`    ⚠ Hub sync respondió HTTP ${res.status} (no bloqueante).`);
+    }
+  } catch (err) {
+    console.warn(`    ⚠ Error al sincronizar biblioteca con el Hub: ${err.message} (no bloqueante).`);
+  }
+}
+
 // ── Rollback Seguro con 1 Comando ─────────────────────────────────────────────
 export async function handleRollback(authKey, rollbackLast, rollbackFile, dryRun = false) {
   mkdirSync(BACKUPS, { recursive: true });
@@ -893,6 +936,10 @@ async function runProfileManager() {
       console.log('\n  ✓ Add-ons de la cuenta ya cumplen estrictamente con la configuración.');
     } else {
       console.log(`\n  ℹ MODO DRY-RUN: Se detectaron ${changesCount} cambios pendientes (ejecutar con --apply para guardar en Stremio).`);
+    }
+
+    if (authKey && (APPLY || SYNC_LIBRARY)) {
+      await syncLibraryToHub(authKey, TARGET_ACCOUNT);
     }
   }
 

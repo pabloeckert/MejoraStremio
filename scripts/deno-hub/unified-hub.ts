@@ -19,7 +19,7 @@ import { pushDualSubtitles, type SubtitleTrackPayload } from "./subtitles/smarts
 import { handleDiscover } from "./catalogs/tmdb.ts";
 import { handleMeta } from "./catalogs/synopsis.ts";
 import { MEJORASTREMIO_HUB_MANIFEST } from "./manifest.ts";
-import { buildParaVosCatalog } from "./catalogs/paravos.ts";
+import { buildParaVosCatalog, handleSyncLibrary } from "./catalogs/paravos.ts";
 import { isCanaryActiveForProfile } from "./utils/canary_governance.ts";
 import { resolveStreamSession } from "./streams/stream_security.ts";
 import { fetchMovieHash, computeMovieHashFromBuffers } from "./subtitles/hasher.ts";
@@ -347,17 +347,20 @@ export async function handleUnifiedSubtitles(
  * Dispatcher del Hub Unificado: procesa peticiones en raíz o con prefijo de configuración.
  */
 export function extractProfileFromConfig(configSegment?: string | null): string {
-  if (!configSegment) return "default";
+  if (!configSegment) return "stremioeg";
   for (const part of configSegment.split("|")) {
     if (part.startsWith("profile=")) {
       return part.slice("profile=".length).trim();
     }
   }
+  if (configSegment.includes("9fe5c202-15ec-4aeb-b4e7-8613728cf044")) {
+    return "stremioeg";
+  }
   const clean = configSegment.toLowerCase().trim();
   if (["stremiojn", "stremioeg", "solotveg"].includes(clean)) {
     return clean;
   }
-  return "default";
+  return "stremioeg";
 }
 
 export function getManifestWithVersion(reqUrl?: URL) {
@@ -417,7 +420,13 @@ export async function handleUnifiedHub(
   origin: string,
   reqUrl: URL,
   customKv?: Deno.Kv | null,
+  req?: Request,
 ): Promise<Response | null> {
+  // Sincronización de biblioteca Stremio: /api/sync-library o /sync/library
+  if (path === "/api/sync-library" || path === "/sync/library") {
+    return await handleSyncLibrary(reqUrl, req ?? new Request(reqUrl.toString()), customKv);
+  }
+
   // 1. Manifest raíz: /manifest.json (soporta ?v=1.4.1 para rollback rápido / cache-busting inverso)
   if (path === "/manifest.json") {
     const manifest = await getCanaryManifest(reqUrl, undefined, customKv);
@@ -539,7 +548,7 @@ export async function handleUnifiedHub(
     if (!RESERVED_PREFIXES.has(configSegment)) {
       const type = configCatMatch[2] as "movie" | "series";
       const catId = configCatMatch[3];
-      if (catId === "paravos") {
+      if (catId === "paravos" || catId === "para-vos") {
         const kv = customKv ?? (await safeGetKv());
         if (kv) {
           const profile = reqUrl.searchParams.get("profile") || extractProfileFromConfig(configSegment);
@@ -559,10 +568,10 @@ export async function handleUnifiedHub(
   if (directCatMatch) {
     const type = directCatMatch[1] as "movie" | "series";
     const catId = directCatMatch[2];
-    if (catId === "paravos") {
+    if (catId === "paravos" || catId === "para-vos") {
       const kv = customKv ?? (await safeGetKv());
       if (kv) {
-        const profile = reqUrl.searchParams.get("profile") || "default";
+        const profile = reqUrl.searchParams.get("profile") || "stremioeg";
         const data = await buildParaVosCatalog(kv, profile, type);
         return jsonResponse(data);
       }

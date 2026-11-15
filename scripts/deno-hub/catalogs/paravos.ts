@@ -32,6 +32,19 @@ export interface HistoryItem {
   played_at: number; // Unix timestamp ms
 }
 
+export interface StremioUserLibraryEntry {
+  id: string; // IMDb ID (ej: "tt0903747")
+  name: string;
+  type: "movie" | "series";
+  timesWatched?: number;
+  timeWatched?: number;
+  duration?: number;
+  flaggedWatched?: number;
+  lastWatched?: string;
+  saved?: boolean;
+  mtime?: number;
+}
+
 export interface ProfilePlaybackHistory {
   profile: string;
   token_hash: string; // SHA-256 hex del token de sesión (cero authKey)
@@ -129,6 +142,40 @@ export async function getProfileHistory(
 ): Promise<ProfilePlaybackHistory | null> {
   const key = buildHistoryKey(profile);
   const entry = await kv.get<ProfilePlaybackHistory>(key);
+  return entry?.value || null;
+}
+
+/**
+ * Clave canónica de Deno KV para la biblioteca completa de Stremio de un perfil:
+ * ["user_library", perfil]
+ */
+export function buildLibraryKey(profile: string): Deno.KvKey {
+  const norm = profile.trim().toLowerCase().replace(/@gmail\.com$/, "");
+  return ["user_library", norm];
+}
+
+/**
+ * Persiste la colección de biblioteca (vistos, guardados, likes) en Deno KV.
+ */
+export async function saveUserLibrary(
+  kv: Deno.Kv,
+  profile: string,
+  items: StremioUserLibraryEntry[],
+  ttlMs: number = HISTORY_KV_TTL_MS,
+): Promise<void> {
+  const key = buildLibraryKey(profile);
+  await kv.set(key, items, { expireIn: ttlMs });
+}
+
+/**
+ * Recupera la biblioteca de Stremio del perfil desde Deno KV.
+ */
+export async function getUserLibrary(
+  kv: Deno.Kv,
+  profile: string,
+): Promise<StremioUserLibraryEntry[] | null> {
+  const key = buildLibraryKey(profile);
+  const entry = await kv.get<StremioUserLibraryEntry[]>(key);
   return entry?.value || null;
 }
 
@@ -275,12 +322,56 @@ export async function fetchTmdbRecommendations(
 }
 
 /**
+ * Obtiene títulos similares de TMDB (/movie|tv/{id}/similar) como resguardo si recommendations es escaso.
+ */
+export async function fetchTmdbSimilar(
+  tmdbId: number,
+  type: "movie" | "series",
+): Promise<TmdbRecommendationItem[]> {
+  if (!TMDB_KEY) return [];
+  try {
+    const endpoint = type === "movie" ? `/movie/${tmdbId}/similar` : `/tv/${tmdbId}/similar`;
+    const qs = new URLSearchParams({
+      api_key: TMDB_KEY,
+      language: "es-MX",
+      page: "1",
+    });
+    const res = await fetch(`${TMDB_API}${endpoint}?${qs}`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data?.results) ? data.results : [];
+  } catch {
+    return [];
+  }
+}
+
+export const DEFAULT_EG_SEEDS_MOVIE: { id: string; title: string; reason: string }[] = [
+  { id: "tt16995302", title: "Misión bolsa mágica (The Man with the Bag)", reason: "viste" },
+  { id: "tt6264654", title: "Free Guy: Tomando el control", reason: "te gustó" },
+  { id: "tt0119396", title: "Jackie Brown", reason: "guardaste en tu biblioteca" },
+  { id: "tt0091369", title: "Labyrinth", reason: "guardaste en tu biblioteca" },
+  { id: "tt0295297", title: "Harry Potter and the Chamber of Secrets", reason: "guardaste en tu biblioteca" },
+  { id: "tt0468569", title: "Batman: El caballero de la noche", reason: "te encantó" },
+];
+
+export const DEFAULT_EG_SEEDS_SERIES: { id: string; title: string; reason: string }[] = [
+  { id: "tt14060708", title: "HPI : Haut Potentiel Intellectuel", reason: "viste" },
+  { id: "tt31510819", title: "Tierra de Mafia (MobLand)", reason: "te encantó" },
+  { id: "tt42615019", title: "El método Scaloni", reason: "viste" },
+];
+
+/**
  * Motor de Recomendaciones del Catálogo Personalizado "Para vos":
- * 1. Toma hasta 5 semillas del historial del usuario.
- * 2. Consulta TMDB /recommendations para cada semilla.
- * 3. Excluye títulos ya vistos en el historial.
+ * 1. Aprende de:
+ *    - Títulos vistos en historial y biblioteca (timesWatched, flaggedWatched, lastWatched).
+ *    - Títulos guardados en biblioteca (saved).
+ *    - Títulos favoritos/re-vistos (timesWatched > 1).
+ * 2. Excluye estrictamente títulos ya vistos o ya presentes en biblioteca.
+ * 3. Consulta TMDB /recommendations y /similar con language=es-MX.
  * 4. Prioriza por disponibilidad en índice latino (lat_idx en KV).
- * 5. Asigna etiqueta visual descriptiva: "Porque viste X".
+ * 5. Asigna etiqueta visual descriptiva y explicativa ("Porque te encantó X", "Porque guardaste Y").
  */
 export async function buildParaVosCatalog(
   kv: Deno.Kv,
@@ -288,33 +379,126 @@ export async function buildParaVosCatalog(
   catalogType: "movie" | "series" = "movie",
 ): Promise<{ metas: ParaVosCatalogMeta[] }> {
   const history = await getProfileHistory(kv, profile);
-  if (!history || history.items.length === 0) {
-    return { metas: [] };
+  const library = await getUserLibrary(kv, profile);
+
+  // 1. Recolectar conjunto de exclusión (lo ya visto o en biblioteca)
+  const watchedIds = new Set<string>();
+  const knownLibraryIds = new Set<string>();
+
+  if (history) {
+    for (const h of history.items) {
+      watchedIds.add(h.id.toLowerCase());
+    }
   }
 
-  // Filtrar semillas por tipo si es posible, o tomar las últimas 5 generales
-  const relevantSeeds = history.items
-    .filter((i) => i.type === catalogType || !i.type)
-    .slice(0, HISTORY_SEEDS_FOR_RECOMMENDATIONS);
+  if (library) {
+    for (const lib of library) {
+      const cleanId = String(lib.id).toLowerCase();
+      knownLibraryIds.add(cleanId);
+      if ((lib.timesWatched && lib.timesWatched > 0) || lib.flaggedWatched === 1) {
+        watchedIds.add(cleanId);
+      }
+    }
+  }
 
-  const seedsToProcess = relevantSeeds.length > 0 ? relevantSeeds : history.items.slice(0, HISTORY_SEEDS_FOR_RECOMMENDATIONS);
+  // 2. Extraer semillas clasificadas y ponderadas por afinidad
+  interface SeedCandidate {
+    id: string;
+    type: "movie" | "series";
+    title: string;
+    reason: string;
+    score: number;
+  }
 
-  const watchedIds = new Set(history.items.map((i) => i.id.toLowerCase()));
-  const candidates: ParaVosCatalogMeta[] = [];
+  const seedCandidates: SeedCandidate[] = [];
+
+  if (library && library.length > 0) {
+    for (const lib of library) {
+      if (lib.type && lib.type !== catalogType) continue;
+      let score = 0;
+      let reason = "viste";
+      const times = lib.timesWatched || 0;
+      if (times > 1) {
+        score += 100 + times * 10;
+        reason = "te encantó";
+      } else if (times === 1) {
+        score += 50;
+        if (lib.lastWatched) {
+          const watchedDate = new Date(lib.lastWatched).getTime();
+          if (!isNaN(watchedDate)) {
+            const daysAgo = Math.max(0, (Date.now() - watchedDate) / (1000 * 60 * 60 * 24));
+            score += Math.max(0, 30 - daysAgo);
+          }
+        }
+        reason = "viste";
+      } else if (lib.saved) {
+        score += 30;
+        reason = "guardaste en tu biblioteca";
+      }
+      if (score > 0) {
+        seedCandidates.push({
+          id: lib.id,
+          type: lib.type || catalogType,
+          title: lib.name || lib.id,
+          reason,
+          score,
+        });
+      }
+    }
+  }
+
+  // Incorporar historial de reproducción reciente
+  if (history && history.items.length > 0) {
+    for (const h of history.items) {
+      if (h.type && h.type !== catalogType) continue;
+      const existing = seedCandidates.find((s) => s.id.toLowerCase() === h.id.toLowerCase());
+      if (existing) {
+        existing.score += 40;
+      } else {
+        seedCandidates.push({
+          id: h.id,
+          type: h.type || catalogType,
+          title: h.title || h.id,
+          reason: "viste recientemente",
+          score: 60,
+        });
+      }
+    }
+  }
+
+  // Ordenar semillas por puntaje de afinidad descendente
+  seedCandidates.sort((a, b) => b.score - a.score);
+
+  // Si no hay semillas suficientes en KV, aplicar fallback inteligente
+  let seedsToProcess = seedCandidates.slice(0, HISTORY_SEEDS_FOR_RECOMMENDATIONS);
+  if (seedsToProcess.length === 0) {
+    const defaults = catalogType === "series" ? DEFAULT_EG_SEEDS_SERIES : DEFAULT_EG_SEEDS_MOVIE;
+    seedsToProcess = defaults.map((d) => ({
+      id: d.id,
+      type: catalogType,
+      title: d.title,
+      reason: d.reason,
+      score: 10,
+    }));
+  }
+
+  // 3. Procesar recomendaciones de TMDB
   const candidateTmdbIds: number[] = [];
-  const seedAttributions = new Map<number, { seedTitle: string; item: TmdbRecommendationItem }>();
+  const seedAttributions = new Map<number, { seedTitle: string; reason: string; item: TmdbRecommendationItem }>();
 
-  // Procesar semillas en paralelo controlado
   for (const seed of seedsToProcess) {
     const tmdbRes = await resolveTmdbIdFromImdb(seed.id, seed.type);
     if (!tmdbRes) continue;
 
     const seedTitle = seed.title || tmdbRes.title || seed.id;
-    const recs = await fetchTmdbRecommendations(tmdbRes.tmdbId, catalogType);
+    let recs = await fetchTmdbRecommendations(tmdbRes.tmdbId, catalogType);
+    if (recs.length === 0) {
+      recs = await fetchTmdbSimilar(tmdbRes.tmdbId, catalogType);
+    }
 
     for (const rec of recs.slice(0, 10)) {
       if (!seedAttributions.has(rec.id)) {
-        seedAttributions.set(rec.id, { seedTitle, item: rec });
+        seedAttributions.set(rec.id, { seedTitle, reason: seed.reason, item: rec });
         candidateTmdbIds.push(rec.id);
       }
     }
@@ -324,24 +508,25 @@ export async function buildParaVosCatalog(
     return { metas: [] };
   }
 
-  // Resolver en batch los IMDb IDs de los candidatos recomendados
+  // 4. Batch resolve IMDb IDs
   const tmdbType = catalogType === "movie" ? "movie" : "tv";
   const imdbMap = await resolveBatchImdb(candidateTmdbIds, tmdbType);
 
-  // Enriquecer candidatos con validación de lat_idx y formato Stremio
+  const candidates: ParaVosCatalogMeta[] = [];
+
   for (const tmdbId of candidateTmdbIds) {
     const imdbId = imdbMap.get(tmdbId);
     if (!imdbId) continue;
-    if (watchedIds.has(imdbId.toLowerCase())) continue; // Exclusión de títulos ya vistos
+    const cleanId = imdbId.toLowerCase();
+    // Excluir si ya fue visto o si ya está en la biblioteca
+    if (watchedIds.has(cleanId) || knownLibraryIds.has(cleanId)) continue;
 
     const attr = seedAttributions.get(tmdbId);
     if (!attr) continue;
 
     const raw = attr.item;
     const rawTitle = raw.title || raw.name || "Sin título";
-    const posterUrl = raw.poster_path
-      ? `https://image.tmdb.org/t/p/w500${raw.poster_path}`
-      : null;
+    const posterUrl = raw.poster_path ? `https://image.tmdb.org/t/p/w500${raw.poster_path}` : null;
 
     // Verificar disponibilidad en el índice latino (lat_idx)
     let hasLatino = false;
@@ -360,12 +545,15 @@ export async function buildParaVosCatalog(
       ? raw.first_air_date.slice(0, 4)
       : "";
 
+    const latinoBadge = hasLatino ? " [🌎 Doblaje Latino]" : "";
+    const description = `Porque ${attr.reason} ${attr.seedTitle} · ${raw.overview || "Recomendado por IA para vos."}${latinoBadge}`;
+
     candidates.push({
       id: imdbId,
       type: catalogType,
       name: rawTitle,
       poster: posterUrl,
-      description: `Porque viste ${attr.seedTitle} · ${raw.overview || "Recomendado para vos en base a tus reproducciones recientes."}`,
+      description,
       releaseInfo: yearStr,
       imdbRating: raw.vote_average ? String(raw.vote_average.toFixed(1)) : undefined,
       seed_title: attr.seedTitle,
@@ -381,4 +569,39 @@ export async function buildParaVosCatalog(
   });
 
   return { metas: candidates.slice(0, 30) };
+}
+
+/**
+ * Endpoint /api/sync-library — Recibe la sincronización de biblioteca Stremio
+ * (vistos, guardados, likes) y los almacena en Deno KV para alimentar el motor IA.
+ */
+export async function handleSyncLibrary(
+  reqUrl: URL,
+  req: Request,
+  customKv?: Deno.Kv | null,
+): Promise<Response> {
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Método no permitido. Utilizar POST." }, { status: 405 });
+  }
+  const profile = reqUrl.searchParams.get("profile") || "stremioeg";
+  try {
+    const body = await req.json();
+    const items = Array.isArray(body?.items) ? body.items : [];
+    if (items.length === 0) {
+      return jsonResponse({ error: "Payload vacío: se requiere array 'items'." }, { status: 400 });
+    }
+    const kv = customKv ?? (await safeGetKv());
+    if (!kv) {
+      return jsonResponse({ error: "Deno KV no disponible." }, { status: 500 });
+    }
+    await saveUserLibrary(kv, profile, items);
+    return jsonResponse({
+      ok: true,
+      profile,
+      synced_items: items.length,
+      timestamp: Date.now(),
+    });
+  } catch (err) {
+    return jsonResponse({ error: (err as Error).message }, { status: 500 });
+  }
 }

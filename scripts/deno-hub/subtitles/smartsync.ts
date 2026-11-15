@@ -53,19 +53,14 @@ export function detectFramerate(name: string | null | undefined, imdbId?: string
   }
   const s = String(name).toLowerCase();
 
-  // Para HPI, los subtítulos comunitarios hispanos provienen de emisión TF1 a 25.0 fps
-  if (imdbId === "tt14060708" || imdbId === "tt13000282" || imdbId === "tt13854128") {
-    return { fps: 25.0, standard: "PAL_25", tag: "PAL/HDTV 25fps (Europeo HPI)", confidence: "high" };
+  // 1. Señales explícitas en el nombre del archivo (prioridad absoluta)
+  if (/\b(web-?dl|webrip|web\b|webr\b|amzn|nf|netflix|dsnp|disney|atvp|apple\s?tv|hmax|max\.web|hulu|bluray|blu-ray|bdrip|brrip|23\.976|23\.98|23\.976fps)\b/i.test(s)) {
+    return { fps: 23.976, standard: "NTSC_WEB", tag: "WEB-DL 23.976fps", confidence: "high" };
   }
 
   // Señales explícitas de 25 fps (PAL / transmisiones de TV europea/británica)
   if (/\b(pal|hdtv|pdtv|dvb|dvb-t|dvb-s|tf1|ard|zdf|orf|bbc|itv|channel4|rte|25fps|25\.000|50fps|50i)\b/i.test(s)) {
     return { fps: 25.0, standard: "PAL_25", tag: "PAL/HDTV 25fps", confidence: "high" };
-  }
-
-  // Señales de 23.976 fps (WEB-DL, rips NTSC, BluRay estándar)
-  if (/\b(web-?dl|webrip|web\b|amzn|nf|netflix|dsnp|disney|atvp|apple\s?tv|hmax|max\.web|hulu|bluray|blu-ray|bdrip|brrip|23\.976|23\.98|23\.976fps)\b/i.test(s)) {
-    return { fps: 23.976, standard: "NTSC_WEB", tag: "WEB-DL 23.976fps", confidence: "high" };
   }
 
   // Señales de 24.000 fps (Cinema)
@@ -78,7 +73,8 @@ export function detectFramerate(name: string | null | undefined, imdbId?: string
     return { fps: 29.97, standard: "NTSC_TV", tag: "NTSC Broadcast 29.97fps", confidence: "high" };
   }
 
-  // Heurística de origen: si es serie/película europea y el subtítulo no tiene marcas explícitas de WEB-DL
+  // 2. Si no hay marcas explícitas de formato pero es una serie/contexto europeo:
+  // Subtítulos comunitarios sin tag en emisiones europeas suelen ser ripeos de TV a 25fps.
   if (isEuropeanShowOrContext(imdbId, name)) {
     return { fps: 25.0, standard: "PAL_25", tag: "PAL/HDTV 25fps (Europeo)", confidence: "medium" };
   }
@@ -99,22 +95,21 @@ export interface SmartSyncDecision {
 export const PAL_TO_WEBDL_RATIO = 1.0427083;
 
 export function resolveSmartSync(videoName?: string | null, subName?: string | null, imdbId?: string | null): SmartSyncDecision {
-  const isHpi = imdbId === "tt14060708" || imdbId === "tt13000282" || imdbId === "tt13854128";
-  if (isHpi) {
-    // Para HPI (todas las temporadas): estiramiento temporal obligatorio R = 1.0427083
-    return {
-      needsRescale: true,
-      fromFps: 25.0,
-      toFps: 23.976,
-      ratio: PAL_TO_WEBDL_RATIO,
-      actionDescription: "Estiramiento temporal HDTV/PAL (25fps) -> WEB-DL (23.976fps) [+153.75s/h]",
-      badge: "⚡ SmartSync (PAL 25->23.976 WEB)",
-      fpsParam: "25to23976",
-    };
-  }
-
   const v = detectFramerate(videoName, imdbId);
   const s = detectFramerate(subName, imdbId);
+
+  // Si ambos coinciden nativamente, calce directo sin reescalado
+  if (Math.abs(v.fps - s.fps) < 0.05) {
+    return {
+      needsRescale: false,
+      fromFps: v.fps,
+      toFps: v.fps,
+      ratio: 1.0,
+      actionDescription: `Calce nativo directo (${v.tag})`,
+      badge: `✅ Sincro Nativo (${v.tag})`,
+      fpsParam: "none",
+    };
+  }
 
   // Video WEB-DL (23.976) y subtítulo HDTV/PAL (25.0) -> Time-stretch factor constante 1.0427083
   if (Math.abs(v.fps - 23.976) < 0.05 && Math.abs(s.fps - 25.0) < 0.05) {

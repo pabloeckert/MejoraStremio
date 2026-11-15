@@ -881,7 +881,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     return new Response("Not found", { status: 404, headers: cors });
   }
   const [, type, catalogId, extraStr] = catalogMatch;
-  const isRecognizedCatalog = /^(discover-master|nuevos-estrenos-cine|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|miniseries|short-series|familia|cine-argentina|series-argentina)$/.test(catalogId);
+  const isRecognizedCatalog = /^(discover-master|nuevos-estrenos-cine|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|miniseries|short-series|familia|accion-familiar-latino|cine-argentina|series-argentina)$/.test(catalogId);
   if (!isRecognizedCatalog) {
     return new Response("Not found", { status: 404, headers: cors });
   }
@@ -1041,6 +1041,48 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     if (genre && genre !== "Todos" && genreMap[genre]) {
       params.with_genres = `10751,${genreMap[genre]}`;
     }
+  } else if (catalogId === "accion-familiar-latino") {
+    if (type === "series") {
+      params.with_genres = "10759"; // Acción y Aventura
+      params.without_genres = "10764,10763,10767,10768";
+      params["vote_count.gte"] = "60";
+      params["vote_average.gte"] = "6.5";
+      params.sort_by = "popularity.desc";
+    } else {
+      // Películas de Acción Familiar ATP (G, PG, PG-13)
+      params.certification_country = "US";
+      params["certification.lte"] = "PG-13";
+      params.without_genres = "27,10749,99"; // Sin terror, erotismo ni documentales
+      params["vote_count.gte"] = "150";
+      params["vote_average.gte"] = "6.2";
+
+      if (genre === "Shawn Levy & Free Guy" || genre === "Shawn Levy") {
+        params.with_people = "17825"; // Shawn Levy (Free Guy, Gigantes de Acero, Noche en el Museo, El proyecto Adam)
+        params.sort_by = "popularity.desc";
+      } else if (genre === "Comedia de Acción") {
+        params.with_genres = "28,35";
+        params.sort_by = "popularity.desc";
+      } else if (genre === "Acción y Aventura") {
+        params.with_genres = "28,12";
+        params.sort_by = "popularity.desc";
+      } else if (genre === "Superhéroes ATP") {
+        params.with_genres = "28,878";
+        params.sort_by = "popularity.desc";
+      } else if (genre === "Ciencia Ficción Familiar") {
+        params.with_genres = "878,10751";
+        params.sort_by = "popularity.desc";
+      } else {
+        // "Todos" o no especificado: Acción familiar por omisión
+        params.with_genres = "28"; // Acción (ATP)
+        if (sortParam === "vote_average.desc") {
+          params.sort_by = "vote_average.desc";
+        } else if (sortParam === "released") {
+          params.sort_by = "primary_release_date.desc";
+        } else {
+          params.sort_by = "popularity.desc";
+        }
+      }
+    }
   } else if (catalogId === "cine-argentina") {
     params.with_origin_country = "AR";
     params.sort_by = "primary_release_date.desc";
@@ -1172,15 +1214,26 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       };
     });
 
-    // Filtrar portadas vacías y ordenar cronológicamente de forma estricta descendente
+    // Filtrar portadas vacías y ordenar según el catálogo y parámetros de ordenamiento
+    const shouldSortByDate = sortParam === "released" || sortParam === "premiere_date" ||
+      (!sortParam && (catalogId === "nuevos-estrenos-cine" || catalogId === "nuevas-temporadas" || catalogId === "estrenos-streaming" || catalogId === "cine-argentina" || catalogId === "series-argentina" || catalogId === "familia"));
+
     const metas = resolved
       // deno-lint-ignore no-explicit-any
       .filter((m: any) => m !== null && !!m.poster)
       // deno-lint-ignore no-explicit-any
-      .sort((a: any, b: any) => String(b._d ?? "").localeCompare(String(a._d ?? "")))
+      .sort((a: any, b: any) => shouldSortByDate ? String(b._d ?? "").localeCompare(String(a._d ?? "")) : 0)
       .slice(0, PAGE_SIZE)
       // deno-lint-ignore no-explicit-any
-      .map(({ _d, ...m }: any) => m);
+      .map(({ _d, ...m }: any) => {
+        if (catalogId === "accion-familiar-latino") {
+          return {
+            ...m,
+            description: `[ATP · Acción Familiar Latino] ${m.description || ""}`.trim(),
+          };
+        }
+        return m;
+      });
 
     // Guardar en caché L1 y L2 (catalog_v4_live) con TTL de refresco dinámico
     if (metas.length > 0) {

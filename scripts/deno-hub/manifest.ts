@@ -17,14 +17,56 @@ import {
 
 export const MEJORASTREMIO_HUB_MANIFEST = {
   id: "com.mejorastremio.hub",
-  version: "3.2.2",
-  name: "MejoraStremio Hub v3.2.2 (Enterprise)",
+  version: "3.3.0",
+  name: "MejoraStremio Hub v3.3.0 (Enterprise)",
   description:
-    "Suite integral de MejoraStremio para TV Box: Streams con prioridad absoluta de Audio Latino [🌎 LATINO] y TorBox instantáneo, subtítulos sin SDH, SmartSync PAL 25->23.976fps, traducción IA Gemini Flash bajo demanda, sinopsis y tráilers en español latino, y catálogos con filtros por plataforma, región, país y género.",
+    "Suite integral de MejoraStremio para TV Box: Streams con prioridad absoluta de Audio Latino [🌎 LATINO] y TorBox instantáneo, subtítulos sin SDH, SmartSync PAL 25->23.976fps calibrado, traducción IA Gemini Flash bajo demanda, recomendador personal IA 'Para vos' que aprende de tu biblioteca e historial, catálogo 'Acción ATP & Familiar Latino' (estilo Free Guy / Shawn Levy), sinopsis y tráilers en español latino, y catálogos con filtros por plataforma, región, país y género.",
   resources: ["stream", "subtitles", "catalog", "meta"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
   catalogs: [
+    {
+      type: "movie",
+      id: "para-vos",
+      name: "Para vos · Recomendado por IA",
+      extra: [{ name: "skip" }],
+    },
+    {
+      type: "series",
+      id: "para-vos",
+      name: "Para vos (Series) · Recomendado por IA",
+      extra: [{ name: "skip" }],
+    },
+    {
+      type: "movie",
+      id: "accion-familiar-latino",
+      name: "Acción ATP & Familiar Latino",
+      extra: [
+        {
+          name: "genre",
+          options: [
+            "Todos",
+            "Shawn Levy & Free Guy",
+            "Acción y Aventura",
+            "Comedia de Acción",
+            "Superhéroes ATP",
+            "Ciencia Ficción Familiar",
+          ],
+          isRequired: false,
+        },
+        { name: "sort", options: ["popularity.desc", "released", "vote_average.desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
+    {
+      type: "series",
+      id: "accion-familiar-latino",
+      name: "Acción ATP & Familiar Latino (Series)",
+      extra: [
+        { name: "sort", options: ["popularity.desc", "released", "vote_average.desc"], isRequired: false },
+        { name: "skip" },
+      ],
+    },
     {
       type: "movie",
       id: "nuevos-estrenos-cine",

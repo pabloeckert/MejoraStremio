@@ -259,7 +259,7 @@ export async function handleHubRequest(req: Request): Promise<Response> {
   let res: Response;
 
   try {
-    const unifiedRes = await handleUnifiedHub(path, url.origin, url);
+    const unifiedRes = await handleUnifiedHub(path, url.origin, url, undefined, req);
     if (unifiedRes) {
       route = "unified-hub";
       res = unifiedRes;

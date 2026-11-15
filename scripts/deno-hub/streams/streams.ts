@@ -295,34 +295,32 @@ export async function resolveFallbackStreams(
     let displayTitle = title || "Estreno";
     let extraTrailers: Array<{ ytId: string; title: string }> = [];
 
-    if (!trailerYtId) {
-      try {
-        const tmdbRes = await resolveTmdbIdFromImdb(showId, isSeries ? "series" : "movie");
-        if (tmdbRes?.tmdbId) {
-          const tmdbType = isSeries ? "tv" : "movie";
-          const tmdbPath = isSeries ? `/tv/${tmdbRes.tmdbId}` : `/movie/${tmdbRes.tmdbId}`;
-          const [tmdbDetail, tmdbTrailers] = await Promise.all([
-            tmdbGet(tmdbPath, { language: "es-MX" }).catch(() => null),
-            getLocalizedTrailersWithFallback(tmdbRes.tmdbId, tmdbType).catch(() => ({ trailers: [], trailerStreams: [] })),
-          ]);
-          releaseDate = String(tmdbDetail?.release_date || tmdbDetail?.first_air_date || "").slice(0, 10);
-          const esTitle = String(tmdbDetail?.title || tmdbDetail?.name || "").trim();
-          if (esTitle && title && esTitle.toLowerCase() !== title.toLowerCase()) {
-            displayTitle = `${esTitle} (${title})`;
-          } else if (esTitle) {
-            displayTitle = esTitle;
-          }
-          if (tmdbTrailers.trailerStreams.length > 0) {
-            extraTrailers = tmdbTrailers.trailerStreams.slice(0, 2).map((ts) => ({
-              ytId: String(ts.ytId),
-              title: String(ts.title || "Avance Oficial"),
-            }));
-            trailerYtId = extraTrailers[0]?.ytId;
-          }
+    try {
+      const tmdbId = Number(meta?.moviedb_id) || (await resolveTmdbIdFromImdb(showId, isSeries ? "series" : "movie"))?.tmdbId;
+      if (tmdbId) {
+        const tmdbType = isSeries ? "tv" : "movie";
+        const tmdbPath = isSeries ? `/tv/${tmdbId}` : `/movie/${tmdbId}`;
+        const [tmdbDetail, tmdbTrailers] = await Promise.all([
+          tmdbGet(tmdbPath, { language: "es-MX" }).catch(() => null),
+          getLocalizedTrailersWithFallback(tmdbId, tmdbType).catch(() => ({ trailers: [], trailerStreams: [] })),
+        ]);
+        releaseDate = String(tmdbDetail?.release_date || tmdbDetail?.first_air_date || "").slice(0, 10);
+        const esTitle = String(tmdbDetail?.title || tmdbDetail?.name || "").trim();
+        if (esTitle && title && esTitle.toLowerCase() !== title.toLowerCase()) {
+          displayTitle = `${esTitle} (${title})`;
+        } else if (esTitle) {
+          displayTitle = esTitle;
         }
-      } catch {
-        // continuar con fallback de contingencia
+        if (tmdbTrailers.trailerStreams.length > 0) {
+          extraTrailers = tmdbTrailers.trailerStreams.slice(0, 2).map((ts) => ({
+            ytId: String(ts.ytId),
+            title: String(ts.title || "Avance Oficial"),
+          }));
+          trailerYtId = extraTrailers[0]?.ytId || trailerYtId;
+        }
       }
+    } catch {
+      // continuar con fallback de contingencia
     }
 
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -647,7 +645,7 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
   const cometBase = buildCometTorboxUrl(torboxKey);
   const mediafusionBase = await resolveMediaFusionTorboxUrl(torboxKey);
 
-  const cacheKey = ["streams_v322", type, cleanId, configSegment || "default"];
+  const cacheKey = ["streams_v323", type, cleanId, configSegment || "default"];
 
   try {
     const rawStreams = await getOrSetSwrCache<StremioStreamItem[]>(

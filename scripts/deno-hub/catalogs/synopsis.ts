@@ -184,7 +184,7 @@ export async function handleMeta(
   }
 
   const kv = customKv ?? (await safeGetKv());
-  const cacheKey = ["meta_latino_v3", type, cleanId];
+  const cacheKey = ["meta_latino_v4", type, cleanId];
 
   // 1. Revisar caché KV
   if (kv) {
@@ -368,7 +368,7 @@ export function normalizeMetaDatesForAndroidTv(meta: any, type: string): void {
     return undefined;
   };
 
-  const isoReleased = toIsoDate(meta.released) || toIsoDate(meta.firstAired) || toIsoDate(meta.year);
+  const isoReleased = toIsoDate(meta.released) || toIsoDate(meta.release_date) || toIsoDate(meta.firstAired) || toIsoDate(meta.year);
   if (isoReleased) {
     meta.released = isoReleased;
   }

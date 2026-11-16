@@ -1,0 +1,44 @@
+name: sync-library
+
+on:
+  schedule:
+    - cron: '0 4,16 * * *'  # 01:00 y 13:00 ART (UTC-3)
+  workflow_dispatch:
+    inputs:
+      account:
+        description: 'Cuenta a sincronizar (eg, stremiojn, solotveg)'
+        type: choice
+        options:
+          - eg
+          - stremiojn
+          - solotveg
+        required: true
+        default: 'eg'
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sincronizar Biblioteca Stremio con Hub IA (Deno KV)
+        env:
+          ST_EMAIL: ${{ secrets.STREMIO_EMAIL }}
+          ST_PASS: ${{ secrets.STREMIO_PASS }}
+          ST_EMAIL_EG: ${{ secrets.STREMIO_EMAIL }}
+          ST_PASS_EG: ${{ secrets.STREMIO_PASS }}
+          ST_EMAIL_TEEN: ${{ secrets.STREMIO_EMAIL_TEEN }}
+          ST_PASS_TEEN: ${{ secrets.STREMIO_PASS_TEEN }}
+          ST_EMAIL_JN: ${{ secrets.STREMIO_EMAIL_JN }}
+          ST_PASS_JN: ${{ secrets.STREMIO_PASS_JN }}
+        run: |
+          ACCOUNT="${{ inputs.account || 'eg' }}"
+          node scripts/apply-stremioeg-profile.mjs --account "$ACCOUNT" --sync-library

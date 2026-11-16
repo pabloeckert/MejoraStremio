@@ -501,8 +501,32 @@ export async function buildParaVosCatalog(
   // Ordenar semillas por puntaje de afinidad descendente
   seedCandidates.sort((a, b) => b.score - a.score);
 
+  // Selección diversa de semillas: balanceador que evita agrupar múltiples entregas de la misma saga
+  const diverseSeeds: SeedCandidate[] = [];
+  const seenFranchiseTokens = new Set<string>();
+
+  for (const seed of seedCandidates) {
+    const simplifiedTitle = (seed.title || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[:\-–].*$/, "")
+      .replace(/\b(part|vol|parte|season|temporada|\d+)\b/g, "")
+      .trim();
+
+    if (simplifiedTitle.length >= 4 && seenFranchiseTokens.has(simplifiedTitle)) {
+      continue; // Saltar si ya tenemos una semilla de esta misma saga
+    }
+
+    if (simplifiedTitle.length >= 4) {
+      seenFranchiseTokens.add(simplifiedTitle);
+    }
+    diverseSeeds.push(seed);
+    if (diverseSeeds.length >= HISTORY_SEEDS_FOR_RECOMMENDATIONS) break;
+  }
+
   // Si no hay semillas suficientes en KV, aplicar fallback inteligente
-  let seedsToProcess = seedCandidates.slice(0, HISTORY_SEEDS_FOR_RECOMMENDATIONS);
+  let seedsToProcess = diverseSeeds;
   if (seedsToProcess.length === 0) {
     const defaults = catalogType === "series" ? DEFAULT_EG_SEEDS_SERIES : DEFAULT_EG_SEEDS_MOVIE;
     seedsToProcess = defaults.map((d) => ({

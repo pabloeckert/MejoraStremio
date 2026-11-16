@@ -924,6 +924,41 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Colección de Stremio Cloud actualizada y verificada** con 15 catálogos sincronizados 1:1.
 - **Suite Deep E2E (113/113 checks PASS)** y **Tests Unitarios (17/17 checks PASS)**.
 
+---
+
+## 32. Sesión 2026-11-16: Plan Maestro y Hoja de Ruta 2026–2027, Micro-Badging HDR10/DV P8, Pre-calentamiento N+1 y Dashboard de Observabilidad
+
+### 32.1 Documentos Canónicos de Gobernanza Técnica
+- **Plan Maestro de Producción 2026–2027**: `docs/PLAN_MAESTRO_INGENIERIA_PRODUCCION_2026_2027.md` y artefacto asociado. Define la arquitectura serverless edge-native para Android TV, compatibilidad con `androidx.media3.exoplayer` y SoCs Amlogic S905X2 (ZTE B866V2).
+- **Documento Interno de Ejecución**: `docs/DOCUMENTO_INTERNO_EJECUCION_PRODUCCION_2026_2027.md`. Protocolo de operación en 5 pasos para trabajo autónomo sin desviación técnica.
+
+### 32.2 Micro-Badging de Rango Dinámico y Audio Multicanal (`streams.ts`)
+- **Enriquecimiento Visual en `s.title`**: Sin alterar la brevedad del selector (`s.name`, <= 25 caracteres en Android TV), se implementó la función `extractFormatBadges` en `rankAndBadgeStreams`.
+- **Badges Inyectados Automáticamente**:
+  - Alto Rango Dinámico: `[HDR10+]`, `[HDR10]`, `[HDR]`
+  - Dolby Vision: `[DV P8]` (MEL streaming profile dorado), `[DV P5]`, `[DV P7]`, `[DV]`
+  - Canales de Audio: `[Atmos]`, `[7.1]`, `[5.1]`
+- **Aislamiento ZTE B866V2**: Mantenida la política `isZteIncompatibleStream` que relega AV1 y DV P7 FEL puros con `[⚠️ INCOMPATIBLE ZTE]`, previniendo cuelgues o pantallas verdes en el hardware.
+
+### 32.3 TorBox Airlock & Pre-calentamiento Heurístico N+1 (`paravos.ts`)
+- **Cero Buffering en Maratones de Series**: Al detectar la reproducción de un episodio en `/proxy/stream` (p. ej. `tt14060708:1:1`), el motor lanza una tarea en background (`EdgeRuntime.waitUntil`) que pre-consulta y precachea el episodio $N+1$ (`tt14060708:1:2`) en TorBox y Deno KV.
+
+### 32.4 Endpoint de Observabilidad y Dashboard en Vivo (`health.ts` & `unified-hub.ts`)
+- **Ruta `/health/dashboard` y Negociación HTML**: Cuando la solicitud proviene de un navegador web (TV Box o móvil) o especifica `?html=1`, entrega un dashboard responsive cinematográfico con auto-refresh de 30 segundos.
+- **Métricas Visibles Zero-Secrets**:
+  - Estado del Circuit Breaker de MediaFlow (CLOSED/OPEN, tasa de error 10s, fallback a TorBox directo).
+  - Latencias p50 y p95 de scrapers (Torrentio, Comet, MediaFusion) y TorBox Debrid.
+  - Conteo de semillas activas en biblioteca (Top 120) y títulos excluidos ya vistos (Top 324).
+  - Estado de SmartSync, Framerates (23.976/25.0fps), Dual ISO (`spl`+`spa`) y motor de traducción IA Gemini Flash.
+
+### 32.5 Batería de Pruebas y Certificación
+- **113 de 113 verificaciones Deep E2E superadas (100% PASS)** (`node scripts/test-tvbox-deep-e2e.mjs`).
+- **32 de 32 pruebas TV Box Leanback superadas (100% PASS)** (`node scripts/test-stremioeg-tvbox.mjs`).
+- **17 de 17 tests unitarios aprobados (100% PASS)** (`node scripts/apply-stremioeg-profile.mjs --test-unit`).
+- **Verificación de tipos y linter**: `deno check` (0 errores) y `deno lint` (40 archivos auditados, 0 advertencias).
+- **Paridad en vivo certificada**: 15 catálogos sincronizados 1:1 entre Stremio Cloud y Deno Deploy.
+
+
 
 
 

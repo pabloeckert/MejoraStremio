@@ -255,6 +255,34 @@ export async function handleProxyStream(
     }
   }
 
+  // 2.1 Pre-calentamiento Heurístico N+1 (TorBox Airlock en Background)
+  // Si se reproduce un episodio de serie, anticipar y precachear el episodio siguiente en Edge KV / TorBox
+  if (type === "series" && id.includes(":")) {
+    const parts = id.split(":");
+    if (parts.length === 3) {
+      const nextEp = parseInt(parts[2], 10) + 1;
+      const nextId = `${parts[0]}:${parts[1]}:${nextEp}`;
+      const prewarmTask = (async () => {
+        try {
+          const nextUrl = new URL(`/streams/series/${nextId}.json`, reqUrl.origin);
+          if (profile) nextUrl.searchParams.set("profile", profile);
+          await fetch(nextUrl.toString(), {
+            signal: AbortSignal.timeout(6000),
+            headers: { "x-airlock-prewarm": "1" },
+          });
+        } catch {
+          // Pre-calentamiento silencioso no bloqueante
+        }
+      })();
+
+      if (typeof (globalThis as unknown as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime?.waitUntil === "function") {
+        (globalThis as unknown as { EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime.waitUntil(prewarmTask);
+      } else {
+        prewarmTask.catch(() => {});
+      }
+    }
+  }
+
   // 3. Resolución de Redirección con Circuit Breaker
   // Si el circuito está abierto o cerrado, respondemos con HTTP 302 a targetUrl
   // permitiendo reproducción inmediata en ExoPlayer (Android TV)

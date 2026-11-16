@@ -288,9 +288,10 @@ export async function handleHubRequest(req: Request): Promise<Response> {
           "/streams/manifest.json",
           "/trailers/manifest.json",
           "/health",
+          "/health/dashboard",
         ],
       });
-    } else if (path === "/health") {
+    } else if (path === "/health" || path === "/health/dashboard") {
       route = "health";
       res = await handleHealth(url, req);
     } else if (path.startsWith("/subtitles/proxy")) {

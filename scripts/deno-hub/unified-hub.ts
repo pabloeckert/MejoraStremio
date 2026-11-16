@@ -23,6 +23,7 @@ import { buildParaVosCatalog, handleSyncLibrary } from "./catalogs/paravos.ts";
 import { isCanaryActiveForProfile } from "./utils/canary_governance.ts";
 import { resolveStreamSession } from "./streams/stream_security.ts";
 import { fetchMovieHash, computeMovieHashFromBuffers } from "./subtitles/hasher.ts";
+import { handleHealth } from "./health.ts";
 
 export { MEJORASTREMIO_HUB_MANIFEST, fetchMovieHash, computeMovieHashFromBuffers, handleMeta };
 
@@ -422,6 +423,11 @@ export async function handleUnifiedHub(
   customKv?: Deno.Kv | null,
   req?: Request,
 ): Promise<Response | null> {
+  // Diagnóstico y Dashboard en vivo: /health o /health/dashboard
+  if (path === "/health" || path === "/health/dashboard") {
+    return await handleHealth(reqUrl, req ?? new Request(reqUrl.toString()));
+  }
+
   // Sincronización de biblioteca Stremio: /api/sync-library o /sync/library
   if (path === "/api/sync-library" || path === "/sync/library") {
     return await handleSyncLibrary(reqUrl, req ?? new Request(reqUrl.toString()), customKv);

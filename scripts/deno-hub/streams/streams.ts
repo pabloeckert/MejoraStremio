@@ -464,6 +464,50 @@ function sortStreamBucket<T extends StremioStreamItem>(items: T[]): T[] {
   });
 }
 
+/**
+ * Extrae distintivos limpios de formato y rango dinámico (HDR10, DV P8, etc.)
+ * y canalización de audio para enriquecer la segunda línea visual (s.title)
+ * en la interfaz Leanback de Android TV.
+ */
+export function extractFormatBadges(s: StremioStreamItem): string[] {
+  const fn = (s.behaviorHints as { filename?: string })?.filename || "";
+  const desc = (s as { description?: string })?.description || "";
+  const fullText = `${s.title || ""} ${s.name || ""} ${fn} ${desc}`.toLowerCase();
+
+  const badges: string[] = [];
+
+  // 1. Dolby Vision detection
+  if (/\b(?:dv\s*p8|dovi\s*p8|profile\s*8|dovi\s*08|dv\s*08)\b/i.test(fullText)) {
+    badges.push("[DV P8]");
+  } else if (/\b(?:dv\s*p5|dovi\s*p5|profile\s*5|dovi\s*05|dv\s*05)\b/i.test(fullText)) {
+    badges.push("[DV P5]");
+  } else if (/\b(?:dv\s*p7|dovi\s*p7|profile\s*7|dovi\s*07|dv\s*07)\b/i.test(fullText)) {
+    badges.push("[DV P7]");
+  } else if (/\b(?:dolby[\s._-]*vision|dovi)\b/i.test(fullText)) {
+    badges.push("[DV]");
+  }
+
+  // 2. High Dynamic Range (HDR) detection
+  if (/\bhdr10\+\b/i.test(fullText)) {
+    badges.push("[HDR10+]");
+  } else if (/\bhdr10\b/i.test(fullText)) {
+    badges.push("[HDR10]");
+  } else if (/\bhdr\b/i.test(fullText)) {
+    badges.push("[HDR]");
+  }
+
+  // 3. Audio Channels & Codecs
+  if (/\batmos\b/i.test(fullText)) {
+    badges.push("[Atmos]");
+  } else if (/\b(?:7\.1|truehd\s*7\.1|dts[- ]?hd\s*7\.1)\b/i.test(fullText)) {
+    badges.push("[7.1]");
+  } else if (/\b(?:5\.1|ddp\s*5\.1|ac3\s*5\.1|dts\s*5\.1|eac3\s*5\.1)\b/i.test(fullText)) {
+    badges.push("[5.1]");
+  }
+
+  return badges;
+}
+
 export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): T[] {
   if (!Array.isArray(streams) || streams.length === 0) return [];
 
@@ -541,15 +585,34 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
     const speedSegment = isFast ? "fast" : "buf";
     hints.bingeGroup = `mejorastremio-${cat}-${speedSegment}`;
 
+    // Mejora 3: Micro-Badging de Rango Dinámico y Audio en s.title (Leanback UI)
+    let title = s.title || "";
+    const formatBadges = extractFormatBadges(s);
+    if (formatBadges.length > 0) {
+      const missing = formatBadges.filter((b) => !title.includes(b));
+      if (missing.length > 0) {
+        title = `${missing.join(" ")} ${title}`.trim();
+      }
+    }
+
     return {
       ...s,
       name: `${speedPrefix} ${langPrefix} ${raw}${subBadge}`,
+      title,
       behaviorHints: hints,
     };
   };
 
   const badgeIncompatible = (item: { stream: T; label: string }): T => {
     const s = item.stream;
+    let title = s.title || "";
+    const formatBadges = extractFormatBadges(s);
+    if (formatBadges.length > 0) {
+      const missing = formatBadges.filter((b) => !title.includes(b));
+      if (missing.length > 0) {
+        title = `${missing.join(" ")} ${title}`.trim();
+      }
+    }
     const raw = (s.name || "Torrentio")
       .replace(/^\[(⚡ INSTANTÁNEO|⏳ REQUIERE BUFFER)\]\s*/g, "")
       .replace(/^\[(🌎 LATINO|🎧 ORIGINAL|🇪🇸 CASTELLANO|🇧🇷 PORTUGUÉS|⚠️ SOLO INGLÉS|🇪🇸 LATINO)\]\s*/g, "")
@@ -559,6 +622,7 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
     return {
       ...s,
       name: `${item.label} ${raw}`,
+      title,
       behaviorHints: hints,
     };
   };

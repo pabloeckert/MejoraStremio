@@ -191,7 +191,10 @@ export async function handleMeta(
     try {
       const cached = await kv.get<Record<string, unknown>>(cacheKey);
       if (cached?.value) {
-        return jsonResponse({ meta: cached.value });
+        const metaOut = cleanId === "tt14060708"
+          ? { ...cached.value, name: "ACI: Alta Capacidad Intelectual (HCI / HPI)" }
+          : cached.value;
+        return jsonResponse({ meta: metaOut });
       }
     } catch {
       // continuar
@@ -332,6 +335,9 @@ export async function handleMeta(
   }
 
   // 5. Compatibilidad Android TV v1.12.0: Fechas canónicas ISO-8601 para el nuevo Calendario y Grid
+  if (cleanId === "tt14060708") {
+    meta.name = "ACI: Alta Capacidad Intelectual (HCI / HPI)";
+  }
   normalizeMetaDatesForAndroidTv(meta, type);
 
   // 6. Guardar en Deno KV

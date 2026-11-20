@@ -7,6 +7,32 @@
 import { cors, getKv, jsonResponse, safeEnv } from "../utils/common.ts";
 import { BoundedLruCache } from "../utils/lru-cache.ts";
 import { fetchCinemetaCatalogSorted } from "../utils/cinemeta.ts";
+import {
+  ARGENTINE_RATING_OPTIONS,
+  buildSagasRollupOptions,
+  buildStandardFilterOptions,
+  buildStreamingRollupOptions,
+  buildUniverseOrPlatformDiscoverParams,
+  CATALOG_ID_TO_PLATFORM,
+  CATALOG_ID_TO_UNIVERSE,
+  fetchCuratedCollectionUniverse,
+  formatCatalogBadge,
+  getCertificationChain,
+  parseCompositeFilter,
+  parseStremioExtra,
+  PLATFORM_CONFIGS,
+  UNIVERSE_CONFIGS,
+  type ArgentineRatingKey,
+  type CertificationStep,
+  type RegionHint,
+} from "./universes_and_platforms.ts";
+
+export {
+  ARGENTINE_RATING_OPTIONS,
+  buildSagasRollupOptions,
+  buildStandardFilterOptions,
+  buildStreamingRollupOptions,
+};
 
 export const TMDB_KEY = safeEnv("TMDB_API_KEY_AISEARCH", "2d12317c428a903b661011caa1506b60");
 export const TMDB_API = "https://api.themoviedb.org/3";
@@ -516,10 +542,12 @@ export async function handleShortSeries(subPath: string): Promise<Response> {
 export const SERVICE_IDS: Record<string, number> = {
   "Netflix": 8,
   "HBO Max": 1899,
-  "Prime Video": 9,
+  "Prime Video": 119,
   "Disney+": 337,
   "Apple TV+": 350,
   "Paramount+": 2303,
+  "Movistar+": 149,
+  "BBC": 38,
   "Mubi": 11,
 };
 export const DISCOVER_WATCH_REGION = "AR";
@@ -578,6 +606,7 @@ export function discoverExtra(genreMap: Record<string, number>, isGenreRequired 
     { name: "country", options: ["Todos", ...Object.keys(COUNTRY_IDS)], isRequired: false },
     { name: "language", options: ["Todos", ...Object.keys(LANGUAGE_IDS)], isRequired: false },
     { name: "genre", options: ["Todos", ...Object.keys(genreMap)], isRequired: isGenreRequired },
+    { name: "rating", options: ARGENTINE_RATING_OPTIONS, isRequired: false },
     { name: "sort", options: ["released", "premiere_date", "year_desc", "popularity.desc"], isRequired: false },
     { name: "skip" },
   ];
@@ -819,6 +848,24 @@ export async function resolveBatchImdb(
   return result;
 }
 
+function applyCertStep(
+  base: Record<string, string>,
+  step: CertificationStep,
+  requestedGenreId?: number,
+): Record<string, string> {
+  const next: Record<string, string> = {
+    ...base,
+    certification_country: step.certification_country,
+    certification: step.certification,
+  };
+  if (step.excludeHorror && requestedGenreId !== 27) {
+    const existing = next.without_genres ? next.without_genres.split(",").filter(Boolean) : [];
+    if (!existing.includes("27")) existing.push("27");
+    next.without_genres = existing.join(",");
+  }
+  return next;
+}
+
 export async function handleDiscover(subPath: string, url: URL): Promise<Response> {
   if (subPath === "/manifest.json") {
     return jsonResponse(DISCOVER_MANIFEST);
@@ -876,28 +923,33 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     }
   }
 
-  const catalogMatch = subPath.match(/^\/catalog\/(movie|series)\/([^/]+)(?:\/([^/]+))?\.json$/);
+  const catalogMatch = subPath.match(/^\/catalog\/(movie|series)\/([^/]+)(?:\/(.+))?\.json$/);
   if (!catalogMatch) {
     return new Response("Not found", { status: 404, headers: cors });
   }
-  const [, type, catalogId, extraStr] = catalogMatch;
-  const isRecognizedCatalog = /^(discover-master|nuevos-estrenos-cine|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|miniseries|short-series|familia|accion-familiar-latino|cine-argentina|series-argentina)$/.test(catalogId);
+  const type = catalogMatch[1] as "movie" | "series";
+  const catalogId = catalogMatch[2];
+  const extraStr = catalogMatch[3];
+  const isRecognizedCatalog =
+    /^(discover-master|nuevos-estrenos-cine|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|miniseries|short-series|familia|accion-familiar-latino|cine-argentina|series-argentina|sagas-universos|saga-marvel|saga-dc|saga-harry-potter|saga-xmen|saga-independientes|stream-netflix|stream-hbo|stream-prime|stream-movistar|stream-bbc|stream-europa)$/
+      .test(catalogId);
   if (!isRecognizedCatalog) {
     return new Response("Not found", { status: 404, headers: cors });
   }
 
   const genreMap = type === "movie" ? GENRE_IDS_MOVIE : GENRE_IDS_SERIES;
 
-  const extra = new URLSearchParams(extraStr ?? "");
-  const service = extra.get("service");
-  const region = extra.get("region");
-  const country = extra.get("country");
-  const language = extra.get("language");
-  const genre = extra.get("genre");
-  const sortParam = extra.get("sort") || url?.searchParams?.get("sort") || "";
-  const searchQuery = (extra.get("search") || url?.searchParams?.get("search") || "").trim();
+  const extraMap = parseStremioExtra(extraStr);
+  const service = extraMap.service ?? url?.searchParams?.get("service") ?? null;
+  const region = extraMap.region ?? null;
+  const country = extraMap.country ?? null;
+  const language = extraMap.language ?? null;
+  const genre = extraMap.genre ?? url?.searchParams?.get("genre") ?? null;
+  const rawRating = extraMap.rating ?? extraMap.certification ?? url?.searchParams?.get("rating") ?? null;
+  const sortParam = extraMap.sort || url?.searchParams?.get("sort") || "";
+  const searchQuery = (extraMap.search || url?.searchParams?.get("search") || "").trim();
   const PAGE_SIZE = 25;
-  const skip = parseInt(extra.get("skip") ?? "0", 10);
+  const skip = parseInt(extraMap.skip ?? "0", 10);
   const page = Math.floor(skip / PAGE_SIZE) + 1;
 
   if (searchQuery.length > 0) {
@@ -906,8 +958,12 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     }
     try {
       const tmdbSearchPath = type === "series" ? "/search/tv" : "/search/movie";
+      const normalizedSearch = normalizeSearchQuery(searchQuery);
+      const effectiveSearchQuery = normalizedSearch === "hpi" && searchQuery.toLowerCase() !== "hpi"
+        ? "HPI"
+        : searchQuery;
       const d = await tmdbGet(tmdbSearchPath, {
-        query: searchQuery,
+        query: effectiveSearchQuery,
         language: "es-MX",
         include_adult: "false",
         page: String(page),
@@ -925,9 +981,12 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
           if (!imdbId || !r.poster_path) return null;
           const locTitle = String(r.title ?? r.name ?? "").trim();
           const origTitle = String(r.original_title ?? r.original_name ?? "").trim();
-          const name = (locTitle && origTitle && locTitle.toLowerCase() !== origTitle.toLowerCase() && !locTitle.toLowerCase().includes(origTitle.toLowerCase()))
+          const defaultName = (locTitle && origTitle && locTitle.toLowerCase() !== origTitle.toLowerCase() && !locTitle.toLowerCase().includes(origTitle.toLowerCase()))
             ? `${locTitle} (${origTitle})`
             : (locTitle || origTitle);
+          const name = (imdbId === "tt14060708" || r.id === 112738)
+            ? "ACI: Alta Capacidad Intelectual (HCI / HPI)"
+            : defaultName;
           const d0 = String(r.release_date ?? r.first_air_date ?? "");
           const isoDate = d0 && /^\d{4}-\d{2}-\d{2}/.test(d0) ? `${d0.slice(0, 10)}T00:00:00.000Z` : undefined;
           return {
@@ -948,11 +1007,12 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     }
   }
 
-  const isFresh = isRecentPremiereQuery(catalogId, subPath, extraStr);
+  const parsed = parseCompositeFilter(genre, type, rawRating, service);
+  const isFresh = isRecentPremiereQuery(catalogId, subPath, extraStr) || Boolean(parsed.sortRecent);
   const dynamicKvTtl = isFresh ? DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS : DISCOVER_PAGE_KV_TTL_DEFAULT_MS;
 
-  // Clave determinista para caché de página completa v4 (invalidación instantánea)
-  const pageCacheKey = `${catalogId}:${type}:${service || "all"}:${region || "all"}:${country || "all"}:${language || "all"}:${genre || "all"}:${sortParam || "default"}:${page}`;
+  // Clave determinista para caché de página completa v5 (invalidación instantánea)
+  const pageCacheKey = `${catalogId}:${type}:${service || "all"}:${region || "all"}:${country || "all"}:${language || "all"}:${genre || "all"}:${rawRating || "all"}:${sortParam || "default"}:${page}`;
 
   // 1. Revisar caché de página en L1 (RAM) con validación de caducidad para feeds frescos
   const memPage = discoverPageLruCache.get(pageCacheKey);
@@ -963,12 +1023,12 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     }
   }
 
-  // 2. Revisar caché de página en L2 (Deno KV catalog_v4_live)
+  // 2. Revisar caché de página en L2 (Deno KV catalog_v5_live)
   const kv = await safeGetKv();
   if (kv) {
     try {
       // deno-lint-ignore no-explicit-any
-      const kvPage = await kv.get<any[]>(["catalog_v4_live", type, pageCacheKey]);
+      const kvPage = await kv.get<any[]>(["catalog_v5_live", type, pageCacheKey]);
       if (kvPage?.value && Array.isArray(kvPage.value)) {
         discoverPageLruCache.set(pageCacheKey, { metas: kvPage.value, cachedAt: Date.now(), isFresh });
         return jsonResponse({ metas: kvPage.value });
@@ -978,17 +1038,122 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     }
   }
 
+  if (!TMDB_KEY) {
+    try {
+      const upstreamUrl = `${PROD_HUB_UPSTREAM}/discover${subPath}${url.search}`;
+      const r = await fetch(upstreamUrl, { signal: AbortSignal.timeout(6000) });
+      if (r.ok) {
+        const data = await r.json();
+        if (Array.isArray(data?.metas) && data.metas.length >= 20) {
+          return jsonResponse(data);
+        }
+      }
+    } catch {
+      // fallback
+    }
+
+    try {
+      const cinType = type === "series" ? "series" : "movie";
+      const cinData = await fetchCinemetaCatalogSorted(cinType, "top", undefined, PAGE_SIZE);
+      if (cinData.metas.length > 0) {
+        return jsonResponse({ metas: cinData.metas.slice(0, PAGE_SIZE) });
+      }
+    } catch {
+      // fallback
+    }
+
+    return new Response(
+      "TMDB_API_KEY_AISEARCH no configurada. Setear como Secret en Deno Deploy.",
+      { status: 503, headers: cors },
+    );
+  }
+
+  // Rama A: Colecciones curadas de Sagas/Universos (Harry Potter y X-Men)
+  const curatedUniverse: "harry-potter" | "xmen" | null =
+    (catalogId === "saga-harry-potter" || (catalogId === "sagas-universos" && parsed.universe === "harry-potter"))
+      ? "harry-potter"
+      : (catalogId === "saga-xmen" || (catalogId === "sagas-universos" && parsed.universe === "xmen"))
+      ? "xmen"
+      : null;
+
+  if (curatedUniverse) {
+    try {
+      const allCurated = await fetchCuratedCollectionUniverse(
+        curatedUniverse,
+        type,
+        parsed,
+        tmdbGet,
+        resolveBatchImdb,
+      );
+      const metas = allCurated.slice(skip, skip + PAGE_SIZE);
+      if (metas.length > 0) {
+        discoverPageLruCache.set(pageCacheKey, { metas, cachedAt: Date.now(), isFresh });
+        if (kv) {
+          kv.set(["catalog_v5_live", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
+        }
+      }
+      return jsonResponse({ metas });
+    } catch (e) {
+      return jsonResponse({ metas: [], error: (e as Error).message }, { status: 500 });
+    }
+  }
+
   const dateField = type === "movie" ? "primary_release_date" : "first_air_date";
   const today = new Date().toISOString().slice(0, 10);
   const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
 
-  const params: Record<string, string> = {
+  let params: Record<string, string> = {
     sort_by: `${dateField}.desc`,
     language: "es-MX",
     "vote_count.gte": "1",
   };
+  let regionHint: RegionHint = "US";
+  let fallbackParams: Record<string, string> | undefined;
+  let activeRating: ArgentineRatingKey | undefined = parsed.rating;
+  let badgeLabel = "";
 
-  if (catalogId === "nuevos-estrenos-cine" || catalogId === "new-movies") {
+  const mappedPlatform = CATALOG_ID_TO_PLATFORM[catalogId];
+  const mappedUniverse = CATALOG_ID_TO_UNIVERSE[catalogId] ||
+    (catalogId === "sagas-universos" ? parsed.universe : undefined);
+
+  if (mappedPlatform) {
+    // Rama C (Plataformas Streaming y Producción Europea)
+    const built = buildUniverseOrPlatformDiscoverParams(
+      PLATFORM_CONFIGS[mappedPlatform],
+      type,
+      parsed,
+      sortParam,
+    );
+    params = built.params;
+    if (parsed.sortRecent) params["vote_count.gte"] = "3";
+    regionHint = built.regionHint;
+    fallbackParams = built.fallbackParams;
+    badgeLabel = built.badgeLabel;
+  } else if (mappedUniverse && UNIVERSE_CONFIGS[mappedUniverse]) {
+    // Rama C (Universos Discover: Marvel, DC, Independientes)
+    const built = buildUniverseOrPlatformDiscoverParams(
+      UNIVERSE_CONFIGS[mappedUniverse],
+      type,
+      parsed,
+      sortParam,
+    );
+    params = built.params;
+    if (parsed.sortRecent) params["vote_count.gte"] = "3";
+    regionHint = built.regionHint;
+    fallbackParams = built.fallbackParams;
+    badgeLabel = built.badgeLabel;
+  } else if (catalogId === "sagas-universos") {
+    // Rama B: Rollup "Sagas y Universos" (Todos)
+    params.with_companies = "420|429|128064|184898|41077|90733";
+    params["vote_count.gte"] = type === "movie" ? "50" : "15";
+    params.sort_by = (parsed.sortRecent || sortParam === "released" || sortParam === "premiere_date" || sortParam === "year_desc")
+      ? `${dateField}.desc`
+      : "popularity.desc";
+    if (parsed.sortRecent) params[`${dateField}.lte`] = today;
+    if (parsed.genreId) params.with_genres = String(parsed.genreId);
+    regionHint = "US";
+    badgeLabel = "🌌 Sagas y Universos";
+  } else if (catalogId === "nuevos-estrenos-cine" || catalogId === "new-movies") {
     params[`${dateField}.lte`] = today;
     params[`${dateField}.gte`] = ninetyDaysAgo;
     params.with_release_type = "2|3"; // Cines
@@ -997,6 +1162,8 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     params["vote_count.gte"] = "5";
     if (genre && genre !== "Todos" && genreMap[genre]) {
       params.with_genres = String(genreMap[genre]);
+    } else if (parsed.genreId) {
+      params.with_genres = String(parsed.genreId);
     }
   } else if (catalogId === "nuevas-temporadas" || catalogId === "new-seasons") {
     params[`${dateField}.lte`] = today;
@@ -1005,18 +1172,55 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     params["vote_count.gte"] = "3";
     if (genre && genre !== "Todos" && genreMap[genre]) {
       params.with_genres = String(genreMap[genre]);
+    } else if (parsed.genreId) {
+      params.with_genres = String(parsed.genreId);
     }
   } else if (catalogId === "estrenos-streaming" || catalogId === "streaming-premieres") {
-    params[`${dateField}.lte`] = today;
-    params[`${dateField}.gte`] = ninetyDaysAgo;
-    params.with_watch_providers = (service && service !== "Todos" && SERVICE_IDS[service])
-      ? String(SERVICE_IDS[service])
-      : "8|9|337|1899|350"; // Netflix, Prime, Disney+, Max, Apple TV+
-    params.watch_region = DISCOVER_WATCH_REGION;
-    params.sort_by = type === "movie" ? "primary_release_date.desc" : "first_air_date.desc";
-    params["vote_count.gte"] = type === "movie" ? "5" : "3";
-    if (genre && genre !== "Todos" && genreMap[genre]) {
+    // Rama D: Estrenos Streaming con soporte directo en `genre` para Plataformas + Tabla AR
+    if (parsed.platform) {
+      const platCfg = PLATFORM_CONFIGS[parsed.platform];
+      const platSource = type === "movie" ? platCfg.movieParams : platCfg.seriesParams;
+      params = {
+        ...params,
+        ...platSource,
+        [`${dateField}.lte`]: today,
+        [`${dateField}.gte`]: ninetyDaysAgo,
+        sort_by: sortParam === "popularity.desc" ? "popularity.desc" : `${dateField}.desc`,
+        "vote_count.gte": type === "movie" ? "5" : "3",
+      };
+      regionHint = platCfg.regionHint;
+      badgeLabel = platCfg.badgeLabel;
+      if (type === "series" && platCfg.seriesFallbackParams) {
+        fallbackParams = {
+          language: "es-MX",
+          ...platCfg.seriesFallbackParams,
+          [`${dateField}.lte`]: today,
+          [`${dateField}.gte`]: ninetyDaysAgo,
+          sort_by: params.sort_by,
+          "vote_count.gte": "3",
+        };
+      }
+    } else if (service && service !== "Todos" && SERVICE_IDS[service]) {
+      params.with_watch_providers = String(SERVICE_IDS[service]);
+      params.watch_region = DISCOVER_WATCH_REGION;
+      params[`${dateField}.lte`] = today;
+      params[`${dateField}.gte`] = ninetyDaysAgo;
+      params.sort_by = sortParam === "popularity.desc" ? "popularity.desc" : `${dateField}.desc`;
+      params["vote_count.gte"] = type === "movie" ? "5" : "3";
+    } else {
+      params.with_watch_providers = "8|119|337|1899|350"; // Netflix, Prime AR (119), Disney+, Max, Apple TV+
+      params.watch_region = DISCOVER_WATCH_REGION;
+      params[`${dateField}.lte`] = today;
+      params[`${dateField}.gte`] = ninetyDaysAgo;
+      params.sort_by = sortParam === "popularity.desc" ? "popularity.desc" : `${dateField}.desc`;
+      params["vote_count.gte"] = type === "movie" ? "5" : "3";
+    }
+    if (parsed.genreId) {
+      params.with_genres = String(parsed.genreId);
+      if (fallbackParams) fallbackParams.with_genres = String(parsed.genreId);
+    } else if (genre && genre !== "Todos" && genreMap[genre]) {
       params.with_genres = String(genreMap[genre]);
+      if (fallbackParams) fallbackParams.with_genres = String(genreMap[genre]);
     }
   } else if (catalogId === "miniseries") {
     params.with_type = "2"; // Miniseries en TMDB (1 sola temporada, historia cerrada)
@@ -1042,6 +1246,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       params.with_genres = `10751,${genreMap[genre]}`;
     }
   } else if (catalogId === "accion-familiar-latino") {
+    activeRating = undefined; // Ya aplica filtro US PG-13 dedicado abajo
     if (type === "series") {
       params.with_genres = "10759"; // Acción y Aventura
       params.without_genres = "10764,10763,10767,10768";
@@ -1098,10 +1303,19 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       params.with_genres = String(genreMap[genre]);
     }
   } else {
-    // discover-master
+    // Rama E: discover-master
     params["vote_count.gte"] = type === "movie" ? "5" : "3";
     if (type === "series") params.without_genres = "10763,10767";
-    if (service && service !== "Todos" && SERVICE_IDS[service]) {
+    if (parsed.platform) {
+      const platCfg = PLATFORM_CONFIGS[parsed.platform];
+      const platSource = type === "movie" ? platCfg.movieParams : platCfg.seriesParams;
+      params = { ...params, ...platSource };
+      regionHint = platCfg.regionHint;
+      badgeLabel = platCfg.badgeLabel;
+      if (type === "series" && platCfg.seriesFallbackParams) {
+        fallbackParams = { language: "es-MX", ...platCfg.seriesFallbackParams };
+      }
+    } else if (service && service !== "Todos" && SERVICE_IDS[service]) {
       params.with_watch_providers = String(SERVICE_IDS[service]);
       params.watch_region = DISCOVER_WATCH_REGION;
     }
@@ -1115,6 +1329,8 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     }
     if (genre && genre !== "Todos" && genreMap[genre]) {
       params.with_genres = String(genreMap[genre]);
+    } else if (parsed.genreId) {
+      params.with_genres = String(parsed.genreId);
     }
     // Directiva de ordenación estricta por fecha descendente
     if (!sortParam || sortParam === "released" || sortParam === "premiere_date" || sortParam === "year_desc") {
@@ -1127,73 +1343,95 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     }
   }
 
-  if (!TMDB_KEY) {
-    try {
-      const upstreamUrl = `${PROD_HUB_UPSTREAM}/discover${subPath}${url.search}`;
-      const r = await fetch(upstreamUrl, { signal: AbortSignal.timeout(6000) });
-      if (r.ok) {
-        const data = await r.json();
-        if (Array.isArray(data?.metas) && data.metas.length >= 20) {
-          return jsonResponse(data);
-        }
-      }
-    } catch {
-      // fallback
-    }
-
-    try {
-      const cinType = type === "series" ? "series" : "movie";
-      const cinData = await fetchCinemetaCatalogSorted(cinType, "top", undefined, PAGE_SIZE);
-      if (cinData.metas.length > 0) {
-        return jsonResponse({ metas: cinData.metas.slice(0, PAGE_SIZE) });
-      }
-    } catch {
-      // fallback
-    }
-
-    return new Response(
-      "TMDB_API_KEY_AISEARCH no configurada. Setear como Secret en Deno Deploy.",
-      { status: 503, headers: cors },
-    );
-  }
-
   try {
     const path = type === "movie" ? "/discover/movie" : "/discover/tv";
-    // Consultar 2 páginas de TMDB en paralelo para entregar entre 20 y 30 títulos tras filtrado
     const p1 = (page - 1) * 2 + 1;
     const p2 = (page - 1) * 2 + 2;
-    const [d1, d2] = await Promise.all([
-      tmdbGet(path, { ...params, page: String(p1) }).catch(() => null),
-      tmdbGet(path, { ...params, page: String(p2) }).catch(() => null),
-    ]);
 
-    // deno-lint-ignore no-explicit-any
-    const results1 = (d1?.results ?? []) as any[];
-    // deno-lint-ignore no-explicit-any
-    const results2 = (d2?.results ?? []) as any[];
-    const combinedResults = [...results1, ...results2];
-
-    // Deduplicar resultados brutos por TMDB ID y aplicar filtro duro anti-basura L2
     const seenTmdbIds = new Set<number>();
     // deno-lint-ignore no-explicit-any
     const results: any[] = [];
     const isExplicitLanguageSearch = (language && language !== "Todos") || (country && country !== "Todos");
-    for (const r of combinedResults) {
-      if (r && r.id && !seenTmdbIds.has(r.id)) {
-        const origLang = String(r.original_language || "").toLowerCase().trim();
-        if (!isExplicitLanguageSearch && BLOCKED_TMDB_LANGUAGES.has(origLang)) {
-          continue; // Descarte estricto por defecto
+
+    const appendUniqueResults = (
+      // deno-lint-ignore no-explicit-any
+      incoming: any[],
+    ) => {
+      for (const r of incoming) {
+        if (r && r.id && !seenTmdbIds.has(r.id)) {
+          const origLang = String(r.original_language || "").toLowerCase().trim();
+          if (!isExplicitLanguageSearch && BLOCKED_TMDB_LANGUAGES.has(origLang)) {
+            continue; // Descarte estricto por defecto
+          }
+          seenTmdbIds.add(r.id);
+          results.push(r);
         }
-        seenTmdbIds.add(r.id);
-        results.push(r);
+      }
+    };
+
+    const fetchDiscoverPair = async (queryParams: Record<string, string>) => {
+      const [d1, d2] = await Promise.all([
+        tmdbGet(path, { ...queryParams, page: String(p1) }).catch(() => null),
+        tmdbGet(path, { ...queryParams, page: String(p2) }).catch(() => null),
+      ]);
+      // deno-lint-ignore no-explicit-any
+      appendUniqueResults((d1?.results ?? []) as any[]);
+      // deno-lint-ignore no-explicit-any
+      appendUniqueResults((d2?.results ?? []) as any[]);
+    };
+
+    if (activeRating) {
+      const chain = getCertificationChain(activeRating, type, regionHint);
+      await fetchDiscoverPair(applyCertStep(params, chain[0], parsed.genreId));
+
+      for (let i = 1; i < chain.length && results.length < 5; i++) {
+        await fetchDiscoverPair(applyCertStep(params, chain[i], parsed.genreId));
+      }
+
+      if (results.length < 5 && fallbackParams) {
+        await fetchDiscoverPair(applyCertStep(fallbackParams, chain[0], parsed.genreId));
+        if (results.length < 5 && chain[1]) {
+          await fetchDiscoverPair(applyCertStep(fallbackParams, chain[1], parsed.genreId));
+        }
+      }
+
+      // Red de seguridad en subfiltros muy específicos (bajar vote_count.gte manteniendo calificación y género)
+      if (results.length === 0) {
+        await fetchDiscoverPair({
+          ...applyCertStep(params, chain[0], parsed.genreId),
+          "vote_count.gte": "1",
+        });
+        if (results.length === 0 && chain[1]) {
+          await fetchDiscoverPair({
+            ...applyCertStep(params, chain[1], parsed.genreId),
+            "vote_count.gte": "1",
+          });
+        }
+      }
+    } else {
+      await fetchDiscoverPair(params);
+      if (results.length < 5 && fallbackParams) {
+        await fetchDiscoverPair(fallbackParams);
       }
     }
+
+    // Lanzar en paralelo destacados curados de HP y X-Men cuando el Rollup "Sagas y Universos" está en Todos página 1
+    const shouldMixCuratedInRollup = catalogId === "sagas-universos" && !parsed.universe && page === 1;
+    const curatedHighlightPromise = shouldMixCuratedInRollup
+      ? Promise.all([
+        fetchCuratedCollectionUniverse("harry-potter", type, parsed, tmdbGet, resolveBatchImdb).catch(() => []),
+        fetchCuratedCollectionUniverse("xmen", type, parsed, tmdbGet, resolveBatchImdb).catch(() => []),
+      ])
+      : Promise.resolve([[], []] as [never[], never[]]);
 
     // Erradicación de Cascada N+1: resolución en lote con L1 + L2 Deno KV + chunks controlados
     const tmdbType = type === "movie" ? "movie" : "tv";
     // deno-lint-ignore no-explicit-any
     const tmdbIds = results.map((r: any) => r.id as number).filter(Boolean);
-    const imdbIdMap = await resolveBatchImdb(tmdbIds, tmdbType);
+    const [imdbIdMap, [hpHighlights, xmHighlights]] = await Promise.all([
+      resolveBatchImdb(tmdbIds, tmdbType),
+      curatedHighlightPromise,
+    ]);
 
     // deno-lint-ignore no-explicit-any
     const resolved = results.map((r: any) => {
@@ -1201,10 +1439,13 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       if (!imdbId) return null;
       const d0 = (r.release_date ?? r.first_air_date ?? "") as string;
       const isoDate = d0 && /^\d{4}-\d{2}-\d{2}/.test(d0) ? `${d0.slice(0, 10)}T00:00:00.000Z` : undefined;
+      const name = (imdbId === "tt14060708" || r.id === 112738)
+        ? "ACI: Alta Capacidad Intelectual (HCI / HPI)"
+        : (r.title ?? r.name);
       return {
         id: imdbId,
         type,
-        name: r.title ?? r.name,
+        name,
         poster: r.poster_path ? `https://image.tmdb.org/t/p/w500${r.poster_path}` : null,
         description: r.overview ?? "",
         releaseInfo: d0 ? d0.slice(0, 4) : undefined,
@@ -1215,10 +1456,12 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     });
 
     // Filtrar portadas vacías y ordenar según el catálogo y parámetros de ordenamiento
-    const shouldSortByDate = sortParam === "released" || sortParam === "premiere_date" ||
+    const shouldSortByDate = parsed.sortRecent || sortParam === "released" || sortParam === "premiere_date" ||
       (!sortParam && (catalogId === "nuevos-estrenos-cine" || catalogId === "nuevas-temporadas" || catalogId === "estrenos-streaming" || catalogId === "cine-argentina" || catalogId === "series-argentina" || catalogId === "familia"));
 
-    const metas = resolved
+    const prefixBadge = badgeLabel ? formatCatalogBadge(badgeLabel, activeRating) : "";
+
+    let metas = resolved
       // deno-lint-ignore no-explicit-any
       .filter((m: any) => m !== null && !!m.poster)
       // deno-lint-ignore no-explicit-any
@@ -1232,14 +1475,34 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
             description: `[ATP · Acción Familiar Latino] ${m.description || ""}`.trim(),
           };
         }
+        if (prefixBadge) {
+          return {
+            ...m,
+            description: `${prefixBadge} ${m.description || ""}`.trim(),
+          };
+        }
         return m;
       });
 
-    // Guardar en caché L1 y L2 (catalog_v4_live) con TTL de refresco dinámico
+    if (shouldMixCuratedInRollup && (hpHighlights.length > 0 || xmHighlights.length > 0)) {
+      const injected = [...hpHighlights.slice(0, 2), ...xmHighlights.slice(0, 2)];
+      const seenImdb = new Set<string>();
+      // deno-lint-ignore no-explicit-any
+      const merged: any[] = [];
+      for (const item of [...injected, ...metas]) {
+        if (item?.id && !seenImdb.has(item.id)) {
+          seenImdb.add(item.id);
+          merged.push(item);
+        }
+      }
+      metas = merged.slice(0, PAGE_SIZE);
+    }
+
+    // Guardar en caché L1 y L2 (catalog_v5_live) con TTL de refresco dinámico
     if (metas.length > 0) {
       discoverPageLruCache.set(pageCacheKey, { metas, cachedAt: Date.now(), isFresh });
       if (kv) {
-        kv.set(["catalog_v4_live", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
+        kv.set(["catalog_v5_live", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
       }
     }
 
@@ -1257,11 +1520,15 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
  */
 export function normalizeSearchQuery(query: string): string {
   if (!query) return "";
-  return query
+  const cleaned = query
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+  if (cleaned === "hci" || cleaned === "aci" || cleaned === "alta capacidad intelectual") {
+    return "hpi";
+  }
+  return cleaned;
 }
 
 export interface SearchTmdbMultiOptions {

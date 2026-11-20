@@ -210,8 +210,12 @@ async function runScenario2() {
   const catalogs = manifest.catalogs || [];
   console.log(`  ✓ Manifiesto v${manifest.version}: ${catalogs.length} catálogos expuestos`);
 
-  // Tope de TV Box ZTE B866V2 (<= 16 filas en Home)
-  assert(catalogs.length <= 16, `Tope Leanback de TV Box ZTE B866V2 respetado: ${catalogs.length} <= 16 filas`);
+  // Tope de TV Box ZTE B866V2 (<= 16 filas en Home; isRequired: true queda confinado a Descubrir)
+  const homeCatalogs = catalogs.filter((c) => !(c.extra || []).some((e) => e.isRequired === true));
+  assert(
+    homeCatalogs.length <= 16,
+    `Tope Leanback de TV Box ZTE B866V2 respetado: ${homeCatalogs.length} <= 16 filas en Home (${catalogs.length} totales con Descubrir)`
+  );
 
   // Muestreo y recorrido real de catálogos en vivo
   console.log('\n  Recorriendo filas del catálogo contra el Edge en vivo...');

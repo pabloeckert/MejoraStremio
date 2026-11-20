@@ -71,7 +71,26 @@ if (hub) {
       console.log(`      -> Se requiere ejecutar apply-stremioeg-profile.mjs --apply para actualizar la cuenta Stremio.`);
     }
 
-    const checkHubIds = ['miniseries', 'short-series', 'nuevos-estrenos-cine', 'nuevas-temporadas', 'estrenos-streaming', 'discover-master'];
+    const checkHubIds = [
+      'miniseries',
+      'short-series',
+      'nuevos-estrenos-cine',
+      'nuevas-temporadas',
+      'estrenos-streaming',
+      'sagas-universos',
+      'saga-marvel',
+      'saga-dc',
+      'saga-harry-potter',
+      'saga-xmen',
+      'saga-independientes',
+      'stream-netflix',
+      'stream-hbo',
+      'stream-prime',
+      'stream-movistar',
+      'stream-bbc',
+      'stream-europa',
+      'discover-master',
+    ];
     const savedIds = new Set((hub.manifest?.catalogs || []).map((c) => c.id));
     const liveIds = new Set(liveCatalogs.map((c) => c.id));
     console.log('\n[4] Auditoría de Catálogos por Intención en MejoraStremio Hub:');

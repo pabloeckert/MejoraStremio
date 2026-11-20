@@ -958,6 +958,35 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Verificación de tipos y linter**: `deno check` (0 errores) y `deno lint` (40 archivos auditados, 0 advertencias).
 - **Paridad en vivo certificada**: 15 catálogos sincronizados 1:1 entre Stremio Cloud y Deno Deploy.
 
+---
+
+## 33. Sesión 2026-11-19: MejoraStremio Hub v3.4.0 — Sagas/Universos, Plataformas Streaming y Europa, Tabla de Calificaciones Argentina (INCAA/ENACOM) y HCI/HPI en Castellano
+
+### 33.1 Taxonomía Unificada para Android TV Leanback UI (`universes_and_platforms.ts` & `manifest.ts`)
+- **Control estricto de filas en Inicio**: Se mantienen exactamente **15 filas** con `isRequired: false` (`<= 16` límite de ZTE B866V2), integrando los rollups `estrenos-streaming` (Plataformas + Tabla AR en el desplegable `genre`) y `sagas-universos` (*Sagas y Universos*).
+- **24 secciones dedicadas exclusivamente en Descubrir (`genre.isRequired: true`)**:
+  - **Plataformas Streaming y Producción Europea (12 catálogos)**: `📺 Netflix` (`stream-netflix`), `📺 HBO Max` (`stream-hbo`), `📺 Prime Video` (`stream-prime`), `📺 Movistar+` (`stream-movistar`), `📺 BBC` (`stream-bbc`) y `🇪🇺 Producción Europea` (`stream-europa`).
+  - **Sagas y Universos (10 catálogos)**: `🦸 Marvel (MCU)` (`saga-marvel`), `🦇 DC Comics` (`saga-dc`), `⚡ Harry Potter` (`saga-harry-potter`), `❌ X-Men` (`saga-xmen`) y `🎞️ Cine / Series Independientes` (`saga-independientes`).
+  - **Descubrir Avanzado (`discover-master`)**: confinado a Descubrir (`isGenreRequired = true`) con soporte de `rating`, `service`, `country`, `region`, `language` y `genre`.
+- **Resolución de bugs críticos TMDB y Stremio URI**:
+  - Corregido `SERVICE_IDS["Prime Video"]` de `9` a `119` (6,931 títulos reales en región `AR`, frente a 0 con `9`).
+  - Reemplazado `URLSearchParams` en `tmdb.ts` por `parseStremioExtra` para preservar `+` literal (`+13`, `+16`, `+18`, `Movistar+`) sin corromperlo en espacios.
+  - Eliminación total de `/` en `extra.options` y actualización de regex en `unified-hub.ts` / `tmdb.ts` a `(?:\/(.+))?\.json$`.
+
+### 33.2 Tabla de Calificaciones Argentina Homologada (INCAA / ENACOM) y Colecciones Curadas
+- **Homologación automática Multi-Región (`getCertificationChain`)**:
+  - Mapeo completo de niveles `ATP`, `+13`, `+16`, `+18`, `ATP y +13` y `+16 y +18` tanto para cine como para series, con fallback progresivo (`AR`, `US`, `GB`, `ES`) cuando una región tiene pocos resultados y exclusión de terror (`27`) en niveles `ATP` / `ATP y +13`.
+- **Colecciones curadas exactas (`fetchCuratedCollectionUniverse`)**:
+  - **Harry Potter**: Colecciones TMDB `1241` + `435259` + `899082` + series TV (`224377`, `254514`, `133723`, `260229`), clasificando con exactitud *HP 1–3* en `ATP` y *HP 4–8 / Animales Fantásticos* en `+13`.
+  - **X-Men**: Colecciones TMDB `748` + `453993` + `448150` + `340102` + series TV (`138502`, `4574`, `668`, `6549`, `67195`, `69629`, `43146`), erradicando falsos positivos como *Tortugas Ninja* / *Fallout* y asignando `+16`/`+18` a *Logan*, *Deadpool 1–3* y *Legion*.
+
+### 33.3 Identificación de Origen de Streams por Plataforma (`streams.ts`)
+- **`extractFormatBadges`**: Amplía la detección de badges en `s.title` (preservando `s.name <= 25 chars`) incorporando `[NF]`, `[HBO]`, `[Prime]`, `[Movistar+]`, `[BBC]` y `[EU]` con fronteras estrictas libre de falsos positivos en `IMAX` y `wolfmax4k`.
+
+### 33.4 HCI / HPI / ACI (`tt14060708` / `tt13000282`) en Castellano
+- **Streams en Castellano en Puesto #1 (`streams.ts`)**: Para `tt14060708`, `handleStreams` inyecta los proveedores españoles (`mejortorrent`, `wolfmax4k`) con caché TorBox (`[TB+]`) y `language=spanish,latino`, ejecutando `rankAndBadgeStreams(..., { preferCastellano: true })` que eleva `[🇪🇸 CASTELLANO]` por encima del francés original (`[🎧 ORIGINAL]`).
+- **Localización y Búsqueda (`tmdb.ts` & `synopsis.ts`)**: `search=HCI` / `ACI` resuelve hacia *HPI* (`112738` / `tt14060708`) mostrando el título localizado `"ACI: Alta Capacidad Intelectual (HCI / HPI)"` tanto en búsqueda/catálogos como en metadatos.
+
 
 
 

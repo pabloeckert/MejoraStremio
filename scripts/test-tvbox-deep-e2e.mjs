@@ -445,12 +445,10 @@ try {
     assert(results.pass2_playback, `Fuentes originales en francés identificadas y marcadas con [🎧 ORIGINAL] (${label})`, originalStreams.length > 0 && originalStreams.every((s) => s.name?.includes('[🎧 ORIGINAL]')));
 
     const castellanoStreams = hpiStreams.filter((s) => classifyStreamAudio(s) === 'castellano');
-    if (castellanoStreams.length > 0) {
-      assert(results.pass2_playback, `Fuentes en castellano identificadas y marcadas con [🇪🇸 CASTELLANO] (${label})`, castellanoStreams.every((s) => s.name?.includes('[🇪🇸 CASTELLANO]')));
-    }
+    assert(results.pass2_playback, `Fuentes en castellano encontradas y en Puesto #1 para HCI (${label})`, castellanoStreams.length > 0 && castellanoStreams.every((s) => s.name?.includes('[🇪🇸 CASTELLANO]')) && hpiStreams[0]?.name?.includes('[🇪🇸 CASTELLANO]'), hpiStreams[0]?.name);
     const latinoStreams = hpiStreams.filter((s) => isLatinoStream(s));
     if (latinoStreams.length > 0) {
-      assert(results.pass2_playback, `Stream con Audio Latino elevado al PUESTO #1 (${label})`, isLatinoStream(hpiStreams[0]) && hpiStreams[0].name?.includes('[🌎 LATINO]'));
+      assert(results.pass2_playback, `Fuentes Latino identificadas en HCI (${label})`, latinoStreams.every((s) => s.name?.includes('[🌎 LATINO]')));
     }
 
     const hpiTranslateFetch = await fetchJson(`${LOCAL_HUB_BASE}/translate/subtitles/series/${epId}.json`);

@@ -548,7 +548,7 @@ export async function handleUnifiedHub(
   }
 
   // 9. Catálogos parametrizados: /:config/catalog/:type/:id.json
-  const configCatMatch = path.match(/^\/([^/]+)\/catalog\/(movie|series)\/([^/]+)(?:\/([^/]+))?\.json$/);
+  const configCatMatch = path.match(/^\/([^/]+)\/catalog\/(movie|series)\/([^/]+)(?:\/(.+))?\.json$/);
   if (configCatMatch) {
     const configSegment = configCatMatch[1];
     if (!RESERVED_PREFIXES.has(configSegment)) {
@@ -570,7 +570,7 @@ export async function handleUnifiedHub(
   }
 
   // 10. Catálogos directos en raíz: /catalog/:type/:id.json
-  const directCatMatch = path.match(/^\/catalog\/(movie|series)\/([^/]+)(?:\/([^/]+))?\.json$/);
+  const directCatMatch = path.match(/^\/catalog\/(movie|series)\/([^/]+)(?:\/(.+))?\.json$/);
   if (directCatMatch) {
     const type = directCatMatch[1] as "movie" | "series";
     const catId = directCatMatch[2];

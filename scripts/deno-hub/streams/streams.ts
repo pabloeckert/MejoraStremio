@@ -477,11 +477,11 @@ export function extractFormatBadges(s: StremioStreamItem): string[] {
   const badges: string[] = [];
 
   // 1. Dolby Vision detection
-  if (/\b(?:dv\s*p8|dovi\s*p8|profile\s*8|dovi\s*08|dv\s*08)\b/i.test(fullText)) {
+  if (/\b(?:dv[\s._-]*p8|dovi[\s._-]*p8|profile[\s._-]*8|dovi[\s._-]*08|dv[\s._-]*08)\b/i.test(fullText)) {
     badges.push("[DV P8]");
-  } else if (/\b(?:dv\s*p5|dovi\s*p5|profile\s*5|dovi\s*05|dv\s*05)\b/i.test(fullText)) {
+  } else if (/\b(?:dv[\s._-]*p5|dovi[\s._-]*p5|profile[\s._-]*5|dovi[\s._-]*05|dv[\s._-]*05)\b/i.test(fullText)) {
     badges.push("[DV P5]");
-  } else if (/\b(?:dv\s*p7|dovi\s*p7|profile\s*7|dovi\s*07|dv\s*07)\b/i.test(fullText)) {
+  } else if (/\b(?:dv[\s._-]*p7|dovi[\s._-]*p7|profile[\s._-]*7|dovi[\s._-]*07|dv[\s._-]*07)\b/i.test(fullText)) {
     badges.push("[DV P7]");
   } else if (/\b(?:dolby[\s._-]*vision|dovi)\b/i.test(fullText)) {
     badges.push("[DV]");
@@ -505,10 +505,28 @@ export function extractFormatBadges(s: StremioStreamItem): string[] {
     badges.push("[5.1]");
   }
 
+  // 4. Streaming Platform / Origin identification (fronteras estrictas sin falsos positivos en IMAX/wolfmax4k)
+  if (/\b(?:netflix|nf)\b|\.(?:nf)\.(?:web|dl|hd|1080p|2160p|720p)|\[nf\]/i.test(fullText)) {
+    badges.push("[NF]");
+  } else if (/\b(?:hbo|hmax|hbomax)\b|\bmax(?=[\s._-]*(?:web|dl|1080p|2160p|720p))\b|\[hbo\]/i.test(fullText)) {
+    badges.push("[HBO]");
+  } else if (/\b(?:amzn|amazon[\s._-]*(?:prime|web|video)|prime[\s._-]*video)\b|\[prime\]/i.test(fullText)) {
+    badges.push("[Prime]");
+  } else if (/\b(?:movistar\+?|mplus)\b|\bm\+\.(?:web|1080p|720p|2160p)|\[movistar\+?\]/i.test(fullText)) {
+    badges.push("[Movistar+]");
+  } else if (/\b(?:bbc|iplayer|bbciplayer)\b|\[bbc\]/i.test(fullText)) {
+    badges.push("[BBC]");
+  } else if (/\b(?:arte|canal\+|rtve|atresplayer|sky[\s._-]*(?:uk|atlantic)|itv|all4|zdf|ard|rai|tf1|france[\s._-]*tv)\b|\[eu\]/i.test(fullText)) {
+    badges.push("[EU]");
+  }
+
   return badges;
 }
 
-export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): T[] {
+export function rankAndBadgeStreams<T extends StremioStreamItem>(
+  streams: T[],
+  options?: { preferCastellano?: boolean },
+): T[] {
   if (!Array.isArray(streams) || streams.length === 0) return [];
 
   const incompatibleZte: { stream: T; label: string }[] = [];
@@ -628,14 +646,33 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(streams: T[]): 
   };
 
   // The Considerate Player: Curaduría inteligente, deduplicación por release y top conciso
+  const preferCastellano = Boolean(options?.preferCastellano);
   const sortedLatinoCached = deduplicateStreamBucket(sortStreamBucket(latinoCached)).slice(0, 10);
   const sortedOriginalCached = deduplicateStreamBucket(sortStreamBucket(originalCached)).slice(0, 8);
   const sortedLatinoBuffer = deduplicateStreamBucket(sortStreamBucket(latinoBuffer)).slice(0, 3);
   const sortedOriginalBuffer = deduplicateStreamBucket(sortStreamBucket(originalBuffer)).slice(0, 3);
-  const sortedCastellanoCached = sortStreamBucket(castellanoCached).slice(0, 2);
+  const sortedCastellanoCached = preferCastellano
+    ? deduplicateStreamBucket(sortStreamBucket(castellanoCached)).slice(0, 6)
+    : sortStreamBucket(castellanoCached).slice(0, 2);
   const sortedPortugueseCached = sortStreamBucket(portugueseCached).slice(0, 2);
-  const sortedCastellanoBuffer = sortStreamBucket(castellanoBuffer).slice(0, 2);
+  const sortedCastellanoBuffer = preferCastellano
+    ? deduplicateStreamBucket(sortStreamBucket(castellanoBuffer)).slice(0, 6)
+    : sortStreamBucket(castellanoBuffer).slice(0, 2);
   const sortedPortugueseBuffer = sortStreamBucket(portugueseBuffer).slice(0, 2);
+
+  if (preferCastellano) {
+    return [
+      ...sortedLatinoCached.map((s) => badge(s, "latino", true)),
+      ...sortedCastellanoCached.map((s) => badge(s, "castellano", true)),
+      ...sortedCastellanoBuffer.map((s) => badge(s, "castellano", false)),
+      ...sortedLatinoBuffer.map((s) => badge(s, "latino", false)),
+      ...sortedOriginalCached.map((s) => badge(s, "original", true)),
+      ...sortedOriginalBuffer.map((s) => badge(s, "original", false)),
+      ...sortedPortugueseCached.map((s) => badge(s, "portuguese", true)),
+      ...sortedPortugueseBuffer.map((s) => badge(s, "portuguese", false)),
+      ...incompatibleZte.slice(0, 2).map(badgeIncompatible),
+    ];
+  }
 
   // 2. CONFIRMADO Audio Latino #1 -> 3. Caché TorBox -> 4. Mayor resolución -> 5. Bitrate y semillas
   return [
@@ -700,16 +737,28 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
     cleanId = cleanId.replace(/^tt(?:13854128|13000282)/, "tt14060708");
   }
 
+  // HCI / HPI / ACI (tt14060708): priorizar fuentes españolas en Castellano + TorBox cacheado
+  const isHpi = cleanId.startsWith("tt14060708");
+  const torboxKey = extractTorboxApiKey(configSegment, url);
+
+  if (isHpi) {
+    const hasSpanishProviders = upstreamBase.includes("mejortorrent") || upstreamBase.includes("wolfmax4k");
+    if (!hasSpanishProviders || !upstreamBase.includes("torbox=")) {
+      upstreamBase = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,mejortorrent,wolfmax4k,cinecalidad|torbox=${torboxKey}|language=spanish,latino/`;
+    } else {
+      upstreamBase = upstreamBase.replace(/language=latino\b(?![,])/g, "language=spanish,latino");
+    }
+  }
+
   // Para "The Walk" / "En la cuerda floja", consultar en paralelo ambos alias:
   // tt3488710 (canónico internacional / TorBox cached) y tt3488720 (trackers hispanos DameTorrents/Cinecalidad)
   const isTheWalk = cleanId.startsWith("tt3488710") || cleanId.startsWith("tt3488720");
   const targetIds = isTheWalk ? ["tt3488710", "tt3488720"] : [cleanId];
 
-  const torboxKey = extractTorboxApiKey(configSegment, url);
   const cometBase = buildCometTorboxUrl(torboxKey);
   const mediafusionBase = await resolveMediaFusionTorboxUrl(torboxKey);
 
-  const cacheKey = ["streams_v323", type, cleanId, configSegment || "default"];
+  const cacheKey = ["streams_v340", type, cleanId, configSegment || "default"];
 
   try {
     const rawStreams = await getOrSetSwrCache<StremioStreamItem[]>(
@@ -752,7 +801,7 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
           }
         }
 
-        return rankAndBadgeStreams(collected);
+        return rankAndBadgeStreams(collected, { preferCastellano: isHpi });
       },
       {
         ttlMs: TTL_SEGMENTS.SCRAPER_STREAMS.freshMs,

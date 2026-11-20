@@ -217,11 +217,11 @@ export function renderConfigureHtml(configSegment: string, origin: string): stri
 
     <ul class="features">
       <li>🌎 Prioridad Doblaje Latino (#1)</li>
-      <li>⚡ TorBox Debrid Instantáneo</li>
-      <li>🎧 Francés/Inglés Original Identificado</li>
-      <li>🤖 Subtítulos IA Gemini Flash</li>
-      <li>🧹 Cero marcas SDH / CC</li>
-      <li>⏱️ SmartSync (0% judder / drift)</li>
+      <li>🇪🇸 HCI en Castellano (#1)</li>
+      <li>📺 Netflix · HBO · Prime · Movistar+ · BBC · Europa</li>
+      <li>🦸 Sagas: Marvel · DC · Harry Potter · X-Men · Indie</li>
+      <li>🇦🇷 Tabla Argentina INCAA (ATP · +13 · +16 · +18)</li>
+      <li>🤖 Subtítulos IA Gemini · Cero SDH · SmartSync</li>
     </ul>
 
     <div class="form-group">

@@ -97,6 +97,25 @@ Deno.test("2. Parser seguro de '+' y filtros compuestos (género + calificación
 
   const c6 = parseCompositeFilter("Acción", "series", "+13", "Prime Video");
   assert(c6.genreId === 10759 && c6.rating === "+13" && c6.platform === "prime", `c6 falló: ${JSON.stringify(c6)}`);
+
+  // Filtros de 3 niveles simultáneos (Universo/Plataforma · Categoría de Género · Calificación AR)
+  const l3a = parseCompositeFilter("Marvel · Acción · +13", "movie");
+  assert(l3a.universe === "marvel" && l3a.genreId === 28 && l3a.rating === "+13", `l3a falló: ${JSON.stringify(l3a)}`);
+
+  const l3b = parseCompositeFilter("HBO Max · Drama · +16 y +18", "series");
+  assert(l3b.platform === "hbo" && l3b.genreId === 18 && l3b.rating === "16_18", `l3b falló: ${JSON.stringify(l3b)}`);
+
+  const l3c = parseCompositeFilter("Movistar+ · Crimen · +16 y +18", "series");
+  assert(l3c.platform === "movistar" && l3c.genreId === 80 && l3c.rating === "16_18", `l3c falló: ${JSON.stringify(l3c)}`);
+
+  const l3d = parseCompositeFilter("BBC · Misterio · +13", "series");
+  assert(l3d.platform === "bbc" && l3d.genreId === 9648 && l3d.rating === "+13", `l3d falló: ${JSON.stringify(l3d)}`);
+
+  const l3e = parseCompositeFilter("Europa · Thriller · +16 y +18", "movie");
+  assert(l3e.platform === "europa" && l3e.genreId === 53 && l3e.rating === "16_18", `l3e falló: ${JSON.stringify(l3e)}`);
+
+  const l3f = parseCompositeFilter("Drama · +16", "movie", undefined, undefined, "DC Comics");
+  assert(l3f.universe === "dc" && l3f.genreId === 18 && l3f.rating === "+16", `l3f falló: ${JSON.stringify(l3f)}`);
 });
 
 Deno.test("3. Colecciones Curadas: Harry Potter (ATP vs +13) y X-Men (sin falsos positivos y +16)", async () => {
@@ -179,6 +198,21 @@ Deno.test("5. Sagas y Universos Discover (Marvel, DC, Independientes + Rollup) c
     const metas = await queryCatalog(type, cid, extra);
     assert(metas.length > 0, `${type}/${cid}/${extra} devolvió 0 resultados`);
   }
+
+  // Consultas reales de 3 niveles simultáneos en TMDB
+  const level3Marvel = await queryCatalog(
+    "movie",
+    "sagas-universos",
+    `genre=${encodeURIComponent("Marvel · Acción · +13")}`,
+  );
+  assert(level3Marvel.length > 0, "Consulta 3 niveles 'Marvel · Acción · +13' devolvió 0 resultados");
+
+  const level3Hbo = await queryCatalog(
+    "series",
+    "estrenos-streaming",
+    `genre=${encodeURIComponent("HBO Max · Drama · +16 y +18")}`,
+  );
+  assert(level3Hbo.length > 0, "Consulta 3 niveles 'HBO Max · Drama · +16 y +18' devolvió 0 resultados");
 });
 
 Deno.test("6. Streams extractFormatBadges — Plataformas [NF]/[HBO]/[Prime]/[Movistar+]/[BBC]/[EU] sin falsos positivos", () => {

@@ -598,10 +598,20 @@ export const GENRE_IDS_SERIES: Record<string, number> = {
   "Bélica y Política": 10768, "Western": 37,
 };
 
+export const UNIVERSE_OPTIONS = [
+  "Todos",
+  "Marvel (MCU)",
+  "DC Comics",
+  "Harry Potter",
+  "X-Men",
+  "Independientes",
+];
+
 export function discoverExtra(genreMap: Record<string, number>, isGenreRequired = true) {
   return [
     { name: "search", isRequired: false },
     { name: "service", options: ["Todos", ...Object.keys(SERVICE_IDS)], isRequired: false },
+    { name: "universe", options: UNIVERSE_OPTIONS, isRequired: false },
     { name: "region", options: ["Todos", ...Object.keys(REGION_IDS)], isRequired: false },
     { name: "country", options: ["Todos", ...Object.keys(COUNTRY_IDS)], isRequired: false },
     { name: "language", options: ["Todos", ...Object.keys(LANGUAGE_IDS)], isRequired: false },
@@ -941,6 +951,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
 
   const extraMap = parseStremioExtra(extraStr);
   const service = extraMap.service ?? url?.searchParams?.get("service") ?? null;
+  const universeParam = extraMap.universe ?? url?.searchParams?.get("universe") ?? null;
   const region = extraMap.region ?? null;
   const country = extraMap.country ?? null;
   const language = extraMap.language ?? null;
@@ -1007,12 +1018,12 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     }
   }
 
-  const parsed = parseCompositeFilter(genre, type, rawRating, service);
+  const parsed = parseCompositeFilter(genre, type, rawRating, service, universeParam);
   const isFresh = isRecentPremiereQuery(catalogId, subPath, extraStr) || Boolean(parsed.sortRecent);
   const dynamicKvTtl = isFresh ? DISCOVER_PAGE_KV_TTL_FRESH_PREMIERES_MS : DISCOVER_PAGE_KV_TTL_DEFAULT_MS;
 
   // Clave determinista para caché de página completa v5 (invalidación instantánea)
-  const pageCacheKey = `${catalogId}:${type}:${service || "all"}:${region || "all"}:${country || "all"}:${language || "all"}:${genre || "all"}:${rawRating || "all"}:${sortParam || "default"}:${page}`;
+  const pageCacheKey = `${catalogId}:${type}:${universeParam || "all"}:${service || "all"}:${region || "all"}:${country || "all"}:${language || "all"}:${genre || "all"}:${rawRating || "all"}:${sortParam || "default"}:${page}`;
 
   // 1. Revisar caché de página en L1 (RAM) con validación de caducidad para feeds frescos
   const memPage = discoverPageLruCache.get(pageCacheKey);
@@ -1070,9 +1081,11 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
 
   // Rama A: Colecciones curadas de Sagas/Universos (Harry Potter y X-Men)
   const curatedUniverse: "harry-potter" | "xmen" | null =
-    (catalogId === "saga-harry-potter" || (catalogId === "sagas-universos" && parsed.universe === "harry-potter"))
+    (catalogId === "saga-harry-potter" ||
+      ((catalogId === "sagas-universos" || catalogId === "discover-master") && parsed.universe === "harry-potter"))
       ? "harry-potter"
-      : (catalogId === "saga-xmen" || (catalogId === "sagas-universos" && parsed.universe === "xmen"))
+      : (catalogId === "saga-xmen" ||
+          ((catalogId === "sagas-universos" || catalogId === "discover-master") && parsed.universe === "xmen"))
       ? "xmen"
       : null;
 
@@ -1114,7 +1127,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
 
   const mappedPlatform = CATALOG_ID_TO_PLATFORM[catalogId];
   const mappedUniverse = CATALOG_ID_TO_UNIVERSE[catalogId] ||
-    (catalogId === "sagas-universos" ? parsed.universe : undefined);
+    ((catalogId === "sagas-universos" || catalogId === "discover-master") ? parsed.universe : undefined);
 
   if (mappedPlatform) {
     // Rama C (Plataformas Streaming y Producción Europea)

@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { apiPost as _apiPost } from './lib/stremio-api.mjs';
 import { auditLeanbackHomeCatalogs } from './prune-home-catalogs.mjs';
+import './lib/env.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -136,13 +137,16 @@ if (!pass) {
     });
     addons = col?.result?.addons || [];
 
-    // Regla estricta: exactamente los addons canónicos autorizados (Hub + Tráilers Latino + Cinemeta)
-    const expectedSet = new Set(CANONICAL_ADDONS);
+    // Regla estricta: exactamente los addons canónicos autorizados según cuenta
+    const allowedAddons = targetAccount === 'stremiojn'
+      ? [...CANONICAL_ADDONS, 'com.mejorastremio.livetv', 'com.mejorastremio.ufc-catalog']
+      : CANONICAL_ADDONS;
+    const expectedSet = new Set(allowedAddons);
     const installedIds = addons.map((a) => a.manifest?.id || a.id);
     const unauthorized = installedIds.filter((id) => !expectedSet.has(id));
 
-    if (addons.length > CANONICAL_ADDONS.length || addons.length < 2 || unauthorized.length > 0) {
-      fail(`Deriva de configuración detectada: cuenta tiene ${addons.length} addons instalados (límite estricto: ${CANONICAL_ADDONS.length})`);
+    if (addons.length > allowedAddons.length || addons.length < 2 || unauthorized.length > 0) {
+      fail(`Deriva de configuración detectada: cuenta tiene ${addons.length} addons instalados (límite estricto: ${allowedAddons.length})`);
       addons.forEach((a, i) => console.log(`     [${i}] ${a.manifest?.id || a.id} — "${a.manifest?.name || a.name}"`));
       if (unauthorized.length > 0) {
         fail(`Addons no autorizados / deriva detectada: ${unauthorized.join(', ')}`);

@@ -197,18 +197,26 @@ export function validateProfile(filePath, profile, errFn = err, warnFn = warn) {
     }
   }
 
-  // 2. Topología Canónica (Monopolio de exactamente 2 addons)
+  // 2. Topología Canónica (5 addons para stremiojn con UFC/LiveTV, 2 addons para resto)
   if (rules.topology?.installedAddons) {
     const addons = rules.topology.installedAddons;
-    if (!Array.isArray(addons) || addons.length !== 2) {
-      errFn(`[${label}] Topología Canónica: deben configurarse exactamente 2 addons instalados (tiene: ${addons?.length})`);
+    const expectedOrder = profile.account === "stremiojn@gmail.com"
+      ? [
+          "com.mejorastremio.hub",
+          "com.mejorastremio.livetv",
+          "com.mejorastremio.ufc-catalog",
+          "com.mejorastremio.trailers-latino",
+          "com.linvo.cinemeta",
+        ]
+      : ["com.mejorastremio.hub", "com.linvo.cinemeta"];
+    if (!Array.isArray(addons) || addons.length !== expectedOrder.length) {
+      errFn(`[${label}] Topología Canónica: deben configurarse exactamente ${expectedOrder.length} addons instalados (tiene: ${addons?.length})`);
     } else {
-      if (addons[0]?.id !== "com.mejorastremio.hub") {
-        errFn(`[${label}] Topología Canónica: posición #0 debe ser com.mejorastremio.hub (es: ${addons[0]?.id})`);
-      }
-      if (addons[1]?.id !== "com.linvo.cinemeta") {
-        errFn(`[${label}] Topología Canónica: posición #1 debe ser com.linvo.cinemeta (es: ${addons[1]?.id})`);
-      }
+      expectedOrder.forEach((expId, idx) => {
+        if (addons[idx]?.id !== expId) {
+          errFn(`[${label}] Topología Canónica: posición #${idx} debe ser ${expId} (es: ${addons[idx]?.id})`);
+        }
+      });
     }
   }
 

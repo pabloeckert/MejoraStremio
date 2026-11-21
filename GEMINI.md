@@ -1012,6 +1012,18 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
   - `node scripts/apply-stremioeg-profile.mjs --test-unit`: **17 de 17 tests unitarios aprobados**.
   - `deno check` y `deno lint`: 41 archivos auditados limpios sin errores.
 
+---
+
+## 35. Sesión 2026-11-21 (Parte 2): Restauración y Modernización de UFC / Combate en Vivo en `stremiojn@gmail.com` (`livetv v1.2.0`)
+
+### 35.1 Modernización de `/livetv` con Sondeo Multi-Señal (`scripts/deno-hub/catalogs/iptv.ts`)
+- **Expansión y limpieza de canales**: Se purgaron los canales caídos (`Combate.br`, `ESPNDeportes.us`, `MMATV.us`) y se actualizó `LIVETV_CHANNELS` a **17 canales verificados en vivo con HTTP 200** enfocados en UFC, MMA, Boxeo y deportes de combate (`ESPNLatinAmerica.us`, `ESPN2LatinAmerica.us`, `FoxSports.ar`, `ESPNPremium.ar`, `TyCSports.ar`, `ESPN.us`, `ESPN2.us`, `FoxSports1.us`, `FightNetwork.ca`, `BellatorMMA.us`, `PFLMMA.us`, `GloryKickboxing.us`, `MMATVcom.ru`, `FightBox.nl`, `HardKnocksFightingChampionship.pl`, `TNAWrestlingChannel.pl`, `ESPN.br`).
+- **Corrección Multi-Señal (`streams: Map<string, IptvStream[]>`)**: Antes solo se conservaba la primera entrada de `streams.json` por canal, causando fallos en canales cuya primera URL devuelve `403`/timeout aunque las siguientes funcionen en 1080p/720p. Ahora se almacenan todas las URLs candidatas, se sondean hasta 5 en paralelo con `GET` (3500 ms timeout, validando `#EXTM3U`/`content-type`), se ordenan por resolución/HTTPS y se exponen hasta 3 señales vivas (`Señal 1..3`), con fallback etiquetado ante geo-bloqueo al worker Edge.
+
+### 35.2 Topología de 5 Addons en `stremiojn@gmail.com` (`apply-stremioeg-profile.mjs`, `health-check.mjs`, `cuentas/stremiojn/profile.json`)
+- Se actualizó la cuenta de Joaquín (`stremiojn@gmail.com`) al **Hub Unificado `v3.4.0`** (con Friction-Zero TorBox y 39 catálogos v3.4) más **`TV en Vivo` (`v1.2.0`)**, **`MMA / UFC (curado)`**, **`Tráilers Oficiales Latino`** y **`Cinemeta`**, manteniendo la compatibilidad estricta de `stremioeg` y `solotveg`.
+
+
 
 
 

@@ -9,11 +9,12 @@ export const IPTV_LOGOS_URL = "https://iptv-org.github.io/api/logos.json";
 
 export const LIVETV_MANIFEST = {
   id: "com.mejorastremio.livetv",
-  version: "1.1.0",
+  version: "1.2.0",
   name: "TV en Vivo",
   description:
-    "Catálogo curado de canales en vivo de UFC/MMA/combate y wrestling, fuente iptv-org, cada " +
-    "canal verificado con un fetch real antes de sumarlo. Perfil fan de UFC.",
+    "Catálogo curado de canales en vivo de UFC, MMA, Boxeo y deportes de combate " +
+    "(ESPN Latinoamérica, Fox Sports AR, TyC Sports, Fight Network, Bellator, PFL, Glory y más), " +
+    "fuente iptv-org con sondeo multi-señal en tiempo real. Perfil fan de UFC.",
   resources: ["catalog", "meta", "stream"],
   types: ["tv"],
   idPrefixes: ["iptv-"],
@@ -23,20 +24,29 @@ export const LIVETV_MANIFEST = {
 export type LivetvCatalogId = "livetv-combate";
 
 export const LIVETV_CHANNELS: { id: string; catalog: LivetvCatalogId; name: string }[] = [
+  { id: "ESPNLatinAmerica.us", catalog: "livetv-combate", name: "ESPN Latinoamérica (UFC / Combate)" },
+  { id: "ESPN2LatinAmerica.us", catalog: "livetv-combate", name: "ESPN 2 Latinoamérica (UFC / Boxeo)" },
+  { id: "FoxSports.ar", catalog: "livetv-combate", name: "Fox Sports Argentina (UFC / Combate)" },
+  { id: "ESPNPremium.ar", catalog: "livetv-combate", name: "ESPN Premium Argentina" },
+  { id: "TyCSports.ar", catalog: "livetv-combate", name: "TyC Sports (Boxeo / Deportes AR)" },
+  { id: "ESPN.us", catalog: "livetv-combate", name: "ESPN USA (UFC Live)" },
+  { id: "ESPN2.us", catalog: "livetv-combate", name: "ESPN 2 USA" },
+  { id: "FoxSports1.us", catalog: "livetv-combate", name: "Fox Sports 1 USA" },
+  { id: "FightNetwork.ca", catalog: "livetv-combate", name: "Fight Network (MMA / Combate 24/7)" },
   { id: "BellatorMMA.us", catalog: "livetv-combate", name: "Bellator MMA" },
   { id: "PFLMMA.us", catalog: "livetv-combate", name: "PFL MMA" },
-  { id: "Combate.br", catalog: "livetv-combate", name: "Combate (Grupo Globo, BR)" },
-  { id: "ESPN.br", catalog: "livetv-combate", name: "ESPN" },
-  { id: "ESPNDeportes.us", catalog: "livetv-combate", name: "ESPN Deportes" },
-  { id: "ESPN8TheOcho.us", catalog: "livetv-combate", name: "ESPN8: The Ocho" },
-  { id: "MMATV.us", catalog: "livetv-combate", name: "MMA TV" },
   { id: "GloryKickboxing.us", catalog: "livetv-combate", name: "Glory Kickboxing" },
+  { id: "MMATVcom.ru", catalog: "livetv-combate", name: "MMA-TV.com (MMA 24/7)" },
+  { id: "FightBox.nl", catalog: "livetv-combate", name: "FightBox (MMA / Kickboxing)" },
+  { id: "HardKnocksFightingChampionship.pl", catalog: "livetv-combate", name: "Hard Knocks Fighting (MMA)" },
+  { id: "TNAWrestlingChannel.pl", catalog: "livetv-combate", name: "TNA Wrestling" },
+  { id: "ESPN.br", catalog: "livetv-combate", name: "ESPN Brasil" },
 ];
 
 // deno-lint-ignore no-explicit-any
 export type IptvStream = any;
 
-let livetvCache: { at: number; streams: Map<string, IptvStream>; logos: Map<string, string> } | null = null;
+let livetvCache: { at: number; streams: Map<string, IptvStream[]>; logos: Map<string, string> } | null = null;
 export const LIVETV_CACHE_TTL_MS = 10 * 60 * 1000; // 10 min
 
 export async function loadLivetvData() {
@@ -47,58 +57,157 @@ export async function loadLivetvData() {
   ]);
   const streamsArr: IptvStream[] = stRes.ok ? await stRes.json() : [];
   const logosArr: IptvStream[] = logoRes.ok ? await logoRes.json() : [];
-  const streams = new Map<string, IptvStream>();
-  for (const s of streamsArr) if (s.channel && !streams.has(s.channel)) streams.set(s.channel, s);
+  const streams = new Map<string, IptvStream[]>();
+  for (const s of streamsArr) {
+    if (!s.channel || !s.url) continue;
+    const list = streams.get(s.channel);
+    if (list) list.push(s);
+    else streams.set(s.channel, [s]);
+  }
   const logos = new Map<string, string>();
-  for (const l of logosArr) if (l.channel && l.in_use && !logos.has(l.channel)) logos.set(l.channel, l.url);
+  for (const l of logosArr) if (l.channel && l.in_use && l.url && !logos.has(l.channel)) logos.set(l.channel, l.url);
+  for (const l of logosArr) if (l.channel && l.url && !logos.has(l.channel)) logos.set(l.channel, l.url);
   livetvCache = { at: Date.now(), streams, logos };
   return livetvCache;
 }
 
+function parseQualityScore(q: unknown): number {
+  const m = String(q || "").match(/(\d{3,4})/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function buildLivetvHeaders(s: IptvStream): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (s.user_agent) headers["User-Agent"] = s.user_agent;
+  if (s.referrer) headers["Referer"] = s.referrer;
+  return headers;
+}
+
+async function probeLivetvStream(s: IptvStream): Promise<boolean> {
+  try {
+    const headers = buildLivetvHeaders(s);
+    const r = await fetch(s.url, { method: "GET", headers, signal: AbortSignal.timeout(3500) });
+    if (!r.ok) {
+      await r.body?.cancel();
+      return false;
+    }
+    const ct = (r.headers.get("content-type") || "").toLowerCase();
+    if (/mpegurl|vnd\.apple|video\//i.test(ct) && !ct.includes("mpegurl")) {
+      await r.body?.cancel();
+      return true;
+    }
+    const reader = r.body?.getReader();
+    if (!reader) return /mpegurl|video/i.test(ct);
+    const { value } = await reader.read();
+    await reader.cancel().catch(() => {});
+    const head = value ? new TextDecoder().decode(value.slice(0, 256)) : "";
+    return head.includes("#EXTM3U") || /mpegurl|video/i.test(ct);
+  } catch {
+    return false;
+  }
+}
+
 export async function handleLivetv(subPath: string): Promise<Response> {
-  if (subPath === "/manifest.json") {
+  if (subPath === "/manifest.json" || subPath === "/" || subPath === "") {
     return jsonResponse(LIVETV_MANIFEST);
   }
 
-  const catMatch = subPath.match(/^\/catalog\/tv\/(livetv-combate)\.json$/);
+  const catMatch = subPath.match(/^\/catalog\/tv\/(livetv-combate)(?:\/.+)?\.json$/);
   if (catMatch) {
     const catalogId = catMatch[1] as LivetvCatalogId;
     const { logos } = await loadLivetvData();
-    const metas = LIVETV_CHANNELS.filter((c) => c.catalog === catalogId).map((c) => ({
-      id: `iptv-${c.id}`,
-      type: "tv",
-      name: c.name,
-      poster: logos.get(c.id) ?? null,
-    }));
+    const metas = LIVETV_CHANNELS.filter((c) => c.catalog === catalogId).map((c) => {
+      const logo = logos.get(c.id) ?? undefined;
+      return {
+        id: `iptv-${c.id}`,
+        type: "tv",
+        name: c.name,
+        poster: logo ?? null,
+        posterShape: "square",
+        logo,
+      };
+    });
     return jsonResponse({ metas });
   }
 
   const metaMatch = subPath.match(/^\/meta\/tv\/iptv-(.+)\.json$/);
   if (metaMatch) {
-    const ch = LIVETV_CHANNELS.find((c) => c.id === metaMatch[1]);
+    const chId = decodeURIComponent(metaMatch[1]);
+    const ch = LIVETV_CHANNELS.find((c) => c.id === chId);
     if (!ch) return new Response("Not found", { status: 404, headers: cors });
     const { logos } = await loadLivetvData();
+    const logo = logos.get(ch.id) ?? undefined;
     return jsonResponse({
-      meta: { id: `iptv-${ch.id}`, type: "tv", name: ch.name, poster: logos.get(ch.id) ?? null },
+      meta: {
+        id: `iptv-${ch.id}`,
+        type: "tv",
+        name: ch.name,
+        poster: logo ?? null,
+        posterShape: "square",
+        logo,
+        description: `Canal deportivo / combate en vivo · ${ch.name}`,
+      },
     });
   }
 
   const streamMatch = subPath.match(/^\/stream\/tv\/iptv-(.+)\.json$/);
   if (streamMatch) {
-    const ch = LIVETV_CHANNELS.find((c) => c.id === streamMatch[1]);
+    const chId = decodeURIComponent(streamMatch[1]);
+    const ch = LIVETV_CHANNELS.find((c) => c.id === chId);
     if (!ch) return new Response("Not found", { status: 404, headers: cors });
     const { streams } = await loadLivetvData();
-    const s = streams.get(ch.id);
-    if (!s) return jsonResponse({ streams: [] });
-    const headers: Record<string, string> = {};
-    if (s.user_agent) headers["User-Agent"] = s.user_agent;
-    if (s.referrer) headers["Referer"] = s.referrer;
-    // deno-lint-ignore no-explicit-any
-    const stream: any = { url: s.url, title: `${ch.name} (en vivo)${s.quality ? " · " + s.quality : ""}` };
-    if (Object.keys(headers).length) {
-      stream.behaviorHints = { notWebReady: false, proxyHeaders: { request: headers } };
+    const rawCandidates = streams.get(ch.id) || [];
+    if (rawCandidates.length === 0) return jsonResponse({ streams: [] });
+
+    // Deduplicar por URL antes de sondear
+    const uniqueCandidates: IptvStream[] = [];
+    const seenUrls = new Set<string>();
+    for (const c of rawCandidates) {
+      if (c?.url && !seenUrls.has(c.url)) {
+        seenUrls.add(c.url);
+        uniqueCandidates.push(c);
+      }
     }
-    return jsonResponse({ streams: [stream] });
+
+    const toProbe = uniqueCandidates.slice(0, 5);
+    const probeResults = await Promise.all(toProbe.map((s) => probeLivetvStream(s)));
+    const alive = toProbe.filter((_, idx) => probeResults[idx]);
+
+    const sortSignals = (arr: IptvStream[]) =>
+      [...arr].sort((a, b) => {
+        const qDiff = parseQualityScore(b.quality) - parseQualityScore(a.quality);
+        if (qDiff !== 0) return qDiff;
+        const aHttps = String(a.url).startsWith("https://") ? 1 : 0;
+        const bHttps = String(b.url).startsWith("https://") ? 1 : 0;
+        return bHttps - aHttps;
+      });
+
+    const formatStream = (s: IptvStream, label: string) => {
+      const headers = buildLivetvHeaders(s);
+      // deno-lint-ignore no-explicit-any
+      const stream: any = {
+        url: s.url,
+        title: `${ch.name} · ${label}${s.quality ? " · " + s.quality : ""}`,
+        behaviorHints: { notWebReady: true },
+      };
+      if (Object.keys(headers).length) {
+        stream.behaviorHints.proxyHeaders = { request: headers };
+      }
+      return stream;
+    };
+
+    if (alive.length > 0) {
+      const selected = sortSignals(alive).slice(0, 3);
+      return jsonResponse({
+        streams: selected.map((s, i) => formatStream(s, `Señal ${i + 1} (en vivo)`)),
+      });
+    }
+
+    // Fallback si todos fallan desde la IP Edge (posible geo-bloqueo al worker, pero válido en casa del usuario)
+    const fallback = sortSignals(uniqueCandidates).slice(0, 3);
+    return jsonResponse({
+      streams: fallback.map((s, i) => formatStream(s, `Señal ${i + 1} (Señal alternativa)`)),
+    });
   }
 
   return new Response("Not found", { status: 404, headers: cors });

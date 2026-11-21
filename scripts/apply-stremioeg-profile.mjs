@@ -273,13 +273,14 @@ export const CANONICAL_WHITELIST_ADDON_IDS = new Set([
   'com.stremio.cinemeta',
 ]);
 
-export function filterCompetingSubtitleAddons(addons) {
+export function filterCompetingSubtitleAddons(addons, extraAllowedIds = []) {
   if (!Array.isArray(addons)) return { cleanedAddons: [], removedAddons: [] };
+  const extraSet = new Set(extraAllowedIds);
   const removedAddons = [];
   const cleanedAddons = [];
   for (const a of addons) {
     const id = a.manifest?.id || a.id || '';
-    if (CANONICAL_WHITELIST_ADDON_IDS.has(id)) {
+    if (CANONICAL_WHITELIST_ADDON_IDS.has(id) || extraSet.has(id)) {
       cleanedAddons.push(a);
     } else {
       removedAddons.push(a);
@@ -353,6 +354,24 @@ export async function fetchFreshHubManifest() {
     console.warn(`  ⚠️ No se pudo obtener manifest fresco del Hub: HTTP ${res.status}`);
   } catch (err) {
     console.warn(`  ⚠️ Error al consultar manifest fresco del Hub: ${err.message}`);
+  }
+  return null;
+}
+
+export async function fetchFreshSubAddonManifest(url, label) {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(15000),
+      headers: { 'Cache-Control': 'no-cache, no-store' },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      console.log(`  ✓ Manifest fresco de ${label} obtenido (v${json.version}, ${json.catalogs?.length || 0} catálogos)`);
+      return json;
+    }
+    console.warn(`  ⚠️ No se pudo obtener manifest fresco de ${label}: HTTP ${res.status}`);
+  } catch (err) {
+    console.warn(`  ⚠️ Error al consultar manifest fresco de ${label}: ${err.message}`);
   }
   return null;
 }
@@ -812,17 +831,23 @@ async function runProfileManager() {
     );
     console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
     const hubAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
+    const livetvAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.livetv');
+    const ufcAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.ufc-catalog');
     const trailersAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.trailers-latino');
     const cinemetaAddon = addons.find((a) => a.manifest?.id === 'com.linvo.cinemeta' || a.manifest?.id === 'com.stremio.cinemeta');
 
-    // 1. Filtrado Estricto (Whitelist): Purgar todo addon que no sea com.mejorastremio.hub, trailers-latino o Cinemeta
-    const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(addons);
+    const extraAllowed = TARGET_ACCOUNT === 'stremiojn'
+      ? ['com.mejorastremio.livetv', 'com.mejorastremio.ufc-catalog']
+      : [];
+
+    // 1. Filtrado Estricto (Whitelist): Purgar todo addon no autorizado para este perfil
+    const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(addons, extraAllowed);
     if (removedAddons.length > 0) {
       console.log(`  ✓ Purga estricta Whitelist: ${removedAddons.length} add-on(s) no autorizados eliminados:`);
       removedAddons.forEach((ra) => console.log(`     [-] [${ra.manifest?.id || ra.id}] ${ra.manifest?.name || ra.name}`));
     }
 
-    // 2. Componer la lista canónica estricta de 3 addons: Posición #0 = Hub, Posición #1 = Tráilers Latino, Posición #2 = Cinemeta
+    // 2. Componer la lista canónica según perfil
     const finalHub = {
       ...(hubAddon || {}),
       transportUrl: targetHubUrl,
@@ -850,7 +875,64 @@ async function runProfileManager() {
       flags: { official: true, protected: true },
     };
 
-    const targetList = [finalHub, finalTrailers, finalCinemeta];
+    let targetList = [finalHub, finalTrailers, finalCinemeta];
+    let subAddonChanged = false;
+
+    if (TARGET_ACCOUNT === 'stremiojn') {
+      const livetvUrl = 'https://mejorastremio-hub.pabloeckert.deno.net/livetv/manifest.json';
+      const ufcUrl = 'https://mejorastremio-hub.pabloeckert.deno.net/ufc/manifest.json';
+      const [freshLivetv, freshUfc] = await Promise.all([
+        fetchFreshSubAddonManifest(livetvUrl, 'TV en Vivo (UFC/Combate)'),
+        fetchFreshSubAddonManifest(ufcUrl, 'MMA / UFC (curado)'),
+      ]);
+
+      const livetvManifest = freshLivetv || {
+        id: 'com.mejorastremio.livetv',
+        version: '1.2.0',
+        name: 'TV en Vivo',
+        resources: ['catalog', 'meta', 'stream'],
+        types: ['tv'],
+        idPrefixes: ['iptv-'],
+        catalogs: [{ type: 'tv', id: 'livetv-combate', name: 'TV en Vivo — UFC / MMA / Combate' }],
+      };
+      const ufcManifest = freshUfc || {
+        id: 'com.mejorastremio.ufc-catalog',
+        version: '1.0.0',
+        name: 'MMA / UFC (curado)',
+        resources: ['catalog'],
+        types: ['series'],
+        idPrefixes: ['tt'],
+        catalogs: [{ type: 'series', id: 'ufc-series', name: 'MMA / UFC (curado)' }],
+      };
+
+      const finalLiveTv = {
+        ...(livetvAddon || {}),
+        transportUrl: livetvUrl,
+        transportName: '',
+        manifest: livetvManifest,
+        flags: { official: false, protected: false },
+      };
+      const finalUfc = {
+        ...(ufcAddon || {}),
+        transportUrl: ufcUrl,
+        transportName: '',
+        manifest: ufcManifest,
+        flags: { official: false, protected: false },
+      };
+
+      targetList = [finalHub, finalLiveTv, finalUfc, finalTrailers, finalCinemeta];
+
+      subAddonChanged = Boolean(
+        !livetvAddon ||
+        !ufcAddon ||
+        livetvAddon.manifest?.version !== finalLiveTv.manifest?.version ||
+        livetvAddon.transportUrl !== finalLiveTv.transportUrl ||
+        JSON.stringify(livetvAddon.manifest?.catalogs || []) !== JSON.stringify(finalLiveTv.manifest?.catalogs || []) ||
+        ufcAddon.manifest?.version !== finalUfc.manifest?.version ||
+        ufcAddon.transportUrl !== finalUfc.transportUrl ||
+        JSON.stringify(ufcAddon.manifest?.catalogs || []) !== JSON.stringify(finalUfc.manifest?.catalogs || [])
+      );
+    }
 
     // 3. Evaluar cambios respecto a la colección actual
     const idsCurrent = addons.map((a) => a.manifest?.id);
@@ -862,12 +944,12 @@ async function runProfileManager() {
       hubAddon && JSON.stringify(hubAddon.manifest?.catalogs || []) !== JSON.stringify(finalHub.manifest?.catalogs || [])
     );
 
-    if (!isIdentical || hubUrlChanged || hubVerChanged || hubCatsChanged || removedAddons.length > 0) {
+    if (!isIdentical || hubUrlChanged || hubVerChanged || hubCatsChanged || subAddonChanged || removedAddons.length > 0) {
       changesCount = Math.max(
         1,
-        removedAddons.length + (hubVerChanged ? 1 : 0) + (hubUrlChanged ? 1 : 0) + (hubCatsChanged ? 1 : 0),
+        removedAddons.length + (hubVerChanged ? 1 : 0) + (hubUrlChanged ? 1 : 0) + (hubCatsChanged ? 1 : 0) + (subAddonChanged ? 1 : 0),
       );
-      console.log(`  ✓ Unificación activada: purga de addons secundarios y consolidación en Hub Unificado (#0) + Cinemeta (#1)`);
+      console.log(`  ✓ Unificación activada: consolidación en topología de ${targetList.length} add-ons para [${TARGET_ACCOUNT}]`);
     }
     updatedAddons = targetList;
 
@@ -878,6 +960,8 @@ async function runProfileManager() {
       console.log('\n  Aplicando cambios con guard anti-catálogos-congelados...');
       const guardExempt = [
         'com.mejorastremio.hub',
+        'com.mejorastremio.livetv',
+        'com.mejorastremio.ufc-catalog',
         'com.mejorastremio.trailers-latino',
         'com.mejorastremio.streams',
         'com.stremio.torrentio.addon',
@@ -921,17 +1005,19 @@ async function runProfileManager() {
         console.log(`    [${i}] ${a.manifest?.name} (${a.manifest?.id}) v${a.manifest?.version}`);
       });
 
-      if (readBackAddons.length !== 3) {
-        console.error(`❌ ERROR CRÍTICO: Read-back falló. result.addons.length es ${readBackAddons.length} (se esperaba matemáticamente 3).`);
+      const expectedIds = targetList.map((a) => a.manifest?.id);
+      const orderValid = readBackAddons.length === expectedIds.length && expectedIds.every((expId, idx) => {
+        const gotId = readBackAddons[idx]?.manifest?.id;
+        if (expId === 'com.linvo.cinemeta') {
+          return gotId === 'com.linvo.cinemeta' || gotId === 'com.stremio.cinemeta';
+        }
+        return gotId === expId;
+      });
+      if (!orderValid) {
+        console.error(`❌ ERROR CRÍTICO: Read-back falló. Se esperaba [${expectedIds.join(', ')}], recibido: [${readBackAddons.map(a => a.manifest?.id).join(', ')}]`);
         process.exit(1);
       }
-      if (readBackAddons[0]?.manifest?.id !== 'com.mejorastremio.hub' ||
-          readBackAddons[1]?.manifest?.id !== 'com.mejorastremio.trailers-latino' ||
-          (readBackAddons[2]?.manifest?.id !== 'com.linvo.cinemeta' && readBackAddons[2]?.manifest?.id !== 'com.stremio.cinemeta')) {
-        console.error(`❌ ERROR CRÍTICO: Read-back falló. El orden debe ser estrictamente [com.mejorastremio.hub, com.mejorastremio.trailers-latino, com.linvo.cinemeta], recibido: [${readBackAddons.map(a => a.manifest?.id).join(', ')}]`);
-        process.exit(1);
-      }
-      console.log('  ✓ Verificación Read-Back Matemática EXITOSA: Topología estricta de 3 addons confirmada en la nube.');
+      console.log(`  ✓ Verificación Read-Back Matemática EXITOSA: Topología estricta de ${expectedIds.length} addons confirmada en la nube.`);
     } else if (changesCount === 0) {
       console.log('\n  ✓ Add-ons de la cuenta ya cumplen estrictamente con la configuración.');
     } else {

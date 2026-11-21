@@ -20,17 +20,20 @@ El perfil **stremiojn** está diseñado para un consumo de entretenimiento enfoc
 
 ---
 
-## 2. Topología Canónica v2.1 (Monopolio de 2 Addons)
+## 2. Topología Canónica v3.4 (Monopolio de 5 Addons Especializados)
 
-Siguiendo el estándar unificado de infraestructura como código v2.1, esta cuenta implementa la política de **monopolio de exactamente 2 addons** en la colección remota de Stremio:
+Siguiendo la arquitectura unificada v3.4 con soporte dedicado para deportes de combate en vivo, esta cuenta implementa la política de **topología estricta de 5 addons autorizados** en la colección remota de Stremio:
 
 | Posición | ID del Addon | Nombre | Rol Arquitectural |
 | :---: | :--- | :--- | :--- |
-| **#0** | `com.mejorastremio.hub` | **MejoraStremio Hub** | Router unificado en Edge (Deno Deploy). Despliega streams cacheados en TorBox Debrid, interceptor inteligente de audio latino, filtrado de subtítulos sin SDH y traducción IA con caché global compartida (Deno KV). |
-| **#1** | `com.linvo.cinemeta` | **Cinemeta** | Proveedor de metadatos oficial canónico de Stremio. |
+| **#0** | `com.mejorastremio.hub` | **MejoraStremio Hub v3.4** | Router unificado en Edge (Deno Deploy). Streams cacheados en TorBox Debrid (Friction-Zero), audio latino prioritario, subtítulos sin SDH, traducción IA y catálogos v3.4 (Sagas/Universos, Plataformas y Descubrir). |
+| **#1** | `com.mejorastremio.livetv` | **TV en Vivo (v1.2)** | Señales en vivo curadas (`livetv-combate`) con **17 canales** de UFC, MMA, Boxeo y deportes (ESPN LatAm 1/2, Fox Sports AR, TyC Sports, ESPN USA, Fight Network, Bellator, PFL, Glory, etc.) y sondeo multi-señal en tiempo real (`Señal 1..3`). |
+| **#2** | `com.mejorastremio.ufc-catalog` | **MMA / UFC (curado)** | Catálogo on-demand curado de series y realities UFC/MMA/WWE (*Dana White's Contender Series*, *TUF*, *Kingdom*, *Cobra Kai*, *Physical: 100*, *WWE Raw/SmackDown*). |
+| **#3** | `com.mejorastremio.trailers-latino` | **Tráilers Oficiales Latino** | Tráilers oficiales en español latino para títulos en pantalla. |
+| **#4** | `com.linvo.cinemeta` | **Cinemeta** | Proveedor de metadatos oficial canónico de Stremio. |
 
 > [!IMPORTANT]
-> Todo addon secundario, scraper P2P sin debrid o proveedor externo de subtítulos competidor queda formalmente **prohibido y desinstalado** por los scripts de purga (`purge-and-unify-account.mjs`). Cualquier adición manual no autorizada es tratada como una **deriva de configuración (drift)** por el monitor de salud (`health-check.mjs`).
+> Todo addon secundario fuera de estos 5 autorizados (scrapers P2P sin debrid o proveedores competidores de subtítulos) queda purgado automáticamente por `apply-stremioeg-profile.mjs --account=stremiojn` y auditado por `health-check.mjs --account=stremiojn`.
 
 ---
 

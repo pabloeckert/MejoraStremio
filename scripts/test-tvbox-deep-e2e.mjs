@@ -445,7 +445,13 @@ try {
     assert(results.pass2_playback, `Fuentes originales en francés identificadas y marcadas con [🎧 ORIGINAL] (${label})`, originalStreams.length > 0 && originalStreams.every((s) => s.name?.includes('[🎧 ORIGINAL]')));
 
     const castellanoStreams = hpiStreams.filter((s) => classifyStreamAudio(s) === 'castellano');
-    assert(results.pass2_playback, `Fuentes en castellano encontradas y en Puesto #1 para HCI (${label})`, castellanoStreams.length > 0 && castellanoStreams.every((s) => s.name?.includes('[🇪🇸 CASTELLANO]')) && hpiStreams[0]?.name?.includes('[🇪🇸 CASTELLANO]'), hpiStreams[0]?.name);
+    assert(results.pass2_playback, `Fuentes en castellano identificadas en HCI (${label})`, castellanoStreams.length > 0 && castellanoStreams.every((s) => s.name?.includes('[🇪🇸 CASTELLANO]')));
+    const hasCachedCastellano = castellanoStreams.some((s) => s.name?.includes('[⚡ INSTANTÁNEO]'));
+    if (hasCachedCastellano) {
+      assert(results.pass2_playback, `Fuentes en castellano cacheadas en Puesto #1 para HCI (${label})`, hpiStreams[0]?.name?.includes('[🇪🇸 CASTELLANO]'), hpiStreams[0]?.name);
+    } else {
+      assert(results.pass2_playback, `Friction-Zero: Prioridad a fuente cacheada instantánea en Puesto #1 para HCI (${label})`, hpiStreams[0]?.name?.includes('[⚡ INSTANTÁNEO]'), hpiStreams[0]?.name);
+    }
     const latinoStreams = hpiStreams.filter((s) => isLatinoStream(s));
     if (latinoStreams.length > 0) {
       assert(results.pass2_playback, `Fuentes Latino identificadas en HCI (${label})`, latinoStreams.every((s) => s.name?.includes('[🌎 LATINO]')));

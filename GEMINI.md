@@ -987,6 +987,32 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Streams en Castellano en Puesto #1 (`streams.ts`)**: Para `tt14060708`, `handleStreams` inyecta los proveedores españoles (`mejortorrent`, `wolfmax4k`) con caché TorBox (`[TB+]`) y `language=spanish,latino`, ejecutando `rankAndBadgeStreams(..., { preferCastellano: true })` que eleva `[🇪🇸 CASTELLANO]` por encima del francés original (`[🎧 ORIGINAL]`).
 - **Localización y Búsqueda (`tmdb.ts` & `synopsis.ts`)**: `search=HCI` / `ACI` resuelve hacia *HPI* (`112738` / `tt14060708`) mostrando el título localizado `"ACI: Alta Capacidad Intelectual (HCI / HPI)"` tanto en búsqueda/catálogos como en metadatos.
 
+---
+
+## 34. Sesión 2026-11-21: Resolución de Causa Raíz de Pantalla Verde en TorBox Debrid (`downloading_v3.mp4`), Purga de Ranuras Atascadas y Blindaje Friction-Zero SRE
+
+### 34.1 Causa Raíz Forense de la Pantalla Verde ("TorBox is downloading... pasan días y no descarga")
+- **Diagnóstico Empírico**:
+  1. En Torrentio, cuando se selecciona un stream no cacheado en TorBox (`[TB download]`), Torrentio no devuelve un video reproducible, sino una redirección HTTP 302 a `https://torrentio.strem.fun/videos/downloading_v3.mp4`. Este video muestra la pantalla verde/azul de espera de descarga P2P.
+  2. En TorBox (Plan Essential), la cuenta tiene un límite de **3 ranuras de descarga activa simultáneas**. Al intentar reproducir releases en castellano antiguos de trackers como MejorTorrent/Wolfmax4k con 0 semillas (`seeds: 0, peers: 0`), TorBox agregó los torrents a la cola en estado `checking` sin poder avanzar nunca (0%).
+  3. Las 3 ranuras quedaron ocupadas permanentemente por torrents muertos (`Aci Alta Capacidad Intelectual Cap.402`, `Cap.403`, `Teen Titans Go S09E08`, `Reacher MULTi`), provocando que cualquier nuevo stream no cacheado quedara bloqueado indefinidamente.
+  4. En `streams.ts`, cuando `preferCastellano` estaba activo, `sortedCastellanoBuffer` (no cacheado) se ubicaba erróneamente en el Puesto #1 cuando no existía versión en castellano cacheada, desplazando a `sortedOriginalCached` (que sí estaba en caché y reproduce instantáneamente con subtítulos en español).
+
+### 34.2 Cirugía de Blindaje Friction-Zero en `streams.ts`
+- **Prioridad Absoluta de Streams Cacheados**: Se corrigió `rankAndBadgeStreams` tanto en la rama general como en `preferCastellano` para que el 100% de los streams cacheados (`isFast === true`: `latinoCached`, `castellanoCached`, `originalCached`, `portugueseCached`) aparezcan siempre antes que cualquier stream no cacheado (`*Buffer`).
+- **Descarte de Torrents Muertos sin Caché (`hasExplicitZeroSeeds`)**: Si un stream no está en caché y explícitamente reporta 0 semillas (`👤 0`), se descarta automáticamente para evitar que el usuario caiga en la pantalla verde y bloquee las ranuras de su cuenta TorBox.
+- **Cache Buster SWR**: Se elevó el namespace de caché a `streams_v341` para invalidar ordenamientos obsoletos en el Hub.
+
+### 34.3 Saneamiento de la Cuenta TorBox y Certificación E2E
+- **Purga de Torrents Atascados**: Se invocó la API de TorBox (`/v1/api/torrents/controltorrent`) con `operation: "delete"`, eliminando los 4 torrents muertos y liberando las 3 ranuras concurrentes de la cuenta.
+- **Certificación de la Suite**:
+  - `node scripts/test-tvbox-deep-e2e.mjs`: **117 de 117 verificaciones aprobadas (100% PASS)**.
+  - `deno test scripts/test-universes-platforms.ts`: **7 de 7 tests aprobados**.
+  - `node scripts/test-stremioeg-tvbox.mjs`: **32 de 32 pruebas aprobadas**.
+  - `node scripts/apply-stremioeg-profile.mjs --test-unit`: **17 de 17 tests unitarios aprobados**.
+  - `deno check` y `deno lint`: 41 archivos auditados limpios sin errores.
+
+
 
 
 

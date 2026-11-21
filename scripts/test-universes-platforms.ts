@@ -288,7 +288,7 @@ Deno.test("7. HCI / HPI / ACI (tt14060708 / tt13000282) — Prioridad Audio Cast
       infoHash: "es001",
     },
     {
-      name: "[TB download] Torrentio\n1080p",
+      name: "[TB+] Torrentio\n1080p",
       title: "ACI Alta Capacidad Intelectual - Temporada 1 [WEB-DL 1080p][Cap.101][Dual DDP5.1 + Subs][www.atomixHQ.com]\n⚙️ Wolfmax4k\nDual Audio / 🇪🇸",
       infoHash: "es002",
     },

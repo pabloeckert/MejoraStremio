@@ -523,6 +523,11 @@ export function extractFormatBadges(s: StremioStreamItem): string[] {
   return badges;
 }
 
+function hasExplicitZeroSeeds(s: StremioStreamItem): boolean {
+  const text = `${s.name || ""} ${s.title || ""} ${s.description || ""}`;
+  return /(?:👤|👥|seeds?:?)\s*0\b/i.test(text);
+}
+
 export function rankAndBadgeStreams<T extends StremioStreamItem>(
   streams: T[],
   options?: { preferCastellano?: boolean },
@@ -555,6 +560,12 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(
     const confidence = detectLatinoConfidence(s);
     const cat = classifyStreamAudio(s);
     const isFast = isCachedOrInstantStream(s);
+
+    // ZERO-TRUST FRICTION-ZERO: Si no está en caché y explícitamente tiene 0 semillas,
+    // es un torrent muerto que atasca TorBox con pantalla verde ("downloading_v3.mp4") indefinidamente.
+    if (!isFast && hasExplicitZeroSeeds(s)) {
+      continue;
+    }
 
     if (confidence === "Confirmado") {
       if (isFast) latinoCached.push(s);
@@ -664,24 +675,25 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(
     return [
       ...sortedLatinoCached.map((s) => badge(s, "latino", true)),
       ...sortedCastellanoCached.map((s) => badge(s, "castellano", true)),
+      ...sortedOriginalCached.map((s) => badge(s, "original", true)),
+      ...sortedPortugueseCached.map((s) => badge(s, "portuguese", true)),
       ...sortedCastellanoBuffer.map((s) => badge(s, "castellano", false)),
       ...sortedLatinoBuffer.map((s) => badge(s, "latino", false)),
-      ...sortedOriginalCached.map((s) => badge(s, "original", true)),
       ...sortedOriginalBuffer.map((s) => badge(s, "original", false)),
-      ...sortedPortugueseCached.map((s) => badge(s, "portuguese", true)),
       ...sortedPortugueseBuffer.map((s) => badge(s, "portuguese", false)),
       ...incompatibleZte.slice(0, 2).map(badgeIncompatible),
     ];
   }
 
-  // 2. CONFIRMADO Audio Latino #1 -> 3. Caché TorBox -> 4. Mayor resolución -> 5. Bitrate y semillas
+  // 1. CONFIRMADO Audio Latino #1 (Cached) -> 2. Audio Original (Cached) -> 3. Castellano (Cached) -> 4. Portugués (Cached)
+  // FRICTION-ZERO DEBRID: Todo stream en caché de TorBox tiene prioridad absoluta sobre cualquier stream sin caché.
   return [
     ...sortedLatinoCached.map((s) => badge(s, "latino", true)),
     ...sortedOriginalCached.map((s) => badge(s, "original", true)),
-    ...sortedLatinoBuffer.map((s) => badge(s, "latino", false)),
-    ...sortedOriginalBuffer.map((s) => badge(s, "original", false)),
     ...sortedCastellanoCached.map((s) => badge(s, "castellano", true)),
     ...sortedPortugueseCached.map((s) => badge(s, "portuguese", true)),
+    ...sortedLatinoBuffer.map((s) => badge(s, "latino", false)),
+    ...sortedOriginalBuffer.map((s) => badge(s, "original", false)),
     ...sortedCastellanoBuffer.map((s) => badge(s, "castellano", false)),
     ...sortedPortugueseBuffer.map((s) => badge(s, "portuguese", false)),
     ...incompatibleZte.slice(0, 2).map(badgeIncompatible),
@@ -758,7 +770,7 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
   const cometBase = buildCometTorboxUrl(torboxKey);
   const mediafusionBase = await resolveMediaFusionTorboxUrl(torboxKey);
 
-  const cacheKey = ["streams_v340", type, cleanId, configSegment || "default"];
+  const cacheKey = ["streams_v341", type, cleanId, configSegment || "default"];
 
   try {
     const rawStreams = await getOrSetSwrCache<StremioStreamItem[]>(

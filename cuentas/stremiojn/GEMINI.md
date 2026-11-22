@@ -4,36 +4,33 @@ Guía de referencia y especificación técnica para la cuenta secundaria **`stre
 
 ---
 
-## 1. Propósito y Perfil de Usuario
+## 1. Propósito y Perfil de Usuario (Clon 1:1 de `stremioeg@gmail.com`)
 
-El perfil **stremiojn** está diseñado para un consumo de entretenimiento enfocado en adrenalina, combate y ritmo cinemático continuo sobre hardware Android TV (TV Box Leanback UI).
+Desde el **2026-11-22**, la cuenta **`stremiojn@gmail.com`** ("Joaquín") opera como **clon técnico exacto (1:1)** de la cuenta principal `stremioeg@gmail.com` sobre Android TV / TV Box (ZTE ZXV10 B866V2, Amlogic S905X2, 2GB RAM, UI Leanback):
 
 - **Usuario**: Joaquín.
-- **Dispositivo Principal**: Android TV / TV Box (ZTE ZXV10 B866V2, Amlogic S905X2, 2GB RAM, UI Leanback).
-- **Enfoque Temático**:
-  - **Deportes de Combate**: UFC (Ultimate Fighting Championship), MMA (Bellator, ONE Championship, PFL), Boxeo profesional (campeonatos mundiales, veladas estelares).
-  - **Cine de Acción**: Blockbusters de acción, artes marciales, persecuciones y espionaje.
-  - **Suspense y Policial**: Thrillers de alta tensión, drama policial, misterio procedimental y cine criminal contemporáneo.
-- **Exclusión Estricta (Filtro Zero-Tolerance)**:
-  - **Infantil / Preescolar**: Purgado total de dibujos animados infantiles, animaciones para niños pequeños y contenido preescolar.
-  - **Melodrama / Telenovelas**: Exclusión completa de telenovelas, culebrones y dramas románticos lacrimógenos.
+- **Dispositivo Principal**: Android TV / TV Box (ZTE ZXV10 B866V2, Leanback UI).
+- **Configuración Clonada**:
+  - Mismos **39 catálogos v3.4.0** (15 filas Leanback en Inicio + 24 secciones en Descubrir: Sagas/Universos Marvel, DC Comics, Harry Potter, X-Men, Independientes + Plataformas Netflix, HBO Max, Prime Video, Movistar+, BBC, Producción Europea + Tabla de Calificaciones Argentina ATP/+13/+16/+18).
+  - Mismo motor **TorBox Debrid + Friction-Zero SRE** (prioridad absoluta a streams cacheados `[⚡ INSTANTÁNEO]`, descarte de torrents muertos 0-seed y HCI en Castellano).
+  - Mismos **subtítulos duales (`spl` + `spa`) sin SDH**, SmartSync 25↔23.976 fps y traducción IA Gemini Flash.
+  - Recomendaciones **`Para vos` IA** sembradas en Deno KV (`profile=stremiojn`) espejo de `stremioeg`.
+  - *(Nota: `/livetv` y `/ufc` siguen disponibles en Deno Deploy por si en algún momento se decide volver a sumarlos manualmente).*
 
 ---
 
-## 2. Topología Canónica v3.4 (Monopolio de 5 Addons Especializados)
+## 2. Topología Canónica v3.4 (Monopolio Estricto de 3 Addons — Espejo `stremioeg`)
 
-Siguiendo la arquitectura unificada v3.4 con soporte dedicado para deportes de combate en vivo, esta cuenta implementa la política de **topología estricta de 5 addons autorizados** en la colección remota de Stremio:
+Esta cuenta implementa exactamente la misma **topología canónica de 3 addons autorizados** que `stremioeg@gmail.com`:
 
 | Posición | ID del Addon | Nombre | Rol Arquitectural |
 | :---: | :--- | :--- | :--- |
-| **#0** | `com.mejorastremio.hub` | **MejoraStremio Hub v3.4** | Router unificado en Edge (Deno Deploy). Streams cacheados en TorBox Debrid (Friction-Zero), audio latino prioritario, subtítulos sin SDH, traducción IA y catálogos v3.4 (Sagas/Universos, Plataformas y Descubrir). |
-| **#1** | `com.mejorastremio.livetv` | **TV en Vivo (v1.2)** | Señales en vivo curadas (`livetv-combate`) con **17 canales** de UFC, MMA, Boxeo y deportes (ESPN LatAm 1/2, Fox Sports AR, TyC Sports, ESPN USA, Fight Network, Bellator, PFL, Glory, etc.) y sondeo multi-señal en tiempo real (`Señal 1..3`). |
-| **#2** | `com.mejorastremio.ufc-catalog` | **MMA / UFC (curado)** | Catálogo on-demand curado de series y realities UFC/MMA/WWE (*Dana White's Contender Series*, *TUF*, *Kingdom*, *Cobra Kai*, *Physical: 100*, *WWE Raw/SmackDown*). |
-| **#3** | `com.mejorastremio.trailers-latino` | **Tráilers Oficiales Latino** | Tráilers oficiales en español latino para títulos en pantalla. |
-| **#4** | `com.linvo.cinemeta` | **Cinemeta** | Proveedor de metadatos oficial canónico de Stremio. |
+| **#0** | `com.mejorastremio.hub` | **MejoraStremio Hub v3.4.0 (Enterprise)** | Router unificado en Edge (Deno Deploy). Streams cacheados en TorBox Debrid (Friction-Zero), audio latino prioritario, subtítulos sin SDH, traducción IA y los 39 catálogos v3.4.0. |
+| **#1** | `com.mejorastremio.trailers-latino` | **Tráilers Oficiales Latino (MejoraStremio)** | Tráilers oficiales doblados al español latino (1080p YouTube) con manifest completo (`resources: ["stream"]`, `types: ["movie","series"]`, `idPrefixes: ["tt"]`). |
+| **#2** | `com.linvo.cinemeta` | **Cinemeta** | Proveedor de metadatos oficial canónico de Stremio. |
 
 > [!IMPORTANT]
-> Todo addon secundario fuera de estos 5 autorizados (scrapers P2P sin debrid o proveedores competidores de subtítulos) queda purgado automáticamente por `apply-stremioeg-profile.mjs --account=stremiojn` y auditado por `health-check.mjs --account=stremiojn`.
+> Todo addon secundario fuera de estos 3 autorizados queda purgado automáticamente por `apply-stremioeg-profile.mjs --account=stremiojn` y auditado por `health-check.mjs --account=stremiojn`.
 
 ---
 

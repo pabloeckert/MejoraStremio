@@ -197,26 +197,19 @@ export function validateProfile(filePath, profile, errFn = err, warnFn = warn) {
     }
   }
 
-  // 2. Topología Canónica (5 addons para stremiojn con UFC/LiveTV, 2 addons para resto)
+  // 2. Topología Canónica (Hub + [Tráilers Latino] + Cinemeta)
   if (rules.topology?.installedAddons) {
     const addons = rules.topology.installedAddons;
-    const expectedOrder = profile.account === "stremiojn@gmail.com"
-      ? [
-          "com.mejorastremio.hub",
-          "com.mejorastremio.livetv",
-          "com.mejorastremio.ufc-catalog",
-          "com.mejorastremio.trailers-latino",
-          "com.linvo.cinemeta",
-        ]
-      : ["com.mejorastremio.hub", "com.linvo.cinemeta"];
-    if (!Array.isArray(addons) || addons.length !== expectedOrder.length) {
-      errFn(`[${label}] Topología Canónica: deben configurarse exactamente ${expectedOrder.length} addons instalados (tiene: ${addons?.length})`);
-    } else {
-      expectedOrder.forEach((expId, idx) => {
-        if (addons[idx]?.id !== expId) {
-          errFn(`[${label}] Topología Canónica: posición #${idx} debe ser ${expId} (es: ${addons[idx]?.id})`);
-        }
-      });
+    const validOrders = [
+      ["com.mejorastremio.hub", "com.mejorastremio.trailers-latino", "com.linvo.cinemeta"],
+      ["com.mejorastremio.hub", "com.linvo.cinemeta"],
+    ];
+    const ids = Array.isArray(addons) ? addons.map((a) => a?.id) : [];
+    const matchesAny = validOrders.some(
+      (ord) => ord.length === ids.length && ord.every((id, idx) => ids[idx] === id),
+    );
+    if (!matchesAny) {
+      errFn(`[${label}] Topología Canónica inválida: recibido [${ids.join(", ")}]`);
     }
   }
 
@@ -255,8 +248,8 @@ export function validateProfile(filePath, profile, errFn = err, warnFn = warn) {
     errFn(`[${label}] rules.subtitles.mode debe ser "strict_no_sdh"`);
   }
 
-  // 5. Curaduría de Nicho para stremiojn
-  if (profile.account === "stremiojn@gmail.com") {
+  // 5. Curaduría de Nicho para stremiojn (solo si declara curaduría de nicho explícita; si clona stremioeg 1:1, pasa)
+  if (profile.account === "stremiojn@gmail.com" && (rules.focus || rules.curation)) {
     const focus = String(rules.focus || "");
     const genres = (rules.curation?.priorityGenres || []).join(" ");
     const hasCombat = /ufc|mma|boxeo|combate/i.test(focus + " " + genres);

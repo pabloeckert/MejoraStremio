@@ -1023,6 +1023,16 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 ### 35.2 Topología de 5 Addons en `stremiojn@gmail.com` (`apply-stremioeg-profile.mjs`, `health-check.mjs`, `cuentas/stremiojn/profile.json`)
 - Se actualizó la cuenta de Joaquín (`stremiojn@gmail.com`) al **Hub Unificado `v3.4.0`** (con Friction-Zero TorBox y 39 catálogos v3.4) más **`TV en Vivo` (`v1.2.0`)**, **`MMA / UFC (curado)`**, **`Tráilers Oficiales Latino`** y **`Cinemeta`**, manteniendo la compatibilidad estricta de `stremioeg` y `solotveg`.
 
+---
+
+## 36. Sesión 2026-11-22: Clonación Exacta 1:1 de `stremioeg@gmail.com` sobre `stremiojn@gmail.com`
+
+### 36.1 Alineación de Topología y Reparación de Bugs Reales Detectados
+- **Clonación exclusiva en `stremiojn@gmail.com`**: Por solicitud expresa del usuario, `stremiojn` pasa a replicar exactamente la configuración canónica de **3 add-ons** de `stremioeg@gmail.com` (`com.mejorastremio.hub` `v3.4.0` con 39 catálogos + `com.mejorastremio.trailers-latino` + `com.linvo.cinemeta`), sin escribir ni alterar `stremioeg` ni `solotveg`.
+- **Reparación del manifest de `Tráilers Oficiales Latino`**: Se actualizó `apply-stremioeg-profile.mjs` para obtener siempre el manifest completo fresco desde `/trailers/manifest.json` (`resources: ["stream"]`, `types: ["movie", "series"]`, `idPrefixes: ["tt"]`, `catalogs: []`), corrigiendo el fallback mínimo incompleto que no declaraba `resources`/`types`/`idPrefixes` en `stremiojn`.
+- **Preservación de recomendaciones `Para vos` en Deno KV**: `syncLibraryToHub` ahora evita sobrescribir el historial IA de Deno KV cuando una cuenta solo tiene registros temporales o eliminados (`activeSeeds.length === 0`), y se sembraron en Deno KV las semillas activas de `stremioeg` (solo lectura) hacia `profile=stremiojn` para eliminar el fallback infantil (*Santa Paws*) sin tocar el "Seguir viendo" de Stremio Cloud.
+
+
 
 
 

@@ -137,10 +137,8 @@ if (!pass) {
     });
     addons = col?.result?.addons || [];
 
-    // Regla estricta: exactamente los addons canónicos autorizados según cuenta
-    const allowedAddons = targetAccount === 'stremiojn'
-      ? [...CANONICAL_ADDONS, 'com.mejorastremio.livetv', 'com.mejorastremio.ufc-catalog']
-      : CANONICAL_ADDONS;
+    // Regla estricta: exactamente los addons canónicos autorizados (Hub + Tráilers Latino + Cinemeta)
+    const allowedAddons = CANONICAL_ADDONS;
     const expectedSet = new Set(allowedAddons);
     const installedIds = addons.map((a) => a.manifest?.id || a.id);
     const unauthorized = installedIds.filter((id) => !expectedSet.has(id));

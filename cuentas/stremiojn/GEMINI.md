@@ -74,4 +74,19 @@ Las operaciones automatizadas contra la API de Stremio para esta cuenta se ejecu
   - `purge-and-unify-account.mjs --account=stremiojn`: Ejecuta la purga atómica garantizando el monopolio de 2 addons.
   - `health-check.mjs --account=stremiojn`: Monitorea la salud del perfil y alerta ante cualquier deriva topológica.
   - `test-multi-account-p9.ts`: Suite E2E de certificación multi-perfil.
+  - `test-stremiojn-pc-e2e.mjs`: Suite E2E integral (5 fases) enfocada en Stremio 5 PC, LevelDB, nube, catálogos UFC, sondas reales con `ffprobe.exe` y TV en Vivo.
 - **Prohibición**: Queda terminantemente prohibido quemar contraseñas o tokens en archivos del repositorio.
+
+---
+
+## 6. Orientación Específica para Stremio 5 Desktop (PC Windows)
+
+Perfil calibrado específicamente para **Stremio 5 Desktop en Windows** (`stremio-shell-ng.exe` + `libmpv-2.dll` + `stremio-runtime.exe`):
+
+- **Calibración Visual SDR Desktop (`Intel UHD Graphics` / panel 60Hz)**:
+  - El filtro de calidad en `transportUrl` descarta `4k`, `hdrall`, `dolbyvision` y `brremux` para evitar tonos lavados/violáceos y caídas de cuadros en pantallas SDR de PC, priorizando **1080p/720p H.264/HEVC** instantáneo vía TorBox Debrid.
+- **Reproductor `libmpv-2` y Audio PC**:
+  - `hardwareDecoding: true`, `frameRateMatchingStrategy: "Disabled"`, `audioPassthrough: false`, `surroundSound: false`, `bingeWatching: true`, `escExitFullscreen: true`.
+  - Idiomas recomendados en Ajustes de Stremio PC: Interfaz `spa`, Audio `spa` (secundario `eng`), Subtítulos `spl` (secundario `spa`).
+- **Servidor de Streaming Local (`http://127.0.0.1:11470/`)**:
+  - `cacheSize: 5368709120` (5 GB), `btMaxConnections: 120`, `btDownloadSpeedSoftLimit: 10485760` (10 MB/s), `btDownloadSpeedHardLimit: 20971520` (20 MB/s), `transcodeMaxWidth: 1920`, `localAddonEnabled: false`, `remoteHttps: ""`.

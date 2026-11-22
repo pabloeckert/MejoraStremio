@@ -1049,6 +1049,11 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - Deno KV `profile=stremiojn` sembrado con **20 títulos UFC / MMA / Boxeo / Acción** para que `Para vos` recomiende combate y adrenalina personalizados.
 - Recarga forzada y verificación directa en la instalación local de **Stremio 5 PC** (`stremio-shell-ng.exe` + `stremio-runtime.exe`, `Local Storage\leveldb` decodificado UTF-16LE confirmando `addonsLocked: false` y carga activa de la colección).
 
+### 37.3 Orientación a Stremio 5 Desktop (PC Windows) y Certificación E2E Full-Stack
+- **`cuentas/stremiojn/profile.json` recalibrado a PC Windows**: `alias` y `deviceTarget` actualizados para Stremio 5 Desktop (`stremio-shell-ng` + `libmpv-2` + `stremio-runtime`), con `rules.playerOptimization` adaptado a hardware gráfico desktop SDR 60Hz (`hardwareDecoding: true`, `audioPassthrough: false`, `frameRateMatchingStrategy: "Disabled"`, `bingeWatching: true`, `escExitFullscreen: true` y parámetros de `streamingServer`).
+- **Optimización oficial del Runtime PC (`http://127.0.0.1:11470/settings`)**: persistidos en `server-settings.json` caché de `5 GB`, `btMaxConnections: 120`, límites `10/20 MB/s`, `transcodeMaxWidth: 1920`, `localAddonEnabled: false` y `remoteHttps: ""`.
+- **Suite Integral E2E de 5 Fases (`scripts/test-stremiojn-pc-e2e.mjs`)**: valida binarios y procesos locales de Stremio 5, configuración del runtime, decodificación real SSTable/WAL de WebView2 LevelDB, paridad 1:1 en nube con aislamiento estricto de `stremioeg`, los 42 catálogos UFC + INCAA + `Para vos` + Live TV, y reproducción real por byte-range + decodificación `ffprobe.exe` para TorBox, subtítulos sin SDH, tráilers y señales HLS de combate en vivo.
+
 
 
 

@@ -1,11 +1,68 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "account": "stremiojn@gmail.com",
-  "alias": "Joaquín (Clon 1:1 de stremioeg)",
-  "deviceTarget": "TV Box / Android TV (Leanback UI)",
+  "alias": "Joaquín (UFC, Combate & Acción · Base v3.4.0)",
+  "deviceTarget": "TV Box / Android TV / PC (Stremio 5 & Leanback UI)",
   "version": "3.4.0",
-  "updatedAt": "2026-11-22T12:45:00Z",
+  "updatedAt": "2026-11-22T13:15:00Z",
   "rules": {
+    "focus": "UFC, MMA, Boxeo, Kickboxing, Acción, Thriller, Policial",
+    "curation": {
+      "priorityGenres": [
+        "UFC Eventos & PPV",
+        "MMA & Jaula",
+        "Deportes de Combate",
+        "Boxeo Profesional",
+        "Kickboxing y Artes Marciales",
+        "Acción",
+        "Thriller",
+        "Crimen / Policial"
+      ],
+      "excludedGenres": [
+        "Infantil",
+        "Kids",
+        "Animation Kids",
+        "Melodrama",
+        "Telenovelas",
+        "Soap Opera"
+      ],
+      "excludeFilters": [
+        "kids",
+        "infantil",
+        "melodrama",
+        "telenovela"
+      ]
+    },
+    "topology": {
+      "canonicalAddonsCount": 4,
+      "enforceCanonicalTopology": true,
+      "installedAddons": [
+        {
+          "position": 0,
+          "id": "com.mejorastremio.hub",
+          "name": "MejoraStremio Hub v3.4.0 · UFC & Combate",
+          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino|profile=stremiojn/manifest.json?v=3.4.0"
+        },
+        {
+          "position": 1,
+          "id": "com.mejorastremio.livetv",
+          "name": "TV en Vivo",
+          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/livetv/manifest.json"
+        },
+        {
+          "position": 2,
+          "id": "com.mejorastremio.trailers-latino",
+          "name": "Tráilers Oficiales Latino (MejoraStremio)",
+          "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/trailers/manifest.json"
+        },
+        {
+          "position": 3,
+          "id": "com.linvo.cinemeta",
+          "name": "Cinemeta",
+          "transportUrl": "https://v3-cinemeta.strem.io/manifest.json"
+        }
+      ]
+    },
     "subtitles": {
       "mode": "strict_no_sdh",
       "preferredLanguages": [
@@ -29,7 +86,7 @@
       ],
       "unifiedHub": {
         "id": "com.mejorastremio.hub",
-        "name": "MejoraStremio Hub v3.4.0 (Enterprise)",
+        "name": "MejoraStremio Hub v3.4.0 · UFC & Combate",
         "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino|profile=stremiojn/manifest.json?v=3.4.0",
         "canonicalStremioUrl": "stremio://mejorastremio-hub.pabloeckert.deno.net/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,nekobt,rutor,rutracker,comando,bludv,micoleaodublado,torrent9,ilcorsaronero,mejortorrent,wolfmax4k,cinecalidad,besttorrents|sort=seeders|qualityfilter=brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,cam,scr,unknown,4k,480p|torbox=9fe5c202-15ec-4aeb-b4e7-8613728cf044|language=latino|profile=stremiojn/manifest.json?v=3.4.0",
         "position": 0
@@ -39,7 +96,7 @@
         "name": "Tráilers Oficiales Latino (MejoraStremio)",
         "transportUrl": "https://mejorastremio-hub.pabloeckert.deno.net/trailers/manifest.json",
         "canonicalStremioUrl": "stremio://mejorastremio-hub.pabloeckert.deno.net/trailers/manifest.json",
-        "position": 1
+        "position": 2
       }
     },
     "audio": {
@@ -67,6 +124,13 @@
       "timeSensitive": [
         "now_playing",
         "upcoming"
+      ],
+      "excludedCatalogs": [
+        "infantil-kids",
+        "dibujos-animados-ninos",
+        "melodrama-telenovelas",
+        "familia",
+        "accion-familiar-latino"
       ]
     },
     "playerOptimization": {

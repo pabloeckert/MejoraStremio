@@ -7,6 +7,7 @@
 import { cors, getKv, jsonResponse, safeEnv } from "../utils/common.ts";
 import { BoundedLruCache } from "../utils/lru-cache.ts";
 import { fetchCinemetaCatalogSorted } from "../utils/cinemeta.ts";
+import { handleUfcCombatCatalog, isUfcCombatCatalogId } from "./ufc_combat.ts";
 import {
   ARGENTINE_RATING_OPTIONS,
   buildSagasRollupOptions,
@@ -940,6 +941,9 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
   const type = catalogMatch[1] as "movie" | "series";
   const catalogId = catalogMatch[2];
   const extraStr = catalogMatch[3];
+  if (isUfcCombatCatalogId(catalogId)) {
+    return await handleUfcCombatCatalog(type, catalogId, extraStr, url);
+  }
   const isRecognizedCatalog =
     /^(discover-master|nuevos-estrenos-cine|new-movies|nuevas-temporadas|new-seasons|estrenos-streaming|streaming-premieres|miniseries|short-series|familia|accion-familiar-latino|cine-argentina|series-argentina|sagas-universos|saga-marvel|saga-dc|saga-harry-potter|saga-xmen|saga-independientes|stream-netflix|stream-hbo|stream-prime|stream-movistar|stream-bbc|stream-europa)$/
       .test(catalogId);

@@ -1032,6 +1032,24 @@ Este documento constituye la fuente de verdad unificada sobre la arquitectura de
 - **Reparación del manifest de `Tráilers Oficiales Latino`**: Se actualizó `apply-stremioeg-profile.mjs` para obtener siempre el manifest completo fresco desde `/trailers/manifest.json` (`resources: ["stream"]`, `types: ["movie", "series"]`, `idPrefixes: ["tt"]`, `catalogs: []`), corrigiendo el fallback mínimo incompleto que no declaraba `resources`/`types`/`idPrefixes` en `stremiojn`.
 - **Preservación de recomendaciones `Para vos` en Deno KV**: `syncLibraryToHub` ahora evita sobrescribir el historial IA de Deno KV cuando una cuenta solo tiene registros temporales o eliminados (`activeSeeds.length === 0`), y se sembraron en Deno KV las semillas activas de `stremioeg` (solo lectura) hacia `profile=stremiojn` para eliminar el fallback infantil (*Santa Paws*) sin tocar el "Seguir viendo" de Stremio Cloud.
 
+---
+
+## 37. Sesión 2026-11-22 (Parte 2): Perfil Dedicado UFC / Combate en `stremiojn@gmail.com` + Verificación En Vivo en Stremio 5 PC
+
+### 37.1 Motor Dinámico y Curado `ufc_combat.ts` + Manifiesto Dedicado (`buildStremioJnManifest`)
+- **Aislamiento de perfiles (`manifest.ts` y `unified-hub.ts`)**: `stremioeg@gmail.com` conserva intacto `MEJORASTREMIO_HUB_MANIFEST` (`39` catálogos, `3` add-ons), mientras que `profile=stremiojn` sirve dinámicamente `buildStremioJnManifest()` (**42 catálogos**: **14 filas UFC/Combate/Acción/Estrenos en Inicio** sin contenido infantil + **28 secciones en Descubrir** con *Boxeo y Kickboxing*, *F1/Motor/Deportes*, Plataformas, Sagas y Tabla Argentina).
+- **7 nuevos catálogos especializados (`scripts/deno-hub/catalogs/ufc_combat.ts`)**:
+  - `ufc-eventos` (veladas UFC PPV y Fight Nights dinámicas vía TMDB `/search/movie` + empresas UFC `72685|197945` ordenadas cronológicamente descendente).
+  - `ufc-series-hub` (*Contender Series*, *TUF*, *Kingdom*, *Warrior*, *Cobra Kai*, *Baki*, *Kengan Ashura*, *WWE*, etc. + búsqueda TV dinámica `UFC`).
+  - `cine-ufc-mma` (*The Smashing Machine*, *Warrior*, *Creed*, *Road House*, etc. + TMDB Discover MMA/Boxeo/Kickboxing con `without_genres: "16,10751,10762,10766"` y Tabla Argentina).
+  - `accion-adrenalina`, `thriller-policial`, `combat-boxeo` y `combat-motor-deportes`.
+
+### 37.2 Topología de 4 Add-ons + Semillas IA UFC en Deno KV + Stremio 5 PC
+- **`stremiojn@gmail.com`** consolidado con **4 add-ons**: `com.mejorastremio.hub` (`v3.4.0 · UFC & Combate`, 42 catálogos), `com.mejorastremio.livetv` (`v1.2.0`, 17 canales UFC/MMA/ESPN/Fox Sports con multi-señal), `com.mejorastremio.trailers-latino` (`v1.0.0` completo) y `com.linvo.cinemeta` (`v3.0.14`).
+- Deno KV `profile=stremiojn` sembrado con **20 títulos UFC / MMA / Boxeo / Acción** para que `Para vos` recomiende combate y adrenalina personalizados.
+- Recarga forzada y verificación directa en la instalación local de **Stremio 5 PC** (`stremio-shell-ng.exe` + `stremio-runtime.exe`, `Local Storage\leveldb` decodificado UTF-16LE confirmando `addonsLocked: false` y carga activa de la colección).
+
+
 
 
 

@@ -201,6 +201,7 @@ export function validateProfile(filePath, profile, errFn = err, warnFn = warn) {
   if (rules.topology?.installedAddons) {
     const addons = rules.topology.installedAddons;
     const validOrders = [
+      ["com.mejorastremio.hub", "com.mejorastremio.livetv", "com.mejorastremio.trailers-latino", "com.linvo.cinemeta"],
       ["com.mejorastremio.hub", "com.mejorastremio.trailers-latino", "com.linvo.cinemeta"],
       ["com.mejorastremio.hub", "com.linvo.cinemeta"],
     ];

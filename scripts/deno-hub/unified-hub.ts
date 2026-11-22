@@ -18,8 +18,9 @@ import { handleTranslate } from "./translate/translate.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./subtitles/smartsync.ts";
 import { handleDiscover } from "./catalogs/tmdb.ts";
 import { handleMeta } from "./catalogs/synopsis.ts";
-import { MEJORASTREMIO_HUB_MANIFEST } from "./manifest.ts";
+import { buildStremioJnManifest, MEJORASTREMIO_HUB_MANIFEST } from "./manifest.ts";
 import { buildParaVosCatalog, handleSyncLibrary } from "./catalogs/paravos.ts";
+import { handleUfcCombatCatalog, isUfcCombatCatalogId } from "./catalogs/ufc_combat.ts";
 import { isCanaryActiveForProfile } from "./utils/canary_governance.ts";
 import { resolveStreamSession } from "./streams/stream_security.ts";
 import { fetchMovieHash, computeMovieHashFromBuffers } from "./subtitles/hasher.ts";
@@ -413,6 +414,11 @@ export async function getCanaryManifest(
     };
   }
 
+  const normalizedProfile = profile.trim().toLowerCase().replace(/@gmail\.com$/, "");
+  if (normalizedProfile === "stremiojn") {
+    return buildStremioJnManifest() as unknown as Record<string, unknown>;
+  }
+
   return MEJORASTREMIO_HUB_MANIFEST as unknown as Record<string, unknown>;
 }
 
@@ -563,6 +569,9 @@ export async function handleUnifiedHub(
         }
         return jsonResponse({ metas: [] });
       }
+      if (isUfcCombatCatalogId(catId)) {
+        return await handleUfcCombatCatalog(type, catId, configCatMatch[4], reqUrl);
+      }
       const extra = configCatMatch[4] ? `/${configCatMatch[4]}` : "";
       const subPath = `/catalog/${type}/${catId}${extra}.json`;
       return await handleDiscover(subPath, reqUrl);
@@ -582,6 +591,9 @@ export async function handleUnifiedHub(
         return jsonResponse(data);
       }
       return jsonResponse({ metas: [] });
+    }
+    if (isUfcCombatCatalogId(catId)) {
+      return await handleUfcCombatCatalog(type, catId, directCatMatch[3], reqUrl);
     }
     return await handleDiscover(path, reqUrl);
   }

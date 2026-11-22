@@ -339,8 +339,10 @@ export const UNIFIED_HUB_ADDON_ENTRY = {
   flags: { official: false, protected: false },
 };
 
-export async function fetchFreshHubManifest() {
-  const url = 'https://mejorastremio-hub.pabloeckert.deno.net/manifest.json';
+export async function fetchFreshHubManifest(profile = 'stremioeg') {
+  const url = profile === 'stremiojn'
+    ? 'https://mejorastremio-hub.pabloeckert.deno.net/manifest.json?profile=stremiojn'
+    : 'https://mejorastremio-hub.pabloeckert.deno.net/manifest.json';
   try {
     const res = await fetch(url, {
       signal: AbortSignal.timeout(15000),
@@ -745,7 +747,7 @@ async function runProfileManager() {
       },
     ];
 
-    const freshHubManifest = await fetchFreshHubManifest();
+    const freshHubManifest = await fetchFreshHubManifest(TARGET_ACCOUNT);
     const manifestToUse = freshHubManifest || {
       ...UNIFIED_HUB_ADDON_ENTRY.manifest,
       version: '3.0.1',
@@ -821,8 +823,8 @@ async function runProfileManager() {
     let changesCount = 0;
     let updatedAddons = addons;
 
-    // ── Arquitectura Unificada v3.0: Monopolio Estricto Whitelist (Hub #0 + Cinemeta #1) ──
-    const freshHubManifest = await fetchFreshHubManifest();
+    // ── Arquitectura Unificada v3.4: Monopolio Estricto Whitelist por Perfil ──
+    const freshHubManifest = await fetchFreshHubManifest(TARGET_ACCOUNT);
     const manifestToUse = freshHubManifest || {
       ...UNIFIED_HUB_ADDON_ENTRY.manifest,
       version: '3.0.1',
@@ -836,18 +838,22 @@ async function runProfileManager() {
     );
     console.log(`  • Hub Transport URL (Anti-Caché TV Box): ${targetHubUrl}`);
     const hubAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.hub');
+    const livetvAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.livetv');
     const trailersAddon = addons.find((a) => a.manifest?.id === 'com.mejorastremio.trailers-latino');
     const cinemetaAddon = addons.find((a) => a.manifest?.id === 'com.linvo.cinemeta' || a.manifest?.id === 'com.stremio.cinemeta');
 
-    // 1. Filtrado Estricto (Whitelist): Purgar todo addon que no sea com.mejorastremio.hub, trailers-latino o Cinemeta
-    const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(addons);
+    const extraAllowed = TARGET_ACCOUNT === 'stremiojn' ? ['com.mejorastremio.livetv'] : [];
+
+    // 1. Filtrado Estricto (Whitelist): Purgar todo addon no autorizado para el perfil
+    const { cleanedAddons, removedAddons } = filterCompetingSubtitleAddons(addons, extraAllowed);
     if (removedAddons.length > 0) {
       console.log(`  ✓ Purga estricta Whitelist: ${removedAddons.length} add-on(s) no autorizados eliminados:`);
       removedAddons.forEach((ra) => console.log(`     [-] [${ra.manifest?.id || ra.id}] ${ra.manifest?.name || ra.name}`));
     }
 
-    // 2. Componer la lista canónica estricta de 3 addons (clon 1:1 para todas las cuentas):
-    //    Posición #0 = Hub, Posición #1 = Tráilers Latino (manifest completo), Posición #2 = Cinemeta
+    // 2. Componer la lista canónica según perfil:
+    //    - stremioeg / solotveg: [Hub, Tráilers Latino, Cinemeta] (3 add-ons)
+    //    - stremiojn: [Hub (42 catálogos UFC), TV en Vivo v1.2, Tráilers Latino, Cinemeta] (4 add-ons)
     const finalHub = {
       ...(hubAddon || {}),
       transportUrl: targetHubUrl,
@@ -883,7 +889,39 @@ async function runProfileManager() {
       flags: { official: true, protected: true },
     };
 
-    const targetList = [finalHub, finalTrailers, finalCinemeta];
+    let targetList = [finalHub, finalTrailers, finalCinemeta];
+    let livetvChanged = false;
+
+    if (TARGET_ACCOUNT === 'stremiojn') {
+      const livetvUrl = 'https://mejorastremio-hub.pabloeckert.deno.net/livetv/manifest.json';
+      const freshLivetvManifest = await fetchFreshSubAddonManifest(livetvUrl, 'TV en Vivo (UFC/Combate)');
+      const livetvManifestToUse = freshLivetvManifest || {
+        id: 'com.mejorastremio.livetv',
+        version: '1.2.0',
+        name: 'TV en Vivo',
+        description:
+          'Catálogo curado de canales en vivo de UFC, MMA, Boxeo y deportes de combate ' +
+          '(ESPN Latinoamérica, Fox Sports AR, TyC Sports, Fight Network, Bellator, PFL, Glory y más), ' +
+          'fuente iptv-org con sondeo multi-señal en tiempo real. Perfil fan de UFC.',
+        resources: ['catalog', 'meta', 'stream'],
+        types: ['tv'],
+        idPrefixes: ['iptv-'],
+        catalogs: [{ type: 'tv', id: 'livetv-combate', name: 'TV en Vivo — UFC / MMA / Combate' }],
+      };
+      const finalLiveTv = {
+        ...(livetvAddon || {}),
+        transportUrl: livetvUrl,
+        transportName: '',
+        manifest: livetvManifestToUse,
+        flags: { official: false, protected: false },
+      };
+      targetList = [finalHub, finalLiveTv, finalTrailers, finalCinemeta];
+      livetvChanged = Boolean(
+        !livetvAddon ||
+        livetvAddon.transportUrl !== finalLiveTv.transportUrl ||
+        JSON.stringify(livetvAddon.manifest || {}) !== JSON.stringify(finalLiveTv.manifest || {})
+      );
+    }
 
     // 3. Evaluar cambios respecto a la colección actual
     const idsCurrent = addons.map((a) => a.manifest?.id);
@@ -894,16 +932,17 @@ async function runProfileManager() {
     const hubCatsChanged = Boolean(
       hubAddon && JSON.stringify(hubAddon.manifest?.catalogs || []) !== JSON.stringify(finalHub.manifest?.catalogs || [])
     );
+    const hubNameChanged = hubAddon && hubAddon.manifest?.name !== finalHub.manifest?.name;
     const trailersChanged = Boolean(
       !trailersAddon ||
       trailersAddon.transportUrl !== finalTrailers.transportUrl ||
       JSON.stringify(trailersAddon.manifest || {}) !== JSON.stringify(finalTrailers.manifest || {})
     );
 
-    if (!isIdentical || hubUrlChanged || hubVerChanged || hubCatsChanged || trailersChanged || removedAddons.length > 0) {
+    if (!isIdentical || hubUrlChanged || hubVerChanged || hubCatsChanged || hubNameChanged || trailersChanged || livetvChanged || removedAddons.length > 0) {
       changesCount = Math.max(
         1,
-        removedAddons.length + (hubVerChanged ? 1 : 0) + (hubUrlChanged ? 1 : 0) + (hubCatsChanged ? 1 : 0) + (trailersChanged ? 1 : 0),
+        removedAddons.length + (hubVerChanged ? 1 : 0) + (hubUrlChanged ? 1 : 0) + (hubCatsChanged ? 1 : 0) + (hubNameChanged ? 1 : 0) + (trailersChanged ? 1 : 0) + (livetvChanged ? 1 : 0),
       );
       console.log(`  ✓ Unificación activada: consolidación en topología canónica de ${targetList.length} add-ons para [${TARGET_ACCOUNT}]`);
     }

@@ -138,7 +138,7 @@
     "genres": [],
     "isFamily": false,
     "perAddon": {
-      "MejoraStremio Hub v3.3.0 (Enterprise)": {
+      "MejoraStremio Hub v3.4.0 (Enterprise)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -154,7 +154,7 @@
     "latino": null,
     "label": "El Marginal S01E01",
     "addedAt": "2026-07-02T21:48:52.556Z",
-    "lastCheckedAt": "2026-11-15T20:00:02.090Z"
+    "lastCheckedAt": "2026-11-22T20:51:29.285Z"
   },
   {
     "id": "tt2380307",
@@ -1558,7 +1558,7 @@
     "genres": [],
     "isFamily": false,
     "perAddon": {
-      "MejoraStremio Hub v3.3.0 (Enterprise)": {
+      "MejoraStremio Hub v3.4.0 (Enterprise)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1574,7 +1574,7 @@
     "latino": null,
     "label": "Pa' Seguirte Queriendo S01E03",
     "addedAt": "2026-08-23T02:20:55.820Z",
-    "lastCheckedAt": "2026-11-15T20:00:10.019Z"
+    "lastCheckedAt": "2026-11-22T20:51:30.578Z"
   },
   {
     "id": "tt23112594",
@@ -1709,7 +1709,7 @@
     "genres": [],
     "isFamily": false,
     "perAddon": {
-      "MejoraStremio Hub v3.3.0 (Enterprise)": {
+      "MejoraStremio Hub v3.4.0 (Enterprise)": {
         "total": 0,
         "real": 0,
         "unverifiable": false
@@ -1725,6 +1725,6 @@
     "latino": null,
     "label": "Ágata y Lola S01E09",
     "addedAt": "2026-09-04T13:17:22.882Z",
-    "lastCheckedAt": "2026-11-15T20:00:11.281Z"
+    "lastCheckedAt": "2026-11-22T20:51:31.132Z"
   }
 ]

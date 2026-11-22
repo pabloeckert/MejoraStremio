@@ -151,7 +151,7 @@ Deno.test("UFC Combat Catalogs IDs registrados y consultas en vivo contra TMDB",
       `${item.type}/${item.id} debe devolver metas no vacíos (got ${metas.length})`,
     );
 
-    for (const m of metas.slice(0, 10)) {
+    for (const m of metas) {
       assert(typeof m.id === "string" && m.id.startsWith("tt"), `${item.id} meta id inválido: ${m.id}`);
       assert(typeof m.poster === "string" && m.poster.startsWith("http"), `${item.id} poster inválido para ${m.id}`);
     }

@@ -35,7 +35,7 @@ export function isUfcCombatCatalogId(id: string): boolean {
 }
 
 const EXCLUDE_KIDS_FAMILY_SOAP = "16,10751,10762,10766";
-const UFC_SWR_VERSION = "ufc_combat_v1";
+const UFC_SWR_VERSION = "ufc_combat_v2";
 
 interface StremioCatalogMeta {
   id: string;
@@ -75,16 +75,16 @@ const CURATED_UFC_SERIES: CuratedTitleEntry[] = [
   { id: "tt11743610", name: "The Terminal List", category: "mma", description: "Thriller táctico de venganza y operaciones especiales.", year: "2022" },
   // Anime de Combate
   { id: "tt6357658", name: "Baki", category: "anime", description: "Luchadores clandestinos sin reglas buscan derrotar al más fuerte del mundo.", year: "2018" },
-  { id: "tt14975632", name: "Baki Hanma", category: "anime", description: "El choque definitivo padre e hijo en las artes marciales extremas.", year: "2021" },
+  { id: "tt13357140", name: "Baki Hanma", category: "anime", description: "El choque definitivo padre e hijo en las artes marciales extremas.", year: "2021" },
   { id: "tt9058134", name: "Kengan Ashura", category: "anime", description: "Torneo brutal de MMA corporativo sin límites ni reglas.", year: "2019" },
   { id: "tt0481256", name: "Hajime no Ippo", category: "anime", description: "Boxeo profesional técnico y peleas legendarias en el ring.", year: "2000" },
   { id: "tt7965802", name: "Megalobox", category: "anime", description: "Boxeo cyberpunk clandestino con exoesqueletos de combate.", year: "2018" },
   // WWE y Lucha Libre
   { id: "tt0185103", name: "WWE Raw", category: "wwe", description: "Show semanal estelar de lucha libre profesional WWE.", year: "1993" },
   { id: "tt0227972", name: "WWE SmackDown", category: "wwe", description: "Marca insignia de lucha libre y entretenimiento deportivo.", year: "1999" },
-  { id: "tt4107858", name: "Lucha Underground", category: "wwe", description: "Combates cinematográficos y lucha libre extrema en el templo.", year: "2014" },
+  { id: "tt4171176", name: "Lucha Underground", category: "wwe", description: "Combates cinematográficos y lucha libre extrema en el templo.", year: "2014" },
   { id: "tt6554240", name: "Heels", category: "wwe", description: "Drama familiar sobre una promotora independiente de lucha libre.", year: "2021" },
-  { id: "tt10064310", name: "Dark Side of the Ring", category: "wwe", description: "Documental de investigación sobre historias ocultas del ring.", year: "2019" },
+  { id: "tt9159144", name: "Dark Side of the Ring", category: "wwe", description: "Documental de investigación sobre historias ocultas del ring.", year: "2019" },
 ];
 
 const CURATED_UFC_MMA_MOVIES: CuratedTitleEntry[] = [
@@ -136,17 +136,28 @@ async function resolveCuratedEntries(
   const settled = await Promise.all(
     entries.map(async (entry) => {
       const meta = await fetchCinemetaMeta(type, entry.id);
+      let poster: string | null = typeof meta?.poster === "string" && meta.poster ? meta.poster : null;
+      if (!poster) {
+        const found = await tmdbGet(`/find/${entry.id}`, {
+          external_source: "imdb_id",
+          language: "es-MX",
+        }).catch(() => null);
+        const item = type === "series" ? found?.tv_results?.[0] : found?.movie_results?.[0];
+        if (item?.poster_path) {
+          poster = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
+        }
+      }
       return {
         id: entry.id,
         type,
         name: meta?.name || entry.name,
-        poster: meta?.poster || null,
+        poster,
         description: meta?.description || entry.description || "",
         releaseInfo: meta?.year ? String(meta.year).slice(0, 4) : entry.year,
       } satisfies StremioCatalogMeta;
     }),
   );
-  return settled.filter((m) => Boolean(m.id));
+  return settled.filter((m) => Boolean(m.id && m.poster));
 }
 
 function applyCertParams(

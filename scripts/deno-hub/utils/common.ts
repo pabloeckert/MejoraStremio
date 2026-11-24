@@ -208,6 +208,9 @@ export const PT_STREAM_REGEX =
 export const CASTELLANO_STREAM_REGEX =
   /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|mejortorrent|wolfmax4k|dontorrent|estrenosdtl|grantorrent|castellana|dual[-_ ]?esp)\b|🇪🇸/i;
 
+export const CASTELLANO_TEXT_REGEX =
+  /\b(castellano|castellana|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|mejortorrent|wolfmax4k|dontorrent|estrenosdtl|grantorrent|dual[-_ ]?esp)\b/i;
+
 export const LATINO_NEGATIVE_REGEX =
   /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|vose|subtitulado|subtitulada)\b|🇪🇸/i;
 
@@ -215,7 +218,7 @@ export const TITLE_FALSE_POSITIVES_REGEX =
   /\b(?:diego[-_.\s]+latino|latino[-_.\s]+heat)\b/gi;
 
 export const LATINO_CONFIRMED_REGEX =
-  /\b(cinecalidad|hackstore|latino|latina|es[-_.\s]?419|audio[-_.\s]?spl|doblaje[-_.\s]?latino|audio[-_.\s]?latino|dual[-_.\s]?latino|multi[-_.\s]?latino|espanoledla|edla|cuerda[-_.\s]?floja)\b|\[🌎\s*LATINO\]|🌎\s*latino\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
+  /\b(cinecalidad|hackstore|latino|latina|es[-_.\s]?419|audio[-_.\s]?spl|doblaje[-_.\s]?latino|audio[-_.\s]?latino|dual[-_.\s]?latino|multi[-_.\s]?latino|dual[-_.\s]*lat|multi[-_.\s]*lat|lat\s*\+\s*(?:ing|eng)|(?:ing|eng)\s*\+\s*lat|espanoledla|edla|cuerda[-_.\s]?floja)\b|\[🌎\s*LATINO\]|🌎\s*latino\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
 
 export const LATINO_PROBABLE_REGEX =
   /\b(latam|eslatam|es[-_.\s]?la|dual[-_.\s]?lat\b|multi[-_.\s]?lat\b|lat[-_.\s]?eng\b|eng[-_.\s]?lat\b|latin\b|latinoamericano|spanish[-_.\s]?latam)\b/i;
@@ -241,10 +244,14 @@ export function cleanReleaseName(text: string): string {
 
 export function detectLatinoConfidence(stream: { name?: string; title?: string; description?: string }): LatinoConfidence {
   const rawText = `${stream?.name || ""} ${stream?.title || ""} ${stream?.description || ""}`;
-  if (LATINO_NEGATIVE_REGEX.test(rawText) || PT_STREAM_REGEX.test(rawText) || CASTELLANO_STREAM_REGEX.test(rawText)) {
+  if (
+    /\b(?:vose|subtitulado|subtitulada)\b/i.test(rawText) ||
+    PT_STREAM_REGEX.test(rawText) ||
+    CASTELLANO_TEXT_REGEX.test(rawText)
+  ) {
     return "Desconocido";
   }
-  if (detectPeninsularSpanish(rawText).isPeninsular) {
+  if (detectPeninsularSpanish(rawText.replace(/🇪🇸/g, " ")).isPeninsular) {
     return "Desconocido";
   }
   const cleanForLatino = rawText
@@ -252,6 +259,9 @@ export function detectLatinoConfidence(stream: { name?: string; title?: string; 
     .replace(/🌎\s*\/[^\r\n]*/g, " ");
   if (LATINO_CONFIRMED_REGEX.test(cleanForLatino)) {
     return "Confirmado";
+  }
+  if (LATINO_NEGATIVE_REGEX.test(rawText)) {
+    return "Desconocido";
   }
   if (LATINO_PROBABLE_REGEX.test(cleanForLatino)) {
     return "Probable";
@@ -262,11 +272,14 @@ export function detectLatinoConfidence(stream: { name?: string; title?: string; 
 export function classifyStreamAudio(stream: { name?: string; title?: string; description?: string }): StreamAudioCategory {
   const rawText = `${stream?.name || ""} ${stream?.title || ""} ${stream?.description || ""}`;
   if (PT_STREAM_REGEX.test(rawText) && !LATINO_CONFIRMED_REGEX.test(rawText)) return "portuguese";
-  if (CASTELLANO_STREAM_REGEX.test(rawText) && !LATINO_CONFIRMED_REGEX.test(rawText)) return "castellano";
-  if (detectPeninsularSpanish(rawText).isPeninsular && !LATINO_CONFIRMED_REGEX.test(rawText)) return "castellano";
+  if (CASTELLANO_TEXT_REGEX.test(rawText) && !LATINO_CONFIRMED_REGEX.test(rawText)) return "castellano";
+  if (detectPeninsularSpanish(rawText.replace(/🇪🇸/g, " ")).isPeninsular && !LATINO_CONFIRMED_REGEX.test(rawText)) {
+    return "castellano";
+  }
 
   const confidence = detectLatinoConfidence(stream);
   if (confidence === "Confirmado") return "latino";
+  if (CASTELLANO_STREAM_REGEX.test(rawText)) return "castellano";
   return "original";
 }
 
@@ -274,15 +287,12 @@ export function isLatinoStream(stream: { name?: string; title?: string; descript
   return detectLatinoConfidence(stream) === "Confirmado";
 }
 
-export function isCachedOrInstantStream(stream: { name?: string; title?: string; description?: string }): boolean {
-  const text = `${stream.name || ""} ${stream.title || ""} ${stream.description || ""}`.toLowerCase();
-  if (/\[(?:tb|torbox|rd|ad|pm|oc|dl)\+\]|\b(?:cached|instant[aá]neo|debrid cache)\b|⚡/i.test(text)) {
-    return true;
-  }
-  if (/\[(?:tb|torbox)\s+download\]|\b(?:uncached|downloading)\b|⏳/i.test(text)) {
+export function isCachedOrInstantStream(stream: { name?: string; title?: string; description?: string; url?: string }): boolean {
+  const text = `${stream.name || ""} ${stream.title || ""} ${stream.description || ""} ${stream.url || ""}`;
+  if (/\[(?:tb|torbox|rd|ad|pm|oc|dl)\s*(?:download|⬇️?|⏳)\]|⬇️|⬇|⏳|\b(?:uncached|downloading|download\s+to\s+debrid)\b|\/videos\/downloading/i.test(text)) {
     return false;
   }
-  if (/torbox|realdebrid|alldebrid|premiumize|debrid/i.test(text) && !/download/i.test(text)) {
+  if (/\[(?:tb|torbox|rd|ad|pm|oc|dl)\s*(?:\+|⚡)\]|\btrb\s*⚡|⚡|\b(?:cached|instant[aá]neo|debrid\s+cache)\b/i.test(text)) {
     return true;
   }
   return false;

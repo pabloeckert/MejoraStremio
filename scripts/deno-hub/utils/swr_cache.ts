@@ -32,7 +32,7 @@ export const TTL_SEGMENTS = {
   },
 } as const;
 
-export type TorboxCacheChecker = (hashes: string[]) => Promise<Set<string>>;
+export type TorboxCacheChecker = (hashes: string[]) => Promise<Set<string> | null>;
 
 export interface SwrOptions<T> {
   ttlMs?: number;
@@ -42,19 +42,35 @@ export interface SwrOptions<T> {
   torboxChecker?: TorboxCacheChecker;
 }
 
+export function extractStreamInfoHash(s: StremioStreamItem): string {
+  if (s.infoHash) return String(s.infoHash).toLowerCase();
+  if (s.url) {
+    const m = String(s.url).match(/([a-fA-F0-9]{40})/);
+    if (m) return m[1].toLowerCase();
+  }
+  const bg = String((s.behaviorHints as Record<string, unknown>)?.bingeGroup || "");
+  const bgMatch = bg.match(/([a-fA-F0-9]{40})/);
+  return bgMatch ? bgMatch[1].toLowerCase() : "";
+}
+
 /**
  * Consulta la API de TorBox para verificar si un conjunto de infoHashes sigue en caché.
+ * Devuelve null si no hay API key o si TorBox no respondió válidamente (fail-open seguro).
  */
-export async function queryTorboxApiCheckCached(hashes: string[], timeoutMs = 2500): Promise<Set<string>> {
-  const cached = new Set<string>();
-  if (!hashes.length) return cached;
+export async function queryTorboxApiCheckCached(
+  hashes: string[],
+  timeoutMs = 2500,
+  explicitApiKey?: string,
+): Promise<Set<string> | null> {
+  if (!hashes.length) return new Set<string>();
 
   const apiKey =
+    explicitApiKey ||
     (typeof Deno !== "undefined" && Deno.env?.get?.("TORBOX_API_KEY")) ||
     (typeof process !== "undefined" && process.env?.TORBOX_API_KEY);
 
   if (!apiKey) {
-    return cached;
+    return null;
   }
 
   try {
@@ -65,24 +81,24 @@ export async function queryTorboxApiCheckCached(hashes: string[], timeoutMs = 25
       signal: AbortSignal.timeout(timeoutMs),
     });
 
-    if (!res.ok) return cached;
+    if (!res.ok) return null;
     const body = await res.json();
-    if (body?.success && body?.data) {
-      for (const [h, val] of Object.entries(body.data)) {
-        if (val) cached.add(h.toLowerCase());
-      }
+    if (!body?.success || !body?.data) return null;
+
+    const cached = new Set<string>();
+    for (const [h, val] of Object.entries(body.data)) {
+      if (val) cached.add(h.toLowerCase());
     }
+    return cached;
   } catch {
-    // Si falla la red de TorBox, retorna conjunto vacío (degradación segura)
+    return null;
   }
-  return cached;
 }
 
 /**
  * Re-verifica en tiempo real si los streams [⚡ INSTANTÁNEO] siguen realmente cacheados
  * en TorBox antes de servirlos desde una respuesta stale.
- * Si un stream instantáneo ya no está en caché de debrid, se degrada a [⏳ REQUIERE BUFFER]
- * para no engañar al usuario ni bloquear el reproductor en Android TV.
+ * Si la API de TorBox no está configurada o falla (null), preserva los streams sin degradarlos.
  */
 export async function verifyTorboxInstantStreams<T extends StremioStreamItem>(
   streams: T[],
@@ -90,7 +106,6 @@ export async function verifyTorboxInstantStreams<T extends StremioStreamItem>(
 ): Promise<T[]> {
   if (!Array.isArray(streams) || streams.length === 0) return streams;
 
-  // Filtrar streams que tienen badge instantáneo
   const instantStreams = streams.filter((s) => {
     const text = `${s.name || ""} ${s.title || ""} ${s.description || ""}`;
     return text.includes("⚡") || text.includes("INSTANTÁNEO") || text.includes("[TB+]");
@@ -100,14 +115,9 @@ export async function verifyTorboxInstantStreams<T extends StremioStreamItem>(
     return streams;
   }
 
-  // Extraer hashes
   const hashToStreams = new Map<string, T[]>();
   for (const s of instantStreams) {
-    let hash = (s.infoHash || "").toLowerCase();
-    if (!hash && s.url) {
-      const match = s.url.match(/([a-fA-F0-9]{40})/);
-      if (match) hash = match[1].toLowerCase();
-    }
+    const hash = extractStreamInfoHash(s);
     if (hash) {
       if (!hashToStreams.has(hash)) hashToStreams.set(hash, []);
       hashToStreams.get(hash)!.push(s);
@@ -115,29 +125,29 @@ export async function verifyTorboxInstantStreams<T extends StremioStreamItem>(
   }
 
   const hashesToCheck = Array.from(hashToStreams.keys());
-  let verifiedHashes = new Set<string>();
-
-  if (hashesToCheck.length > 0) {
-    if (cacheChecker) {
-      try {
-        verifiedHashes = await cacheChecker(hashesToCheck);
-      } catch {
-        verifiedHashes = new Set<string>();
-      }
-    } else {
-      verifiedHashes = await queryTorboxApiCheckCached(hashesToCheck);
-    }
+  if (hashesToCheck.length === 0) {
+    return streams;
   }
 
-  // Re-evaluar cada stream instantáneo: si su hash no está en verifiedHashes, degradar
-  return streams.map((s) => {
-    let hash = (s.infoHash || "").toLowerCase();
-    if (!hash && s.url) {
-      const match = s.url.match(/([a-fA-F0-9]{40})/);
-      if (match) hash = match[1].toLowerCase();
+  let verifiedHashes: Set<string> | null = null;
+  if (cacheChecker) {
+    try {
+      verifiedHashes = await cacheChecker(hashesToCheck);
+    } catch {
+      verifiedHashes = null;
     }
+  } else {
+    verifiedHashes = await queryTorboxApiCheckCached(hashesToCheck);
+  }
+
+  if (verifiedHashes === null) {
+    return streams;
+  }
+
+  return streams.map((s) => {
+    const hash = extractStreamInfoHash(s);
     const isInstant = (s.name || "").includes("⚡") || (s.name || "").includes("INSTANTÁNEO");
-    if (isInstant && (!hash || !verifiedHashes.has(hash))) {
+    if (isInstant && hash && !verifiedHashes.has(hash)) {
       const updatedName = (s.name || "")
         .replace(/\[⚡\s*INSTANTÁNEO\]/g, "[⏳ REQUIERE BUFFER]")
         .replace(/⚡/g, "⏳")

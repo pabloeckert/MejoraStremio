@@ -22,6 +22,7 @@ import {
   getMediaFlowConfig,
   applyMediaFlowToStreams,
   globalMediaFlowCircuitBreaker,
+  queryTorboxApiCheckCached,
 } from "./mediaflow.ts";
 import { recordScraperLatency, recordTorboxLatency } from "../telemetry.ts";
 import { getOrSetSwrCache, TTL_SEGMENTS } from "../utils/swr_cache.ts";
@@ -57,7 +58,7 @@ export function buildCometTorboxUrl(torboxKey = DEFAULT_TORBOX_API_KEY): string 
   const config = {
     maxResultsPerResolution: 10,
     maxSize: 0,
-    cachedOnly: false,
+    cachedOnly: true,
     removeTrash: true,
     resultFormat: ["all"],
     debridService: "torrent",
@@ -82,10 +83,6 @@ export const DEFAULT_MEDIAFUSION_TOKEN =
   "D-sHeiR7BjnBWdrhQ6KBsamTNyEnA8A-UFgC6wHjXdAClQnueRtCAvgu1KzGcwVCUGOnBM1QOXaM1_xEfSpo0pPsqIaoiFT0fHu7A3ZzyjD1QJZoqqZ2Phb1aBUrBsZCW_2tSEZtVi6v7ftvWXEXqU14vP22mm757v2C9zUljOzwpee9dhswhydGD_FMNk5bzEgy5nd37kWk_Cc9WTBUAUo4iWarxX2jtbUO48JODc2CY87hGYjOfIUPI49QvOXKfEnTU7x5HfutxjXqSfJHNrnX_Ruh9j-xsP_Y1YPHOsrLI9XYm-Aj7rvA-RaxxND-2D";
 
 const mediafusionTokenCache = new Map<string, { token: string; expiresAt: number }>();
-mediafusionTokenCache.set(DEFAULT_TORBOX_API_KEY, {
-  token: DEFAULT_MEDIAFUSION_TOKEN,
-  expiresAt: Date.now() + 30 * 86400 * 1000,
-});
 
 export function buildMediaFusionTorboxUrl(torboxKey = DEFAULT_TORBOX_API_KEY): string {
   const cached = mediafusionTokenCache.get(torboxKey);
@@ -105,7 +102,7 @@ export async function resolveMediaFusionTorboxUrl(torboxKey = DEFAULT_TORBOX_API
         name: "TorBox",
         service: "torbox",
         token: torboxKey,
-        only_show_cached_streams: false,
+        only_show_cached_streams: true,
         enabled: true,
         priority: 0,
         use_mediaflow: false,
@@ -115,7 +112,7 @@ export async function resolveMediaFusionTorboxUrl(torboxKey = DEFAULT_TORBOX_API
           name: "TorBox",
           service: "torbox",
           token: torboxKey,
-          only_show_cached_streams: false,
+          only_show_cached_streams: true,
           enabled: true,
           priority: 0,
           use_mediaflow: false,
@@ -391,6 +388,13 @@ export function sanitizeTorrentioBase(rawUrl: string): string {
       u = `https://torrentio.strem.fun/${seg}/`;
     }
   }
+  if (u.includes("torbox=") && !u.includes("debridoptions=")) {
+    const m = u.match(/^https:\/\/torrentio\.strem\.fun\/([^/]*)\/$/);
+    if (m) {
+      const seg = m[1] ? `${m[1]}|debridoptions=nodownloadlinks` : "debridoptions=nodownloadlinks";
+      u = `https://torrentio.strem.fun/${seg}/`;
+    }
+  }
   u = u.replace(/\|+/g, "|").replace(/\/\|/g, "/").replace(/\|\//g, "/");
   return u;
 }
@@ -528,6 +532,22 @@ function hasExplicitZeroSeeds(s: StremioStreamItem): boolean {
   return /(?:👤|👥|seeds?:?)\s*0\b/i.test(text);
 }
 
+export function isDebridDownloadPlaceholder(s: StremioStreamItem): boolean {
+  const text = `${s.name || ""} ${s.title || ""} ${s.description || ""} ${s.url || ""}`;
+  if (/\[(?:tb|torbox|rd|ad|pm|oc|dl)\s*(?:download|⬇️?|⏳)\]|⬇️|⬇|\btrb\s*⏳|\/videos\/downloading/i.test(text)) {
+    return true;
+  }
+  if (
+    !isCachedOrInstantStream(s) &&
+    Boolean(s.url) &&
+    !s.ytId &&
+    /comet\.feels\.legal|mediafusion\.elfhosted\.com|torrentio\.strem\.fun\/resolve\/|torbox\.app/i.test(String(s.url))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function rankAndBadgeStreams<T extends StremioStreamItem>(
   streams: T[],
   options?: { preferCastellano?: boolean },
@@ -557,6 +577,12 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(
   const portugueseBuffer: T[] = [];
 
   for (const s of compatibleStreams) {
+    // ZERO-TRUST FRICTION-ZERO: Descartar placeholders no cacheados ([TB download], [TB⬇️], TRB ⏳)
+    // para impedir descargas atascadas en TorBox ("Torrent is being downloaded to debrid...").
+    if (!s.ytId && isDebridDownloadPlaceholder(s)) {
+      continue;
+    }
+
     const confidence = detectLatinoConfidence(s);
     const cat = classifyStreamAudio(s);
     const isFast = isCachedOrInstantStream(s);
@@ -741,6 +767,9 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
     } else if (!safeSegment.includes("language=")) {
       safeSegment = safeSegment ? `${safeSegment}|language=latino` : "language=latino";
     }
+    if (safeSegment.includes("torbox=") && !safeSegment.includes("debridoptions=")) {
+      safeSegment = `${safeSegment}|debridoptions=nodownloadlinks`;
+    }
     upstreamBase = `https://torrentio.strem.fun/${safeSegment}/`;
   }
 
@@ -770,7 +799,7 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
   const cometBase = buildCometTorboxUrl(torboxKey);
   const mediafusionBase = await resolveMediaFusionTorboxUrl(torboxKey);
 
-  const cacheKey = ["streams_v341", type, cleanId, configSegment || "default"];
+  const cacheKey = ["streams_v343", type, cleanId, configSegment || "default"];
 
   try {
     const rawStreams = await getOrSetSwrCache<StremioStreamItem[]>(
@@ -801,8 +830,10 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
           }
         }
 
-        // Solución Anti-Portadas Vacías: si devuelve 0 streams, activar fallback por Título + Año en TorBox y Cinemeta
-        if (collected.length === 0) {
+        let ranked = rankAndBadgeStreams(collected, { preferCastellano: isHpi });
+
+        // Solución Anti-Portadas Vacías: si no quedan streams cacheados reproducibles, activar fallback por Título + Año / Trailer HD
+        if (ranked.length === 0) {
           const fallbackStreams = await resolveFallbackStreams(type, cleanId, upstreamBase);
           for (const s of fallbackStreams) {
             const key = String(s.infoHash || s.url || s.ytId || `${s.title}-${s.name}`);
@@ -811,15 +842,17 @@ export async function handleStreams(subPath: string, url: URL): Promise<Response
               collected.push(s);
             }
           }
+          ranked = rankAndBadgeStreams(collected, { preferCastellano: isHpi });
         }
 
-        return rankAndBadgeStreams(collected, { preferCastellano: isHpi });
+        return ranked;
       },
       {
         ttlMs: TTL_SEGMENTS.SCRAPER_STREAMS.freshMs,
         staleMs: TTL_SEGMENTS.SCRAPER_STREAMS.staleMs,
         type: "streams",
         isStreamsData: true,
+        torboxChecker: (hashes) => queryTorboxApiCheckCached(hashes, 2500, torboxKey),
       }
     );
 

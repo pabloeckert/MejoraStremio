@@ -19,8 +19,11 @@ export function seedCount(text) {
 // no depende del swarm P2P vivo â€” un torrent con ðŸ‘¤ 0 hoy igual reproduce si ya estÃ¡ cacheado.
 // [TB download] / [TBâ¬‡ï¸] = TorBox todavÃ­a no lo tiene, necesita bajarlo del swarm primero.
 export function isCachedStream(s) {
-  const text = `${s?.name || ''} ${s?.title || ''} ${s?.description || ''}`;
-  return /\[TB\+\]|\[TB⚡\]|\[TBâš¡\]|\[(?:tb|torbox)\+\]|\b(?:cached|instant[aá]neo|debrid cache)\b|⚡/i.test(text);
+  const text = `${s?.name || ''} ${s?.title || ''} ${s?.description || ''} ${s?.url || ''}`;
+  if (/\[(?:tb|torbox|rd|ad|pm|oc|dl)\s*(?:download|⬇️?|⏳)\]|⬇️|⬇|⏳|\b(?:uncached|downloading|download\s+to\s+debrid)\b|\/videos\/downloading/i.test(text)) {
+    return false;
+  }
+  return /\[(?:tb|torbox|rd|ad|pm|oc|dl)\s*(?:\+|⚡)\]|\btrb\s*⚡|⚡|\b(?:cached|instant[aá]neo|debrid\s+cache)\b/i.test(text);
 }
 
 export function isRealStream(s) {
@@ -35,7 +38,7 @@ export const TITLE_FALSE_POSITIVES_REGEX =
   /\b(?:diego[-_.\s]+latino|latino[-_.\s]+heat)\b/gi;
 
 export const LATINO_CONFIRMED_REGEX =
-  /\b(cinecalidad|hackstore|latino|latina|es[-_.\s]?419|audio[-_.\s]?spl|doblaje[-_.\s]?latino|audio[-_.\s]?latino|dual[-_.\s]?latino|multi[-_.\s]?latino|espanoledla|edla|cuerda[-_.\s]?floja)\b|\[🌎\s*LATINO\]|🌎\s*latino\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
+  /\b(cinecalidad|hackstore|latino|latina|es[-_.\s]?419|audio[-_.\s]?spl|doblaje[-_.\s]?latino|audio[-_.\s]?latino|dual[-_.\s]?latino|multi[-_.\s]?latino|dual[-_.\s]*lat|multi[-_.\s]*lat|lat\s*\+\s*(?:ing|eng)|(?:ing|eng)\s*\+\s*lat|espanoledla|edla|cuerda[-_.\s]?floja)\b|\[🌎\s*LATINO\]|🌎\s*latino\b|🇲🇽|🇦🇷|🇨🇱|🇨🇴|🇵🇪|🇻🇪|🇺🇾/i;
 
 export const LATINO_PROBABLE_REGEX =
   /\b(latam|eslatam|es[-_.\s]?la|dual[-_.\s]?lat\b|multi[-_.\s]?lat\b|lat[-_.\s]?eng\b|eng[-_.\s]?lat\b|latin\b|latinoamericano|spanish[-_.\s]?latam)\b/i;
@@ -48,18 +51,22 @@ export const PT_STREAM_REGEX =
 export const CASTELLANO_STREAM_REGEX =
   /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|mejortorrent|wolfmax4k|dontorrent|estrenosdtl|grantorrent|castellana|dual[-_ ]?esp)\b|🇪🇸/i;
 
+export const CASTELLANO_TEXT_REGEX =
+  /\b(castellano|castellana|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|mejortorrent|wolfmax4k|dontorrent|estrenosdtl|grantorrent|dual[-_ ]?esp)\b/i;
+
 export const LATINO_NEGATIVE_REGEX =
   /\b(castellano|espa[nñ]ol[-_ ]?de[-_ ]?espa[nñ]a|es[-_]?es|vose|subtitulado|subtitulada)\b|🇪🇸/i;
 
 export function detectLatinoConfidence(stream) {
   const rawText = `${stream?.name || ''} ${stream?.title || ''} ${stream?.description || ''}`;
-  if (LATINO_NEGATIVE_REGEX.test(rawText) || PT_STREAM_REGEX.test(rawText) || CASTELLANO_STREAM_REGEX.test(rawText)) {
+  if (/\b(?:vose|subtitulado|subtitulada)\b/i.test(rawText) || PT_STREAM_REGEX.test(rawText) || CASTELLANO_TEXT_REGEX.test(rawText)) {
     return 'Desconocido';
   }
   const cleanForLatino = rawText
     .replace(TITLE_FALSE_POSITIVES_REGEX, ' ')
     .replace(/🌎\s*\/[^\r\n]*/g, ' ');
   if (LATINO_CONFIRMED_REGEX.test(cleanForLatino)) return 'Confirmado';
+  if (LATINO_NEGATIVE_REGEX.test(rawText)) return 'Desconocido';
   if (LATINO_PROBABLE_REGEX.test(cleanForLatino)) return 'Probable';
   return 'Desconocido';
 }
@@ -67,8 +74,9 @@ export function detectLatinoConfidence(stream) {
 export function classifyStreamAudio(stream) {
   const rawText = `${stream?.name || ''} ${stream?.title || ''} ${stream?.description || ''}`;
   if (PT_STREAM_REGEX.test(rawText) && !LATINO_CONFIRMED_REGEX.test(rawText)) return 'portuguese';
-  if (CASTELLANO_STREAM_REGEX.test(rawText) && !LATINO_CONFIRMED_REGEX.test(rawText)) return 'castellano';
+  if (CASTELLANO_TEXT_REGEX.test(rawText) && !LATINO_CONFIRMED_REGEX.test(rawText)) return 'castellano';
   if (detectLatinoConfidence(stream) === 'Confirmado') return 'latino';
+  if (CASTELLANO_STREAM_REGEX.test(rawText)) return 'castellano';
   return 'original';
 }
 

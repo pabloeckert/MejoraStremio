@@ -35,7 +35,7 @@ export function isUfcCombatCatalogId(id: string): boolean {
 }
 
 const EXCLUDE_KIDS_FAMILY_SOAP = "16,10751,10762,10766";
-const UFC_SWR_VERSION = "ufc_combat_v2";
+const UFC_SWR_VERSION = "ufc_combat_v3";
 
 interface StremioCatalogMeta {
   id: string;

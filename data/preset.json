@@ -160,8 +160,8 @@
                 "without_genres": "99,10767",
                 "with_release_type": "2|3",
                 "region": "AR",
-                "primary_release_date.gte": "2026-09-21",
-                "primary_release_date.lte": "2026-11-20"
+                "primary_release_date.gte": "2026-09-26",
+                "primary_release_date.lte": "2026-11-25"
               },
               "formState": {
                 "catalogName": "En Cartelera",
@@ -198,8 +198,8 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-09-21",
-                "primaryReleaseTo": "2026-11-20",
+                "primaryReleaseFrom": "2026-09-26",
+                "primaryReleaseTo": "2026-11-25",
                 "releaseRegion": "AR"
               }
             }
@@ -227,8 +227,8 @@
                 "with_origin_country": "US|GB|AR|ES",
                 "include_adult": false,
                 "without_genres": "99,10767",
-                "first_air_date.gte": "2026-09-21",
-                "first_air_date.lte": "2026-11-20"
+                "first_air_date.gte": "2026-09-26",
+                "first_air_date.lte": "2026-11-25"
               },
               "formState": {
                 "catalogName": "En Cartelera (Series)",
@@ -265,8 +265,8 @@
                   0,
                   400
                 ],
-                "firstAirFrom": "2026-09-21",
-                "firstAirTo": "2026-11-20"
+                "firstAirFrom": "2026-09-26",
+                "firstAirTo": "2026-11-25"
               }
             }
           }
@@ -673,7 +673,7 @@
                 "with_origin_country": "US|GB|AR|ES",
                 "include_adult": false,
                 "without_genres": "99,10767",
-                "primary_release_date.gte": "2026-11-20",
+                "primary_release_date.gte": "2026-11-25",
                 "primary_release_date.lte": "2027-01-20"
               },
               "formState": {
@@ -711,7 +711,7 @@
                   0,
                   400
                 ],
-                "primaryReleaseFrom": "2026-11-20"
+                "primaryReleaseFrom": "2026-11-25"
               }
             }
           }
@@ -738,7 +738,7 @@
                 "with_origin_country": "US|GB|AR|ES",
                 "include_adult": false,
                 "without_genres": "99,10767",
-                "first_air_date.gte": "2026-11-20",
+                "first_air_date.gte": "2026-11-25",
                 "first_air_date.lte": "2027-01-20"
               },
               "formState": {
@@ -776,7 +776,7 @@
                   0,
                   400
                 ],
-                "firstAirFrom": "2026-11-20"
+                "firstAirFrom": "2026-11-25"
               }
             }
           }
@@ -6705,7 +6705,7 @@
               "source": "tmdb",
               "mediaType": "movie",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "primary_release_date.desc",
                 "include_adult": false,
                 "certification_country": "US",
                 "certification": "G",
@@ -6716,7 +6716,7 @@
               "formState": {
                 "catalogName": "Disney+ Movies",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "primary_release_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "movie",
                 "includeGenres": [],
@@ -6780,7 +6780,7 @@
               "source": "tmdb",
               "mediaType": "tv",
               "params": {
-                "sort_by": "popularity.desc",
+                "sort_by": "first_air_date.desc",
                 "include_adult": false,
                 "with_genres": "10762",
                 "watch_region": "US",
@@ -6790,7 +6790,7 @@
               "formState": {
                 "catalogName": "Disney+ Shows",
                 "discoverSource": "tmdb",
-                "sortBy": "popularity.desc",
+                "sortBy": "first_air_date.desc",
                 "cacheTTL": 86400,
                 "catalogType": "series",
                 "includeGenres": [

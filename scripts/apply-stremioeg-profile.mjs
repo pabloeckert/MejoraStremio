@@ -154,14 +154,19 @@ export function scoreAudioStream(stream) {
     score += 200;
   }
 
-  // REGLA ESTRICTA: Doblaje Latino prioritario (+100)
+  // REGLA ESTRICTA: Doblaje Latino prioritario #1 (+100)
   if (/\[latino\]|\blatino\b|audio.?latino|español.?latino|\bdual.?latino\b|\blat\b/i.test(text)) {
     score += 100;
   }
 
-  // REGLA ESTRICTA: Audio Original prioritario (+70)
+  // REGLA ESTRICTA: Español Castellano secundario #2 (+80)
+  if (/\[castellano\]|\bcastellano\b|español.?españa|spanish.?spain/i.test(text)) {
+    score += 80;
+  }
+
+  // REGLA ESTRICTA: Audio Original prioritario #3 (+50)
   if (/original.?audio|\beng\b|english|\binglés\b|\bvose\b/i.test(text)) {
-    score += 70;
+    score += 50;
   }
 
   // Multi Audio general (+30)
@@ -169,9 +174,9 @@ export function scoreAudioStream(stream) {
     score += 30;
   }
 
-  // REGLA ESTRICTA: Español España / Castellano RELEGADO a última instancia (-80)
-  if (/\[castellano\]|\bcastellano\b|español.?españa|spanish.?spain/i.test(text)) {
-    score -= 80;
+  // Portugués a última instancia (-40)
+  if (/\b(?:dublado|legendado|portugu[eê]s)\b|🇧🇷|🇵🇹/i.test(text)) {
+    score -= 40;
   }
 
   return score;
@@ -1100,7 +1105,7 @@ export function runUnitTests() {
   assertTest('Prioriza Español Latino en primer lugar', rankedSubs[0]?.label.includes('Latino'));
   assertTest('Relega Castellano (España) al último lugar de los aceptados', rankedSubs[rankedSubs.length - 1]?.label.includes('Castellano'));
 
-  // 2. Audio: Priorización de Latino y Original; Relegación de Castellano
+  // 2. Audio: Priorización de Latino (#1) y Castellano (#2) antes de Original
   const testStreams = [
     { name: 'Torrentio', title: 'Movie 1080p [Castellano] AC3' },
     { name: 'Torrentio', title: 'Movie 1080p [Latino] 5.1' },
@@ -1111,7 +1116,8 @@ export function runUnitTests() {
   const rankedStreams = rankAudioStreams(testStreams);
 
   assertTest('TorBox cacheado + Latino lidera el ranking', rankedStreams[0]?.title.includes('[TB+]') && rankedStreams[0]?.title.includes('Latino'));
-  assertTest('Stream con solo Castellano queda al final', rankedStreams[rankedStreams.length - 1]?.title.includes('[Castellano]'));
+  assertTest('Español Castellano se ubica inmediatamente detrás de Latino antes de audio original', rankedStreams[2]?.title.includes('[Castellano]'));
+  assertTest('Audio original en inglés queda después de los doblajes en español', rankedStreams[rankedStreams.length - 1]?.title.includes('[Original English]'));
 
   // 3. Configuración de Torrentio y Comet
   const dummyTorrentio = {

@@ -9,14 +9,14 @@
  */
 
 import { cors, jsonResponse, safeGetKv } from "./utils/common.ts";
-import { handleStreams } from "./streams/streams.ts";
+import { handleStreams, STREAMS_MANIFEST } from "./streams/streams.ts";
 import { handleSubdl } from "./subtitles/subdl.ts";
 import { handleOpenSubtitles, OPENSUBTITLES_LATINO_MANIFEST } from "./subtitles/opensubtitles.ts";
 import { handleSubsource } from "./subtitles/subsource.ts";
 import { handleSubdivx } from "./subtitles/subdivx.ts";
-import { handleTranslate } from "./translate/translate.ts";
+import { handleTranslate, TRANSLATE_MANIFEST } from "./translate/translate.ts";
 import { pushDualSubtitles, type SubtitleTrackPayload } from "./subtitles/smartsync.ts";
-import { handleDiscover } from "./catalogs/tmdb.ts";
+import { handleDiscover, DISCOVER_MANIFEST } from "./catalogs/tmdb.ts";
 import { handleMeta } from "./catalogs/synopsis.ts";
 import { buildStremioJnManifest, MEJORASTREMIO_HUB_MANIFEST } from "./manifest.ts";
 import { buildParaVosCatalog, handleSyncLibrary } from "./catalogs/paravos.ts";
@@ -25,8 +25,20 @@ import { isCanaryActiveForProfile } from "./utils/canary_governance.ts";
 import { resolveStreamSession } from "./streams/stream_security.ts";
 import { fetchMovieHash, computeMovieHashFromBuffers } from "./subtitles/hasher.ts";
 import { handleHealth } from "./health.ts";
+import { SUBTITLES_APP_MANIFEST } from "./subtitles/subtitles.ts";
+import { TRAILERS_LATINO_MANIFEST, handleTrailersStream } from "./catalogs/trailers.ts";
 
-export { MEJORASTREMIO_HUB_MANIFEST, fetchMovieHash, computeMovieHashFromBuffers, handleMeta };
+export {
+  MEJORASTREMIO_HUB_MANIFEST,
+  SUBTITLES_APP_MANIFEST,
+  STREAMS_MANIFEST,
+  TRANSLATE_MANIFEST,
+  TRAILERS_LATINO_MANIFEST,
+  DISCOVER_MANIFEST,
+  fetchMovieHash,
+  computeMovieHashFromBuffers,
+  handleMeta,
+};
 
 export async function computeSha256Etag(payload: string): Promise<string> {
   const data = new TextEncoder().encode(payload);
@@ -473,6 +485,33 @@ export async function handleUnifiedHub(
     return jsonResponse({ error: "Parámetro 'streamUrl' requerido" }, { status: 400 });
   }
 
+  // ── MANIFIESTOS DE LOS 5 COMPLEMENTOS DEDICADOS EXCLUSIVOS ──
+  // 1. Complemento Dedicado Exclusivo de Subtítulos (SubDL, OpenSubtitles Latino, SubSource, Subdivx)
+  if (path === "/subtitles/manifest.json" || path.endsWith("/subtitles/manifest.json")) {
+    return await createManifestResponse(SUBTITLES_APP_MANIFEST as unknown as Record<string, unknown>);
+  }
+  // 2. Complemento Dedicado Exclusivo de Audio y Streams (TorBox, Latino #1, Castellano #2)
+  if (path === "/streams/manifest.json" || path.endsWith("/streams/manifest.json")) {
+    return await createManifestResponse(STREAMS_MANIFEST as unknown as Record<string, unknown>);
+  }
+  // 3. Complemento Dedicado Exclusivo Creador de Subtítulos IA (Gemini Flash)
+  if (path === "/translate/manifest.json" || path.endsWith("/translate/manifest.json")) {
+    return await createManifestResponse(TRANSLATE_MANIFEST as unknown as Record<string, unknown>);
+  }
+  // 4. Complemento Dedicado Exclusivo Anti-Frustración (Tráilers Oficiales Latino y Previews HD)
+  if (path === "/trailers/manifest.json" || path.endsWith("/trailers/manifest.json")) {
+    return await createManifestResponse(TRAILERS_LATINO_MANIFEST as unknown as Record<string, unknown>);
+  }
+  // 5. Complemento Dedicado Exclusivo Catálogos Ultra-Actualizados (Estrenos ordenados descendente)
+  if (
+    path === "/catalogs/manifest.json" ||
+    path === "/discover/manifest.json" ||
+    path.endsWith("/catalogs/manifest.json") ||
+    path.endsWith("/discover/manifest.json")
+  ) {
+    return await createManifestResponse(DISCOVER_MANIFEST as unknown as Record<string, unknown>);
+  }
+
   // 2. Página de configuración raíz: /configure
   if (path === "/configure") {
     const html = renderConfigureHtml("", origin);
@@ -536,7 +575,7 @@ export async function handleUnifiedHub(
   }
 
   // 7. Subtítulos parametrizados: /:config/subtitles/:type/:id.json
-  const configSubsMatch = path.match(/^\/([^/]+)\/subtitles\/(movie|series)\/(.+)\.json$/);
+  const configSubsMatch = path.match(/^\/([^/]+)\/subtitles(?:\/subtitles)?\/(movie|series)\/(.+)\.json$/);
   if (configSubsMatch) {
     const configSegment = configSubsMatch[1];
     if (!RESERVED_PREFIXES.has(configSegment)) {
@@ -548,9 +587,36 @@ export async function handleUnifiedHub(
   }
 
   // 8. Subtítulos directos en raíz: /subtitles/:type/:id.json
-  const directSubsMatch = path.match(/^\/subtitles\/(movie|series)\/(.+)\.json$/);
+  const directSubsMatch = path.match(/^\/subtitles(?:\/subtitles)?\/(movie|series)\/(.+)\.json$/);
   if (directSubsMatch) {
-    return await handleUnifiedSubtitles(path, `${origin}/subtitles`, reqUrl);
+    const type = directSubsMatch[1];
+    const rawId = directSubsMatch[2];
+    const subPath = `/subtitles/${type}/${rawId}.json`;
+    return await handleUnifiedSubtitles(subPath, `${origin}/subtitles`, reqUrl);
+  }
+
+  // 8b. Tráilers parametrizados o directos: /:config/trailers/stream/:type/:id.json o /trailers/stream/:type/:id.json
+  const trailersStreamMatch = path.match(/^(?:\/([^/]+))?\/trailers\/stream\/(movie|series)\/(.+)\.json$/);
+  if (trailersStreamMatch) {
+    const rawPath = path.slice(path.indexOf("/trailers") + "/trailers".length);
+    return await handleTrailersStream(rawPath, reqUrl);
+  }
+
+  // 8c. Translate subtítulos parametrizados o directos: /:config/translate/subtitles/:type/:id.json o /translate/subtitles/:type/:id.json
+  const translateSubsMatch = path.match(/^(?:\/([^/]+))?\/translate\/subtitles\/(movie|series)\/(.+)\.json$/);
+  if (translateSubsMatch) {
+    const rawPath = path.slice(path.indexOf("/translate") + "/translate".length);
+    return await handleTranslate(rawPath, `${origin}/translate`, reqUrl);
+  }
+
+  // 8d. Catálogos directos bajo /catalogs/catalog/...
+  const catalogsDirectMatch = path.match(/^(?:\/([^/]+))?\/catalogs\/catalog\/(movie|series)\/([^/]+)(?:\/(.+))?\.json$/);
+  if (catalogsDirectMatch) {
+    const type = catalogsDirectMatch[2] as "movie" | "series";
+    const catId = catalogsDirectMatch[3];
+    const extra = catalogsDirectMatch[4] ? `/${catalogsDirectMatch[4]}` : "";
+    const subPath = `/catalog/${type}/${catId}${extra}.json`;
+    return await handleDiscover(subPath, reqUrl);
   }
 
   // 9. Catálogos parametrizados: /:config/catalog/:type/:id.json

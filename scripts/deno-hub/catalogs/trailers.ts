@@ -358,10 +358,10 @@ export async function runNightlyTrailerCron(
 
 export const TRAILERS_LATINO_MANIFEST = {
   id: "com.mejorastremio.trailers-latino",
-  version: "1.0.0",
-  name: "Tráilers Oficiales Latino (MejoraStremio)",
+  version: "3.4.0",
+  name: "Anti-Frustración · Previews y Tráilers en Español",
   description:
-    "Tráilers oficiales doblados al español latino (1080p YouTube), resúmenes de temporada y avances oficiales con filtro anti-castellano y cero spoilers.",
+    "Garantiza que puedas reproducir cualquier contenido y nunca quedarte solo en portada: tráilers y previews oficiales en doblaje y subtítulos Latino en alta definición.",
   resources: ["stream"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],

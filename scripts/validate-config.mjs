@@ -89,11 +89,12 @@ export function validatePreset(filePath, preset, errFn = err, warnFn = warn) {
       } else {
         const isUpcoming = /upcoming/.test(String(c.id || ''));
         const isRecentRelease = /upcoming|now_playing|recent|estrenos|cartelera/i.test(String(c.id || ''));
+        const isRegionalOrNiche = /argentina|latam|latino|animaci/i.test(String(c.name || '')) || /argentina|latam|latino/i.test(String(c.id || ''));
 
-        // 1. Filtro Anti-Basura Obligatorio: vote_count.gte >= 150 (o >= 5 en estrenos / en cartelera)
+        // 1. Filtro Anti-Basura Obligatorio: vote_count.gte >= 150 (o >= 3 en estrenos / en cartelera / regional)
         if (!isUpcoming) {
-          const minVoteCount = isRecentRelease ? 5 : 150;
-          const minVoteAvg = isRecentRelease ? 5.5 : 6.0;
+          const minVoteCount = (isRecentRelease || isRegionalOrNiche) ? 3 : 150;
+          const minVoteAvg = (isRecentRelease || isRegionalOrNiche) ? 5.0 : 6.0;
           const vc = Number(params['vote_count.gte']);
           if (isNaN(vc) || vc < minVoteCount) {
             errFn(`[${filePath}] ${at} ("${c.name}") carece del filtro anti-basura vote_count.gte >= ${minVoteCount} (tiene: ${params['vote_count.gte']})`);

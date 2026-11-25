@@ -1027,11 +1027,11 @@ export function buildUniverseOrPlatformDiscoverParams(
     ...baseSource,
   };
 
-  if (parsed.sortRecent || sortParam === "released" || sortParam === "premiere_date" || sortParam === "year_desc") {
+  if (sortParam === "popularity.desc" || sortParam === "Popularidad") {
+    params.sort_by = "popularity.desc";
+  } else {
     params.sort_by = `${dateField}.desc`;
     params[`${dateField}.lte`] = new Date().toISOString().slice(0, 10);
-  } else {
-    params.sort_by = "popularity.desc";
   }
 
   if (parsed.genreId) {

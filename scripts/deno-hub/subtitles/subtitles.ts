@@ -15,14 +15,16 @@ subtitlesApp.use("*", cors({ origin: "*", allowMethods: ["GET", "OPTIONS"] }));
 
 export const SUBTITLES_APP_MANIFEST = {
   id: "com.mejorastremio.subtitles",
-  version: "2.2.0",
-  name: "MejoraStremio Subtítulos (Multi-Fuente + IA)",
-  description: "Ingesta multi-fuente de SubDL, OpenSubtitles v3, SubSource, SubSense y Traducción IA Gemini Flash sin SDH.",
+  version: "3.4.0",
+  name: "Subtítulos en Español (Latino + Castellano)",
+  description: "Complemento dedicado a buscar y obtener subtítulos en Español Latino y Castellano de todas las fuentes posibles (SubDL, OpenSubtitles Latino, SubSource, Subdivx) sin marcas SDH.",
   resources: ["subtitles"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
   languages: ["spl", "spa", "es-419"],
 };
+
+export const SUBTITLES_MANIFEST = SUBTITLES_APP_MANIFEST;
 
 // ============================================================================
 // 1. PURGA Y HIGIENE ANTI-SDH (HEARING IMPAIRED / NOISE REMOVAL)

@@ -102,9 +102,10 @@
     "audio": {
       "priorityHierarchy": [
         "latino",
+        "castellano",
         "original"
       ],
-      "lastResort": "castellano",
+      "lastResort": "portuguese",
       "torrentio": {
         "language": "latino",
         "description": "Filtra/ordena con prioridad audio latino (flag 'latino')"

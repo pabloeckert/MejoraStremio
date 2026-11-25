@@ -624,11 +624,11 @@ export function discoverExtra(genreMap: Record<string, number>, isGenreRequired 
 }
 
 export const DISCOVER_MANIFEST = {
-  id: "com.mejorastremio.discover-master",
-  version: "1.2.0",
-  name: "Descubrir Maestro & Estrenos",
+  id: "com.mejorastremio.catalogs",
+  version: "3.4.0",
+  name: "Catálogos Ultra-Actualizados (Estrenos & Filtros)",
   description:
-    "Catálogos de TMDB Discover y Estrenos al Día 1 ordenados cronológicamente por fecha de lanzamiento. Incluye Nuevos Estrenos Cine, Nuevas Temporadas, Estrenos Streaming y filtros combinados.",
+    "Catálogos de TMDB Discover y Estrenos al Día 1 ordenados cronológicamente por fecha de lanzamiento más reciente en todos los filtros y secciones. Incluye Nuevos Estrenos Cine, Nuevas Temporadas, Estrenos Streaming y filtros combinados.",
   resources: ["catalog"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
@@ -1163,10 +1163,10 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     // Rama B: Rollup "Sagas y Universos" (Todos)
     params.with_companies = "420|429|128064|184898|41077|90733";
     params["vote_count.gte"] = type === "movie" ? "50" : "15";
-    params.sort_by = (parsed.sortRecent || sortParam === "released" || sortParam === "premiere_date" || sortParam === "year_desc")
-      ? `${dateField}.desc`
-      : "popularity.desc";
-    if (parsed.sortRecent) params[`${dateField}.lte`] = today;
+    params.sort_by = (sortParam === "popularity.desc" || sortParam === "Popularidad")
+      ? "popularity.desc"
+      : `${dateField}.desc`;
+    if (!sortParam || sortParam !== "popularity.desc") params[`${dateField}.lte`] = today;
     if (parsed.genreId) params.with_genres = String(parsed.genreId);
     regionHint = "US";
     badgeLabel = "🌌 Sagas y Universos";
@@ -1269,7 +1269,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       params.without_genres = "10764,10763,10767,10768";
       params["vote_count.gte"] = "60";
       params["vote_average.gte"] = "6.5";
-      params.sort_by = "popularity.desc";
+      params.sort_by = (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : "first_air_date.desc";
     } else {
       // Películas de Acción Familiar ATP (G, PG, PG-13)
       params.certification_country = "US";
@@ -1280,28 +1280,28 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
 
       if (genre === "Shawn Levy & Free Guy" || genre === "Shawn Levy") {
         params.with_people = "17825"; // Shawn Levy (Free Guy, Gigantes de Acero, Noche en el Museo, El proyecto Adam)
-        params.sort_by = "popularity.desc";
+        params.sort_by = (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : "primary_release_date.desc";
       } else if (genre === "Comedia de Acción") {
         params.with_genres = "28,35";
-        params.sort_by = "popularity.desc";
+        params.sort_by = (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : "primary_release_date.desc";
       } else if (genre === "Acción y Aventura") {
         params.with_genres = "28,12";
-        params.sort_by = "popularity.desc";
+        params.sort_by = (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : "primary_release_date.desc";
       } else if (genre === "Superhéroes ATP") {
         params.with_genres = "28,878";
-        params.sort_by = "popularity.desc";
+        params.sort_by = (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : "primary_release_date.desc";
       } else if (genre === "Ciencia Ficción Familiar") {
         params.with_genres = "878,10751";
-        params.sort_by = "popularity.desc";
+        params.sort_by = (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : "primary_release_date.desc";
       } else {
         // "Todos" o no especificado: Acción familiar por omisión
         params.with_genres = "28"; // Acción (ATP)
         if (sortParam === "vote_average.desc") {
           params.sort_by = "vote_average.desc";
-        } else if (sortParam === "released") {
-          params.sort_by = "primary_release_date.desc";
-        } else {
+        } else if (sortParam === "popularity.desc" || sortParam === "Popularidad") {
           params.sort_by = "popularity.desc";
+        } else {
+          params.sort_by = "primary_release_date.desc";
         }
       }
     }

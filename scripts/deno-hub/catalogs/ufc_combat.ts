@@ -258,7 +258,7 @@ async function fetchUfcEventsCatalog(genre: string, skip: number): Promise<Strem
         language: "es-MX",
         with_genres: "99",
         with_keywords: "271585|354756|9917|384605|209476",
-        sort_by: "popularity.desc",
+        sort_by: "primary_release_date.desc",
         "vote_count.gte": "3",
         "primary_release_date.lte": today,
       },
@@ -267,7 +267,7 @@ async function fetchUfcEventsCatalog(genre: string, skip: number): Promise<Strem
     );
   }
 
-  const years = [currentYear, currentYear - 1, currentYear - 2];
+  const years = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
   const [searchByYear, byCompanies, byKeywords] = await Promise.all([
     Promise.all(
       years.map((y) =>
@@ -323,7 +323,7 @@ async function fetchUfcEventsCatalog(genre: string, skip: number): Promise<Strem
   const sorted = [...seen.values()].sort((a, b) =>
     String(b.release_date || "").localeCompare(String(a.release_date || ""))
   );
-  const sliceCandidates = sorted.slice(skip, skip + 40);
+  const sliceCandidates = sorted.slice(skip, skip + 60);
   const imdbMap = await resolveBatchImdb(
     sliceCandidates.map((r) => r.id as number),
     "movie",
@@ -424,7 +424,7 @@ async function fetchCineUfcMmaCatalog(
       without_genres: EXCLUDE_KIDS_FAMILY_SOAP,
       "vote_count.gte": rating ? "15" : "5",
       "primary_release_date.lte": today,
-      sort_by: sortRecent ? "primary_release_date.desc" : "popularity.desc",
+      sort_by: (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : "primary_release_date.desc",
     },
     page,
     { rating, badgeLabel: badge },
@@ -470,7 +470,6 @@ export async function handleUfcCombatCatalog(
   const parsed = parseCompositeFilter(rawGenre, type, rawRating);
   const today = new Date().toISOString().slice(0, 10);
   const dateField = type === "movie" ? "primary_release_date" : "first_air_date";
-  const sortRecent = Boolean(parsed.sortRecent || sortParam === "released" || sortParam === "premiere_date" || sortParam === "year_desc");
 
   const swrKey = [
     UFC_SWR_VERSION,
@@ -508,7 +507,7 @@ export async function handleUfcCombatCatalog(
             without_genres: EXCLUDE_KIDS_FAMILY_SOAP,
             "vote_count.gte": type === "movie" ? "10" : "5",
             [`${dateField}.lte`]: today,
-            sort_by: sortRecent ? `${dateField}.desc` : "popularity.desc",
+            sort_by: (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : `${dateField}.desc`,
           },
           page,
           { rating: parsed.rating, requestedGenreId: parsed.genreId, badgeLabel: "💥 Acción & Adrenalina" },
@@ -525,7 +524,7 @@ export async function handleUfcCombatCatalog(
             without_genres: EXCLUDE_KIDS_FAMILY_SOAP,
             "vote_count.gte": type === "movie" ? "10" : "5",
             [`${dateField}.lte`]: today,
-            sort_by: sortRecent ? `${dateField}.desc` : "popularity.desc",
+            sort_by: (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : `${dateField}.desc`,
           },
           page,
           { rating: parsed.rating, requestedGenreId: parsed.genreId, badgeLabel: "🔪 Thriller & Policial" },
@@ -539,7 +538,7 @@ export async function handleUfcCombatCatalog(
           without_genres: EXCLUDE_KIDS_FAMILY_SOAP,
           "vote_count.gte": type === "movie" ? "10" : "3",
           [`${dateField}.lte`]: today,
-          sort_by: sortRecent ? `${dateField}.desc` : "popularity.desc",
+          sort_by: (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : `${dateField}.desc`,
         };
         if (parsed.genreId) baseParams.with_genres = String(parsed.genreId);
         const results = await discoverTmdbCombatMetas(type, baseParams, page, {
@@ -561,7 +560,7 @@ export async function handleUfcCombatCatalog(
           without_genres: EXCLUDE_KIDS_FAMILY_SOAP,
           "vote_count.gte": type === "movie" ? "10" : "5",
           [`${dateField}.lte`]: today,
-          sort_by: sortRecent ? `${dateField}.desc` : "popularity.desc",
+          sort_by: (sortParam === "popularity.desc" || sortParam === "Popularidad") ? "popularity.desc" : `${dateField}.desc`,
         };
         if (parsed.genreId) baseParams.with_genres = String(parsed.genreId);
         return await discoverTmdbCombatMetas(type, baseParams, page, {

@@ -58,10 +58,10 @@ import { getCompressedKvText, setCompressedKvText } from "../utils/kv_blob_cache
 
 export const TRANSLATE_MANIFEST = {
   id: "com.mejorastremio.translate",
-  version: "1.2.1",
-  name: "Traducción IA (Gemini Flash)",
+  version: "3.4.0",
+  name: "Creador de Subtítulos IA (Gemini Flash)",
   description:
-    "Traducción automática al español latino (vía IA Gemini Flash) para series alemanas y contenido sin subtítulos en español.",
+    "Complemento dedicado a detectar el idioma original, traducir con IA (Gemini Flash) e insertar subtítulos limpios y sincronizados en Español Latino.",
   resources: ["subtitles"],
   types: ["series", "movie"],
   idPrefixes: ["tt"],

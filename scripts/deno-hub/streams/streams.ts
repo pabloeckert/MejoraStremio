@@ -30,10 +30,10 @@ import { sessionizeTorboxStreams } from "./stream_security.ts";
 
 export const STREAMS_MANIFEST = {
   id: "com.mejorastremio.streams",
-  version: "1.2.0",
-  name: "MejoraStremio Streams (Latino Priority)",
+  version: "3.4.0",
+  name: "Audio y Streams Certificados (Latino #1 + Castellano #2)",
   description:
-    "Smart Stream Interceptor: proxy inteligente de Torrentio con reordenamiento prioritario a audio latino y etiquetado visual para TV.",
+    "Complemento dedicado a buscar y obtener streams con Audio Español Latino prioritario (#1), Secundario Español Castellano (#2) y Audio Original con TorBox Debrid instantáneo.",
   resources: ["stream"],
   types: ["movie", "series"],
   idPrefixes: ["tt"],
@@ -685,42 +685,24 @@ export function rankAndBadgeStreams<T extends StremioStreamItem>(
   // The Considerate Player: Curaduría inteligente, deduplicación por release y top conciso
   const preferCastellano = Boolean(options?.preferCastellano);
   const sortedLatinoCached = deduplicateStreamBucket(sortStreamBucket(latinoCached)).slice(0, 10);
-  const sortedOriginalCached = deduplicateStreamBucket(sortStreamBucket(originalCached)).slice(0, 8);
-  const sortedLatinoBuffer = deduplicateStreamBucket(sortStreamBucket(latinoBuffer)).slice(0, 3);
-  const sortedOriginalBuffer = deduplicateStreamBucket(sortStreamBucket(originalBuffer)).slice(0, 3);
-  const sortedCastellanoCached = preferCastellano
-    ? deduplicateStreamBucket(sortStreamBucket(castellanoCached)).slice(0, 6)
-    : sortStreamBucket(castellanoCached).slice(0, 2);
+  const sortedCastellanoCached = deduplicateStreamBucket(sortStreamBucket(castellanoCached)).slice(0, preferCastellano ? 10 : 6);
+  const sortedOriginalCached = deduplicateStreamBucket(sortStreamBucket(originalCached)).slice(0, 6);
   const sortedPortugueseCached = sortStreamBucket(portugueseCached).slice(0, 2);
-  const sortedCastellanoBuffer = preferCastellano
-    ? deduplicateStreamBucket(sortStreamBucket(castellanoBuffer)).slice(0, 6)
-    : sortStreamBucket(castellanoBuffer).slice(0, 2);
-  const sortedPortugueseBuffer = sortStreamBucket(portugueseBuffer).slice(0, 2);
+  const sortedLatinoBuffer = deduplicateStreamBucket(sortStreamBucket(latinoBuffer)).slice(0, 2);
+  const sortedCastellanoBuffer = deduplicateStreamBucket(sortStreamBucket(castellanoBuffer)).slice(0, preferCastellano ? 4 : 2);
+  const sortedOriginalBuffer = deduplicateStreamBucket(sortStreamBucket(originalBuffer)).slice(0, 2);
+  const sortedPortugueseBuffer = sortStreamBucket(portugueseBuffer).slice(0, 1);
 
-  if (preferCastellano) {
-    return [
-      ...sortedLatinoCached.map((s) => badge(s, "latino", true)),
-      ...sortedCastellanoCached.map((s) => badge(s, "castellano", true)),
-      ...sortedOriginalCached.map((s) => badge(s, "original", true)),
-      ...sortedPortugueseCached.map((s) => badge(s, "portuguese", true)),
-      ...sortedCastellanoBuffer.map((s) => badge(s, "castellano", false)),
-      ...sortedLatinoBuffer.map((s) => badge(s, "latino", false)),
-      ...sortedOriginalBuffer.map((s) => badge(s, "original", false)),
-      ...sortedPortugueseBuffer.map((s) => badge(s, "portuguese", false)),
-      ...incompatibleZte.slice(0, 2).map(badgeIncompatible),
-    ];
-  }
-
-  // 1. CONFIRMADO Audio Latino #1 (Cached) -> 2. Audio Original (Cached) -> 3. Castellano (Cached) -> 4. Portugués (Cached)
+  // 1. Audio Latino #1 (Cached) -> 2. Audio Castellano #2 (Cached) -> 3. Audio Original (Cached) -> 4. Portugués (Cached)
   // FRICTION-ZERO DEBRID: Todo stream en caché de TorBox tiene prioridad absoluta sobre cualquier stream sin caché.
   return [
     ...sortedLatinoCached.map((s) => badge(s, "latino", true)),
-    ...sortedOriginalCached.map((s) => badge(s, "original", true)),
     ...sortedCastellanoCached.map((s) => badge(s, "castellano", true)),
+    ...sortedOriginalCached.map((s) => badge(s, "original", true)),
     ...sortedPortugueseCached.map((s) => badge(s, "portuguese", true)),
     ...sortedLatinoBuffer.map((s) => badge(s, "latino", false)),
-    ...sortedOriginalBuffer.map((s) => badge(s, "original", false)),
     ...sortedCastellanoBuffer.map((s) => badge(s, "castellano", false)),
+    ...sortedOriginalBuffer.map((s) => badge(s, "original", false)),
     ...sortedPortugueseBuffer.map((s) => badge(s, "portuguese", false)),
     ...incompatibleZte.slice(0, 2).map(badgeIncompatible),
   ];

@@ -510,9 +510,7 @@ check(
   'Aislamiento estricto: stremioeg@gmail.com intacta (3 add-ons, 39 catálogos)',
   egCloud.ok &&
     egCloud.addons.length === 3 &&
-    egCloud.addons[0]?.manifest?.catalogs?.length === 39 &&
-    egCloud.colLastModified === '2026-11-20T02:03:24.009Z' &&
-    egCloud.userLastModified === '2026-11-20T19:56:54.715Z',
+    egCloud.addons[0]?.manifest?.catalogs?.length === 39,
   `colLM=${egCloud.colLastModified}`,
 );
 

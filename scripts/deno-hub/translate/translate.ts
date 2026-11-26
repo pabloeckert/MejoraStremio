@@ -763,7 +763,7 @@ export async function handleTranslate(
       });
     }
 
-    const cacheKey = ["translate-srt", "v9", src.r];
+    const cacheKey = ["translate-srt", "v10", src.r];
     const subCacheParams: SubCacheKeyParams = {
       tmdb_id: src.id || src.r || "unknown",
       season: src.s ?? 0,
@@ -828,7 +828,8 @@ export async function handleTranslate(
       let srt = serializeSrt(outCues);
       srt = cleanSrt(srt);
 
-      if (kv && done) {
+      const isSyntheticBase = baseCues.length <= 4 && baseCues.some((c) => c.text.includes("Canal Universal de Traducción"));
+      if (kv && done && !isSyntheticBase) {
         try {
           await setCompressedKvText(kv, cacheKey, srt, { expireIn: TRANSLATE_CACHE_TTL_MS });
           // Persistencia en P1 + P2 con criterio estricto y chunking (guardar en spl y spa para reuso universal)

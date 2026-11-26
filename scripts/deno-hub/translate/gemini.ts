@@ -13,10 +13,10 @@ import {
   recordGeminiSuccess,
 } from "./gemini_governance.ts";
 
-export const GEMINI_MODEL = safeEnv("GEMINI_MODEL", "gemini-3.8-flash");
+export const GEMINI_MODEL = safeEnv("GEMINI_MODEL", "gemini-2.5-flash");
 export const OPENROUTER_MODEL = (safeEnv("OPENROUTER_MODEL") && safeEnv("OPENROUTER_MODEL") !== "openrouter/free")
   ? safeEnv("OPENROUTER_MODEL")
-  : "google/gemini-3.8-flash";
+  : "google/gemini-2.5-flash";
 export const GEMINI_API_KEY = safeEnv("GEMINI_API_KEY");
 export const OPENROUTER_API_KEY = safeEnv("OPENROUTER_API_KEY");
 
@@ -65,8 +65,7 @@ export async function callGemini(prompt: string, apiKey: string, signal: AbortSi
   }
 
   const modelsToTry = [
-    GEMINI_MODEL || "gemini-3.8-flash",
-    "gemini-3.8-flash",
+    GEMINI_MODEL || "gemini-2.5-flash",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
     "gemini-1.5-flash",

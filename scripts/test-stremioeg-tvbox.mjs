@@ -201,12 +201,10 @@ const rankedStreams = rankAudioStreams(testStreamDataset);
 const topStream = rankedStreams[0];
 record(report.test2_filters, 'Stream TorBox + Dual Latino/English lidera el ranking', topStream?.title?.includes('[TB+]') && topStream?.title?.includes('Latino'), `Top stream: "${topStream?.title}"`);
 
-const bottomStream = rankedStreams[rankedStreams.length - 1];
-record(report.test2_filters, 'Streams exclusivos con Castellano quedan al fondo del ranking', bottomStream?.title?.includes('Castellano') || bottomStream?.title?.includes('Spanish Spain'), `Fondo: "${bottomStream?.title}"`);
-
 const latinoRank = rankedStreams.findIndex((s) => s.title.includes('[Latino]'));
 const castellanoRank = rankedStreams.findIndex((s) => s.title.includes('[Castellano]'));
-record(report.test2_filters, 'Latino supera holgadamente a Castellano en posición relativa', latinoRank < castellanoRank, `Posiciones: Latino #${latinoRank + 1} vs Castellano #${castellanoRank + 1}`);
+const originalRank = rankedStreams.findIndex((s) => s.title.includes('[Original English]'));
+record(report.test2_filters, 'Audio Latino prioritario #1 y Castellano secundario #2 (antes de Original)', latinoRank < castellanoRank && castellanoRank < originalRank, `Posiciones: Latino #${latinoRank + 1} vs Castellano #${castellanoRank + 1} vs Original #${originalRank + 1}`);
 
 // 2.3 Neutralización de Add-ons de Subtítulos Competidores y Monopolio del Hub
 const dummyCollection = [

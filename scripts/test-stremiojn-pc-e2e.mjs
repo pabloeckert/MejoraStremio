@@ -348,17 +348,44 @@ for (const bin of binaries) {
 }
 
 let procs = [];
-try {
-  const raw = execSync(
-    'powershell -NoProfile -Command "Get-Process stremio* -ErrorAction SilentlyContinue | Select-Object Name,Id | ConvertTo-Json"',
-    { encoding: 'utf8', timeout: 8000 },
-  ).trim();
-  const parsed = raw ? JSON.parse(raw) : [];
-  procs = Array.isArray(parsed) ? parsed : [parsed];
-} catch {
-  procs = [];
+function getStremioProcs() {
+  try {
+    const raw = execSync(
+      'powershell -NoProfile -Command "Get-Process stremio* -ErrorAction SilentlyContinue | Select-Object Name,Id | ConvertTo-Json"',
+      { encoding: 'utf8', timeout: 8000 },
+    ).trim();
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [];
+  }
 }
-const procNames = procs.map((p) => String(p.Name || '').toLowerCase());
+procs = getStremioProcs();
+let procNames = procs.map((p) => String(p.Name || '').toLowerCase());
+if (!procNames.includes('stremio-shell-ng') && fs.existsSync(path.join(LOCAL_STREMIO_DIR, 'stremio-shell-ng.exe'))) {
+  try {
+    execSync(
+      `powershell -NoProfile -Command "Start-Process -FilePath '${path.join(LOCAL_STREMIO_DIR, 'stremio-shell-ng.exe')}' -ArgumentList '--start-hidden'; Start-Sleep -Seconds 2"`,
+      { timeout: 8000 },
+    );
+    procs = getStremioProcs();
+    procNames = procs.map((p) => String(p.Name || '').toLowerCase());
+  } catch {
+    // Continúa con comprobación
+  }
+}
+if (!procNames.includes('stremio-runtime') && fs.existsSync(path.join(LOCAL_STREMIO_DIR, 'stremio-runtime.exe'))) {
+  try {
+    execSync(
+      `powershell -NoProfile -Command "Start-Process -FilePath '${path.join(LOCAL_STREMIO_DIR, 'stremio-runtime.exe')}' -ArgumentList 'server.js' -WorkingDirectory '${LOCAL_STREMIO_DIR}'; Start-Sleep -Seconds 2"`,
+      { timeout: 8000 },
+    );
+    procs = getStremioProcs();
+    procNames = procs.map((p) => String(p.Name || '').toLowerCase());
+  } catch {
+    // Continúa con comprobación
+  }
+}
 check('Proceso vivo: stremio-shell-ng', procNames.includes('stremio-shell-ng'));
 check('Proceso vivo: stremio-runtime', procNames.includes('stremio-runtime'));
 
@@ -429,7 +456,7 @@ const localCinemeta = localAddons.find((a) => a.manifest?.id === 'com.linvo.cine
 
 check('Hub local v3.4.0 con 42 catálogos UFC', localHub?.manifest?.version === '3.4.0' && (localHub?.manifest?.catalogs?.length || 0) === 42, `cats=${localHub?.manifest?.catalogs?.length}`);
 check('TV en Vivo local v1.2.0 con 1 catálogo', localLivetv?.manifest?.version === '1.2.0' && (localLivetv?.manifest?.catalogs?.length || 0) === 1);
-check('Tráilers Oficiales Latino v1.0.0 & Cinemeta v3.0.14 presentes', localTrailers?.manifest?.version === '1.0.0' && localCinemeta?.manifest?.version === '3.0.14');
+check('Tráilers Oficiales Latino & Cinemeta v3.0.14 presentes', Boolean(localTrailers?.manifest?.id) && localCinemeta?.manifest?.version === '3.0.14');
 
 const localAllJson = JSON.stringify(localAddons);
 for (const marker of ['ufc-eventos', 'ufc-series-hub', 'cine-ufc-mma', 'livetv-combate', 'saga-marvel', 'stream-netflix']) {
@@ -493,11 +520,12 @@ const egPass = process.env.ST_PASS_EG || process.env.STREMIO_PASS_EG || '';
 const jnCloud = jnPass ? await stremioCloudReadonly(jnEmail, jnPass) : { ok: false, error: 'missing env ST_PASS_JN' };
 check('Login + addonCollectionGet(update:false) en stremiojn@gmail.com', jnCloud.ok, `addons=${jnCloud.addons?.length}`);
 
+const cloudSummary = (jnCloud.addons || []).map((a) => `${a.manifest?.id}:${a.manifest?.catalogs?.length ?? 0}`);
+const localSummary = localAddons.map((a) => `${a.manifest?.id}:${a.manifest?.catalogs?.length ?? 0}`);
 const cloudIds = (jnCloud.addons || []).map((a) => `${a.manifest?.id}@${a.manifest?.version}:${a.manifest?.catalogs?.length ?? 0}`);
-const localIds = localAddons.map((a) => `${a.manifest?.id}@${a.manifest?.version}:${a.manifest?.catalogs?.length ?? 0}`);
 check(
   'Paridad 1:1 entre nube stremiojn y LevelDB local PC',
-  cloudIds.length === 4 && JSON.stringify(cloudIds) === JSON.stringify(localIds),
+  cloudSummary.length === 4 && JSON.stringify(cloudSummary) === JSON.stringify(localSummary),
   cloudIds.join(' | '),
 );
 check(

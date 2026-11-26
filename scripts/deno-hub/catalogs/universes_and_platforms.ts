@@ -966,14 +966,11 @@ export async function fetchCuratedCollectionUniverse(
 
   const badgeLabel = UNIVERSE_CONFIGS[universe].badgeLabel;
 
-  // Ordenar: recientes si sortRecent, o por popularidad descendente / fecha
+  // Ordenar: estrenos más nuevos a más antiguos por omisión (dB -> dA)
   const sorted = [...filtered].sort((a, b) => {
     const dA = String(a.release_date ?? a.first_air_date ?? "");
     const dB = String(b.release_date ?? b.first_air_date ?? "");
-    if (parsed.sortRecent) return dB.localeCompare(dA);
-    const popDiff = Number(b.popularity ?? 0) - Number(a.popularity ?? 0);
-    if (Math.abs(popDiff) > 0.1) return popDiff;
-    return dA.localeCompare(dB);
+    return dB.localeCompare(dA);
   });
 
   const metas: CuratedMetaItem[] = [];

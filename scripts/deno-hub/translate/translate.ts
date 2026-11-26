@@ -820,14 +820,17 @@ export async function handleTranslate(
 
     try {
       let baseCues: Cue[] = [];
+      let baseErr = "none";
       try {
         baseCues = await fetchBaseCues(src);
       } catch (err) {
-        console.warn(`[translate] Falló descarga de base (${src.t}): ${(err as Error).message}, usando fallback sintético`);
+        baseErr = (err as Error).message;
+        console.warn(`[translate] Falló descarga de base (${src.t}): ${baseErr}, usando fallback sintético`);
         baseCues = createSyntheticBaseCues(src.name);
       }
 
       if (!baseCues.length) {
+        baseErr = "empty_base_cues";
         baseCues = createSyntheticBaseCues(src.name);
       }
 
@@ -845,6 +848,8 @@ export async function handleTranslate(
             "X-Translate-FastWindow": "true",
             "X-Translate-Complete": "false",
             "X-Translate-Pending": "true",
+            "X-Translate-Base-Count": String(baseCues.length),
+            "X-Translate-Base-Err": baseErr,
           },
         });
       }

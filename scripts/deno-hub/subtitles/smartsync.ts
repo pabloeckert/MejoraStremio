@@ -37,7 +37,7 @@ export const EUROPEAN_SHOW_IDS = new Set([
 export function isEuropeanShowOrContext(imdbId?: string | null, name?: string | null): boolean {
   if (imdbId && EUROPEAN_SHOW_IDS.has(imdbId)) return true;
   if (!name) return false;
-  return /\b(hpi|aci|candice[\s._-]*renoir|balthazar|tatort|ludwig|tf1|ard|zdf|orf|bbc|itv|channel4|rte|french|deutsch|german)\b/i.test(name);
+  return /\b(hpi|aci|candice[\s._-]*renoir|balthazar|tatort|ludwig|tf1|france[\s._-]*[2345]|m6|canal\+|arte|ard|zdf|orf|bbc|itv|channel[\s._-]*4|rte|rai|rtve|atresplayer|movistar|french|vostfr|truefrench|deutsch|german|italian|swedish|danish|norwegian|dutch|european)\b/i.test(name);
 }
 
 export interface FramerateInfo {

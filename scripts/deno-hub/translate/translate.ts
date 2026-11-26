@@ -820,38 +820,22 @@ export async function handleTranslate(
 
     try {
       let baseCues: Cue[] = [];
-      let baseErr = "none";
       try {
         baseCues = await fetchBaseCues(src);
       } catch (err) {
-        baseErr = (err as Error).message;
-        console.warn(`[translate] Falló descarga de base (${src.t}): ${baseErr}, usando fallback sintético`);
-        baseCues = createSyntheticBaseCues(src.name);
+        console.warn(`[translate] Falló descarga de base (${src.t}): ${(err as Error).message}`);
+        return new Response("", { status: 404, headers: cors });
       }
 
       if (!baseCues.length) {
-        baseErr = "empty_base_cues";
-        baseCues = createSyntheticBaseCues(src.name);
+        return new Response("", { status: 404, headers: cors });
       }
 
       const sysPrompt = buildTranslateSystemPrompt(src.name || "Contenido Audiovisual", src.lang || "en");
       const { texts, done, batch0Ok } = await translateCues(baseCues, src.r, kv, Date.now() + FAST_WINDOW_BUDGET_MS, sysPrompt);
       if (!batch0Ok) {
-        console.warn(`[translate] Batch 0 no pudo traducirse en el presupuesto de FastWindow (${src.r}), entregando fallback informativo`);
-        const synthCues = createSyntheticBaseCues(src.name);
-        const srt = cleanSrt(serializeSrt(synthCues));
-        return new Response(srt, {
-          headers: {
-            ...cors,
-            "Content-Type": "text/plain; charset=utf-8",
-            "Content-Disposition": 'attachment; filename="es-latino.srt"',
-            "X-Translate-FastWindow": "true",
-            "X-Translate-Complete": "false",
-            "X-Translate-Pending": "true",
-            "X-Translate-Base-Count": String(baseCues.length),
-            "X-Translate-Base-Err": baseErr,
-          },
-        });
+        console.warn(`[translate] Batch 0 no pudo traducirse en FastWindow (${src.r})`);
+        return new Response("", { status: 404, headers: cors });
       }
       const outCues = baseCues
         .map((c, i) => ({ ...c, text: texts[i] }))

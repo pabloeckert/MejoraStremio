@@ -31,12 +31,13 @@ export const EUROPEAN_SHOW_IDS = new Set([
   "tt5094068",  // Einstein
   "tt6839788",  // Dogs of Berlin
   "tt18827746", // Passenger
+  "tt2887954",  // Candice Renoir
 ]);
 
 export function isEuropeanShowOrContext(imdbId?: string | null, name?: string | null): boolean {
   if (imdbId && EUROPEAN_SHOW_IDS.has(imdbId)) return true;
   if (!name) return false;
-  return /\b(hpi|aci|balthazar|tatort|ludwig|tf1|ard|zdf|orf|bbc|itv|channel4|rte|french|deutsch|german)\b/i.test(name);
+  return /\b(hpi|aci|candice[\s._-]*renoir|balthazar|tatort|ludwig|tf1|ard|zdf|orf|bbc|itv|channel4|rte|french|deutsch|german)\b/i.test(name);
 }
 
 export interface FramerateInfo {

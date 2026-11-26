@@ -397,14 +397,13 @@ export async function fetchBaseCues(src: {
     if (src.id && SUBDL_KEY) {
       const subdlList = await fetchSubdlSubs(
         src.id,
-        src.s ? "series" : "movie",
-        src.s || undefined,
-        src.ep || undefined,
-        ["EN", "ES"],
+        src.s || null,
+        src.ep || null,
+        "EN",
       ).catch(() => []);
       for (const candidate of subdlList.slice(0, 3)) {
-        if (!candidate.url) continue;
-        const srt = await downloadSubdlSrt(candidate.url).catch(() => null);
+        if (!candidate.subdlPath) continue;
+        const srt = await downloadSubdlSrt(candidate.subdlPath).catch(() => null);
         if (srt && srt.length > 500) {
           return parseSrt(srt);
         }

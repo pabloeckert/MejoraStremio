@@ -70,7 +70,7 @@ export const TRANSLATE_MANIFEST = {
 };
 
 export const TRANSLATE_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
-export const FAST_WINDOW_BUDGET_MS = 4000;
+export const FAST_WINDOW_BUDGET_MS = 15000;
 export const FAST_WINDOW_CUES = 70; // Fast-Window cinematográfica (<4s con thinkingBudget: 0)
 export const TRANSLATE_BATCH = 100;
 export const TRANSLATE_PARALLEL = 3;

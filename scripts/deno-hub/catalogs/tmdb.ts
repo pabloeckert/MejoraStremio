@@ -1038,12 +1038,12 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
     }
   }
 
-  // 2. Revisar caché de página en L2 (Deno KV catalog_v5_live)
+  // 2. Revisar caché de página en L2 (Deno KV catalog_v6_live)
   const kv = await safeGetKv();
   if (kv) {
     try {
       // deno-lint-ignore no-explicit-any
-      const kvPage = await kv.get<any[]>(["catalog_v5_live", type, pageCacheKey]);
+      const kvPage = await kv.get<any[]>(["catalog_v6_live", type, pageCacheKey]);
       if (kvPage?.value && Array.isArray(kvPage.value)) {
         discoverPageLruCache.set(pageCacheKey, { metas: kvPage.value, cachedAt: Date.now(), isFresh });
         return jsonResponse({ metas: kvPage.value });
@@ -1106,7 +1106,7 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       if (metas.length > 0) {
         discoverPageLruCache.set(pageCacheKey, { metas, cachedAt: Date.now(), isFresh });
         if (kv) {
-          kv.set(["catalog_v5_live", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
+          kv.set(["catalog_v6_live", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
         }
       }
       return jsonResponse({ metas });
@@ -1515,11 +1515,11 @@ export async function handleDiscover(subPath: string, url: URL): Promise<Respons
       metas = merged.slice(0, PAGE_SIZE);
     }
 
-    // Guardar en caché L1 y L2 (catalog_v5_live) con TTL de refresco dinámico
+    // Guardar en caché L1 y L2 (catalog_v6_live) con TTL de refresco dinámico
     if (metas.length > 0) {
       discoverPageLruCache.set(pageCacheKey, { metas, cachedAt: Date.now(), isFresh });
       if (kv) {
-        kv.set(["catalog_v5_live", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
+        kv.set(["catalog_v6_live", type, pageCacheKey], metas, { expireIn: dynamicKvTtl }).catch(() => {});
       }
     }
 

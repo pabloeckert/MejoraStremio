@@ -364,6 +364,10 @@ export async function fetchBaseCues(src: {
   u?: string;
   f?: number;
   name?: string;
+  id?: string;
+  s?: number;
+  ep?: number;
+  lang?: string;
 }): Promise<Cue[]> {
   if (src.t === "synthetic") {
     return createSyntheticBaseCues(src.name);
@@ -374,16 +378,39 @@ export async function fetchBaseCues(src: {
     return parseEbuTt(await r.text());
   }
   if (src.t === "os" && src.f) {
-    const dl = await fetch(`${OPENSUBTITLES_API}/download`, {
-      method: "POST",
-      headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA, "Content-Type": "application/json" },
-      body: JSON.stringify({ file_id: src.f }),
-      signal: AbortSignal.timeout(15000),
-    }).then((x) => x.json());
-    if (!dl?.link) throw new Error("base OS sin link");
-    const r = await fetch(dl.link, { signal: AbortSignal.timeout(20000) });
-    if (!r.ok) throw new Error(`base OS dl ${r.status}`);
-    return parseSrt(decodeSubtitleText(new Uint8Array(await r.arrayBuffer())));
+    try {
+      const dl = await fetch(`${OPENSUBTITLES_API}/download`, {
+        method: "POST",
+        headers: { "Api-Key": OPENSUBTITLES_API_KEY, "User-Agent": OPENSUBTITLES_UA, "Content-Type": "application/json" },
+        body: JSON.stringify({ file_id: src.f }),
+        signal: AbortSignal.timeout(15000),
+      }).then((x) => x.json());
+      if (dl?.link) {
+        const r = await fetch(dl.link, { signal: AbortSignal.timeout(20000) });
+        if (r.ok) {
+          return parseSrt(decodeSubtitleText(new Uint8Array(await r.arrayBuffer())));
+        }
+      }
+    } catch {
+      // Fallback a SubDL abajo
+    }
+    if (src.id && SUBDL_KEY) {
+      const subdlList = await fetchSubdlSubs(
+        src.id,
+        src.s ? "series" : "movie",
+        src.s || undefined,
+        src.ep || undefined,
+        ["EN", "ES"],
+      ).catch(() => []);
+      for (const candidate of subdlList.slice(0, 3)) {
+        if (!candidate.url) continue;
+        const srt = await downloadSubdlSrt(candidate.url).catch(() => null);
+        if (srt && srt.length > 500) {
+          return parseSrt(srt);
+        }
+      }
+    }
+    throw new Error("base OS sin link y sin fallback SubDL");
   }
   if (src.t === "subdl" && src.u) {
     const srt = await downloadSubdlSrt(src.u);

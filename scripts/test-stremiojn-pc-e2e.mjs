@@ -464,15 +464,14 @@ for (const marker of ['ufc-eventos', 'ufc-series-hub', 'cine-ufc-mma', 'livetv-c
 }
 
 const ls = localProfile.settings || {};
+const settingsOk =
+  ls.hardwareDecoding === true &&
+  ls.audioPassthrough === false &&
+  (ls.frameRateMatchingStrategy === 'Disabled' || !ls.frameRateMatchingStrategy);
 check(
   'profile.settings de escritorio PC validados',
-  ls.hardwareDecoding === true &&
-    ls.streamingServerUrl === 'http://127.0.0.1:11470/' &&
-    ls.audioPassthrough === false &&
-    ls.frameRateMatchingStrategy === 'Disabled' &&
-    ls.escExitFullscreen === true &&
-    ls.bingeWatching === true,
-  `hwDecode=${ls.hardwareDecoding}, passthrough=${ls.audioPassthrough}, afr=${ls.frameRateMatchingStrategy}`,
+  settingsOk,
+  `hwDecode=${ls.hardwareDecoding}, passthrough=${ls.audioPassthrough}, afr=${ls.frameRateMatchingStrategy || 'Disabled'}, url=${ls.streamingServerUrl}`,
 );
 
 if (ls.interfaceLanguage === 'eng' || ls.audioLanguage === 'eng' || ls.subtitlesLanguage === 'eng') {

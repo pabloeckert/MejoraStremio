@@ -1,16 +1,16 @@
 {
-  "lastRun": "2026-11-25T22:53:09.741Z",
+  "lastRun": "2026-11-26T22:44:33.715Z",
   "addons": {
     "torrentio": {
       "name": "Torrentio",
       "repo": "TheBeastLT/torrentio-scraper",
       "category": "Streams",
-      "version": "commit-89fa3ab",
+      "version": "commit-4c27553",
       "sourceType": "commit",
-      "publishedAt": "2026-11-11T15:43:18Z",
-      "url": "https://github.com/TheBeastLT/torrentio-scraper/commit/89fa3ab195a0ea70a49b655a2a1c6583fe2658b0",
+      "publishedAt": "2026-11-26T07:28:29Z",
+      "url": "https://github.com/TheBeastLT/torrentio-scraper/commit/4c27553ad72fb195b93dae09c499d4cfca0ae453",
       "manifestVersion": "0.0.15",
-      "lastChecked": "2026-11-25T22:53:04.536Z"
+      "lastChecked": "2026-11-26T22:44:27.161Z"
     },
     "comet": {
       "name": "Comet",
@@ -21,7 +21,7 @@
       "publishedAt": "2026-11-18T10:37:37Z",
       "url": "https://github.com/g0ldyy/comet/releases/tag/v2.59.0",
       "manifestVersion": "2.0.0",
-      "lastChecked": "2026-11-25T22:53:05.107Z"
+      "lastChecked": "2026-11-26T22:44:28.415Z"
     },
     "mediafusion": {
       "name": "MediaFusion",
@@ -32,7 +32,7 @@
       "publishedAt": "2026-10-24T15:07:39Z",
       "url": "https://github.com/mhdzumair/MediaFusion/releases/tag/6.2.0",
       "manifestVersion": "6.2.0",
-      "lastChecked": "2026-11-25T22:53:05.706Z"
+      "lastChecked": "2026-11-26T22:44:29.128Z"
     },
     "aiostreams": {
       "name": "AIOStreams",
@@ -43,7 +43,7 @@
       "publishedAt": "2026-11-14T23:45:08Z",
       "url": "https://github.com/Viren070/AIOStreams/releases/tag/v2.38.1",
       "manifestVersion": null,
-      "lastChecked": "2026-11-25T22:53:06.068Z"
+      "lastChecked": "2026-11-26T22:44:29.542Z"
     },
     "stremthru": {
       "name": "StremThru",
@@ -54,7 +54,7 @@
       "publishedAt": "2026-10-25T07:13:53Z",
       "url": "https://github.com/MunifTanjim/stremthru/releases/tag/0.105.4",
       "manifestVersion": null,
-      "lastChecked": "2026-11-25T22:53:06.439Z"
+      "lastChecked": "2026-11-26T22:44:29.989Z"
     },
     "jackettio": {
       "name": "Jackettio",
@@ -65,7 +65,7 @@
       "publishedAt": "2024-11-28T07:28:30Z",
       "url": "https://github.com/arvida42/jackettio/releases/tag/v1.7.0",
       "manifestVersion": null,
-      "lastChecked": "2026-11-25T22:53:06.813Z"
+      "lastChecked": "2026-11-26T22:44:30.423Z"
     },
     "stremio-jackett": {
       "name": "Stremio-Jackett",
@@ -76,7 +76,7 @@
       "publishedAt": "2025-12-03T19:15:18Z",
       "url": "https://github.com/aymene69/stremio-jackett/releases/tag/v4.2.7",
       "manifestVersion": null,
-      "lastChecked": "2026-11-25T22:53:07.173Z"
+      "lastChecked": "2026-11-26T22:44:30.847Z"
     },
     "aiometadata": {
       "name": "AIOMetadata",
@@ -87,7 +87,7 @@
       "publishedAt": "2026-11-18T04:50:49Z",
       "url": "https://github.com/cedya77/aiometadata/releases/tag/v4.1.0",
       "manifestVersion": null,
-      "lastChecked": "2026-11-25T22:53:07.552Z"
+      "lastChecked": "2026-11-26T22:44:31.305Z"
     },
     "stremio-official-addons": {
       "name": "Stremio Official Addons",
@@ -98,7 +98,7 @@
       "publishedAt": "2026-01-12T19:27:17Z",
       "url": "https://github.com/Stremio/stremio-official-addons/releases/tag/v2.1.2",
       "manifestVersion": null,
-      "lastChecked": "2026-11-25T22:53:07.928Z"
+      "lastChecked": "2026-11-26T22:44:31.722Z"
     },
     "subsense": {
       "name": "SubSense",
@@ -109,7 +109,7 @@
       "publishedAt": "2026-11-09T03:11:27Z",
       "url": "https://github.com/NepiRaw/Stremio-SubSense/releases/tag/v2.4.3",
       "manifestVersion": null,
-      "lastChecked": "2026-11-25T22:53:08.324Z"
+      "lastChecked": "2026-11-26T22:44:32.162Z"
     },
     "submaker": {
       "name": "StremioSubMaker",
@@ -120,7 +120,7 @@
       "publishedAt": "2026-11-15T22:18:31Z",
       "url": "https://github.com/xtremexq/StremioSubMaker/releases/tag/v1.4.98",
       "manifestVersion": null,
-      "lastChecked": "2026-11-25T22:53:08.700Z"
+      "lastChecked": "2026-11-26T22:44:32.593Z"
     },
     "community-subtitles": {
       "name": "Stremio Community Subtitles",
@@ -131,7 +131,7 @@
       "publishedAt": "2026-10-29T14:57:33Z",
       "url": "https://github.com/skoruppa/stremio-community-subtitles/releases/tag/v0.8.8",
       "manifestVersion": null,
-      "lastChecked": "2026-11-25T22:53:09.094Z"
+      "lastChecked": "2026-11-26T22:44:33.018Z"
     },
     "stremio-web": {
       "name": "Stremio Web",
@@ -142,7 +142,7 @@
       "publishedAt": "2026-11-19T15:46:12Z",
       "url": "https://github.com/Stremio/stremio-web/releases/tag/v5.2.0",
       "manifestVersion": null,
-      "lastChecked": "2026-11-25T22:53:09.490Z"
+      "lastChecked": "2026-11-26T22:44:33.464Z"
     }
   }
 }

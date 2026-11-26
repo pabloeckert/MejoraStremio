@@ -781,12 +781,12 @@ export async function handleTranslate(
         if (!cachedSub?.srt && subCacheParams.lang !== "spa") {
           cachedSub = await getCachedSub(kv, { ...subCacheParams, lang: "spa" });
         }
-        if (cachedSub?.srt) {
+        if (cachedSub?.srt && !(cachedSub.srt.length < 600 && cachedSub.srt.includes("Canal Universal de Traducción"))) {
           return new Response(cachedSub.srt, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
         }
         // Fallback a clave legacy/comprimida si existe
         const hit = await getCompressedKvText(kv, cacheKey);
-        if (hit) {
+        if (hit && !(hit.length < 600 && hit.includes("Canal Universal de Traducción"))) {
           return new Response(hit, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
         }
       }
